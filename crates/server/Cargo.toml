@@ -1,0 +1,33 @@
+[package]
+name = "gate-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gate server - A modern, lightweight NAT traversal server"
+
+[dependencies]
+gate-shared = { path = "../shared" }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+bytes.workspace = true
+parking_lot.workspace = true
+dashmap.workspace = true
+futures.workspace = true
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "postgres", "uuid", "chrono"] }
+argon2 = "0.5"
+jsonwebtoken = "9"
+toml = "0.8"
+dotenvy = "0.15"
+tls = { package = "rustls", version = "0.23" }
+tokio-tungstenite = "0.24"
+url = "2"

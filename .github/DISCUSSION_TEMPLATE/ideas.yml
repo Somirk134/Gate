@@ -1,0 +1,17 @@
+title: "Ideas"
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share your ideas for improving Gate!
+  - type: textarea
+    attributes:
+      label: Idea
+      description: Describe your idea in detail
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Benefits
+      description: How would this idea benefit the project?

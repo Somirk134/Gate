@@ -1,0 +1,17 @@
+title: "Show and Tell"
+labels: ["show-and-tell"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share what you've built with Gate!
+  - type: textarea
+    attributes:
+      label: What did you build?
+      description: Describe your project or setup
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: Share screenshots or links

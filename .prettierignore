@@ -1,0 +1,13 @@
+target/
+node_modules/
+dist/
+*.lock
+*.generated.*
+**/*.svg
+**/*.ico
+**/*.png
+**/*.jpg
+**/*.woff
+**/*.woff2
+coverage/
+CHANGELOG.md
