@@ -95,12 +95,14 @@
 import { ref, reactive, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useLocaleSwitcher } from "@composables/useLocaleSwitcher"
+import { useConfiguration } from "@composables/useConfiguration"
 
 const { t } = useI18n()
 const { locale, locales } = useLocaleSwitcher()
+const configuration = useConfiguration()
 
 watch(locale, (val) => {
-    localStorage.setItem('locale', val)
+    configuration.set('locale', val)
 })
 
 const activeSection = ref("general")

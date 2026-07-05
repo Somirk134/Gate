@@ -32,12 +32,7 @@ export interface CommandItem {
   keywords?: string[]
 }
 
-export type CommandCategory =
-  | 'navigation'
-  | 'action'
-  | 'search'
-  | 'settings'
-  | 'help'
+export type CommandCategory = string
 
 // ── Inspector ──
 export interface InspectorTab {

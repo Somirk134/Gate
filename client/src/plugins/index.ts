@@ -1,4 +1,8 @@
-// TODO: register custom plugins
+export * from "./PluginAPI"
+export * from "./PluginManager"
+export * from "./PluginRegistry"
+export * from "./lifecycle/PluginLifecycle"
+
 export function registerPlugins(_app: unknown) {
-    // placeholder
+  return undefined
 }

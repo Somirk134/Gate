@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { tryGetApplicationContext } from '@/providers/appContext'
+import { THEME_SERVICE } from '@/services/tokens'
 
 export type ThemeMode = 'dark' | 'light' | 'auto'
 
@@ -7,6 +9,7 @@ export const useThemeStore = defineStore('theme', () => {
     // === State ===
     const mode = ref<ThemeMode>('dark')
     const systemPrefersDark = ref(false)
+    let unsubscribeThemeChanged: (() => void) | null = null
 
     // === Getters ===
     const effectiveTheme = computed<'light' | 'dark'>(() => {
@@ -22,8 +25,16 @@ export const useThemeStore = defineStore('theme', () => {
 
     // === Actions ===
     function setTheme(newMode: ThemeMode) {
+        const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
+
+        if (service) {
+            service.setTheme(newMode)
+            syncFromService()
+            return
+        }
+
         mode.value = newMode
-        persist()
+        syncSystemPreference()
     }
 
     function toggleTheme() {
@@ -33,15 +44,13 @@ export const useThemeStore = defineStore('theme', () => {
     }
 
     function initTheme() {
-        const saved = localStorage.getItem('gate-theme') as ThemeMode | null
-        if (saved && ['dark', 'light', 'auto'].includes(saved)) {
-            mode.value = saved
-        }
-        syncSystemPreference()
-        if (typeof window !== 'undefined') {
-            const mql = window.matchMedia('(prefers-color-scheme: dark)')
-            mql.addEventListener?.('change', (e) => {
-                systemPrefersDark.value = e.matches
+        syncFromService()
+
+        const context = tryGetApplicationContext()
+
+        if (context && !unsubscribeThemeChanged) {
+            unsubscribeThemeChanged = context.events.subscribe("theme:changed", () => {
+                syncFromService()
             })
         }
     }
@@ -52,8 +61,17 @@ export const useThemeStore = defineStore('theme', () => {
         }
     }
 
-    function persist() {
-        localStorage.setItem('gate-theme', mode.value)
+    function syncFromService() {
+        const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
+
+        if (!service) {
+            syncSystemPreference()
+            return
+        }
+
+        const state = service.getState()
+        mode.value = state.mode
+        systemPrefersDark.value = state.systemPrefersDark
     }
 
     return {
