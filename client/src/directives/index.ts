@@ -1,5 +1,4 @@
-import type { App } from 'vue'
-
-export function registerDirectives(app: App) {
-    todo
+// TODO: register custom directives
+export function registerDirectives(_app: unknown) {
+    // placeholder
 }

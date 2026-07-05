@@ -14,7 +14,7 @@ export const useConnectionStore = defineStore('connection', () => {
 
     async function fetchConnections() {
         loading.value = true
-        todo
+        // TODO: fetch from API
         loading.value = false
     }
 

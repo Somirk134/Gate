@@ -3,12 +3,12 @@ import { useTunnelStore } from '@stores'
 export function useTunnel() {
     const tunnelStore = useTunnelStore()
 
-    function createTunnel(localPort: number, remotePort: number, protocol: string) {
-        todo
+    function createTunnel(_localPort: number, _remotePort: number, _protocol: string) {
+        // TODO: implement
     }
 
-    function deleteTunnel(id: string) {
-        todo
+    function deleteTunnel(_id: string) {
+        // TODO: implement
     }
 
     return {

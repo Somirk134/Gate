@@ -1,0 +1,172 @@
+/* ==================================================================
+   Dashboard 样式
+   ------------------------------------------------------------------
+   Dashboard 页面的网格布局与区块动画。
+   颜色/间距/圆角等一律引用 tokens.css 变量，不硬编码。
+   ================================================================== */
+
+/* ── 页面根容器 ── */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── 区块通用 ── */
+.dashboard-section {
+  animation: g-slide-in-up var(--duration-slow) var(--ease-out) both;
+}
+
+.dashboard-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.dashboard-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.dashboard-section__title-icon {
+  color: var(--text-tertiary);
+}
+
+.dashboard-section__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+  background: none;
+  border: none;
+  font-family: var(--font-ui);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.dashboard-section__more:hover {
+  color: var(--color-primary);
+}
+
+/* ── 滚动揭示动画 ── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.scroll-reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 卡片悬停抬升 ── */
+.dashboard-card-lift {
+  transition: transform var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
+}
+
+.dashboard-card-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* ── Grid 区域 ── */
+.dashboard-grid--stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.dashboard-grid--actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.dashboard-grid--projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard-grid--tunnels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard-grid--servers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard-grid--bottom {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
+}
+
+.dashboard-grid--system {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 980px) {
+  .dashboard-grid--bottom,
+  .dashboard-grid--system {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 交错入场延迟 ── */
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 240ms; }
+
+/* ── Footer ── */
+.dashboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.dashboard-footer__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.dashboard-footer__link {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.dashboard-footer__link:hover {
+  color: var(--text-secondary);
+}

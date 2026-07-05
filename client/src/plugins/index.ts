@@ -1,5 +1,4 @@
-import type { App } from 'vue'
-
-export function registerPlugins(app: App) {
-    todo
+// TODO: register custom plugins
+export function registerPlugins(_app: unknown) {
+    // placeholder
 }

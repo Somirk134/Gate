@@ -1,17 +1,17 @@
 <template>
-    <n-card title="Register" style="max-width: 400px; margin: 100px auto">
+    <n-card :title="t('auth.register')" style="max-width: 400px; margin: 100px auto">
         <n-form>
-            <n-form-item label="Username">
+            <n-form-item :label="t('auth.username')">
                 <n-input v-model:value="form.username" />
             </n-form-item>
-            <n-form-item label="Email">
+            <n-form-item :label="t('auth.email')">
                 <n-input v-model:value="form.email" />
             </n-form-item>
-            <n-form-item label="Password">
+            <n-form-item :label="t('auth.password')">
                 <n-input v-model:value="form.password" type="password" />
             </n-form-item>
             <n-form-item>
-                <n-button type="primary" block @click="handleRegister">Register</n-button>
+                <n-button type="primary" block @click="handleRegister">{{ t('auth.register') }}</n-button>
             </n-form-item>
         </n-form>
     </n-card>
@@ -19,6 +19,9 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const form = reactive({
     username: '',
@@ -27,6 +30,6 @@ const form = reactive({
 })
 
 function handleRegister() {
-    todo
+    // TODO: implement register
 }
 </script>

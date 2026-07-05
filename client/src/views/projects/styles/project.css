@@ -1,0 +1,369 @@
+/* ==================================================================
+   Project 模块样式
+   ------------------------------------------------------------------
+   列表页 / 详情页的网格布局、卡片抬升、区块动画。
+   颜色/间距/圆角一律引用 tokens.css 变量，不硬编码。
+   ================================================================== */
+
+/* ── 列表页根容器 ── */
+.projects-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── 页面标题区 ── */
+.projects-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.projects-page__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  letter-spacing: var(--tracking-tight);
+}
+
+.projects-page__subtitle {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── 工具栏 ── */
+.projects-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.projects-toolbar__search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+.projects-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── 分段筛选 ── */
+.projects-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.projects-segment__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.projects-segment__item:hover {
+  color: var(--text-secondary);
+}
+
+.projects-segment__item--active {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.projects-segment__count {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-segment__item--active .projects-segment__count {
+  color: var(--color-primary);
+}
+
+/* ── 项目网格 ── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--space-4);
+  align-content: start;
+}
+
+/* ── 结果计数 ── */
+.projects-result-count {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   详情页
+   ============================================================ */
+.project-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  height: 100%;
+}
+
+/* ── 详情页主布局：左 Tunnel + 右 Inspector ── */
+.project-detail-body {
+  display: flex;
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+
+.project-detail-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.project-detail-aside {
+  width: var(--inspector-width);
+  flex-shrink: 0;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+}
+
+/* ── Tunnel 网格 ── */
+.project-tunnel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+  align-content: start;
+}
+
+/* ── 统计网格 ── */
+.project-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ── 区块标题 ── */
+.project-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.project-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.project-section__title-icon {
+  color: var(--text-tertiary);
+}
+
+/* ── 滚动揭示 ── */
+.project-fade-in {
+  animation: g-slide-in-up var(--duration-base) var(--ease-out) both;
+}
+
+/* ── 颜色选择器网格 ── */
+.project-color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-2);
+}
+
+.project-color-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.project-color-swatch:hover {
+  transform: scale(1.08);
+}
+
+.project-color-swatch--active {
+  border-color: var(--text-primary);
+}
+
+.project-color-swatch__dot {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+}
+
+/* ── 图标选择器网格 ── */
+.project-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-1);
+  max-height: 180px;
+  overflow-y: auto;
+  padding: var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.project-icon-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.project-icon-cell:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.project-icon-cell--active {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ── 标签输入 chips ── */
+.project-tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-md);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.project-tag-input--focused {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.project-tag-input__field {
+  flex: 1;
+  min-width: 80px;
+  height: 26px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+
+.project-tag-input__field::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ── 标签 chip（预置建议） ── */
+.project-tag-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.project-tag-suggest__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-tag);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.project-tag-suggest__chip:hover {
+  color: var(--text-primary);
+  border-color: var(--color-border-strong);
+  border-style: solid;
+}
+
+/* ── Toggle 开关 ── */
+.project-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.project-toggle--on {
+  background: var(--color-primary);
+}
+
+.project-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.project-toggle--on .project-toggle__thumb {
+  transform: translateX(16px);
+}

@@ -30,9 +30,15 @@ Thumbs.db
 
 # Logs
 *.log
+client/*_out*.txt
+client/vite_output.txt
 
 # Generated
 **/*.generated.*
+
+# Local scratch files
+*.bak
+client/.tmp/
 
 # Database
 *.db

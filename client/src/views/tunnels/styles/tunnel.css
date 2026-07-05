@@ -1,0 +1,1269 @@
+/* ==================================================================
+   Tunnel 模块样式
+   ------------------------------------------------------------------
+   Docker Desktop 风格三栏工作区：左 Tunnel List / 中 Workspace / 右 Inspector
+   颜色/间距/圆角一律引用 tokens.css 变量，不硬编码。
+   动画复用 animations.css，不新增风格。
+   ================================================================== */
+
+/* ============================================================
+   列表页 —— 三栏工作区
+   ============================================================ */
+.tunnels-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 三栏主体 */
+.tunnels-workspace {
+  display: grid;
+  grid-template-columns: var(--tunnel-list-width) 1fr var(--inspector-width);
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.tunnels-workspace--collapsed {
+  grid-template-columns: var(--tunnel-list-collapsed-width) 1fr var(--inspector-width);
+}
+
+/* ── 左栏：隧道列表 ── */
+.tunnel-list-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* ── 中栏：工作区 ── */
+.tunnel-workspace-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* ── 右栏：Inspector ── */
+.tunnel-inspector-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* ── 面板通用头部 ── */
+.tunnel-pane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.tunnel-pane__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.tunnel-pane__title-icon {
+  color: var(--text-tertiary);
+}
+
+.tunnel-pane__body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ============================================================
+   左栏：搜索 / 筛选 / 列表
+   ============================================================ */
+.tunnel-list__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.tunnel-list__items {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.tunnel-list__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   隧道行（左栏列表项）
+   ============================================================ */
+.tunnel-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-row:hover {
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-row--active {
+  background: var(--color-primary-muted);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.tunnel-row__bar {
+  width: 3px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.tunnel-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--tunnel-color-muted);
+  color: var(--tunnel-color);
+  flex-shrink: 0;
+}
+
+.tunnel-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tunnel-row__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tunnel-row__addr {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tunnel-row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   中栏：工作区标签页
+   ============================================================ */
+.tunnel-workspace__tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.tunnel-workspace__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom: 2px solid transparent;
+  transition: color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-workspace__tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-workspace__tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tunnel-workspace__content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--space-4);
+}
+
+/* ============================================================
+   详情头部（中栏顶部）
+   ============================================================ */
+.tunnel-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.tunnel-detail-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.tunnel-detail-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--tunnel-color-muted);
+  color: var(--tunnel-color);
+  flex-shrink: 0;
+}
+
+.tunnel-detail-header__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.tunnel-detail-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tunnel-detail-header__name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tunnel-detail-header__addr {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.tunnel-detail-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ── 指标条 ── */
+.tunnel-metric-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.tunnel-metric-bar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.tunnel-metric-bar__label {
+  color: var(--text-tertiary);
+}
+
+.tunnel-metric-bar__value {
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.tunnel-metric-bar__sep {
+  width: 1px;
+  height: 12px;
+  background: var(--color-border-subtle);
+}
+
+/* ============================================================
+   卡片网格（统计）
+   ============================================================ */
+.tunnel-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ============================================================
+   Overview 信息组
+   ============================================================ */
+.tunnel-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.tunnel-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.tunnel-info-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.tunnel-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.tunnel-info-row__label {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.tunnel-info-row__value {
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  text-align: right;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.tunnel-info-row__value.mono {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-xs);
+}
+
+.tunnel-info-row__value.copy {
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-info-row__value.copy:hover {
+  color: var(--color-primary);
+}
+
+/* ============================================================
+   Traffic 卡片
+   ============================================================ */
+.tunnel-traffic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.tunnel-traffic-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.tunnel-traffic-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tunnel-traffic-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.tunnel-traffic-card__label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.tunnel-traffic-card__value {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.tunnel-traffic-card__sub {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Mini Chart ── */
+.tunnel-mini-chart {
+  width: 100%;
+  height: 80px;
+  display: block;
+}
+
+/* ============================================================
+   Connection 列表
+   ============================================================ */
+.tunnel-conn-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tunnel-conn-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.8fr 0.8fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-conn-row:hover {
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-conn-row--head {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.tunnel-conn-row--head:hover {
+  background: transparent;
+}
+
+.tunnel-conn-row__cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tunnel-conn-row__cell.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   Logs —— IDE Console 风格
+   ============================================================ */
+.tunnel-logs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-statusbar);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tunnel-logs__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--bg-toolbar);
+  flex-shrink: 0;
+}
+
+.tunnel-logs__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
+.tunnel-log-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 1px var(--space-3);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-log-line:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tunnel-log-line__time {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tunnel-log-line__level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-xs);
+  font-weight: var(--weight-semibold);
+  font-size: 10px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.tunnel-log-line__source {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.tunnel-log-line__msg {
+  color: var(--text-secondary);
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* 日志等级颜色 */
+.tunnel-log-line__level--debug { background: rgba(107, 107, 114, 0.18); color: var(--text-tertiary); }
+.tunnel-log-line__level--info  { background: var(--color-info-muted); color: var(--color-info); }
+.tunnel-log-line__level--success { background: var(--color-success-muted); color: var(--color-success); }
+.tunnel-log-line__level--warn  { background: var(--color-warning-muted); color: var(--color-warning); }
+.tunnel-log-line__level--error { background: var(--color-error-muted); color: var(--color-error); }
+
+/* ============================================================
+   Settings 表单
+   ============================================================ */
+.tunnel-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 640px;
+}
+
+.tunnel-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tunnel-settings__row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tunnel-settings__row-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.tunnel-settings__row-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   分段筛选 / 下拉（复用 project 段控件风格）
+   ============================================================ */
+.tunnel-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tunnel-segment__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-segment__item:hover {
+  color: var(--text-secondary);
+}
+
+.tunnel-segment__item--active {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.tunnel-segment__count {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tunnel-segment__item--active .tunnel-segment__count {
+  color: var(--color-primary);
+}
+
+/* ── 排序选择 ── */
+.tunnel-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.tunnel-sort__select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tunnel-sort__select {
+  appearance: none;
+  height: var(--control-height-sm);
+  padding: 0 var(--space-6) 0 var(--space-3);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-sort__select:hover {
+  border-color: var(--color-border-strong);
+  color: var(--text-primary);
+}
+
+.tunnel-sort__chevron {
+  position: absolute;
+  right: var(--space-2);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* ============================================================
+   协议选择器
+   ============================================================ */
+.tunnel-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-2);
+}
+
+.tunnel-protocol-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-protocol-option:hover:not(.tunnel-protocol-option--disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-protocol-option--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
+
+.tunnel-protocol-option--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tunnel-protocol-option__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tunnel-protocol-option__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.tunnel-protocol-option__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.tunnel-protocol-option__desc {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: var(--leading-tight);
+}
+
+.tunnel-protocol-option__badge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+/* ============================================================
+   Tag chip（复用风格）
+   ============================================================ */
+.tunnel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-tag);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.tunnel-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-tag__remove:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── 标签输入 chips ── */
+.tunnel-tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-md);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-tag-input--focused {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.tunnel-tag-input__field {
+  flex: 1;
+  min-width: 80px;
+  height: 26px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+
+.tunnel-tag-input__field::placeholder {
+  color: var(--text-tertiary);
+}
+
+.tunnel-tag-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.tunnel-tag-suggest__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-tag);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-tag-suggest__chip:hover {
+  color: var(--text-primary);
+  border-color: var(--color-border-strong);
+  border-style: solid;
+}
+
+/* ============================================================
+   Toggle 开关（复用 project 风格）
+   ============================================================ */
+.tunnel-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-toggle--on {
+  background: var(--color-primary);
+}
+
+.tunnel-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.tunnel-toggle--on .tunnel-toggle__thumb {
+  transform: translateX(16px);
+}
+
+/* ============================================================
+   下拉选择（表单内）
+   ============================================================ */
+.tunnel-dialog__select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.tunnel-dialog__select {
+  appearance: none;
+  width: 100%;
+  height: var(--control-height-md);
+  padding: 0 var(--space-6) 0 var(--space-3);
+  background: var(--bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-input);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.tunnel-dialog__select:hover {
+  border-color: var(--color-border-strong);
+}
+
+.tunnel-dialog__select:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.tunnel-dialog__select-chevron {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* ============================================================
+   对话框
+   ============================================================ */
+.tunnel-dialog__overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+.tunnel-dialog {
+  width: 560px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-floating);
+  overflow: hidden;
+}
+
+.tunnel-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tunnel-dialog__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tunnel-dialog__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.tunnel-dialog__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.tunnel-dialog__subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.tunnel-dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tunnel-dialog__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.tunnel-dialog__row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tunnel-dialog__row-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.tunnel-dialog__row-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.tunnel-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* ── 端口行（本地端口 / 公网端口 并排） ── */
+.tunnel-port-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* ============================================================
+   空状态 / 骨架
+   ============================================================ */
+.tunnel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  animation: g-fade-in var(--duration-slow) var(--ease-out) both;
+  height: 100%;
+}
+
+.tunnel-empty__illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-3xl);
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+.tunnel-empty__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.tunnel-empty__desc {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  max-width: 360px;
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-2);
+}
+
+.tunnel-empty__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-5);
+}
+
+.tunnel-empty__action {
+  margin-top: var(--space-2);
+}
+
+/* ── 骨架 ── */
+.tunnel-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ============================================================
+   区块标题
+   ============================================================ */
+.tunnel-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.tunnel-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.tunnel-section__title-icon {
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   过渡
+   ============================================================ */
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+.dialog-pop-enter-active {
+  transition: transform var(--duration-slow) var(--ease-spring),
+    opacity var(--duration-base) var(--ease-out);
+}
+.dialog-pop-leave-active {
+  transition: transform var(--duration-fast) var(--ease-in),
+    opacity var(--duration-fast) var(--ease-in);
+}
+.dialog-pop-enter-from {
+  transform: scale(0.94) translateY(-8px);
+  opacity: 0;
+}
+.dialog-pop-leave-to {
+  transform: scale(0.96);
+  opacity: 0;
+}
+
+.card-actions-enter-active,
+.card-actions-leave-active {
+  transition: opacity var(--duration-fast) var(--ease-out),
+    max-height var(--duration-fast) var(--ease-out);
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.card-actions-enter-from,
+.card-actions-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+/* ── 滚动揭示 ── */
+.tunnel-fade-in {
+  animation: g-slide-in-up var(--duration-base) var(--ease-out) both;
+}
+
+/* ── 工作区空选中提示 ── */
+.tunnel-workspace__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-3);
+  color: var(--text-tertiary);
+}
+
+/* ── 布局变量覆盖入口 ── */
+.tunnels-page {
+  --tunnel-list-width: 280px;
+  --tunnel-list-collapsed-width: 0px;
+}

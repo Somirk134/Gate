@@ -1,20 +1,23 @@
 <template>
     <n-space vertical>
-        <n-h1>Connections</n-h1>
+        <n-h1>{{ t('connections.title') }}</n-h1>
         <n-data-table :columns="columns" :data="connections" :loading="loading" />
     </n-space>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const connections = ref([])
 
-const columns = [
-    { title: 'ID', key: 'id' },
-    { title: 'Client', key: 'clientId' },
-    { title: 'Remote Address', key: 'remoteAddr' },
-    { title: 'Connected At', key: 'connectedAt' },
-]
+const columns = computed(() => [
+    { title: t('common.details'), key: 'id' },
+    { title: t('connections.client'), key: 'clientId' },
+    { title: t('connections.remoteAddr'), key: 'remoteAddr' },
+    { title: t('connections.connectedAt'), key: 'connectedAt' },
+])
 </script>

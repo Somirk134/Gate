@@ -15,7 +15,7 @@ export const useTunnelStore = defineStore('tunnel', () => {
 
     async function fetchTunnels() {
         loading.value = true
-        todo
+        // TODO: fetch from API
         loading.value = false
     }
 

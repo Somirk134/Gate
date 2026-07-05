@@ -6,9 +6,14 @@ import { createI18n } from "vue-i18n"
 import App from "./App.vue"
 import routes from "./router"
 import "./styles/tokens.css"
+import "./styles/animations.css"
+import { designSystemPlugin } from "./plugins/designSystem"
 
 import en from "./locales/en"
 import zhCN from "./locales/zh-CN"
+
+const savedLocale = localStorage.getItem('locale')
+const defaultLocale = savedLocale || 'zh-CN'
 
 const app = createApp(App)
 
@@ -19,7 +24,7 @@ const router = createRouter({
 
 const i18n = createI18n({
     legacy: false,
-    locale: "en",
+    locale: defaultLocale,
     fallbackLocale: "en",
     messages: {
         en,
@@ -32,5 +37,6 @@ const pinia = createPinia()
 app.use(router)
 app.use(i18n)
 app.use(pinia)
+app.use(designSystemPlugin)
 
 app.mount("#app")
