@@ -1,35 +1,21 @@
 # Server Documentation
 
-## Purpose
+Server implementation documentation is reserved for future phases.
 
-Server documentation provides detailed information about the Gate server
-implementation, configuration, and operation.
+Current phase scope:
 
-## Contents
+- Cargo workspace and crate boundaries.
+- DDD + Clean Architecture directories.
+- Shared error, lifecycle, configuration, dependency injection, event bus, scheduler, health, and logging contracts.
+- Transport and infrastructure ports only.
 
-- **Configuration.md** — Server configuration reference
-- **Deployment.md** — Server deployment guide
-- **API.md** — REST API endpoint reference
-- **Database.md** — Database schema and migration guide
-- **Performance.md** — Performance tuning and benchmarks
-- **Monitoring.md** — Metrics, logging, and alerting
+Out of scope for this phase:
 
-## Architecture Layers
+- Business logic.
+- Tunnel implementation.
+- Forwarding.
+- Authentication.
+- Database integration.
+- HTTP API implementation.
 
-| Layer | Responsibility |
-|-------|---------------|
-| Transport | HTTP, WebSocket, TCP handler |
-| Application | Service orchestration and use cases |
-| Domain | Business logic and domain models |
-| Infrastructure | Database, cache, external integrations |
-
-## Why This Design
-
-The layered architecture with DDD patterns ensures that business logic is
-testable independently of infrastructure. The Axum web framework provides
-async-first, type-safe HTTP handling with excellent performance.
-
-## Extension
-
-Add new modules in their respective layers. Keep domain logic free of
-infrastructure dependencies. Document all new API endpoints.
+For the active server foundation, see `docs/Architecture.md`, `docs/Module.md`, `docs/ErrorHandling.md`, `docs/Lifecycle.md`, and `docs/CodingStyle.md`.

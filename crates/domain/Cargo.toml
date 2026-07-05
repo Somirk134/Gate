@@ -1,0 +1,13 @@
+[package]
+name = "gate-domain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gate domain model boundaries"
+
+[dependencies]
+gate-shared = { path = "../../shared" }
+serde.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true

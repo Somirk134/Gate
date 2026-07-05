@@ -2,8 +2,20 @@
 resolver = "2"
 members = [
     "client/src-tauri",
-    "crates/server",
-    "crates/shared",
+    "server",
+    "shared",
+    "crates/domain",
+    "crates/application",
+    "crates/infrastructure",
+    "crates/transport",
+]
+default-members = [
+    "server",
+    "shared",
+    "crates/domain",
+    "crates/application",
+    "crates/infrastructure",
+    "crates/transport",
 ]
 
 [workspace.package]
@@ -15,11 +27,14 @@ authors = ["Gate Contributors"]
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+axum = "0.7"
+tower = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 anyhow = "1"
 thiserror = "2"
+config = "0.14"
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 bytes = "1"

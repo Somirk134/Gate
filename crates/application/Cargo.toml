@@ -1,0 +1,11 @@
+[package]
+name = "gate-application"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gate application use-case boundaries"
+
+[dependencies]
+gate-domain = { path = "../domain" }
+gate-shared = { path = "../../shared" }
+thiserror.workspace = true

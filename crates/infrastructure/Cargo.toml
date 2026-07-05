@@ -1,0 +1,10 @@
+[package]
+name = "gate-infrastructure"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gate infrastructure port definitions"
+
+[dependencies]
+gate-shared = { path = "../../shared" }
+thiserror.workspace = true

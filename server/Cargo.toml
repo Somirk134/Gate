@@ -1,0 +1,16 @@
+[package]
+name = "gate-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gate server bootstrap crate"
+
+[dependencies]
+gate-application = { path = "../crates/application" }
+gate-domain = { path = "../crates/domain" }
+gate-infrastructure = { path = "../crates/infrastructure" }
+gate-shared = { path = "../shared" }
+gate-transport = { path = "../crates/transport" }
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
