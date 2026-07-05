@@ -8,6 +8,7 @@ members = [
     "crates/application",
     "crates/engine",
     "crates/infrastructure",
+    "crates/protocol",
     "crates/transport",
 ]
 default-members = [
@@ -17,6 +18,7 @@ default-members = [
     "crates/application",
     "crates/engine",
     "crates/infrastructure",
+    "crates/protocol",
     "crates/transport",
 ]
 

@@ -1,0 +1,33 @@
+{
+  "header": {
+    "protocol_version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    },
+    "message_type": "Request",
+    "command": "system.health",
+    "request_id": "00000000-0000-0000-0000-000000000001",
+    "trace_id": "00000000-0000-0000-0000-000000000002",
+    "timestamp": "2026-07-05T00:00:00Z",
+    "compression": "None",
+    "encryption": "None",
+    "sequence": 1,
+    "body_length": 18,
+    "reserved": {}
+  },
+  "body": {
+    "kind": "Json",
+    "value": {
+      "status": "probe"
+    }
+  },
+  "metadata": {
+    "client_version": "0.1.0",
+    "platform": "desktop",
+    "os": "windows",
+    "language": "en-US",
+    "architecture": "x86_64",
+    "extra": {}
+  }
+}

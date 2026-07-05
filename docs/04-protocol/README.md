@@ -1,13 +1,21 @@
 # Protocol Documentation
 
-Protocol documentation is reserved for a later phase.
+Gate Protocol is now defined as an independent protocol layer. It provides the
+client-server message contract, codec boundaries, packet/frame boundaries,
+version negotiation model, error model, and future extension points.
 
-Current phase constraints:
+## Documents
+
+- [Protocol](Protocol.md)
+- [Packet](Packet.md)
+- [Codec](Codec.md)
+- [Version](Version.md)
+- [Future](Future.md)
+
+## Current Phase Constraints
 
 - Do not implement Tunnel.
 - Do not implement forwarding.
-- Do not implement authentication.
-- Do not define a concrete wire protocol.
+- Do not implement authentication behavior.
 - Do not bind TCP, HTTP, WebSocket, or IPC behavior to business flows.
-
-For the active server foundation, see `docs/Architecture.md` and `docs/Module.md`.
+- Keep business payloads inside `Message { Header, Body, Metadata }`.
