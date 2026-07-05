@@ -1,0 +1,18 @@
+import type { Ref } from "vue"
+import type { LogItem } from "../types"
+import { downloadLogs, serializeLogs, type LogExportFormat } from "../utils"
+
+export function useLogExport(logs: Ref<LogItem[]>) {
+  function exportLogs(format: LogExportFormat): void {
+    downloadLogs(logs.value, format)
+  }
+
+  async function copyLogs(format: LogExportFormat): Promise<void> {
+    await navigator.clipboard.writeText(serializeLogs(logs.value, format))
+  }
+
+  return {
+    exportLogs,
+    copyLogs,
+  }
+}

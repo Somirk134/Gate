@@ -2,7 +2,7 @@
     <header class="app-header">
         <div class="header-left">
             <!-- Toggle Sidebar -->
-            <button class="header-btn" title="Toggle Sidebar" @click="layout.toggleSidebar">
+            <button class="header-btn" title="切换侧边栏" @click="layout.toggleSidebar">
                 <GIcon name="menu" :size="16" />
             </button>
 
@@ -23,28 +23,28 @@
 
         <div class="header-center">
             <!-- Page Title (optional) -->
-            <span class="page-title" v-if="navStore.pageTitle">{{ navStore.pageTitle }}</span>
+            <span class="page-title" v-if="pageTitle">{{ pageTitle }}</span>
         </div>
 
         <div class="header-right">
             <!-- Search Placeholder -->
             <button class="header-btn search-btn" @click="layout.openCommandPalette">
                 <GIcon name="search" :size="16" />
-                    <span class="search-label">Search</span>
+                    <span class="search-label">搜索</span>
                     <span class="search-shortcut">Ctrl K</span>
                 </button>
 
                 <!-- Quick Actions -->
-                <button class="header-btn" title="Toggle Inspector" @click="layout.toggleInspector">
+                <button class="header-btn" title="切换检查器" @click="layout.toggleInspector">
                     <GIcon name="panel-right-open" :size="16" />
                 </button>
 
-                <button class="header-btn" title="Toggle Theme" @click="themeStore.toggleTheme">
+                <button class="header-btn" title="切换主题" @click="themeStore.toggleTheme">
                     <GIcon :name="themeStore.isDark ? 'sun' : 'moon'" :size="16" />
                 </button>
 
                 <!-- Notification Placeholder -->
-                <button class="header-btn" title="Notifications">
+                <button class="header-btn" title="通知">
                     <GIcon name="bell" :size="16" />
                 <span class="notification-dot"></span>
             </button>
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useRouter, useRoute } from "vue-router"
+import { useI18n } from "vue-i18n"
 import { useLayoutStore, useNavigationStore, useThemeStore } from "@stores"
 import GIcon from "@components/icons/GIcon.vue"
 
@@ -63,13 +64,43 @@ const route = useRoute()
 const layout = useLayoutStore()
 const navStore = useNavigationStore()
 const themeStore = useThemeStore()
+const { t } = useI18n()
+
+const routeTitleMap: Record<string, string> = {
+    dashboard: "nav.dashboard",
+    projects: "nav.projects",
+    "project-detail": "nav.projects",
+    tunnels: "nav.tunnels",
+    "tunnel-detail": "nav.tunnels",
+    servers: "nav.servers",
+    "server-detail": "nav.servers",
+    logs: "nav.logs",
+    settings: "nav.settings",
+    about: "nav.about",
+}
+
+const routeSegmentMap: Record<string, string> = {
+    projects: "项目",
+    tunnels: "隧道",
+    servers: "服务器",
+    logs: "日志",
+    settings: "设置",
+    about: "关于",
+}
+
+const pageTitle = computed(() => {
+    const routeName = typeof route.name === "string" ? route.name : ""
+    const titleKey = routeTitleMap[routeName]
+    if (titleKey) return t(titleKey)
+    return navStore.pageTitle
+})
 
 const breadcrumbs = computed(() => {
     const parts = route.path.split('/').filter(Boolean)
-    if (parts.length === 0) return [{ label: 'Dashboard', path: '/' }]
+    if (parts.length === 0) return [{ label: t('nav.dashboard'), path: '/' }]
     return parts.map((p, i) => {
         const path = '/' + parts.slice(0, i + 1).join('/')
-        return { label: p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, ' '), path }
+        return { label: routeSegmentMap[p] ?? p, path }
     })
 })
 </script>

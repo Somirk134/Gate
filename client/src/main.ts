@@ -40,8 +40,8 @@ const application = await AppBootstrap.create({
 
 setApplicationContext(application.context)
 app.provide(APP_CONTEXT_KEY, application.context)
-i18n.global.locale.value =
-    application.context.configuration.get<"zh-CN" | "en">("locale") ?? "zh-CN"
+const configuredLocale = application.context.configuration.get<"zh-CN" | "en">("locale")
+i18n.global.locale.value = configuredLocale === "en" ? "en" : "zh-CN"
 
 app.use(router)
 app.use(i18n)

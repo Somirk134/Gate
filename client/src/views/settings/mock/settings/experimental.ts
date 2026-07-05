@@ -1,0 +1,57 @@
+import type { SettingCategory } from "../../types"
+
+export const experimentalSettings: SettingCategory = {
+  id: "experimental",
+  label: "实验功能",
+  description: "为早期运行时能力预留的功能开关。",
+  icon: "sparkles",
+  order: 140,
+  groups: [
+    {
+      id: "experimental.flags",
+      categoryId: "experimental",
+      label: "功能开关",
+      description: "Mock 实验功能开关。",
+      items: [
+        {
+          id: "experimental.rustRuntime",
+          key: "experimental.rustRuntime",
+          categoryId: "experimental",
+          groupId: "experimental.flags",
+          label: "Rust 运行时预览",
+          description: "启用未来 Rust 托管设置的 Mock 开关。",
+          control: { type: "switch" },
+          defaultValue: false,
+          recommendedValue: false,
+          restartRequired: true,
+          tags: ["rust", "preview"],
+        },
+        {
+          id: "experimental.pluginSettings",
+          key: "experimental.pluginSettings",
+          categoryId: "experimental",
+          groupId: "experimental.flags",
+          label: "插件设置",
+          description: "允许插件向设置中心注册设置项。",
+          control: { type: "switch" },
+          defaultValue: false,
+          recommendedValue: false,
+          restartRequired: true,
+          tags: ["plugin", "settings"],
+        },
+        {
+          id: "experimental.serverProfiles",
+          key: "experimental.serverProfiles",
+          categoryId: "experimental",
+          groupId: "experimental.flags",
+          label: "服务器配置档案",
+          description: "在 Mock 数据中显示实验性服务器配置档案控制。",
+          control: { type: "switch" },
+          defaultValue: false,
+          recommendedValue: false,
+          tags: ["server", "profile"],
+        },
+      ],
+    },
+  ],
+}

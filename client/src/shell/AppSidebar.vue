@@ -69,7 +69,7 @@ const { t } = useI18n()
 
 const isCollapsed = computed(() => layout.sidebarCollapsed && !layout.sidebarHovered)
 
-const navItems = [
+const navItems = computed(() => [
     { path: "/", label: t("nav.dashboard"), icon: "dashboard", shortcut: "" },
     { path: "/projects", label: t("nav.projects"), icon: "projects", shortcut: "" },
     { path: "/tunnels", label: t("nav.tunnels"), icon: "router", shortcut: "" },
@@ -77,7 +77,7 @@ const navItems = [
     { path: "/logs", label: t("nav.logs"), icon: "logs", shortcut: "" },
     { path: "/settings", label: t("nav.settings"), icon: "settings", shortcut: "" },
     { path: "/about", label: t("nav.about"), icon: "about", shortcut: "" },
-]
+])
 
 const version = "0.1.0"
 
