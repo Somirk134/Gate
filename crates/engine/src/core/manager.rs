@@ -1,10 +1,14 @@
 //! Engine module manager.
 
 use crate::connection::ConnectionManager;
-use crate::health::HealthChecker;
+use crate::connection_monitor::ConnectionMonitorManager;
+use crate::health::HealthManager;
 use crate::heartbeat::HeartbeatManager;
+use crate::reconnect::ReconnectManager;
 use crate::router::TunnelRouter;
 use crate::session::SessionManager;
+use crate::session_recovery::SessionRecoveryManager;
+use crate::state_sync::StateSyncManager;
 use std::sync::Arc;
 
 /// Aggregates engine subsystem managers.
@@ -14,7 +18,11 @@ pub struct EngineManager {
     pub connections: Arc<ConnectionManager>,
     pub sessions: Arc<SessionManager>,
     pub heartbeat: Arc<HeartbeatManager>,
-    pub health: Arc<HealthChecker>,
+    pub reconnect: Arc<ReconnectManager>,
+    pub recovery: Arc<SessionRecoveryManager>,
+    pub monitor: Arc<ConnectionMonitorManager>,
+    pub state_sync: Arc<StateSyncManager>,
+    pub health: Arc<HealthManager>,
 }
 
 impl Default for EngineManager {
@@ -30,7 +38,11 @@ impl EngineManager {
             connections: Arc::new(ConnectionManager::default()),
             sessions: Arc::new(SessionManager::default()),
             heartbeat: Arc::new(HeartbeatManager::default()),
-            health: Arc::new(HealthChecker::default()),
+            reconnect: Arc::new(ReconnectManager::default()),
+            recovery: Arc::new(SessionRecoveryManager::default()),
+            monitor: Arc::new(ConnectionMonitorManager::default()),
+            state_sync: Arc::new(StateSyncManager::default()),
+            health: Arc::new(HealthManager::default()),
         }
     }
 }

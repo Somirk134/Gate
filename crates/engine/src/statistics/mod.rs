@@ -24,3 +24,17 @@ pub struct TrafficSnapshot {
     pub packets: u64,
     pub errors: u64,
 }
+
+/// Unified stability metrics shared by heartbeat, reconnect, recovery, and
+/// connection monitoring views.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct StabilityMetrics {
+    pub ping_count: u64,
+    pub average_rtt_ms: f64,
+    pub last_rtt_ms: Option<u64>,
+    pub reconnect_count: u64,
+    pub recovery_time_ms: u64,
+    pub timeout_count: u64,
+    pub heartbeat_count: u64,
+    pub connection_duration_ms: u64,
+}

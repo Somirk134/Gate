@@ -3,6 +3,7 @@ export * from './DialogService'
 export * from './NotificationService'
 export * from './ShortcutService'
 export * from './tokens'
+export * from '../stability'
 
 export { authService } from './auth.service'
 export { tunnelService } from './tunnel.service'
