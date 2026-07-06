@@ -1,123 +1,57 @@
-//! Runtime task management boundary.
+//! TCP Tunnel Runtime.
+//!
+//! The runtime owns the data plane for V1 TCP tunnels: listener, connector,
+//! session registry, bidirectional forwarding, statistics, scheduler, worker
+//! tasks, and graceful shutdown coordination.
 
-use crate::config::RuntimeConfig;
-use crate::error::EngineError;
-use dashmap::DashMap;
-use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::future::Future;
-use tokio::task::JoinHandle;
-use uuid::Uuid;
+pub mod buffer;
+pub mod config;
+pub mod connector;
+pub mod context;
+pub mod error;
+pub mod forward;
+pub mod lifecycle;
+pub mod listener;
+pub mod manager;
+pub mod mock;
+pub mod monitor;
+pub mod scheduler;
+pub mod session;
+pub mod state;
+pub mod stream;
+pub mod tunnel_runtime;
+pub mod worker;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct TaskId(Uuid);
+pub use buffer::{Buffer, BufferPool};
+pub use config::{
+    BackoffStrategy, BufferConfig, BufferConfigBuilder, ConnectorConfig,
+    ConnectorConfigBuilder, ListenerConfig, ListenerConfigBuilder, RetryConfig,
+    RetryConfigBuilder, RuntimeConfig, RuntimeConfigBuilder, TimeoutConfig,
+    TimeoutConfigBuilder,
+};
+pub use connector::TcpConnector;
+pub use context::RuntimeContext;
+pub use error::{
+    BufferError, ConnectorError, ForwardError, ListenerError, RuntimeError,
+    SchedulerError,
+};
+pub use forward::{ForwardPipeline, ForwardResult};
+pub use lifecycle::RuntimeLifecycle;
+pub use listener::TcpListenerService;
+pub use manager::RuntimeManager;
+pub use mock::{MockForward, MockRuntime, MockSession, MockTraffic};
+pub use monitor::{RuntimeMetrics, RuntimeMonitor, TrafficSnapshot, TrafficStatistics};
+pub use scheduler::RuntimeScheduler;
+pub use session::{Session, SessionId, SessionManager, SessionSnapshot};
+pub use state::{
+    ConnectionState, ForwardState, RuntimeState, RuntimeStateMachine, SessionState,
+};
+pub use stream::{
+    InstrumentedStream, StreamContext, StreamReader, StreamRole, StreamStatistics,
+    StreamWriter,
+};
+pub use tunnel_runtime::{RuntimeBuilder, TunnelRuntime};
+pub use worker::{Task, TaskId, TaskKind, TaskStatus, WorkerPool};
 
-impl TaskId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-}
-
-impl Default for TaskId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl fmt::Display for TaskId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TaskStatus {
-    Created,
-    Running,
-    Cancelled,
-    Finished,
-    Failed,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Task {
-    pub id: TaskId,
-    pub name: String,
-    pub status: TaskStatus,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RuntimeStatus {
-    Created,
-    Running,
-    ShuttingDown,
-    Stopped,
-}
-
-/// Central Tokio task manager.
-pub struct RuntimeManager {
-    config: RuntimeConfig,
-    tasks: DashMap<TaskId, Task>,
-    handles: DashMap<TaskId, JoinHandle<()>>,
-}
-
-impl RuntimeManager {
-    pub fn new(config: RuntimeConfig) -> Self {
-        Self {
-            config,
-            tasks: DashMap::new(),
-            handles: DashMap::new(),
-        }
-    }
-
-    pub fn spawn<F>(&self, name: impl Into<String>, future: F) -> Result<TaskId, EngineError>
-    where
-        F: Future<Output = ()> + Send + 'static,
-    {
-        let id = TaskId::new();
-        let task = Task {
-            id,
-            name: name.into(),
-            status: TaskStatus::Running,
-        };
-        let handle = tokio::spawn(future);
-
-        self.tasks.insert(id, task);
-        self.handles.insert(id, handle);
-        Ok(id)
-    }
-
-    pub fn cancel(&self, id: TaskId) -> Result<(), EngineError> {
-        if let Some((_, handle)) = self.handles.remove(&id) {
-            handle.abort();
-        }
-
-        if let Some(mut task) = self.tasks.get_mut(&id) {
-            task.status = TaskStatus::Cancelled;
-        }
-
-        Ok(())
-    }
-
-    pub fn shutdown(&self) -> Result<(), EngineError> {
-        let ids: Vec<TaskId> = self.handles.iter().map(|entry| *entry.key()).collect();
-        for id in ids {
-            self.cancel(id)?;
-        }
-        Ok(())
-    }
-
-    pub async fn graceful_shutdown(&self) -> Result<(), EngineError> {
-        self.shutdown()
-    }
-
-    pub fn config(&self) -> &RuntimeConfig {
-        &self.config
-    }
-}
-
-impl Default for RuntimeManager {
-    fn default() -> Self {
-        Self::new(RuntimeConfig::default())
-    }
-}
+/// Backwards-compatible alias for older engine code that used `RuntimeStatus`.
+pub type RuntimeStatus = RuntimeState;

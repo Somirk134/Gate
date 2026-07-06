@@ -31,3 +31,9 @@ pub use core::{
     EngineManager, EnginePhase, EngineState, Tunnel, TunnelEngine, TunnelId, TunnelStatus,
 };
 pub use error::{ConnectionError, EngineError, ForwardError, ProtocolError, TunnelError};
+pub use runtime::{
+    BackoffStrategy, BufferConfig as RuntimeBufferConfig, ConnectorConfig, ForwardPipeline,
+    ListenerConfig, RetryConfig, RuntimeBuilder, RuntimeLifecycle, RuntimeManager,
+    RuntimeMetrics, RuntimeState, TcpConnector, TcpListenerService, TimeoutConfig,
+    TrafficStatistics, TunnelRuntime, RuntimeConfig as TunnelRuntimeConfig,
+};
