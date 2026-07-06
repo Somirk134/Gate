@@ -162,15 +162,35 @@ export interface TrafficTrendPoint {
 }
 
 /** Dashboard tunnel row. */
+export interface HttpRequestRecord {
+  method: string
+  url: string
+  host: string
+  status: number
+  latencyMs: number
+  clientIp: string
+  trafficBytes: number
+  timestamp: number
+}
+
 export interface DashboardTunnel {
   id: string
   name: string
   protocol: "tcp" | "udp" | "http" | "https"
   status: "running" | "stopped" | "warning"
+  localHost?: string
+  localPort?: number
+  remotePort?: number
+  host?: string | null
+  path?: string | null
   uploadSpeedBps: number
   downloadSpeedBps: number
   connections: number
   uptimeSeconds: number
+  requestCount?: number
+  successRate?: number
+  averageResponseTimeMs?: number
+  recentRequests?: HttpRequestRecord[]
 }
 
 /** Recent monitoring activity. */

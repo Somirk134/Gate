@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "client/src-tauri",
     "server",
+    "server/tls",
     "shared",
     "crates/domain",
     "crates/application",

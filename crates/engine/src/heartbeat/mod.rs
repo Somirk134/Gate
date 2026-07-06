@@ -161,17 +161,29 @@ impl HeartbeatRuntime {
 
 /// Async heartbeat control contract.
 pub trait Heartbeat: Send + Sync {
-    fn start(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn start(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn stop(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn stop(&self, tunnel_id: TunnelId)
+        -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn pause(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn pause(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn resume(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn resume(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn tick(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn tick(&self, tunnel_id: TunnelId)
+        -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn ping(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn ping(&self, tunnel_id: TunnelId)
+        -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
     fn pong(
         &self,
@@ -179,7 +191,10 @@ pub trait Heartbeat: Send + Sync {
         sequence: u64,
     ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 
-    fn timeout(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
+    fn timeout(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>>;
 }
 
 /// In-memory heartbeat manager optimized for many independent connection
@@ -236,7 +251,8 @@ impl HeartbeatManager {
             self.states.insert(tunnel_id, runtime);
         }
 
-        self.publish(TunnelEvent::HeartbeatStarted { tunnel_id }).await;
+        self.publish(TunnelEvent::HeartbeatStarted { tunnel_id })
+            .await;
         self.snapshot(tunnel_id)
     }
 
@@ -250,7 +266,8 @@ impl HeartbeatManager {
             runtime.snapshot(tunnel_id)
         };
 
-        self.publish(TunnelEvent::HeartbeatStopped { tunnel_id }).await;
+        self.publish(TunnelEvent::HeartbeatStopped { tunnel_id })
+            .await;
         Ok(snapshot)
     }
 
@@ -328,7 +345,8 @@ impl HeartbeatManager {
         };
 
         if timeout_event {
-            self.publish(TunnelEvent::HeartbeatTimeout { tunnel_id }).await;
+            self.publish(TunnelEvent::HeartbeatTimeout { tunnel_id })
+                .await;
         }
 
         Ok(snapshot)
@@ -385,7 +403,8 @@ impl HeartbeatManager {
             runtime.snapshot(tunnel_id)
         };
 
-        self.publish(TunnelEvent::HeartbeatTimeout { tunnel_id }).await;
+        self.publish(TunnelEvent::HeartbeatTimeout { tunnel_id })
+            .await;
         Ok(snapshot)
     }
 
@@ -436,27 +455,45 @@ impl HeartbeatManager {
 }
 
 impl Heartbeat for HeartbeatManager {
-    fn start(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn start(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::start(self, tunnel_id).await })
     }
 
-    fn stop(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn stop(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::stop(self, tunnel_id).await })
     }
 
-    fn pause(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn pause(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::pause(self, tunnel_id).await })
     }
 
-    fn resume(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn resume(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::resume(self, tunnel_id).await })
     }
 
-    fn tick(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn tick(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::tick(self, tunnel_id).await })
     }
 
-    fn ping(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn ping(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::ping(self, tunnel_id).await })
     }
 
@@ -468,7 +505,10 @@ impl Heartbeat for HeartbeatManager {
         Box::pin(async move { HeartbeatManager::pong(self, tunnel_id, sequence).await })
     }
 
-    fn timeout(&self, tunnel_id: TunnelId) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
+    fn timeout(
+        &self,
+        tunnel_id: TunnelId,
+    ) -> BoxFuture<'_, Result<HeartbeatSnapshot, HeartbeatError>> {
         Box::pin(async move { HeartbeatManager::timeout(self, tunnel_id).await })
     }
 }

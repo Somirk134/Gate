@@ -29,10 +29,7 @@ async fn heartbeat_tracks_ping_pong_and_timeout() {
     assert_eq!(pong.state, HeartbeatState::Running);
     assert_eq!(pong.metrics.pong_count, 1);
 
-    manager
-        .ping(tunnel_id)
-        .await
-        .expect("second ping recorded");
+    manager.ping(tunnel_id).await.expect("second ping recorded");
     let timeout = manager.timeout(tunnel_id).await.expect("timeout recorded");
     assert_eq!(timeout.state, HeartbeatState::Timeout);
     assert_eq!(timeout.metrics.timeout_count, 1);

@@ -165,9 +165,7 @@ impl ReconnectStrategy for CustomReconnectStrategy {
     }
 
     fn next_delay(&self, attempt: u32) -> Option<Duration> {
-        self.delays
-            .get(attempt.saturating_sub(1) as usize)
-            .copied()
+        self.delays.get(attempt.saturating_sub(1) as usize).copied()
     }
 }
 
@@ -303,7 +301,12 @@ impl ReconnectManager {
             return Err(ReconnectError::SchedulerStopped);
         }
 
-        self.enqueue(tunnel_id, connection_id, ReconnectMode::Auto, Some(reason.into()))
+        self.enqueue(
+            tunnel_id,
+            connection_id,
+            ReconnectMode::Auto,
+            Some(reason.into()),
+        )
     }
 
     pub async fn manual_reconnect(
@@ -312,7 +315,12 @@ impl ReconnectManager {
         connection_id: Option<ConnectionId>,
         reason: impl Into<String>,
     ) -> Result<ReconnectSnapshot, ReconnectError> {
-        self.enqueue(tunnel_id, connection_id, ReconnectMode::Manual, Some(reason.into()))
+        self.enqueue(
+            tunnel_id,
+            connection_id,
+            ReconnectMode::Manual,
+            Some(reason.into()),
+        )
     }
 
     pub async fn schedule_next(&self) -> Result<Option<ReconnectRequest>, ReconnectError> {
@@ -411,7 +419,9 @@ impl ReconnectManager {
     }
 
     pub async fn cancel(&self, tunnel_id: TunnelId) -> Result<ReconnectSnapshot, ReconnectError> {
-        self.queue.write().retain(|item| item.tunnel_id != tunnel_id);
+        self.queue
+            .write()
+            .retain(|item| item.tunnel_id != tunnel_id);
         let mut snapshot = self
             .snapshots
             .get_mut(&tunnel_id)

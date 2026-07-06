@@ -221,10 +221,7 @@ impl SessionRecoveryManager {
         self.finish(result).await
     }
 
-    pub async fn recover_all(
-        &self,
-        tunnel_id: TunnelId,
-    ) -> Result<RecoveryResult, RecoveryError> {
+    pub async fn recover_all(&self, tunnel_id: TunnelId) -> Result<RecoveryResult, RecoveryError> {
         let started = Instant::now();
         let context = self.context(tunnel_id)?;
         let mut result = RecoveryResult::empty(tunnel_id, started);

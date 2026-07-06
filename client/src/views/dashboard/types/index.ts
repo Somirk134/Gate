@@ -53,6 +53,24 @@ export interface DashboardTunnel {
   downloadSpeed: number // KB/s
   connections: number
   projectId?: string
+  https?: DashboardHttpsTunnel
+}
+
+export type CertificateStatus =
+  | "active"
+  | "expiring_soon"
+  | "expired"
+  | "missing"
+  | "error"
+
+export interface DashboardHttpsTunnel {
+  certificateStatus: CertificateStatus
+  expireDays: number
+  issuer: string
+  tlsVersion: string
+  handshakeCount: number
+  httpsTraffic: number // bytes
+  errorCount: number
 }
 
 // ── 服务器 ──

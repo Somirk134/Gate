@@ -224,9 +224,9 @@ impl StateSynchronizer for StateSyncManager {
         target: SyncTarget,
         payload: Value,
     ) -> BoxFuture<'_, Result<StateSyncResult, StateSyncError>> {
-        Box::pin(async move {
-            StateSyncManager::synchronize(self, tunnel_id, target, payload).await
-        })
+        Box::pin(
+            async move { StateSyncManager::synchronize(self, tunnel_id, target, payload).await },
+        )
     }
 
     fn snapshot(

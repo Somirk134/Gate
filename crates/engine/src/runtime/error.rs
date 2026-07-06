@@ -39,6 +39,9 @@ pub enum RuntimeError {
     #[error("scheduler error: {0}")]
     Scheduler(#[from] SchedulerError),
 
+    #[error("https error: {0}")]
+    Https(#[from] HttpsError),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -78,10 +81,7 @@ pub enum ConnectorError {
     },
 
     #[error("connect timeout after {timeout:?} for {addr}")]
-    ConnectTimeout {
-        addr: SocketAddr,
-        timeout: Duration,
-    },
+    ConnectTimeout { addr: SocketAddr, timeout: Duration },
 
     #[error("connect retry attempts exhausted for {addr} after {attempts} attempts")]
     RetryExhausted { addr: SocketAddr, attempts: u32 },
@@ -112,7 +112,10 @@ pub enum ForwardError {
     Paused,
 
     #[error("invalid forward state transition: {from:?} -> {to:?}")]
-    InvalidStateTransition { from: ForwardState, to: ForwardState },
+    InvalidStateTransition {
+        from: ForwardState,
+        to: ForwardState,
+    },
 }
 
 /// Buffer pool errors.
@@ -140,4 +143,23 @@ pub enum SchedulerError {
 
     #[error("task shutdown timed out after {timeout:?}: {name}")]
     ShutdownTimeout { name: String, timeout: Duration },
+}
+
+/// HTTPS runtime errors.
+#[derive(Debug, Error)]
+pub enum HttpsError {
+    #[error("TLS handshake failed: {reason}")]
+    Handshake { reason: String },
+
+    #[error("certificate error: {reason}")]
+    Certificate { reason: String },
+
+    #[error("TLS error: {reason}")]
+    Tls { reason: String },
+
+    #[error("ALPN error: {reason}")]
+    Alpn { reason: String },
+
+    #[error("SNI error: {reason}")]
+    Sni { reason: String },
 }

@@ -1,0 +1,12 @@
+[server]
+address = "gate.example.com:7000"
+auth_token = "replace-me"
+
+[tunnel]
+name = "spring-boot-api"
+protocol = "http"
+local_host = "127.0.0.1"
+local_port = 8080
+remote_port = 18080
+host = "api.example.com"
+path = "/api"

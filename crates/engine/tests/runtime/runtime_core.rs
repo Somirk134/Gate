@@ -22,10 +22,7 @@ fn retry_config_supports_linear_and_exponential_backoff() {
         .max_delay(Duration::from_secs(1))
         .strategy(BackoffStrategy::Exponential)
         .build();
-    assert_eq!(
-        exponential.delay_for_attempt(4),
-        Duration::from_millis(800)
-    );
+    assert_eq!(exponential.delay_for_attempt(4), Duration::from_millis(800));
     assert_eq!(exponential.delay_for_attempt(8), Duration::from_secs(1));
 }
 

@@ -8,15 +8,35 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RuntimeState {
     Created,
+    Initializing,
     Starting,
     Running,
     Paused,
     Stopping,
     Stopped,
     Restarting,
-    ShuttingDown,
-    Shutdown,
-    Error,
+    Failed,
+    Closed,
+}
+
+impl RuntimeState {
+    pub fn is_active(self) -> bool {
+        matches!(
+            self,
+            Self::Initializing | Self::Starting | Self::Running | Self::Paused | Self::Restarting
+        )
+    }
+
+    pub fn is_terminal(self) -> bool {
+        matches!(self, Self::Closed)
+    }
+
+    pub fn can_restart(self) -> bool {
+        matches!(
+            self,
+            Self::Running | Self::Paused | Self::Stopped | Self::Failed
+        )
+    }
 }
 
 /// Thread-safe runtime state holder.
@@ -61,36 +81,43 @@ fn is_valid_runtime_transition(from: RuntimeState, to: RuntimeState) -> bool {
 
     matches!(
         (from, to),
-        (Created, Starting)
+        (Created, Initializing)
+            | (Created, Starting)
             | (Created, Stopping)
-            | (Created, ShuttingDown)
+            | (Created, Failed)
+            | (Created, Closed)
+            | (Initializing, Starting)
+            | (Initializing, Stopping)
+            | (Initializing, Failed)
+            | (Initializing, Closed)
             | (Starting, Running)
             | (Starting, Stopping)
-            | (Starting, ShuttingDown)
-            | (Starting, Error)
+            | (Starting, Failed)
+            | (Starting, Closed)
             | (Running, Paused)
             | (Running, Stopping)
             | (Running, Restarting)
-            | (Running, ShuttingDown)
-            | (Running, Error)
+            | (Running, Failed)
+            | (Running, Closed)
             | (Paused, Running)
             | (Paused, Stopping)
             | (Paused, Restarting)
-            | (Paused, ShuttingDown)
-            | (Paused, Error)
+            | (Paused, Failed)
+            | (Paused, Closed)
             | (Stopping, Stopped)
-            | (Stopping, Error)
+            | (Stopping, Failed)
+            | (Stopping, Closed)
             | (Stopped, Starting)
-            | (Stopped, ShuttingDown)
+            | (Stopped, Initializing)
+            | (Stopped, Closed)
             | (Restarting, Stopping)
             | (Restarting, Starting)
-            | (Restarting, ShuttingDown)
-            | (Restarting, Error)
-            | (ShuttingDown, Shutdown)
-            | (ShuttingDown, Error)
-            | (Error, Stopping)
-            | (Error, ShuttingDown)
-            | (Error, Shutdown)
+            | (Restarting, Initializing)
+            | (Restarting, Failed)
+            | (Restarting, Closed)
+            | (Failed, Restarting)
+            | (Failed, Stopping)
+            | (Failed, Closed)
     )
 }
 

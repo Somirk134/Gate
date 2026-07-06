@@ -2,9 +2,12 @@
 
 use crate::runtime::error::SchedulerError;
 use dashmap::DashMap;
+use futures::FutureExt;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::task::JoinHandle;
@@ -67,6 +70,18 @@ pub struct Task {
     pub finished_at_millis: Option<u64>,
 }
 
+/// Aggregated task statistics for runtime dashboards and watchdogs.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TaskStatistics {
+    pub max_tasks: usize,
+    pub total: usize,
+    pub running: usize,
+    pub cancelled: usize,
+    pub finished: usize,
+    pub failed: usize,
+    pub by_kind: HashMap<TaskKind, usize>,
+}
+
 #[derive(Debug)]
 struct WorkerPoolInner {
     max_tasks: usize,
@@ -123,10 +138,17 @@ impl WorkerPool {
 
         let handles = Arc::clone(&self.inner.handles);
         let handle = tokio::spawn(async move {
-            future.await;
+            let result = AssertUnwindSafe(future).catch_unwind().await;
             if let Some(mut task) = tasks.get_mut(&id) {
-                if task.status == TaskStatus::Running {
-                    task.status = TaskStatus::Finished;
+                match result {
+                    Ok(()) => {
+                        if task.status == TaskStatus::Running {
+                            task.status = TaskStatus::Finished;
+                        }
+                    }
+                    Err(_) => {
+                        task.status = TaskStatus::Failed;
+                    }
                 }
                 task.finished_at_millis = Some(now_millis());
             }
@@ -151,15 +173,76 @@ impl WorkerPool {
         Err(SchedulerError::TaskNotFound { id })
     }
 
+    pub async fn wait(
+        &self,
+        id: TaskId,
+        wait_timeout: Duration,
+    ) -> Result<TaskStatus, SchedulerError> {
+        let Some((_, mut handle)) = self.inner.handles.remove(&id) else {
+            return self
+                .inner
+                .tasks
+                .get(&id)
+                .map(|task| task.status)
+                .ok_or(SchedulerError::TaskNotFound { id });
+        };
+
+        let name = self
+            .inner
+            .tasks
+            .get(&id)
+            .map(|task| task.name.clone())
+            .unwrap_or_else(|| id.to_string());
+
+        match timeout(wait_timeout, &mut handle).await {
+            Ok(join_result) => match join_result {
+                Ok(()) => {
+                    self.mark_status(id, TaskStatus::Finished);
+                    Ok(TaskStatus::Finished)
+                }
+                Err(source) if source.is_cancelled() => {
+                    self.mark_status(id, TaskStatus::Cancelled);
+                    Ok(TaskStatus::Cancelled)
+                }
+                Err(source) => {
+                    self.mark_status(id, TaskStatus::Failed);
+                    Err(SchedulerError::Join { name, source })
+                }
+            },
+            Err(_) => {
+                handle.abort();
+                let _ = handle.await;
+                self.mark_status(id, TaskStatus::Cancelled);
+                Err(SchedulerError::ShutdownTimeout {
+                    name,
+                    timeout: wait_timeout,
+                })
+            }
+        }
+    }
+
     pub fn abort_all(&self) {
-        let ids: Vec<TaskId> = self.inner.handles.iter().map(|entry| *entry.key()).collect();
+        let ids: Vec<TaskId> = self
+            .inner
+            .handles
+            .iter()
+            .map(|entry| *entry.key())
+            .collect();
         for id in ids {
             let _ = self.cancel(id);
         }
     }
 
-    pub async fn graceful_shutdown(&self, shutdown_timeout: Duration) -> Result<(), SchedulerError> {
-        let ids: Vec<TaskId> = self.inner.handles.iter().map(|entry| *entry.key()).collect();
+    pub async fn graceful_shutdown(
+        &self,
+        shutdown_timeout: Duration,
+    ) -> Result<(), SchedulerError> {
+        let ids: Vec<TaskId> = self
+            .inner
+            .handles
+            .iter()
+            .map(|entry| *entry.key())
+            .collect();
 
         for id in ids {
             let Some((_, mut handle)) = self.inner.handles.remove(&id) else {
@@ -175,7 +258,9 @@ impl WorkerPool {
             match timeout(shutdown_timeout, &mut handle).await {
                 Ok(join_result) => match join_result {
                     Ok(()) => self.mark_status(id, TaskStatus::Finished),
-                    Err(source) if source.is_cancelled() => self.mark_status(id, TaskStatus::Cancelled),
+                    Err(source) if source.is_cancelled() => {
+                        self.mark_status(id, TaskStatus::Cancelled)
+                    }
                     Err(source) => {
                         self.mark_status(id, TaskStatus::Failed);
                         return Err(SchedulerError::Join { name, source });
@@ -214,6 +299,31 @@ impl WorkerPool {
             .iter()
             .filter(|entry| entry.status == TaskStatus::Running)
             .count()
+    }
+
+    pub fn max_tasks(&self) -> usize {
+        self.inner.max_tasks
+    }
+
+    pub fn statistics(&self) -> TaskStatistics {
+        let mut statistics = TaskStatistics {
+            max_tasks: self.inner.max_tasks,
+            ..TaskStatistics::default()
+        };
+
+        for task in self.inner.tasks.iter() {
+            statistics.total += 1;
+            *statistics.by_kind.entry(task.kind).or_insert(0) += 1;
+            match task.status {
+                TaskStatus::Running => statistics.running += 1,
+                TaskStatus::Cancelled => statistics.cancelled += 1,
+                TaskStatus::Finished => statistics.finished += 1,
+                TaskStatus::Failed => statistics.failed += 1,
+                TaskStatus::Created => {}
+            }
+        }
+
+        statistics
     }
 
     fn mark_status(&self, id: TaskId, status: TaskStatus) {

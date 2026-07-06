@@ -20,6 +20,6 @@ async fn server_and_runtime_shutdown_gracefully() -> anyhow::Result<()> {
     assert_eq!(server.state().await, AlphaServerState::Shutdown);
 
     harness.shutdown().await?;
-    assert_eq!(harness.runtime().context().state.current(), RuntimeState::Shutdown);
+    assert_eq!(harness.runtime().context().state.current(), RuntimeState::Closed);
     Ok(())
 }

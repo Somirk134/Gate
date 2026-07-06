@@ -35,7 +35,9 @@ impl EngineLifecycle for TunnelEngine {
     }
 
     fn initialize(&self) -> Result<(), EngineError> {
-        self.context.state.transition_to(EnginePhase::Initializing)?;
+        self.context
+            .state
+            .transition_to(EnginePhase::Initializing)?;
         info!(target: "gate_engine", "tunnel engine initialized");
         self.context.state.transition_to(EnginePhase::Ready)?;
         Ok(())
@@ -59,7 +61,9 @@ impl EngineLifecycle for TunnelEngine {
 
     fn restart(&self) -> Result<(), EngineError> {
         self.context.state.transition_to(EnginePhase::Restarting)?;
-        self.context.state.transition_to(EnginePhase::Initializing)?;
+        self.context
+            .state
+            .transition_to(EnginePhase::Initializing)?;
         self.context.state.transition_to(EnginePhase::Ready)?;
         self.context.state.transition_to(EnginePhase::Running)?;
         Ok(())

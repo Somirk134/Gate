@@ -139,6 +139,15 @@ export const mockTunnels: DashboardTunnel[] = [
     downloadSpeed: 642.3,
     connections: 12,
     projectId: "p1",
+    https: {
+      certificateStatus: "active",
+      expireDays: 64,
+      issuer: "Let's Encrypt",
+      tlsVersion: "TLSv1.3",
+      handshakeCount: 1842,
+      httpsTraffic: 3.8 * 1024 * 1024 * 1024,
+      errorCount: 2,
+    },
   },
   {
     id: "t2",
@@ -191,6 +200,15 @@ export const mockTunnels: DashboardTunnel[] = [
     downloadSpeed: 0,
     connections: 0,
     projectId: "p4",
+    https: {
+      certificateStatus: "expiring_soon",
+      expireDays: 11,
+      issuer: "Gate Local CA",
+      tlsVersion: "TLSv1.2",
+      handshakeCount: 96,
+      httpsTraffic: 128 * 1024 * 1024,
+      errorCount: 4,
+    },
   },
 ]
 

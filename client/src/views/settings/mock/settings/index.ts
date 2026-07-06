@@ -3,6 +3,7 @@ import { appearanceSettings } from "./appearance"
 import { developerSettings } from "./developer"
 import { experimentalSettings } from "./experimental"
 import { generalSettings } from "./general"
+import { httpsSettings } from "./https"
 import { logsSettings } from "./logs"
 import { networkSettings } from "./network"
 import { notificationSettings } from "./notification"
@@ -24,6 +25,7 @@ export const settingsCategories = [
   serverSettings,
   logsSettings,
   networkSettings,
+  httpsSettings,
   notificationSettings,
   shortcutSettings,
   storageSettings,
@@ -40,6 +42,7 @@ export {
   developerSettings,
   experimentalSettings,
   generalSettings,
+  httpsSettings,
   logsSettings,
   networkSettings,
   notificationSettings,

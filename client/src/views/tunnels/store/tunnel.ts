@@ -11,6 +11,7 @@
 
 import { defineStore } from "pinia"
 import { ref, computed } from "vue"
+import { tunnelService } from "@/services/tunnel.service"
 import type {
   Tunnel,
   TunnelFormData,
@@ -102,11 +103,19 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   /** 创建隧道 */
-  function createTunnel(form: TunnelFormData): Tunnel {
+  async function createTunnel(form: TunnelFormData): Promise<Tunnel> {
     const nowTs = Date.now()
     const project = mockProjects.find((p) => p.id === form.projectId)
+    const id = await tunnelService.create({
+      localPort: form.localPort ?? 0,
+      remotePort: form.remotePort ?? 0,
+      protocol: form.protocol,
+      localHost: form.localHost || "127.0.0.1",
+      host: form.protocol === "http" ? "example.com" : undefined,
+      path: form.protocol === "http" ? "/" : undefined,
+    })
     const tunnel: Tunnel = {
-      id: genId(),
+      id,
       name: form.name.trim(),
       protocol: form.protocol,
       localHost: form.localHost || "127.0.0.1",
@@ -156,6 +165,9 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
       updatedAt: new Date(nowTs).toISOString(),
     }
     tunnels.value.unshift(tunnel)
+    if (form.autoStart) {
+      void startTunnel(tunnel.id)
+    }
     return tunnel
   }
 
@@ -184,15 +196,17 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   /** 删除隧道 */
-  function removeTunnel(id: string): void {
+  async function removeTunnel(id: string): Promise<void> {
+    await tunnelService.delete(id)
     const idx = tunnels.value.findIndex((x) => x.id === id)
     if (idx !== -1) tunnels.value.splice(idx, 1)
   }
 
   /** 启动隧道 */
-  function startTunnel(id: string): void {
+  async function startTunnel(id: string): Promise<void> {
     const t = tunnels.value.find((x) => x.id === id)
     if (!t) return
+    await tunnelService.start(id)
     t.status = "starting"
     pushLog(t, "info", `starting tunnel ${t.name}…`, "frpc")
     setTimeout(() => {
@@ -207,9 +221,10 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   /** 停止隧道 */
-  function stopTunnel(id: string): void {
+  async function stopTunnel(id: string): Promise<void> {
     const t = tunnels.value.find((x) => x.id === id)
     if (!t) return
+    await tunnelService.stop(id)
     t.status = "stopping"
     pushLog(t, "info", "stopping tunnel…", "frpc")
     setTimeout(() => {
@@ -225,9 +240,10 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   /** 重启隧道 */
-  function restartTunnel(id: string): void {
+  async function restartTunnel(id: string): Promise<void> {
     const t = tunnels.value.find((x) => x.id === id)
     if (!t) return
+    await tunnelService.restart(id)
     t.status = "restarting"
     pushLog(t, "info", "restarting tunnel…", "frpc")
     setTimeout(() => {

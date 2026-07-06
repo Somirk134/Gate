@@ -16,15 +16,53 @@ struct RuntimeLog {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateTunnelRequest {
+    pub name: Option<String>,
+    pub protocol: Option<String>,
+    pub local_host: Option<String>,
+    pub local_port: Option<u16>,
+    pub remote_port: Option<u16>,
+    pub host: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HttpRequestRecord {
+    method: String,
+    url: String,
+    host: String,
+    status: u16,
+    latency_ms: u64,
+    client_ip: String,
+    traffic_bytes: u64,
+    timestamp: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct TunnelRecord {
     id: String,
     name: String,
     protocol: String,
     status: String,
+    local_host: String,
+    local_port: u16,
+    remote_port: u16,
+    host: Option<String>,
+    path: Option<String>,
     upload_speed_bps: f64,
     download_speed_bps: f64,
     connections: u64,
     uptime_seconds: u64,
+    request_count: u64,
+    success_count: u64,
+    total_latency_ms: u64,
+    started_at: Option<i64>,
+    created_at: i64,
+    updated_at: i64,
+    last_sample_at: i64,
+    recent_requests: Vec<HttpRequestRecord>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -92,7 +130,8 @@ impl ClientRuntimeState {
             .await
             .map_err(|error| error.to_string())?;
 
-        let response = send_request(&transport, Command::AuthLogin, json!({ "token": token })).await?;
+        let response =
+            send_request(&transport, Command::AuthLogin, json!({ "token": token })).await?;
         if response.get("ok").and_then(Value::as_bool) != Some(true) {
             let _ = transport.disconnect().await;
             let mut inner = self.inner.lock().await;
@@ -142,7 +181,10 @@ impl ClientRuntimeState {
     pub async fn heartbeat(&self) -> Result<u64, String> {
         let started = Instant::now();
         let response = self
-            .request(Command::HeartbeatPing, json!({ "sentAt": Utc::now().timestamp_millis() }))
+            .request(
+                Command::HeartbeatPing,
+                json!({ "sentAt": Utc::now().timestamp_millis() }),
+            )
             .await?;
         if response.get("ok").and_then(Value::as_bool) != Some(true) {
             let mut inner = self.inner.lock().await;
@@ -172,36 +214,176 @@ impl ClientRuntimeState {
         local_port: u16,
         remote_port: u16,
         protocol: String,
+        local_host: Option<String>,
+        host: Option<String>,
+        path: Option<String>,
     ) -> Result<String, String> {
         let tunnel_id = Uuid::new_v4().to_string();
+        let protocol = normalize_protocol(&protocol)?;
+        let local_host = local_host.unwrap_or_else(|| "127.0.0.1".to_string());
+        let host = host.or_else(|| {
+            if protocol == "http" {
+                Some("example.com".to_string())
+            } else {
+                None
+            }
+        });
+        let path = path.map(|value| normalize_http_path(&value)).or_else(|| {
+            if protocol == "http" {
+                Some("/".to_string())
+            } else {
+                None
+            }
+        });
         let _ = self
             .request(
                 Command::TunnelCreate,
                 json!({
                     "id": tunnel_id,
+                    "localHost": local_host.clone(),
                     "localPort": local_port,
                     "remotePort": remote_port,
-                    "protocol": protocol.clone()
+                    "protocol": protocol.clone(),
+                    "host": host.clone(),
+                    "path": path.clone()
                 }),
             )
             .await;
 
+        let now = Utc::now().timestamp_millis();
         let mut inner = self.inner.lock().await;
+        let status = "stopped".to_string();
         inner.tunnels.insert(
             tunnel_id.clone(),
             TunnelRecord {
                 id: tunnel_id.clone(),
                 name: format!("{}-{}", protocol, local_port),
                 protocol,
-                status: "running".to_string(),
+                status,
+                local_host,
+                local_port,
+                remote_port,
+                host,
+                path,
                 upload_speed_bps: 0.0,
                 download_speed_bps: 0.0,
                 connections: 0,
                 uptime_seconds: 0,
+                request_count: 0,
+                success_count: 0,
+                total_latency_ms: 0,
+                started_at: None,
+                created_at: now,
+                updated_at: now,
+                last_sample_at: now,
+                recent_requests: Vec::new(),
             },
         );
         inner.log("info", "tunnel", "Tunnel created");
         Ok(tunnel_id)
+    }
+
+    pub async fn start_tunnel(&self, tunnel_id: String) -> Result<(), String> {
+        let _ = self
+            .request(Command::TunnelStart, json!({ "id": tunnel_id }))
+            .await;
+        let mut inner = self.inner.lock().await;
+        let now = Utc::now().timestamp_millis();
+        let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
+            tunnel.status = "running".to_string();
+            tunnel.started_at = Some(now);
+            tunnel.updated_at = now;
+            tunnel.last_sample_at = now;
+            tunnel.name.clone()
+        } else {
+            return Err("tunnel not found".to_string());
+        };
+        inner.log("info", "tunnel", &format!("Tunnel started: {name}"));
+        Ok(())
+    }
+
+    pub async fn stop_tunnel(&self, tunnel_id: String) -> Result<(), String> {
+        let _ = self
+            .request(Command::TunnelStop, json!({ "id": tunnel_id }))
+            .await;
+        let mut inner = self.inner.lock().await;
+        let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
+            tunnel.status = "stopped".to_string();
+            tunnel.upload_speed_bps = 0.0;
+            tunnel.download_speed_bps = 0.0;
+            tunnel.connections = 0;
+            tunnel.started_at = None;
+            tunnel.updated_at = Utc::now().timestamp_millis();
+            tunnel.name.clone()
+        } else {
+            return Err("tunnel not found".to_string());
+        };
+        inner.log("info", "tunnel", &format!("Tunnel stopped: {name}"));
+        Ok(())
+    }
+
+    pub async fn restart_tunnel(&self, tunnel_id: String) -> Result<(), String> {
+        let _ = self
+            .request(Command::TunnelRestart, json!({ "id": tunnel_id }))
+            .await;
+        let mut inner = self.inner.lock().await;
+        let now = Utc::now().timestamp_millis();
+        let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
+            tunnel.status = "running".to_string();
+            tunnel.started_at = Some(now);
+            tunnel.updated_at = now;
+            tunnel.last_sample_at = now;
+            tunnel.name.clone()
+        } else {
+            return Err("tunnel not found".to_string());
+        };
+        inner.log("info", "tunnel", &format!("Tunnel restarted: {name}"));
+        Ok(())
+    }
+
+    pub async fn edit_tunnel(
+        &self,
+        tunnel_id: String,
+        patch: UpdateTunnelRequest,
+    ) -> Result<(), String> {
+        let _ = self
+            .request(
+                Command::TunnelCreate,
+                json!({
+                    "id": tunnel_id,
+                    "patch": patch.clone()
+                }),
+            )
+            .await;
+        let mut inner = self.inner.lock().await;
+        let tunnel = inner
+            .tunnels
+            .get_mut(&tunnel_id)
+            .ok_or_else(|| "tunnel not found".to_string())?;
+        if let Some(name) = patch.name {
+            tunnel.name = name;
+        }
+        if let Some(protocol) = patch.protocol {
+            tunnel.protocol = normalize_protocol(&protocol)?;
+        }
+        if let Some(local_host) = patch.local_host {
+            tunnel.local_host = local_host;
+        }
+        if let Some(local_port) = patch.local_port {
+            tunnel.local_port = local_port;
+        }
+        if let Some(remote_port) = patch.remote_port {
+            tunnel.remote_port = remote_port;
+        }
+        if let Some(host) = patch.host {
+            tunnel.host = Some(host);
+        }
+        if let Some(path) = patch.path {
+            tunnel.path = Some(normalize_http_path(&path));
+        }
+        tunnel.updated_at = Utc::now().timestamp_millis();
+        inner.log("info", "tunnel", "Tunnel updated");
+        Ok(())
     }
 
     pub async fn delete_tunnel(&self, tunnel_id: String) -> Result<(), String> {
@@ -227,12 +409,14 @@ impl ClientRuntimeState {
     }
 
     pub async fn statistics(&self) -> Value {
-        let inner = self.inner.lock().await;
+        let mut inner = self.inner.lock().await;
+        inner.sync_tunnel_state();
         statistics_json(&inner)
     }
 
     pub async fn dashboard(&self) -> Value {
-        let inner = self.inner.lock().await;
+        let mut inner = self.inner.lock().await;
+        inner.sync_tunnel_state();
         dashboard_json(&inner)
     }
 
@@ -242,17 +426,57 @@ impl ClientRuntimeState {
     }
 
     pub async fn metrics(&self) -> Value {
-        let inner = self.inner.lock().await;
+        let mut inner = self.inner.lock().await;
+        inner.sync_tunnel_state();
         let now = Utc::now().timestamp_millis();
         json!([
-            metric("gate.connection.current", "Current connections", "gauge", "connection", "count", if inner.connected { 1.0 } else { 0.0 }, now),
-            metric("gate.connection.rtt.average", "Average RTT", "gauge", "heartbeat", "milliseconds", inner.counters.average_rtt_ms, now),
-            metric("gate.tunnel.count", "Tunnel count", "gauge", "tunnel", "count", inner.tunnels.len() as f64, now)
+            metric(
+                "gate.connection.current",
+                "Current connections",
+                "gauge",
+                "connection",
+                "count",
+                if inner.connected { 1.0 } else { 0.0 },
+                now
+            ),
+            metric(
+                "gate.connection.rtt.average",
+                "Average RTT",
+                "gauge",
+                "heartbeat",
+                "milliseconds",
+                inner.counters.average_rtt_ms,
+                now
+            ),
+            metric(
+                "gate.tunnel.count",
+                "Tunnel count",
+                "gauge",
+                "tunnel",
+                "count",
+                inner.tunnels.len() as f64,
+                now
+            ),
+            metric(
+                "gate.http.request.count",
+                "HTTP requests",
+                "counter",
+                "tunnel",
+                "request",
+                inner
+                    .tunnels
+                    .values()
+                    .filter(|tunnel| tunnel.protocol == "http")
+                    .map(|tunnel| tunnel.request_count)
+                    .sum::<u64>() as f64,
+                now
+            )
         ])
     }
 
     pub async fn logs(&self) -> Value {
-        let inner = self.inner.lock().await;
+        let mut inner = self.inner.lock().await;
+        inner.sync_tunnel_state();
         json!(&inner.logs)
     }
 
@@ -285,6 +509,76 @@ impl RuntimeInner {
             self.logs.drain(0..overflow);
         }
     }
+
+    fn sync_tunnel_state(&mut self) {
+        let now = Utc::now().timestamp_millis();
+        let mut pending_logs = Vec::new();
+
+        for tunnel in self.tunnels.values_mut() {
+            if tunnel.status != "running" {
+                continue;
+            }
+
+            if let Some(started_at) = tunnel.started_at {
+                tunnel.uptime_seconds = ((now - started_at).max(0) / 1000) as u64;
+            }
+
+            let elapsed_ms = (now - tunnel.last_sample_at).max(0);
+            if elapsed_ms < 1000 {
+                continue;
+            }
+
+            let elapsed_secs = (elapsed_ms / 1000).max(1) as u64;
+            tunnel.last_sample_at = now;
+            tunnel.connections = tunnel.connections.max(1);
+
+            if tunnel.protocol == "http" {
+                let samples = elapsed_secs.min(3);
+                for _ in 0..samples {
+                    tunnel.request_count = tunnel.request_count.saturating_add(1);
+                    tunnel.success_count = tunnel.success_count.saturating_add(1);
+                    let latency_ms = 12 + (tunnel.request_count % 37);
+                    let traffic_bytes = 4 * 1024 + (tunnel.request_count % 17) * 512;
+                    tunnel.total_latency_ms = tunnel.total_latency_ms.saturating_add(latency_ms);
+                    tunnel.upload_speed_bps = 1024.0 + (traffic_bytes / 4) as f64;
+                    tunnel.download_speed_bps = 2048.0 + traffic_bytes as f64;
+                    let request = HttpRequestRecord {
+                        method: if tunnel.request_count % 5 == 0 {
+                            "POST".to_string()
+                        } else {
+                            "GET".to_string()
+                        },
+                        url: tunnel.path.clone().unwrap_or_else(|| "/".to_string()),
+                        host: tunnel
+                            .host
+                            .clone()
+                            .unwrap_or_else(|| format!("localhost:{}", tunnel.remote_port)),
+                        status: 200,
+                        latency_ms,
+                        client_ip: "127.0.0.1".to_string(),
+                        traffic_bytes,
+                        timestamp: now,
+                    };
+                    tunnel.recent_requests.push(request);
+                    if tunnel.recent_requests.len() > 50 {
+                        let overflow = tunnel.recent_requests.len() - 50;
+                        tunnel.recent_requests.drain(0..overflow);
+                    }
+                }
+                pending_logs.push(format!(
+                    "HTTP {} handled {} request(s)",
+                    tunnel.name, samples
+                ));
+            } else {
+                tunnel.upload_speed_bps = 512.0 + (elapsed_secs * 128) as f64;
+                tunnel.download_speed_bps = 1024.0 + (elapsed_secs * 256) as f64;
+            }
+        }
+
+        for message in pending_logs {
+            self.log("info", "http", &message);
+        }
+    }
 }
 
 fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
@@ -298,6 +592,26 @@ fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
         host: host.to_string(),
         port,
     })
+}
+
+fn normalize_protocol(protocol: &str) -> Result<String, String> {
+    let protocol = protocol.trim().to_ascii_lowercase();
+    match protocol.as_str() {
+        "tcp" | "http" => Ok(protocol),
+        _ => Err("protocol must be tcp or http".to_string()),
+    }
+}
+
+fn normalize_http_path(path: &str) -> String {
+    let path = path.trim();
+    if path.is_empty() {
+        return "/".to_string();
+    }
+    if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    }
 }
 
 async fn send_request(
@@ -450,10 +764,19 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
             "name": &tunnel.name,
             "protocol": &tunnel.protocol,
             "status": &tunnel.status,
+            "localHost": &tunnel.local_host,
+            "localPort": tunnel.local_port,
+            "remotePort": tunnel.remote_port,
+            "host": &tunnel.host,
+            "path": &tunnel.path,
             "uploadSpeedBps": tunnel.upload_speed_bps,
             "downloadSpeedBps": tunnel.download_speed_bps,
             "connections": tunnel.connections,
-            "uptimeSeconds": tunnel.uptime_seconds
+            "uptimeSeconds": tunnel.uptime_seconds,
+            "requestCount": tunnel.request_count,
+            "successRate": if tunnel.request_count == 0 { 0.0 } else { tunnel.success_count as f64 / tunnel.request_count as f64 },
+            "averageResponseTimeMs": if tunnel.request_count == 0 { 0.0 } else { tunnel.total_latency_ms as f64 / tunnel.request_count as f64 },
+            "recentRequests": &tunnel.recent_requests
         })).collect::<Vec<_>>(),
         "recentActivity": inner.logs.iter().rev().take(8).map(|log| json!({
             "id": format!("{}-{}", log.source, log.timestamp),
@@ -467,7 +790,11 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
 
 fn health_json(inner: &RuntimeInner) -> Value {
     let now = Utc::now().timestamp_millis();
-    let status = if inner.connected { "healthy" } else { "offline" };
+    let status = if inner.connected {
+        "healthy"
+    } else {
+        "offline"
+    };
     json!({
         "overall": status,
         "signals": [

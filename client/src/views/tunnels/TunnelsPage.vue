@@ -6,7 +6,10 @@
         <h1>Tunnels</h1>
         <span>{{ runningCount }} 个运行中 · {{ tunnels.length }} 个配置 · {{ formatSpeed(totalSpeed) }}</span>
       </div>
-      <GButton variant="primary" icon="plus" @click="openCreate">创建 Tunnel</GButton>
+      <div class="tunnels-hero__actions">
+        <GButton variant="secondary" icon="globe" @click="router.push('/tunnels/http')">HTTP</GButton>
+        <GButton variant="primary" icon="plus" @click="openCreate">创建 Tunnel</GButton>
+      </div>
     </header>
 
     <TunnelLoading v-if="isLoading" :count="8" />
@@ -310,15 +313,15 @@ function openCreate() {
   wizardVisible.value = true
 }
 
-function handleCreate(form: TunnelFormData) {
-  const created = create(form)
+async function handleCreate(form: TunnelFormData) {
+  const created = await create(form)
   selectedId.value = created.id
   toast.success(`Tunnel「${created.name}」已创建`)
 }
 
 function startSelected() {
   if (!selectedTunnel.value) return
-  start(selectedTunnel.value.id)
+  void start(selectedTunnel.value.id)
   toast.success(`正在启动 Tunnel「${selectedTunnel.value.name}」`)
 }
 
@@ -330,7 +333,7 @@ function stopSelected() {
     content: `停止「${tunnel.name}」后，公网访问会立即中断。`,
     confirmText: "停止",
     onConfirm: () => {
-      stop(tunnel.id)
+      void stop(tunnel.id)
       toast.warning(`已停止 Tunnel「${tunnel.name}」`)
     },
   })
@@ -343,8 +346,8 @@ function deleteSelected() {
     title: "删除 Tunnel",
     content: `删除「${tunnel.name}」后，该配置会从列表中移除。`,
     confirmText: "删除",
-    onConfirm: () => {
-      remove(tunnel.id)
+    onConfirm: async () => {
+      await remove(tunnel.id)
       selectedId.value = finalTunnels.value[0]?.id ?? null
       toast.success(`Tunnel「${tunnel.name}」已删除`)
     },
@@ -443,6 +446,13 @@ function formatLogTime(timestamp: number): string {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.tunnels-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -903,6 +913,12 @@ function formatLogTime(timestamp: number): string {
 @media (max-width: 760px) {
   .tunnels-hero,
   .detail-header {
+    flex-direction: column;
+  }
+
+  .tunnels-hero__actions {
+    width: 100%;
+    align-items: stretch;
     flex-direction: column;
   }
 

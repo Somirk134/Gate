@@ -1,13 +1,19 @@
 # Benchmark Tests
 
-Reserved for throughput, latency, and allocation benchmarks.
+Runtime reliability stress coverage is implemented as ignored integration tests
+in `crates/engine/tests/stress.rs`.
 
-Planned connection pressure interfaces:
+Run manually:
 
-- 100 concurrent TCP connections
-- 500 concurrent TCP connections
-- 1000 concurrent TCP connections
-- 5000 concurrent TCP connections
-- 10000 concurrent TCP connections
+```powershell
+cargo test -p gate-engine --test stress -- --ignored --nocapture
+```
 
-These scenarios are intentionally not implemented in V1.
+Connection pressure matrix:
+
+- TCP short connections: 1000, 5000, 10000
+- TCP long connections: 1000, 5000, 10000
+- HTTP KeepAlive: 1000, 5000, 10000
+- HTTPS TLS KeepAlive: 1000, 5000, 10000
+
+Record benchmark output in `benchmark/runtime-reliability.md`.

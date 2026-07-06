@@ -17,11 +17,14 @@ protocol = "http"
 local_host = "127.0.0.1"
 local_port = 5000
 remote_port = 18080
+host = "flask.example.com"
+path = "/api"
 ```
 
 Local app:
 
 ```bash
+pip install -r requirements.txt
 python -m flask --app app run --host 127.0.0.1 --port 5000
 ```
 
@@ -34,5 +37,5 @@ python -m flask --app app run --host 127.0.0.1 --port 5000
 1. Start the Flask service.
 2. Start Gate server.
 3. Create the `flask-api` tunnel.
-4. Send a test request to the remote endpoint.
+4. Send a test request with `Host: flask.example.com`.
 5. Inspect Log Center if the request fails.

@@ -22,29 +22,33 @@ pub mod router;
 pub mod runtime;
 pub mod session;
 pub mod session_recovery;
-pub mod statistics;
 pub mod state_sync;
+pub mod statistics;
 pub mod transport;
 
 pub use config::{
     ForwardConfig, ForwardConfigBuilder, HealthConfig, HealthConfigBuilder, HeartbeatConfig,
-    HeartbeatConfigBuilder, ProtocolConfig, ProtocolConfigBuilder, ProtocolKind,
-    ReconnectConfig, ReconnectConfigBuilder, ReconnectStrategyConfig, RuntimeConfig,
-    RuntimeConfigBuilder, SyncConfig, SyncConfigBuilder, TunnelConfig, TunnelConfigBuilder,
+    HeartbeatConfigBuilder, ProtocolConfig, ProtocolConfigBuilder, ProtocolKind, ReconnectConfig,
+    ReconnectConfigBuilder, ReconnectStrategyConfig, RuntimeConfig, RuntimeConfigBuilder,
+    SyncConfig, SyncConfigBuilder, TunnelConfig, TunnelConfigBuilder,
+};
+pub use connection_monitor::{
+    ConnectionHealth, ConnectionMonitor, ConnectionMonitorManager, ConnectionMonitorSnapshot,
 };
 pub use core::{
     EngineBuilder, EngineConfig, EngineConfigBuilder, EngineContext, EngineLifecycle,
     EngineManager, EnginePhase, EngineState, Tunnel, TunnelEngine, TunnelId, TunnelStatus,
 };
-pub use connection_monitor::{
-    ConnectionHealth, ConnectionMonitor, ConnectionMonitorManager, ConnectionMonitorSnapshot,
-};
 pub use error::{
-    ConnectionError, ConnectionLostError, EngineError, ForwardError, HeartbeatError,
-    ProtocolError, ReconnectError, RecoveryError, StateSyncError, TunnelError,
+    ConnectionError, ConnectionLostError, EngineError, ForwardError, HeartbeatError, ProtocolError,
+    ReconnectError, RecoveryError, StateSyncError, TunnelError,
 };
-pub use health::{HealthCheckTarget, HealthChecker, HealthManager, HealthReport, HealthSignal, HealthStatus};
-pub use heartbeat::{Heartbeat, HeartbeatManager, HeartbeatMetrics, HeartbeatSnapshot, HeartbeatState};
+pub use health::{
+    HealthCheckTarget, HealthChecker, HealthManager, HealthReport, HealthSignal, HealthStatus,
+};
+pub use heartbeat::{
+    Heartbeat, HeartbeatManager, HeartbeatMetrics, HeartbeatSnapshot, HeartbeatState,
+};
 pub use reconnect::{
     CustomReconnectStrategy, ExponentialBackoffStrategy, FixedIntervalStrategy, ImmediateStrategy,
     LinearStrategy, Reconnect, ReconnectManager, ReconnectMode, ReconnectRequest,
@@ -52,9 +56,25 @@ pub use reconnect::{
 };
 pub use runtime::{
     BackoffStrategy, BufferConfig as RuntimeBufferConfig, ConnectorConfig, ForwardPipeline,
-    ListenerConfig, RetryConfig, RuntimeBuilder, RuntimeLifecycle, RuntimeManager,
-    RuntimeMetrics, RuntimeState, TcpConnector, TcpListenerService, TimeoutConfig,
-    TrafficStatistics, TunnelRuntime, RuntimeConfig as TunnelRuntimeConfig,
+    HttpHeaderConfig, HttpHeaderRule, HttpHostResolver, HttpRequestLog, HttpRouteConfig,
+    HttpRouteMetrics, HttpRuntimeBuilder, HttpRuntimeConfig, HttpRuntimeConfigBuilder,
+    HttpRuntimeMetrics, HttpTlsLog, HttpTunnel, HttpTunnelRuntime, HttpsCertificateProvider,
+    HttpsError, HttpsRuntimeBuilder, HttpsRuntimeConfig, HttpsRuntimeMetrics, HttpsTlsConfig,
+    HttpsTunnel, HttpsTunnelRuntime, ListenerConfig, RetryConfig, RuntimeBuilder,
+    RuntimeConfig as TunnelRuntimeConfig, RuntimeLifecycle, RuntimeManager, RuntimeMetrics,
+    RuntimeState, TcpConnector, TcpListenerService, TimeoutConfig, TlsProtocolVersion,
+    TrafficStatistics, TunnelRuntime,
+};
+pub use runtime::{
+    CircuitBreakerConfig, CircuitBreakerState, ConnectionManagerError, ConnectionPolicy,
+    GracefulShutdownManager, GracefulShutdownReport, RecoveryDecision, RecoveryEvent,
+    RecoveryTrigger, RestartPolicy, RuntimeConnectionManager, RuntimeConnectionSnapshot,
+    RuntimeHealthCheck, RuntimeHealthReport, RuntimeHealthSignal, RuntimeHealthTarget, RuntimeId,
+    RuntimeIdentity, RuntimeMetricsRegistry, RuntimeRecoveryFlow, RuntimeReliabilityMetrics,
+    RuntimeSupervisor, RuntimeTaskManager, RuntimeTraceContext, RuntimeWatchdog, ShutdownHook,
+    ShutdownResource, ShutdownResourceKind, ShutdownResourceResult, SupervisorAction,
+    SupervisorConfig, SupervisorSnapshot, TraceId, WatchdogConfig, WatchdogFinding,
+    WatchdogFindingKind, WatchdogSeverity,
 };
 pub use session_recovery::{
     Recovery, RecoveryContext, RecoveryResult, SessionRecoveryManager, SubscriptionSnapshot,

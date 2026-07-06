@@ -1,5 +1,5 @@
-use gate_engine::heartbeat::HeartbeatState;
 use gate_engine::health::HealthStatus;
+use gate_engine::heartbeat::HeartbeatState;
 use gate_engine::session::SessionId;
 use gate_engine::{
     HealthManager, HeartbeatManager, ReconnectManager, RecoveryContext, SessionRecoveryManager,
@@ -14,7 +14,10 @@ async fn heartbeat_timeout_can_drive_reconnect_recovery_sync_and_health() {
     let heartbeat = HeartbeatManager::default();
     heartbeat.start(tunnel_id).await.expect("heartbeat starts");
     heartbeat.ping(tunnel_id).await.expect("ping recorded");
-    let timeout = heartbeat.timeout(tunnel_id).await.expect("timeout recorded");
+    let timeout = heartbeat
+        .timeout(tunnel_id)
+        .await
+        .expect("timeout recorded");
     assert_eq!(timeout.state, HeartbeatState::Timeout);
 
     let reconnect = ReconnectManager::default();
@@ -37,7 +40,10 @@ async fn heartbeat_timeout_can_drive_reconnect_recovery_sync_and_health() {
     recovery
         .capture(RecoveryContext::new(tunnel_id).session_id(SessionId::new()))
         .await;
-    let recovered = recovery.recover_all(tunnel_id).await.expect("recover session");
+    let recovered = recovery
+        .recover_all(tunnel_id)
+        .await
+        .expect("recover session");
     assert!(recovered.recovered_session);
 
     let sync = StateSyncManager::default();

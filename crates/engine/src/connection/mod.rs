@@ -100,16 +100,21 @@ pub struct ConnectionPool {
 impl ConnectionPool {
     pub fn insert(&self, connection: Connection) -> Arc<Connection> {
         let connection = Arc::new(connection);
-        self.connections.insert(connection.id(), Arc::clone(&connection));
+        self.connections
+            .insert(connection.id(), Arc::clone(&connection));
         connection
     }
 
     pub fn get(&self, id: &ConnectionId) -> Option<Arc<Connection>> {
-        self.connections.get(id).map(|entry| Arc::clone(entry.value()))
+        self.connections
+            .get(id)
+            .map(|entry| Arc::clone(entry.value()))
     }
 
     pub fn remove(&self, id: &ConnectionId) -> Option<Arc<Connection>> {
-        self.connections.remove(id).map(|(_, connection)| connection)
+        self.connections
+            .remove(id)
+            .map(|(_, connection)| connection)
     }
 
     pub fn len(&self) -> usize {

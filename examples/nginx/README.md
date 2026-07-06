@@ -1,37 +1,30 @@
-# Nginx
+# Nginx HTTP Tunnel Example
 
-## Description
+Use Nginx as a local HTTP service behind Gate. This example does not configure HTTPS, TLS, or certificates.
 
-Use Nginx as a public reverse proxy for TLS termination, HTTP routing, access logs, and rate limiting.
+## Run
 
-## Configuration
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name gate.example.com;
-
-    ssl_certificate /etc/letsencrypt/live/gate.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/gate.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:18080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-}
+```bash
+nginx -c /absolute/path/to/examples/nginx/nginx.conf
 ```
 
-## Screenshot
+The service listens on `127.0.0.1:8080`.
 
-![Dashboard screenshot](../../assets/screenshots/dashboard.svg)
+## Gate tunnel
 
-## Run Steps
+```toml
+[tunnel]
+name = "nginx-static"
+protocol = "http"
+local_host = "127.0.0.1"
+local_port = 8080
+remote_port = 18080
+host = "static.example.com"
+path = "/"
+```
 
-1. Start Gate server.
-2. Start a tunnel with remote port `18080`.
-3. Configure Nginx to proxy to `127.0.0.1:18080`.
-4. Add TLS certificates.
-5. Reload Nginx.
-6. Test the public HTTPS URL.
+## Test
+
+```bash
+curl -H "Host: static.example.com" http://127.0.0.1:18080/
+```

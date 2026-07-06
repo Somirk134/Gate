@@ -7,6 +7,7 @@ export type SettingCategoryId =
   | "server"
   | "logs"
   | "network"
+  | "https"
   | "notification"
   | "shortcut"
   | "storage"

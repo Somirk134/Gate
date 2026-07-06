@@ -62,6 +62,28 @@
           </div>
         </div>
 
+        <div v-if="tunnel.protocol === 'https' && tunnel.https" class="tunnel-overview__tls">
+          <div class="tunnel-overview__tls-item">
+            <GIcon name="shield-check" :size="12" />
+            <span>{{ tunnel.https.tlsVersion }}</span>
+          </div>
+          <GBadge :variant="certificateVariant(tunnel.https.certificateStatus)" type="soft" size="sm">
+            {{ tunnel.https.expireDays }}d
+          </GBadge>
+          <div class="tunnel-overview__tls-item">
+            <GIcon name="timer" :size="12" />
+            <span>{{ tunnel.https.handshakeCount }}</span>
+          </div>
+          <div class="tunnel-overview__tls-item">
+            <GIcon name="activity" :size="12" />
+            <span>{{ formatBytes(tunnel.https.httpsTraffic) }}</span>
+          </div>
+          <div v-if="tunnel.https.errorCount > 0" class="tunnel-overview__tls-item tunnel-overview__tls-item--error">
+            <GIcon name="alert-circle" :size="12" />
+            <span>{{ tunnel.https.errorCount }}</span>
+          </div>
+        </div>
+
         <div class="tunnel-overview__foot">
           <GButton
             v-if="tunnel.status === 'online' || tunnel.status === 'connecting'"
@@ -109,7 +131,7 @@ import GBadge from "@components/base/GBadge.vue"
 import GIcon from "@components/icons/GIcon.vue"
 import GStatusBadge from "@components/status/GStatusBadge.vue"
 import GEmptyState from "@components/feedback/GEmptyState.vue"
-import type { DashboardTunnel, Protocol } from "../types"
+import type { CertificateStatus, DashboardTunnel, Protocol } from "../types"
 
 withDefaults(
   defineProps<{
@@ -138,10 +160,28 @@ function protocolVariant(p: Protocol) {
   }
 }
 
+function certificateVariant(status: CertificateStatus) {
+  switch (status) {
+    case "active": return "success"
+    case "expiring_soon": return "warning"
+    case "expired":
+    case "missing":
+    case "error": return "error"
+    default: return "neutral"
+  }
+}
+
 function formatSpeed(kbps: number): string {
   if (kbps < 1) return "0 KB/s"
   if (kbps < 1024) return `${kbps.toFixed(1)} KB/s`
   return `${(kbps / 1024).toFixed(2)} MB/s`
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
 }
 </script>
 
@@ -227,6 +267,27 @@ function formatSpeed(kbps: number): string {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
+}
+.tunnel-overview__tls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 28px;
+  padding: 0 var(--space-1);
+}
+.tunnel-overview__tls-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.tunnel-overview__tls-item--error {
+  color: var(--color-error);
 }
 .tunnel-overview__foot {
   display: flex;

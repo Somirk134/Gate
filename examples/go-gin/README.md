@@ -17,12 +17,14 @@ protocol = "http"
 local_host = "127.0.0.1"
 local_port = 8080
 remote_port = 18080
+host = "gin.example.com"
+path = "/api"
 ```
 
 Local app:
 
 ```bash
-go run ./cmd/api
+go run .
 ```
 
 ## Screenshot
@@ -34,5 +36,5 @@ go run ./cmd/api
 1. Start the Gin API on `127.0.0.1:8080`.
 2. Start Gate server.
 3. Create the `go-gin-api` tunnel.
-4. Test the public endpoint.
+4. Test the public endpoint with `Host: gin.example.com`.
 5. Stop the tunnel when done.

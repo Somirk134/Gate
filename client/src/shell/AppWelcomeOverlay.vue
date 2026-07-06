@@ -416,7 +416,7 @@ async function goNext() {
     }
   }
   if (currentStep.value.key === "tunnel") {
-    if (!createFirstTunnel()) return
+    if (!(await createFirstTunnel())) return
   }
   step.value = Math.min(step.value + 1, flowSteps.length - 1)
 }
@@ -428,18 +428,17 @@ function validateServer() {
   return !inlineError.value
 }
 
-function createFirstTunnel() {
+async function createFirstTunnel() {
   if (!Number.isInteger(tunnelForm.localPort) || !Number.isInteger(tunnelForm.remotePort)) {
     inlineError.value = "请确认本地端口和公网端口。"
     return false
   }
-  const created = tunnelStore.createTunnel({
+  const created = await tunnelStore.createTunnel({
     ...tunnelForm,
     name: tunnelForm.name.trim() || selectedTemplate.value.suggestedName,
     serverName: serverAddr.value,
     tags: [...tunnelForm.tags],
   })
-  if (tunnelForm.autoStart) tunnelStore.startTunnel(created.id)
   createdTunnelName.value = created.name
   return true
 }

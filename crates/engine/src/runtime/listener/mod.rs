@@ -84,10 +84,12 @@ impl TcpListenerService {
                 addr: listen_addr,
                 source,
             })?;
-        let bound_addr = listener.local_addr().map_err(|source| ListenerError::Bind {
-            addr: listen_addr,
-            source,
-        })?;
+        let bound_addr = listener
+            .local_addr()
+            .map_err(|source| ListenerError::Bind {
+                addr: listen_addr,
+                source,
+            })?;
 
         *self.inner.bound_addr.write() = Some(bound_addr);
         *self.inner.status.write() = ListenerStatus::Listening;
@@ -222,9 +224,9 @@ impl TcpListenerService {
         let shutdown = self.inner.context.subscribe_shutdown();
         let session_id = session.id;
 
-        self.inner.scheduler.spawn_forward(
-            format!("tcp-forward:{session_id}"),
-            async move {
+        self.inner
+            .scheduler
+            .spawn_forward(format!("tcp-forward:{session_id}"), async move {
                 session.set_status(SessionState::Connecting);
                 let result = async {
                     let target = connector.connect().await?;
@@ -265,8 +267,7 @@ impl TcpListenerService {
                         );
                     }
                 }
-            },
-        )?;
+            })?;
 
         Ok(())
     }

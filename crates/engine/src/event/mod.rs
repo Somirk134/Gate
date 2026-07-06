@@ -9,8 +9,12 @@ use tokio::sync::mpsc;
 /// Unified Tunnel Engine event.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TunnelEvent {
-    TunnelStarted { tunnel_id: TunnelId },
-    TunnelStopped { tunnel_id: TunnelId },
+    TunnelStarted {
+        tunnel_id: TunnelId,
+    },
+    TunnelStopped {
+        tunnel_id: TunnelId,
+    },
     ConnectionCreated {
         tunnel_id: TunnelId,
         connection_id: crate::connection::ConnectionId,
@@ -29,7 +33,9 @@ pub enum TunnelEvent {
     HeartbeatStopped {
         tunnel_id: TunnelId,
     },
-    HeartbeatTimeout { tunnel_id: TunnelId },
+    HeartbeatTimeout {
+        tunnel_id: TunnelId,
+    },
     ReconnectStarted {
         tunnel_id: TunnelId,
         attempt: u32,
@@ -60,7 +66,10 @@ pub enum TunnelEvent {
         target: String,
         version: u64,
     },
-    TunnelError { tunnel_id: TunnelId, message: String },
+    TunnelError {
+        tunnel_id: TunnelId,
+        message: String,
+    },
 }
 
 pub type EventPublisher = mpsc::Sender<TunnelEvent>;

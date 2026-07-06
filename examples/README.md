@@ -12,8 +12,9 @@ Examples are small, copyable recipes for common tunnel shapes. They are document
 | MySQL | [mysql](./mysql) | Connect to a local database from a remote client |
 | Redis | [redis](./redis) | Expose Redis for controlled development access |
 | Docker | [docker](./docker) | Run Gate server with Docker or Compose |
-| Nginx | [nginx](./nginx) | Put TLS and HTTP routing in front of Gate |
+| Nginx | [nginx](./nginx) | Expose a local Nginx HTTP service |
 | Spring Boot | [spring-boot](./spring-boot) | Share a local Java service |
+| Express | [express](./express) | Share a local Express API |
 | Node.js | [node-js](./node-js) | Share a local Node service |
 | Python Flask | [python-flask](./python-flask) | Share a local Flask app |
 | Go Gin | [go-gin](./go-gin) | Share a local Go API |

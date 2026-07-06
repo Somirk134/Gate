@@ -118,13 +118,21 @@ impl TunnelRuntime {
 
     pub async fn start(&self) -> Result<(), RuntimeError> {
         match self.inner.context.state.current() {
-            RuntimeState::Running | RuntimeState::Starting => return Ok(()),
+            RuntimeState::Initializing | RuntimeState::Starting | RuntimeState::Running => {
+                return Ok(())
+            }
             RuntimeState::Paused => return self.resume().await,
-            RuntimeState::Shutdown | RuntimeState::ShuttingDown => {
+            RuntimeState::Closed => {
                 return Err(RuntimeError::InvalidStateTransition {
                     from: self.inner.context.state.current(),
                     to: RuntimeState::Starting,
                 });
+            }
+            RuntimeState::Failed => {
+                self.inner
+                    .context
+                    .state
+                    .transition_to(RuntimeState::Restarting)?;
             }
             _ => {}
         }
@@ -132,15 +140,28 @@ impl TunnelRuntime {
         self.inner
             .context
             .state
-            .transition_to(RuntimeState::Starting)?;
+            .transition_to(RuntimeState::Initializing)?;
         self.inner.context.reset_shutdown();
-        self.inner.listener.start().await?;
-        self.start_monitor_task()?;
-        self.start_cleanup_task()?;
-        self.inner
-            .context
-            .state
-            .transition_to(RuntimeState::Running)?;
+        let result = async {
+            self.inner
+                .context
+                .state
+                .transition_to(RuntimeState::Starting)?;
+            self.inner.listener.start().await?;
+            self.start_monitor_task()?;
+            self.start_cleanup_task()?;
+            self.inner
+                .context
+                .state
+                .transition_to(RuntimeState::Running)?;
+            Ok::<(), RuntimeError>(())
+        }
+        .await;
+
+        if let Err(error) = result {
+            let _ = self.inner.context.state.transition_to(RuntimeState::Failed);
+            return Err(error);
+        }
 
         info!(
             target: "gate_runtime",
@@ -154,7 +175,7 @@ impl TunnelRuntime {
     pub async fn stop(&self) -> Result<(), RuntimeError> {
         match self.inner.context.state.current() {
             RuntimeState::Stopped => return Ok(()),
-            RuntimeState::Shutdown => return Ok(()),
+            RuntimeState::Closed => return Ok(()),
             _ => {}
         }
 
@@ -186,9 +207,15 @@ impl TunnelRuntime {
                 self.stop().await?;
             }
             RuntimeState::Created | RuntimeState::Stopped => {}
-            RuntimeState::Shutdown => {
+            RuntimeState::Failed => {
+                self.inner
+                    .context
+                    .state
+                    .transition_to(RuntimeState::Restarting)?;
+            }
+            RuntimeState::Closed => {
                 return Err(RuntimeError::InvalidStateTransition {
-                    from: RuntimeState::Shutdown,
+                    from: RuntimeState::Closed,
                     to: RuntimeState::Starting,
                 });
             }
@@ -233,14 +260,14 @@ impl TunnelRuntime {
     }
 
     pub async fn shutdown(&self) -> Result<(), RuntimeError> {
-        if self.inner.context.state.current() == RuntimeState::Shutdown {
+        if self.inner.context.state.current() == RuntimeState::Closed {
             return Ok(());
         }
 
         self.inner
             .context
             .state
-            .transition_to(RuntimeState::ShuttingDown)?;
+            .transition_to(RuntimeState::Stopping)?;
         self.inner.context.request_shutdown();
         self.inner.listener.stop().await?;
         self.inner
@@ -251,19 +278,22 @@ impl TunnelRuntime {
         self.inner
             .context
             .state
-            .transition_to(RuntimeState::Shutdown)?;
+            .transition_to(RuntimeState::Closed)?;
         Ok(())
     }
 
     fn start_monitor_task(&self) -> Result<(), RuntimeError> {
         let context = Arc::clone(&self.inner.context);
         let monitor = Arc::clone(&self.inner.monitor);
-        let interval = context.config.monitor_interval.max(Duration::from_millis(100));
+        let interval = context
+            .config
+            .monitor_interval
+            .max(Duration::from_millis(100));
         let tunnel_id = self.tunnel_id();
 
-        self.inner.scheduler.spawn_monitor(
-            format!("runtime-monitor:{tunnel_id}"),
-            async move {
+        self.inner
+            .scheduler
+            .spawn_monitor(format!("runtime-monitor:{tunnel_id}"), async move {
                 let mut shutdown = context.subscribe_shutdown();
                 loop {
                     tokio::select! {
@@ -273,20 +303,22 @@ impl TunnelRuntime {
                         }
                     }
                 }
-            },
-        )?;
+            })?;
 
         Ok(())
     }
 
     fn start_cleanup_task(&self) -> Result<(), RuntimeError> {
         let context = Arc::clone(&self.inner.context);
-        let interval = context.config.cleanup_interval.max(Duration::from_millis(100));
+        let interval = context
+            .config
+            .cleanup_interval
+            .max(Duration::from_millis(100));
         let tunnel_id = self.tunnel_id();
 
-        self.inner.scheduler.spawn_cleanup(
-            format!("runtime-cleanup:{tunnel_id}"),
-            async move {
+        self.inner
+            .scheduler
+            .spawn_cleanup(format!("runtime-cleanup:{tunnel_id}"), async move {
                 let mut shutdown = context.subscribe_shutdown();
                 loop {
                     tokio::select! {
@@ -296,8 +328,7 @@ impl TunnelRuntime {
                         }
                     }
                 }
-            },
-        )?;
+            })?;
 
         Ok(())
     }

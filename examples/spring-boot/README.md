@@ -17,12 +17,14 @@ protocol = "http"
 local_host = "127.0.0.1"
 local_port = 8080
 remote_port = 18080
+host = "api.example.com"
+path = "/api"
 ```
 
 Local app:
 
 ```bash
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 ## Screenshot
@@ -34,5 +36,5 @@ Local app:
 1. Start the Spring Boot app on `127.0.0.1:8080`.
 2. Start Gate server.
 3. Create the `spring-boot-api` tunnel.
-4. Send a request through the remote entrypoint.
+4. Send a request through the remote entrypoint with `Host: api.example.com`.
 5. Watch Dashboard and Log Center.

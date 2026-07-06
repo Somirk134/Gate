@@ -261,7 +261,9 @@ impl ConnectionMonitor for ConnectionMonitorManager {
         tunnel_id: TunnelId,
         connection_id: ConnectionId,
     ) -> BoxFuture<'_, ConnectionMonitorSnapshot> {
-        Box::pin(async move { ConnectionMonitorManager::register(self, tunnel_id, connection_id).await })
+        Box::pin(
+            async move { ConnectionMonitorManager::register(self, tunnel_id, connection_id).await },
+        )
     }
 
     fn record_ping(
@@ -276,7 +278,9 @@ impl ConnectionMonitor for ConnectionMonitorManager {
         connection_id: ConnectionId,
         rtt: Duration,
     ) -> BoxFuture<'_, Result<ConnectionMonitorSnapshot, ConnectionLostError>> {
-        Box::pin(async move { ConnectionMonitorManager::record_pong(self, connection_id, rtt).await })
+        Box::pin(
+            async move { ConnectionMonitorManager::record_pong(self, connection_id, rtt).await },
+        )
     }
 
     fn mark_lost(

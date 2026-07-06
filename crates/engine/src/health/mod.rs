@@ -110,7 +110,9 @@ impl HealthManager {
 
     pub async fn check_heartbeat(&self, state: HeartbeatState) -> HealthSignal {
         let (status, score, message) = match state {
-            HeartbeatState::Running | HeartbeatState::WaitingPong => (HealthStatus::Healthy, 100, None),
+            HeartbeatState::Running | HeartbeatState::WaitingPong => {
+                (HealthStatus::Healthy, 100, None)
+            }
             HeartbeatState::Retrying => (
                 HealthStatus::Warning,
                 self.config.warning_score_threshold,
@@ -121,10 +123,16 @@ impl HealthManager {
                 self.config.critical_score_threshold,
                 Some("heartbeat timeout".to_string()),
             ),
-            HeartbeatState::Idle => (HealthStatus::Warning, 70, Some("heartbeat idle".to_string())),
-            HeartbeatState::Stopped => {
-                (HealthStatus::Offline, 0, Some("heartbeat stopped".to_string()))
-            }
+            HeartbeatState::Idle => (
+                HealthStatus::Warning,
+                70,
+                Some("heartbeat idle".to_string()),
+            ),
+            HeartbeatState::Stopped => (
+                HealthStatus::Offline,
+                0,
+                Some("heartbeat stopped".to_string()),
+            ),
         };
         let signal = HealthSignal::new(HealthCheckTarget::Heartbeat, status, score, message);
         self.signals.insert(signal.target, signal.clone());
@@ -133,7 +141,12 @@ impl HealthManager {
 
     pub async fn check_authentication(&self, authenticated: bool) -> HealthSignal {
         let signal = if authenticated {
-            HealthSignal::new(HealthCheckTarget::Authentication, HealthStatus::Healthy, 100, None)
+            HealthSignal::new(
+                HealthCheckTarget::Authentication,
+                HealthStatus::Healthy,
+                100,
+                None,
+            )
         } else {
             HealthSignal::new(
                 HealthCheckTarget::Authentication,
@@ -195,9 +208,11 @@ impl HealthManager {
             };
         }
 
-        let score =
-            (components.iter().map(|signal| signal.score as u64).sum::<u64>()
-                / components.len() as u64) as u8;
+        let score = (components
+            .iter()
+            .map(|signal| signal.score as u64)
+            .sum::<u64>()
+            / components.len() as u64) as u8;
         let status = if components
             .iter()
             .any(|signal| signal.status == HealthStatus::Offline)

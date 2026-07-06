@@ -215,7 +215,8 @@ async fn wait_for_idle(
 
 fn idle_check_interval(timeout: Duration) -> Duration {
     let half = Duration::from_millis((timeout.as_millis() / 2).min(u64::MAX as u128) as u64);
-    half.min(Duration::from_secs(1)).max(Duration::from_millis(50))
+    half.min(Duration::from_secs(1))
+        .max(Duration::from_millis(50))
 }
 
 fn now_millis() -> u64 {

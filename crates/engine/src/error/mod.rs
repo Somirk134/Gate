@@ -108,7 +108,10 @@ pub enum HeartbeatError {
     NotRunning { tunnel_id: TunnelId },
 
     #[error("invalid heartbeat state transition: {from} -> {to}")]
-    InvalidTransition { from: &'static str, to: &'static str },
+    InvalidTransition {
+        from: &'static str,
+        to: &'static str,
+    },
 
     #[error("heartbeat timed out for tunnel: {tunnel_id}")]
     Timeout { tunnel_id: TunnelId },

@@ -41,11 +41,8 @@ async fn reconnect_queue_schedules_and_marks_success() {
 
 #[test]
 fn exponential_backoff_strategy_caps_delay() {
-    let strategy = ExponentialBackoffStrategy::new(
-        Duration::from_millis(100),
-        Duration::from_secs(1),
-        2.0,
-    );
+    let strategy =
+        ExponentialBackoffStrategy::new(Duration::from_millis(100), Duration::from_secs(1), 2.0);
 
     assert_eq!(strategy.next_delay(1), Some(Duration::from_millis(100)));
     assert_eq!(strategy.next_delay(4), Some(Duration::from_millis(800)));

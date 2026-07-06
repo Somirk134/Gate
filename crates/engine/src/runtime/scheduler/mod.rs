@@ -1,7 +1,7 @@
 //! Runtime scheduler.
 
 use crate::runtime::error::SchedulerError;
-use crate::runtime::worker::{TaskId, TaskKind, WorkerPool};
+use crate::runtime::worker::{TaskId, TaskKind, TaskStatistics, TaskStatus, WorkerPool};
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
@@ -127,6 +127,10 @@ impl RuntimeScheduler {
         self.workers.cancel(id)
     }
 
+    pub async fn wait(&self, id: TaskId, timeout: Duration) -> Result<TaskStatus, SchedulerError> {
+        self.workers.wait(id, timeout).await
+    }
+
     pub fn shutdown(&self) {
         self.workers.abort_all();
     }
@@ -137,6 +141,10 @@ impl RuntimeScheduler {
 
     pub fn workers(&self) -> Arc<WorkerPool> {
         Arc::clone(&self.workers)
+    }
+
+    pub fn statistics(&self) -> TaskStatistics {
+        self.workers.statistics()
     }
 }
 

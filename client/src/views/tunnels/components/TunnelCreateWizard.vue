@@ -47,7 +47,7 @@
           <section v-else-if="step === 2" class="wizard-step">
             <div class="wizard-copy">
               <strong>选择 Tunnel 模板</strong>
-              <p>模板只生成推荐配置，不新增协议能力；HTTP 入口保留给后续版本。</p>
+              <p>Templates generate recommended TCP or HTTP tunnel settings.</p>
             </div>
             <div class="template-list">
               <button

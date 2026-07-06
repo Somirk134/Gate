@@ -31,6 +31,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { title: 'Tunnels', icon: 'router', keepAlive: true },
             },
             {
+                path: 'tunnels/http',
+                name: 'http-tunnels',
+                component: () => import('@views/tunnels/HttpTunnelPage.vue'),
+                meta: { title: 'HTTP Tunnels', icon: 'globe', keepAlive: true },
+            },
+            {
                 path: 'tunnels/:tunnelId',
                 name: 'tunnel-detail',
                 component: () => import('@views/tunnels/TunnelsPage.vue'),

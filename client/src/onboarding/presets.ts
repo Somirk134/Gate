@@ -29,16 +29,16 @@ export interface QuickStartScenario {
 
 export const tunnelTemplates: TunnelTemplatePreset[] = [
   {
-    id: "http-reserved",
+    id: "http",
     title: "HTTP",
-    description: "预留模板，当前 Sprint 不新增 HTTP 协议能力。",
+    description: "HTTP/1.1 service with Host and Path routing.",
     icon: "globe",
     protocol: "http",
-    suggestedName: "http-preview",
+    suggestedName: "http-service",
     localPort: 3000,
     remotePort: 18080,
-    tags: ["Reserved"],
-    availability: "reserved",
+    tags: ["HTTP"],
+    availability: "available",
   },
   {
     id: "tcp",
@@ -55,9 +55,9 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
   {
     id: "webhook",
     title: "Webhook",
-    description: "用于本地回调调试，保持现有隧道协议不变。",
+    description: "HTTP callback debugging for local webhook handlers.",
     icon: "link",
-    protocol: "tcp",
+    protocol: "http",
     suggestedName: "webhook-dev",
     localPort: 3000,
     remotePort: 18081,
@@ -144,7 +144,7 @@ export const quickStartScenarios: QuickStartScenario[] = [
     title: "本地开发",
     description: "Vite、Next、Express 等本地服务调试。",
     icon: "code",
-    templateId: "tcp",
+    templateId: "http",
     suggestedName: "local-dev",
     localPort: 3000,
     remotePort: 18080,
