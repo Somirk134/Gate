@@ -1,8 +1,10 @@
 [server]
-address = "127.0.0.1:5800"
+address = "127.0.0.1:7000"
+auth_token = "gate-alpha-token"
 
 [tunnel]
 name = "basic-web"
 protocol = "tcp"
-local = "127.0.0.1:3000"
-remote = "0.0.0.0:8080"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080

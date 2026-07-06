@@ -1,17 +1,35 @@
 # Gate Examples
 
-Examples are intentionally small and configuration-focused. They document common deployment shapes
-without adding business-specific code.
+Examples are small, copyable recipes for common tunnel shapes. They are documentation-first and do not add business runtime code.
 
-| Example | Directory | Purpose |
+## Standard Examples
+
+| Example | Directory | Use case |
 | --- | --- | --- |
-| Basic Example | [basic](./basic) | One local service exposed through Gate |
-| Multi Tunnel | [multi-tunnel](./multi-tunnel) | Multiple tunnel definitions in one project |
-| Docker Example | [docker](./docker) | Compose-based server startup |
-| Self-hosted Example | [self-hosted](./self-hosted) | VPS or private server deployment notes |
-| Reverse Proxy Example | [reverse-proxy](./reverse-proxy) | TLS termination and proxy forwarding |
+| Basic TCP | [basic-tcp](./basic-tcp) | Expose a local TCP service |
+| Webhook | [webhook](./webhook) | Receive public callbacks locally |
+| SSH | [ssh](./ssh) | Reach a development machine through a controlled tunnel |
+| MySQL | [mysql](./mysql) | Connect to a local database from a remote client |
+| Redis | [redis](./redis) | Expose Redis for controlled development access |
+| Docker | [docker](./docker) | Run Gate server with Docker or Compose |
+| Nginx | [nginx](./nginx) | Put TLS and HTTP routing in front of Gate |
+| Spring Boot | [spring-boot](./spring-boot) | Share a local Java service |
+| Node.js | [node-js](./node-js) | Share a local Node service |
+| Python Flask | [python-flask](./python-flask) | Share a local Flask app |
+| Go Gin | [go-gin](./go-gin) | Share a local Go API |
 
-## Naming
+## Legacy Examples
 
-Example directories use lowercase kebab-case. Config files should be copyable and should not include
-real secrets.
+Older examples remain available while links are migrated:
+
+- [basic](./basic)
+- [multi-tunnel](./multi-tunnel)
+- [reverse-proxy](./reverse-proxy)
+- [self-hosted](./self-hosted)
+
+## Conventions
+
+- Directory names use lowercase kebab-case.
+- Config values use `127.0.0.1`, `gate.example.com`, and fake ports.
+- Never commit real tokens.
+- Each example includes description, configuration, screenshot, and run steps.

@@ -1,0 +1,19 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Gate welcome wizard screenshot</title>
+  <desc id="desc">Welcome wizard preview for first-run setup.</desc>
+  <rect width="1440" height="900" fill="#EEF3F8"/>
+  <filter id="shadow" x="160" y="100" width="1120" height="700" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="24" stdDeviation="34" flood-color="#102033" flood-opacity=".18"/></filter>
+  <g filter="url(#shadow)">
+    <rect x="230" y="134" width="980" height="632" rx="28" fill="#FFFFFF"/>
+    <rect x="230" y="134" width="340" height="632" rx="28" fill="#0B1020"/>
+    <text x="286" y="220" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="34" font-weight="850">Welcome to Gate</text>
+    <text x="286" y="268" fill="#CBD5E1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Set up your first server and tunnel in a guided flow.</text>
+    <rect x="286" y="338" width="214" height="48" rx="14" fill="#0EA5E9"/><text x="334" y="369" fill="#fff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">Quick Start</text>
+    <text x="286" y="448" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">1. Choose scenario</text><text x="286" y="488" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">2. Add server</text><text x="286" y="528" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">3. Create tunnel</text>
+    <text x="630" y="220" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="850">What do you want to connect?</text>
+    <rect x="630" y="278" width="470" height="96" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/><text x="662" y="318" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850">Local web app</text><text x="662" y="346" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Expose 127.0.0.1:3000 for reviews and callbacks.</text>
+    <rect x="630" y="402" width="470" height="96" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/><text x="662" y="442" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850">Webhook callback</text><text x="662" y="470" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Receive GitHub, payment, or OpenAI callbacks locally.</text>
+    <rect x="630" y="526" width="470" height="96" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/><text x="662" y="566" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850">Remote database</text><text x="662" y="594" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Create a controlled TCP path for MySQL or Redis.</text>
+    <rect x="960" y="662" width="140" height="48" rx="14" fill="#0EA5E9"/><text x="1008" y="693" fill="#fff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">Next</text>
+  </g>
+</svg>

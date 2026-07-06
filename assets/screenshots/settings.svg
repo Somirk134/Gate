@@ -1,0 +1,29 @@
+<svg width="900" height="540" viewBox="0 0 900 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Gate settings screenshot</title>
+  <desc id="desc">Settings view with categories, preferences, and security controls.</desc>
+  <rect width="900" height="540" rx="24" fill="#0B1020"/>
+  <rect x="28" y="28" width="844" height="484" rx="20" fill="#111827" stroke="#263244"/>
+  <text x="64" y="82" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">Settings</text>
+  <rect x="64" y="118" width="214" height="336" rx="16" fill="#0F172A" stroke="#263244"/>
+  <rect x="88" y="150" width="146" height="34" rx="10" fill="#1E293B"/>
+  <rect x="88" y="208" width="118" height="12" rx="6" fill="#64748B"/>
+  <rect x="88" y="246" width="152" height="12" rx="6" fill="#64748B"/>
+  <rect x="88" y="284" width="104" height="12" rx="6" fill="#64748B"/>
+  <rect x="88" y="322" width="136" height="12" rx="6" fill="#64748B"/>
+  <rect x="88" y="360" width="116" height="12" rx="6" fill="#64748B"/>
+  <rect x="310" y="118" width="498" height="88" rx="16" fill="#0F172A" stroke="#263244"/>
+  <text x="338" y="152" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">General</text>
+  <rect x="338" y="174" width="210" height="10" rx="5" fill="#64748B"/>
+  <rect x="716" y="144" width="52" height="28" rx="14" fill="#0284C7"/>
+  <circle cx="754" cy="158" r="10" fill="#F8FAFC"/>
+  <rect x="310" y="232" width="498" height="88" rx="16" fill="#0F172A" stroke="#263244"/>
+  <text x="338" y="266" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">Security</text>
+  <rect x="338" y="288" width="260" height="10" rx="5" fill="#64748B"/>
+  <rect x="704" y="260" width="64" height="28" rx="8" fill="#052E2B" stroke="#14B8A6" stroke-opacity="0.45"/>
+  <text x="721" y="279" fill="#A7F3D0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="800">safe</text>
+  <rect x="310" y="346" width="498" height="108" rx="16" fill="#0F172A" stroke="#263244"/>
+  <text x="338" y="380" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">Runtime</text>
+  <rect x="338" y="402" width="302" height="10" rx="5" fill="#64748B"/>
+  <rect x="338" y="426" width="236" height="10" rx="5" fill="#64748B"/>
+  <rect x="704" y="384" width="64" height="28" rx="8" fill="#1E293B"/>
+</svg>

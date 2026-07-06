@@ -1,13 +1,39 @@
-# Docker Example
+# Docker
 
-Start Gate server with Docker Compose.
+## Description
 
-```bash
-docker compose -f docker/docker-compose.yml up -d
-docker compose -f docker/docker-compose.yml logs -f
+Run the Gate server in Docker for repeatable local or VPS deployment.
+
+## Configuration
+
+```yaml
+services:
+  gate-server:
+    image: gate-server:local
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.server
+    environment:
+      GATE_SERVER_ADDR: 0.0.0.0:7000
+      GATE_AUTH_TOKEN: replace-me
+    ports:
+      - "7000:7000"
 ```
 
-## Environment
+## Screenshot
 
-Copy `examples/docker/gate.env.example` to your deployment environment and replace secrets before
-production use.
+![Server screenshot](../../assets/screenshots/server.svg)
+
+## Run Steps
+
+1. Build the image from the repository root.
+2. Start Compose.
+3. Confirm logs show the server is listening.
+4. Connect with the desktop client.
+5. Stop Compose when finished.
+
+```bash
+docker build -f docker/Dockerfile.server -t gate-server:local .
+docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml logs -f gate-server
+```

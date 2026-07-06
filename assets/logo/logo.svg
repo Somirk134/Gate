@@ -1,48 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-    <defs>
-        <!-- 背景暗色渐变 (拟态金属暗壳) -->
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#141820" />
-            <stop offset="100%" stop-color="#06080C" />
-        </linearGradient>
-
-        <!-- 品牌主色渐变 (Cyan -> Blue -> Purple) -->
-        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#00F0FF" />
-            <stop offset="45%" stop-color="#0057FF" />
-            <stop offset="100%" stop-color="#6B21A8" />
-        </linearGradient>
-
-        <!-- 弥散发光滤镜 (用于中心核心) -->
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="12" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-
-        <!-- 高级阴影滤镜 (增加悬浮立体感) -->
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6" />
-        </filter>
-    </defs>
-
-    <!-- 1. 应用图标底层 (macOS 规范标准大圆角矩形) -->
-    <rect x="32" y="32" width="448" height="448" rx="115" fill="url(#bgGrad)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="2" filter="url(#shadow)" />
-
-    <!-- 2. 背景微弱装饰环 (暗示雷达、网络与穿透映射) -->
-    <circle cx="256" cy="256" r="170" fill="none" stroke="rgba(255, 255, 255, 0.03)" stroke-width="2" stroke-dasharray="12 12" />
-    <circle cx="256" cy="256" r="100" fill="none" stroke="rgba(0, 240, 255, 0.05)" stroke-width="1" />
-
-    <!-- 3. Gate 的核心 "G" 隧道图形 -->
-    <!-- 起点在 -60度，逆时针画大圆弧到 0度，最后水平线直插圆心 -->
-    <path d="M 316 152 A 120 120 0 1 0 376 256 H 256"
-          fill="none"
-          stroke="url(#brandGrad)"
-          stroke-width="60"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          filter="url(#shadow)" />
-
-    <!-- 4. 隧道连接核心 (内部数据流的高亮终点) -->
-    <circle cx="256" cy="256" r="14" fill="#FFFFFF" filter="url(#glow)" />
-    <circle cx="256" cy="256" r="6" fill="#00F0FF" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Gate logo">
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="#0B1020"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#1E293B" stroke-width="2" stroke-dasharray="12 14"/>
+  <circle cx="256" cy="256" r="102" fill="none" stroke="#164E63" stroke-width="2"/>
+  <path d="M316 152A120 120 0 1 0 376 256H256" fill="none" stroke="#38BDF8" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M326 256H256" fill="none" stroke="#A7F3D0" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="15" fill="#F8FAFC"/>
+  <circle cx="256" cy="256" r="6" fill="#38BDF8"/>
 </svg>

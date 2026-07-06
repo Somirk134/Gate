@@ -3,14 +3,20 @@ name = "example-stack"
 owner = "platform-team"
 environment = "development"
 
+[server]
+address = "127.0.0.1:7000"
+auth_token = "gate-alpha-token"
+
 [[tunnels]]
 name = "web"
 protocol = "tcp"
-local = "127.0.0.1:3000"
-remote = "0.0.0.0:8080"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080
 
 [[tunnels]]
 name = "api"
 protocol = "tcp"
-local = "127.0.0.1:4000"
-remote = "0.0.0.0:8081"
+local_host = "127.0.0.1"
+local_port = 4000
+remote_port = 18081

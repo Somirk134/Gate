@@ -1,0 +1,16 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Gate connection wizard screenshot</title>
+  <desc id="desc">Connection wizard preview for adding a server and first tunnel.</desc>
+  <rect width="1440" height="900" fill="#EEF3F8"/>
+  <filter id="shadow" x="160" y="100" width="1120" height="700" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="24" stdDeviation="34" flood-color="#102033" flood-opacity=".18"/></filter>
+  <g filter="url(#shadow)">
+    <rect x="230" y="134" width="980" height="632" rx="28" fill="#FFFFFF"/>
+    <text x="306" y="218" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="850">Connect to a Gate server</text>
+    <text x="306" y="252" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Use your self-hosted endpoint and token to create the first tunnel.</text>
+    <rect x="306" y="314" width="828" height="86" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/><text x="334" y="348" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">SERVER ADDRESS</text><text x="334" y="378" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">127.0.0.1:7000</text>
+    <rect x="306" y="430" width="828" height="86" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/><text x="334" y="464" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">AUTH TOKEN</text><text x="334" y="494" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">••••••••••••••••••••</text>
+    <rect x="306" y="546" width="396" height="98" rx="16" fill="#ECFDF5" stroke="#BBF7D0"/><text x="334" y="586" fill="#047857" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850">Connection verified</text><text x="334" y="614" fill="#047857" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">Heartbeat received in 34 ms.</text>
+    <rect x="738" y="546" width="396" height="98" rx="16" fill="#EFF6FF" stroke="#BFDBFE"/><text x="766" y="586" fill="#1D4ED8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="850">First tunnel ready</text><text x="766" y="614" fill="#1D4ED8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">TCP 127.0.0.1:3000 -> :18080</text>
+    <rect x="918" y="678" width="216" height="52" rx="14" fill="#0EA5E9"/><text x="976" y="711" fill="#fff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">Create Tunnel</text>
+  </g>
+</svg>

@@ -1,0 +1,47 @@
+<svg width="1200" height="620" viewBox="0 0 1200 620" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Gate dashboard preview</title>
+  <desc id="desc">A dark Gate desktop dashboard with server health, active tunnels, traffic, and recent events.</desc>
+  <rect width="1200" height="620" rx="28" fill="#0B1020"/>
+  <rect x="32" y="32" width="1136" height="556" rx="22" fill="#111827" stroke="#263244" stroke-width="2"/>
+  <rect x="32" y="32" width="236" height="556" rx="22" fill="#0F172A"/>
+  <rect x="32" y="32" width="236" height="556" rx="22" stroke="#263244" stroke-width="2"/>
+  <circle cx="82" cy="82" r="22" fill="#38BDF8"/>
+  <path d="M88 67A17 17 0 1 0 98 82H82" stroke="#0B1020" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="118" y="90" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">Gate</text>
+  <rect x="64" y="136" width="172" height="38" rx="10" fill="#1E293B"/>
+  <rect x="64" y="194" width="148" height="12" rx="6" fill="#64748B"/>
+  <rect x="64" y="232" width="126" height="12" rx="6" fill="#64748B"/>
+  <rect x="64" y="270" width="156" height="12" rx="6" fill="#64748B"/>
+  <rect x="64" y="308" width="112" height="12" rx="6" fill="#64748B"/>
+  <rect x="64" y="514" width="152" height="34" rx="10" fill="#1E293B"/>
+  <rect x="304" y="70" width="388" height="44" rx="12" fill="#0F172A"/>
+  <text x="328" y="99" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">Operations Dashboard</text>
+  <rect x="922" y="70" width="198" height="44" rx="12" fill="#052E2B" stroke="#14B8A6" stroke-opacity="0.45"/>
+  <circle cx="950" cy="92" r="7" fill="#2DD4BF"/>
+  <text x="970" y="99" fill="#A7F3D0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">Server Online</text>
+  <rect x="304" y="146" width="190" height="116" rx="18" fill="#0F172A" stroke="#263244"/>
+  <rect x="526" y="146" width="190" height="116" rx="18" fill="#0F172A" stroke="#263244"/>
+  <rect x="748" y="146" width="190" height="116" rx="18" fill="#0F172A" stroke="#263244"/>
+  <rect x="970" y="146" width="150" height="116" rx="18" fill="#0F172A" stroke="#263244"/>
+  <text x="328" y="183" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Active tunnels</text>
+  <text x="328" y="229" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="48" font-weight="800">12</text>
+  <text x="550" y="183" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Traffic today</text>
+  <text x="550" y="229" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="48" font-weight="800">8.4G</text>
+  <text x="772" y="183" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Avg latency</text>
+  <text x="772" y="229" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="48" font-weight="800">42</text>
+  <text x="862" y="229" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18">ms</text>
+  <text x="994" y="183" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16">Errors</text>
+  <text x="994" y="229" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="48" font-weight="800">0</text>
+  <rect x="304" y="294" width="520" height="242" rx="18" fill="#0F172A" stroke="#263244"/>
+  <text x="328" y="332" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Realtime Traffic</text>
+  <path d="M336 472C390 422 430 452 474 414C532 364 570 430 626 382C690 326 734 370 792 312" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M336 506C392 484 438 510 486 466C544 414 594 482 656 438C710 400 744 420 792 386" stroke="#A7F3D0" stroke-width="8" stroke-linecap="round"/>
+  <rect x="856" y="294" width="264" height="242" rx="18" fill="#0F172A" stroke="#263244"/>
+  <text x="880" y="332" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Recent Events</text>
+  <circle cx="890" cy="376" r="7" fill="#22C55E"/>
+  <rect x="910" y="368" width="160" height="12" rx="6" fill="#CBD5E1"/>
+  <circle cx="890" cy="422" r="7" fill="#38BDF8"/>
+  <rect x="910" y="414" width="132" height="12" rx="6" fill="#CBD5E1"/>
+  <circle cx="890" cy="468" r="7" fill="#FACC15"/>
+  <rect x="910" y="460" width="178" height="12" rx="6" fill="#CBD5E1"/>
+</svg>

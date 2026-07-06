@@ -1,37 +1,49 @@
 # Gate Documentation
 
-Gate documentation is organized for operators, contributors, maintainers, and future plugin authors.
+Welcome to the Gate documentation. The docs are organized around the path a new user follows: understand the project, install it, run a server, connect a client, create a tunnel, operate it, and contribute back.
 
 ## Start Here
 
-- [Quick Start](./quick-start.md)
-- [Install](./install.md)
-- [Configuration](./configuration.md)
-- [Troubleshooting](./troubleshooting.md)
+| Goal | Read |
+| --- | --- |
+| Try Gate locally | [Quick Start](./quick-start.md) |
+| Install dependencies | [Installation](./installation.md) |
+| Run the server | [Server](./server.md) |
+| Launch the desktop client | [Client](./client.md) |
+| Create the first tunnel | [Tunnel](./tunnel.md) |
 
-## Operator Guides
+## Product Guides
 
-- [Tunnel](./tunnel.md)
-- [Project](./project.md)
-- [Authentication](./authentication.md)
-- [Heartbeat](./heartbeat.md)
-- [Monitoring](./monitoring.md)
-- [Deployment](./deployment.md)
-- [Docker](./docker.md)
+| Area | Guide |
+| --- | --- |
+| Projects | [Project](./project.md) |
+| Dashboard | [Dashboard](./dashboard.md) |
+| Logs | [Log Center](./log-center.md) |
+| Settings | [Settings](./settings.md) |
+| Authentication | [Authentication](./authentication.md) |
 
-## Maintainer Guides
+## Operations
 
-- [Architecture](./architecture.md)
-- [Development Guide](./development-guide.md)
-- [Plugin Guide](./plugin-guide.md)
-- [API](./api.md)
-- [Documentation Style](./documentation-style.md)
-- [Naming Conventions](./naming-conventions.md)
-- [Diagrams](./diagrams.md)
+| Area | Guide |
+| --- | --- |
+| Deployment | [Deployment](./deployment.md) |
+| Docker | [Docker](./docker.md) |
+| Upgrade | [Upgrade](./upgrade.md) |
+| Troubleshooting | [Troubleshooting](./troubleshooting.md) |
+| FAQ | [FAQ](./faq.md) |
 
-## Existing Deep Dives
+## Maintainers
 
-Existing module deep dives remain available under:
+| Area | Guide |
+| --- | --- |
+| Architecture | [Architecture](./architecture.md) |
+| Developer Guide | [Developer Guide](./developer-guide.md) |
+| Contribution | [Contribution](./contribution.md) |
+| Release Note | [Release Note](./release-note.md) |
+
+## Reference Areas
+
+The repository also contains deeper implementation notes that are useful for maintainers:
 
 - `docs/runtime`
 - `docs/communication`
@@ -40,9 +52,14 @@ Existing module deep dives remain available under:
 - `docs/tunnel-engine`
 - `docs/ADR`
 
-## Naming Rules
+These references may keep their historical filenames while the public documentation keeps lowercase kebab-case names.
 
-- Public documentation files use lowercase kebab-case.
-- Existing implementation notes may keep their historical names until migrated.
-- Images and diagrams should live in `assets` or `design`.
-- Mermaid is the default diagram format. PlantUML is reserved for future architecture packs.
+## Documentation Style
+
+- Use one H1 per page.
+- Keep titles short and descriptive.
+- Prefer numbered steps for procedures.
+- Use fenced code blocks with a language label.
+- Use lowercase kebab-case filenames.
+- Avoid secrets, private hostnames, and environment-specific values in examples.
+- Document alpha limitations explicitly.

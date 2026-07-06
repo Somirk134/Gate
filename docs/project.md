@@ -1,24 +1,52 @@
 # Project
 
-Projects group tunnels, servers, monitoring views, and operational notes.
+Projects group related tunnels, servers, tags, and operational context. They help teams avoid a flat list of tunnels as usage grows.
 
-## Recommended Project Metadata
+## When To Use Projects
 
-| Field | Purpose |
+Use a project when tunnels share one of these boundaries:
+
+- Product or application.
+- Environment such as development, staging, or production.
+- Team ownership.
+- Customer or lab environment.
+- Temporary incident or debugging workspace.
+
+## Example
+
+```toml
+[project]
+name = "checkout-dev"
+owner = "payments"
+environment = "development"
+
+[[tunnels]]
+name = "wechat-pay-callback"
+protocol = "http"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080
+```
+
+## Recommended Fields
+
+| Field | Description |
 | --- | --- |
-| Name | Human-readable project name |
-| Description | Short operational context |
-| Owner | Team or person responsible |
-| Environment | Development, staging, production |
-| Tags | Search and filtering |
+| Name | Short product or workflow name |
+| Owner | Team, person, or service owner |
+| Environment | Development, staging, production, lab, or demo |
+| Tags | Domain, protocol, priority, or lifecycle labels |
+| Notes | Operational context and safety warnings |
 
-## Team Workflow
+## Project Hygiene
 
-1. Create a project for each product or environment boundary.
-2. Add tunnels with stable names.
-3. Document owner and escalation path.
-4. Review unused tunnels during release or incident review.
+- Keep demo projects separate from production-like work.
+- Archive projects when callbacks or debugging sessions are no longer needed.
+- Use consistent tags across projects.
+- Document external systems that call a project tunnel.
 
-## Future Work
+## Related
 
-Project sharing, RBAC, and audit history are roadmap items.
+- [Tunnel](./tunnel.md)
+- [Dashboard](./dashboard.md)
+- [Settings](./settings.md)

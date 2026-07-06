@@ -1,17 +1,17 @@
 <p align="center">
-  <a href="https://github.com/lancemorii-git/gate">
-    <img src="./assets/logo/logo.svg" alt="Gate logo" width="160" />
+  <a href="https://gitee.com/lancemorii-git/gate">
+    <img src="./assets/logo/logo.svg" alt="Gate logo" width="132" />
   </a>
 </p>
 
 <h1 align="center">Gate</h1>
 
 <p align="center">
-  Enterprise-grade, self-hosted tunnel runtime for teams that need reliable private service access.
+  Self-hosted tunnel infrastructure for exposing private TCP and HTTP services through your own server.
 </p>
 
 <p align="center">
-  <img src="./assets/branding/banner.svg" alt="Gate banner" />
+  <strong>Rust runtime. Tauri desktop client. Docker-ready deployment. Built for teams that want control.</strong>
 </p>
 
 <p align="center">
@@ -19,48 +19,85 @@
   ·
   <a href="./docs/README.md">Documentation</a>
   ·
-  <a href="./CONTRIBUTING.md">Contributing</a>
-  ·
-  <a href="./SECURITY.md">Security</a>
+  <a href="./examples/README.md">Examples</a>
   ·
   <a href="./ROADMAP.md">Roadmap</a>
+  ·
+  <a href="./CONTRIBUTING.md">Contributing</a>
 </p>
 
 <p align="center">
   <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-1.78%2B-orange?logo=rust" /></a>
-  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/github/license/lancemorii-git/gate" /></a>
-  <a href="https://github.com/lancemorii-git/gate/releases"><img alt="Release" src="https://img.shields.io/github/v/release/lancemorii-git/gate?include_prereleases" /></a>
-  <a href="https://github.com/lancemorii-git/gate/actions/workflows/ci.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/lancemorii-git/gate/ci.yml?branch=main&label=build" /></a>
-  <a href="https://github.com/lancemorii-git/gate/actions/workflows/ci.yml"><img alt="Test" src="https://img.shields.io/github/actions/workflow/status/lancemorii-git/gate/ci.yml?branch=main&label=test" /></a>
-  <img alt="Coverage" src="https://img.shields.io/badge/coverage-reserved-lightgrey" />
-  <img alt="Downloads" src="https://img.shields.io/github/downloads/lancemorii-git/gate/total" />
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" />
-  <a href="https://github.com/lancemorii-git/gate/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/lancemorii-git/gate?style=social" /></a>
-  <a href="https://github.com/lancemorii-git/gate/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/lancemorii-git/gate" /></a>
-  <a href="https://github.com/lancemorii-git/gate/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/lancemorii-git/gate" /></a>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-alpha-yellow" />
+  <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9" />
+  <a href="https://gitee.com/lancemorii-git/gate"><img alt="Gitee" src="https://img.shields.io/badge/repo-Gitee-C71D23?logo=gitee&logoColor=white" /></a>
 </p>
 
-## Overview
+<p align="center">
+  <img src="./assets/screenshots/hero.svg" alt="Gate dashboard preview" />
+</p>
 
-Gate is a Rust-first tunnel platform with a desktop client, server runtime, authentication,
-heartbeat, monitoring, integration tests, and packaging foundations. This repository is now
-organized as an enterprise-grade open source project: clear documentation, repeatable CI,
-community workflows, release automation, security policy, benchmark templates, and brand assets.
+## What Is Gate?
 
-Gate is designed for teams that want self-hosted private access without turning every deployment
-into a custom operations project.
+Gate is an open source tunneling project for teams that need private services to be reachable from a controlled public entrypoint. It combines a Rust server/runtime foundation, a desktop client, authentication, heartbeat, monitoring views, Docker deployment templates, and a documentation-first open source workflow.
+
+Gate is currently pre-1.0. The repository is being shaped in public, and this README reflects the current alpha boundary: server authentication and runtime foundations are available, while tunnel UX and production hardening are still evolving.
+
+## Why Gate?
+
+| Need | Gate approach |
+| --- | --- |
+| Keep traffic under your control | Run the entry server on your own VPS, lab machine, or private cloud. |
+| Avoid SaaS lock-in | Configuration, deployment, and examples live in the repository. |
+| Give teams a visual workflow | Use the desktop client for projects, tunnels, servers, logs, and settings. |
+| Build on a systems foundation | Rust, Tokio, typed protocol crates, integration tests, and explicit architecture docs. |
+| Make operations repeatable | Docker, release notes, troubleshooting, benchmark templates, and upgrade guides are included. |
+
+## Features
+
+- Self-hosted server runtime with token authentication and heartbeat primitives.
+- Desktop client built with Tauri, Vue, TypeScript, Pinia, and Naive UI.
+- Project, tunnel, server, dashboard, log center, and settings surfaces in the client UI.
+- Rust workspace split into domain, application, infrastructure, protocol, communication, transport, engine, server, shared, and integration crates.
+- Docker and Compose templates for local deployment.
+- Examples for TCP, webhooks, SSH, databases, reverse proxies, and common app stacks.
+- Examples for real callback and remote-access scenarios.
+- Documentation, release, benchmark, security, and contribution templates for maintainers.
+
+## Screenshots
+
+| Dashboard | Tunnel Workspace | Log Center |
+| --- | --- | --- |
+| ![Dashboard](./assets/screenshots/dashboard.svg) | ![Tunnel](./assets/screenshots/tunnel.svg) | ![Log center](./assets/screenshots/log-center.svg) |
+
+Additional visual assets are documented in [branding/screenshot-guidelines.md](./branding/screenshot-guidelines.md).
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/lancemorii-git/gate.git
+git clone https://gitee.com/lancemorii-git/gate.git
 cd gate
-
 cargo test --workspace
+```
+
+Start the alpha server:
+
+```bash
+GATE_SERVER_ADDR=127.0.0.1:7000 \
+GATE_AUTH_TOKEN=gate-alpha-token \
 cargo run -p gate-server
 ```
 
-Run the desktop client in another terminal:
+On Windows PowerShell:
+
+```powershell
+$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
+$env:GATE_AUTH_TOKEN = "gate-alpha-token"
+cargo run -p gate-server
+```
+
+Launch the desktop client:
 
 ```bash
 cd client
@@ -68,139 +105,180 @@ npm install
 npm run tauri dev
 ```
 
-## Features
-
-- Rust workspace with separated domain, application, infrastructure, protocol, communication, transport, server, and desktop runtime layers.
-- Tauri desktop client with Vue, TypeScript, IPC commands, monitoring views, and packaging hooks.
-- Self-hosted server runtime with authentication, heartbeat, monitoring, and integration coverage.
-- Docker, release, documentation, benchmark, security, and community templates prepared for public GitHub maintenance.
-- International documentation structure for English and Simplified Chinese.
-
-## Architecture
-
-```mermaid
-flowchart LR
-  User["User / Operator"] --> Client["Gate Client<br/>Tauri + Vue"]
-  Client --> IPC["IPC Commands"]
-  IPC --> Runtime["Client Runtime"]
-  Runtime --> Tunnel["Tunnel Engine"]
-  Tunnel <--> Transport["TCP / HTTP / WebSocket"]
-  Transport <--> Server["Gate Server<br/>Axum + Tokio"]
-  Server --> Auth["Authentication"]
-  Server --> Heartbeat["Heartbeat"]
-  Server --> Monitor["Monitoring"]
-  Server --> Domain["Domain Modules"]
-  Domain --> Infra["Infrastructure"]
-```
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) and [docs/architecture.md](./docs/architecture.md) for deeper diagrams.
-
-## Screenshot
-
-The public screenshot surface is reserved until the product UI is ready for release.
-
-![Gate social card](./assets/branding/social-card.svg)
+Read the full guide in [docs/quick-start.md](./docs/quick-start.md).
 
 ## Installation
 
 | Target | Command |
 | --- | --- |
-| Server from source | `cargo install --path server` |
-| Workspace build | `cargo build --workspace --release` |
-| Desktop dev mode | `cd client && npm install && npm run tauri dev` |
-| Documentation site | `cd website && npm install && npm run dev` |
+| Build workspace | `cargo build --workspace --release` |
+| Run server from source | `cargo run -p gate-server` |
+| Install server locally | `cargo install --path server` |
+| Run desktop web shell | `cd client && npm install && npm run dev` |
+| Run desktop app | `cd client && npm install && npm run tauri dev` |
 
-Detailed instructions are available in [docs/install.md](./docs/install.md).
+See [docs/installation.md](./docs/installation.md) for platform notes and Tauri prerequisites.
 
-## Quick Deploy
+## Deployment
+
+Gate can be deployed from source, as a local binary, or with Docker. For production-like use, run the server on an explicit public bind address and set a non-default token.
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+GATE_SERVER_ADDR=0.0.0.0:7000 \
+GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+./target/release/gate-server
 ```
 
-This starts the server with the default development profile. Production deployments should review
-[docs/deployment.md](./docs/deployment.md), [docs/docker.md](./docs/docker.md), and [SECURITY.md](./SECURITY.md).
+Deployment guides:
+
+- [Server](./docs/server.md)
+- [Deployment](./docs/deployment.md)
+- [Docker](./docs/docker.md)
+- [Upgrade](./docs/upgrade.md)
+- [Troubleshooting](./docs/troubleshooting.md)
 
 ## Docker
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 5800:5800 gate-server:local
+docker run --rm -p 7000:7000 \
+  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+  -e GATE_AUTH_TOKEN=replace-me \
+  gate-server:local
 ```
+
+Or use Compose:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+## Desktop Client
+
+The desktop client is designed for operators who prefer a visual workflow:
+
+- Welcome wizard for first-run setup.
+- Server manager for self-hosted endpoints.
+- Project workspace for grouping tunnels.
+- Tunnel wizard for local-to-remote mappings.
+- Dashboard for connection and traffic health.
+- Log center for filtering runtime events.
+
+Read [docs/client.md](./docs/client.md), [docs/dashboard.md](./docs/dashboard.md), and [docs/log-center.md](./docs/log-center.md).
+
+## Server
+
+The alpha server currently exposes a TCP protocol endpoint and uses:
+
+- `GATE_SERVER_ADDR` for bind address, default `127.0.0.1:7000`.
+- `GATE_AUTH_TOKEN` for token authentication, default `gate-alpha-token`.
+
+Read [docs/server.md](./docs/server.md) and [docs/authentication.md](./docs/authentication.md).
 
 ## Configuration
 
-Gate uses environment-first configuration for deployable services and file-backed configuration for
-local desktop state.
+Minimal server configuration:
 
 ```bash
-GATE_ENV=production
-GATE_BIND=0.0.0.0:5800
-GATE_LOG=info
-GATE_DATA_DIR=/var/lib/gate
+GATE_SERVER_ADDR=0.0.0.0:7000
+GATE_AUTH_TOKEN=change-this-before-sharing-a-server
 ```
 
-See [docs/configuration.md](./docs/configuration.md) for the full template.
+Example tunnel configuration used by docs and examples:
 
-## Documentation
+```toml
+[server]
+address = "127.0.0.1:7000"
+auth_token = "gate-alpha-token"
 
-| Topic | Link |
-| --- | --- |
-| Quick Start | [docs/quick-start.md](./docs/quick-start.md) |
-| Install | [docs/install.md](./docs/install.md) |
-| Configuration | [docs/configuration.md](./docs/configuration.md) |
-| Tunnel | [docs/tunnel.md](./docs/tunnel.md) |
-| Project | [docs/project.md](./docs/project.md) |
-| Authentication | [docs/authentication.md](./docs/authentication.md) |
-| Heartbeat | [docs/heartbeat.md](./docs/heartbeat.md) |
-| Monitoring | [docs/monitoring.md](./docs/monitoring.md) |
-| Deployment | [docs/deployment.md](./docs/deployment.md) |
-| Docker | [docs/docker.md](./docs/docker.md) |
-| Troubleshooting | [docs/troubleshooting.md](./docs/troubleshooting.md) |
-| Development Guide | [docs/development-guide.md](./docs/development-guide.md) |
-| Plugin Guide | [docs/plugin-guide.md](./docs/plugin-guide.md) |
-| API | [docs/api.md](./docs/api.md) |
+[tunnel]
+name = "local-web"
+protocol = "tcp"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080
+```
 
-The VitePress site lives in [website](./website).
+Read [docs/configuration.md](./docs/configuration.md) for the current alpha configuration matrix.
 
-## FAQ
+## Create Your First Tunnel
 
-**Is Gate production-ready?**  
-Gate is pre-1.0. Use it in controlled environments until the v1 stability criteria are complete.
+1. Start a local app on `127.0.0.1:3000`.
+2. Start `gate-server` with a token.
+3. Open the desktop client and add your server.
+4. Create a TCP tunnel named `local-web`.
+5. Set local port `3000` and remote port `18080`.
+6. Start the tunnel and verify traffic in Dashboard and Log Center.
 
-**Can Gate be self-hosted?**  
-Yes. Self-hosting is a primary design goal.
+Read [docs/tunnel.md](./docs/tunnel.md) and [examples/basic-tcp](./examples/basic-tcp).
 
-**Does Gate require Docker?**  
-No. Docker is optional; source builds and native packages are supported.
+## Common Use Cases
 
-**Is a plugin system available?**  
-The plugin guide is reserved. Public APIs and compatibility rules will be introduced before v1.5.
+- Receive payment callbacks on a local development machine.
+- Test GitHub, Gitea, Jenkins, and webhook integrations.
+- Reach SSH, MySQL, Redis, and internal tools from a controlled endpoint.
+- Expose a local Node.js, Flask, Spring Boot, or Go service for QA.
+- Access a home server, NAS, or remote development box.
+- Evaluate a self-hosted alternative to managed tunnel services.
+
+See [examples](./examples/README.md).
 
 ## Roadmap
 
-The roadmap is maintained in [ROADMAP.md](./ROADMAP.md) using GitHub Project-style columns:
-Todo, In Progress, Review, Done, Roadmap, and Milestone.
+The current roadmap focuses on:
+
+- Stabilizing tunnel runtime behavior.
+- Completing desktop client flows.
+- Hardening Docker and release packaging.
+- Publishing benchmark data.
+- Improving authentication, upgrade, and backup stories.
+
+Track details in [ROADMAP.md](./ROADMAP.md).
+
+## Documentation
+
+| Area | Link |
+| --- | --- |
+| Start | [Quick Start](./docs/quick-start.md), [Installation](./docs/installation.md) |
+| Operate | [Server](./docs/server.md), [Client](./docs/client.md), [Tunnel](./docs/tunnel.md), [Project](./docs/project.md) |
+| Observe | [Dashboard](./docs/dashboard.md), [Log Center](./docs/log-center.md), [Settings](./docs/settings.md) |
+| Secure | [Authentication](./docs/authentication.md), [Security](./SECURITY.md) |
+| Deploy | [Deployment](./docs/deployment.md), [Docker](./docs/docker.md), [Upgrade](./docs/upgrade.md) |
+| Build | [Architecture](./docs/architecture.md), [Developer Guide](./docs/developer-guide.md), [Contribution](./docs/contribution.md) |
+| Reference | [FAQ](./docs/faq.md), [Troubleshooting](./docs/troubleshooting.md), [Release Note](./docs/release-note.md) |
+
+## FAQ
+
+**Why choose Gate?**
+Choose Gate when you want a self-hosted tunnel foundation with a desktop operator workflow and a Rust codebase you can inspect, deploy, and extend.
+
+**How is Gate different from FRP?**
+FRP is a mature tunnel proxy. Gate is a newer project focused on a desktop-first management experience, typed Rust workspace architecture, and GitHub-native project maintainability. Gate is not yet a drop-in replacement for FRP in production.
+
+**Does Gate support Docker?**
+Yes. Docker assets live in [docker](./docker), and the guide is in [docs/docker.md](./docs/docker.md).
+
+**Does Gate support HTTPS?**
+Use a reverse proxy for TLS termination while native HTTPS support is being stabilized.
+
+**Is Gate free?**
+Yes. Gate is open source under the MIT License.
+
+More answers live in [docs/faq.md](./docs/faq.md).
 
 ## Contributing
 
-Contributions are welcome after opening an issue or discussion for non-trivial changes. Start with
-[CONTRIBUTING.md](./CONTRIBUTING.md), [community/contribution-workflow.md](./community/contribution-workflow.md),
-and the pull request template.
+Contributions are welcome, especially documentation, examples, tests, packaging, and issue triage. Start with:
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [docs/developer-guide.md](./docs/developer-guide.md)
+- [docs/contribution.md](./docs/contribution.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 
 ## License
 
-Gate is licensed under the [MIT License](./LICENSE). Apache-2.0 and dual-license options are reserved
-for future governance review.
+Gate is released under the [MIT License](./LICENSE).
 
-## Sponsor
+## Star Gate
 
-Sponsorship channels are reserved in [SPONSORS.md](./SPONSORS.md) and [.github/FUNDING.yml](./.github/FUNDING.yml).
-
-## Star History
-
-Star history is reserved for the public GitHub launch.
-
-```text
-https://star-history.com/#lancemorii-git/gate&Date
-```
+If Gate is useful to you, please give the repository a Star. It helps new users discover the project and gives maintainers a clear signal about which open source work matters most.

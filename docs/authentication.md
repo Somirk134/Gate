@@ -1,37 +1,46 @@
 # Authentication
 
-Gate authenticates runtime sessions before accepting tunnel registration or traffic forwarding.
+Gate alpha authentication uses a shared token between client and server. This is intentionally simple while the project stabilizes runtime behavior.
 
-## Goals
+## Server Token
 
-- Prevent unauthenticated tunnel access.
-- Keep token handling explicit.
-- Support local development without weakening production defaults.
-- Provide clear future migration paths for enterprise identity integrations.
-
-## Recommended Production Baseline
-
-| Control | Recommendation |
-| --- | --- |
-| Token storage | Store outside repository and images |
-| Rotation | Rotate on release, operator change, or incident |
-| Transport | Use TLS at the edge or native TLS when enabled |
-| Logging | Never log raw tokens |
-| Access | Limit server bind and exposed ports |
-
-## Session Flow
-
-```mermaid
-sequenceDiagram
-  participant C as Client
-  participant S as Server
-  C->>S: Connect
-  C->>S: Present credential
-  S->>S: Validate credential
-  S-->>C: Accept session
-  C->>S: Register tunnels
+```bash
+GATE_AUTH_TOKEN=replace-with-a-long-random-token
 ```
 
-## Reserved
+If unset, the alpha server defaults to:
 
-SSO, OAuth/OIDC, scoped tokens, and enterprise RBAC are reserved for future versions.
+```text
+gate-alpha-token
+```
+
+Do not use the default token for a server reachable by other people.
+
+## Client Setup
+
+When adding a server in the desktop client:
+
+1. Enter the server address, for example `127.0.0.1:7000`.
+2. Enter the token.
+3. Save the server.
+4. Verify the connection.
+
+## Security Guidance
+
+- Generate a long random token for shared environments.
+- Rotate tokens after demos, incidents, or accidental exposure.
+- Store tokens outside scripts and examples.
+- Redact tokens in logs, screenshots, and issues.
+- Use firewall rules to restrict server access.
+
+## Future Direction
+
+The authentication roadmap may include:
+
+- Token rotation workflow.
+- Multiple client credentials.
+- Scoped tokens.
+- Audit events.
+- Optional external identity integration.
+
+Document compatibility and migration steps before changing the public auth model.

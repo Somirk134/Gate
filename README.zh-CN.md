@@ -1,17 +1,17 @@
 <p align="center">
-  <a href="https://github.com/lancemorii-git/gate">
-    <img src="./assets/logo/logo.svg" alt="Gate Logo" width="160" />
+  <a href="https://gitee.com/lancemorii-git/gate">
+    <img src="./assets/logo/logo.svg" alt="Gate logo" width="132" />
   </a>
 </p>
 
 <h1 align="center">Gate</h1>
 
 <p align="center">
-  面向团队与企业自托管场景的 Rust 隧道运行时与桌面客户端。
+  面向自部署场景的隧道基础设施，用你自己的服务器暴露私有 TCP 与 HTTP 服务。
 </p>
 
 <p align="center">
-  <img src="./assets/branding/banner.svg" alt="Gate Banner" />
+  <strong>Rust 运行时。Tauri 桌面客户端。Docker 部署。为重视可控性的团队而建。</strong>
 </p>
 
 <p align="center">
@@ -19,44 +19,77 @@
   ·
   <a href="./docs/README.md">文档</a>
   ·
-  <a href="./CONTRIBUTING.md">贡献指南</a>
-  ·
-  <a href="./SECURITY.md">安全策略</a>
+  <a href="./examples/README.md">示例</a>
   ·
   <a href="./ROADMAP.md">路线图</a>
+  ·
+  <a href="./CONTRIBUTING.md">贡献指南</a>
 </p>
 
 <p align="center">
-  <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-1.78%2B-orange?logo=rust" /></a>
-  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/github/license/lancemorii-git/gate" /></a>
-  <a href="https://github.com/lancemorii-git/gate/releases"><img alt="Release" src="https://img.shields.io/github/v/release/lancemorii-git/gate?include_prereleases" /></a>
-  <a href="https://github.com/lancemorii-git/gate/actions/workflows/ci.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/lancemorii-git/gate/ci.yml?branch=main&label=build" /></a>
-  <a href="https://github.com/lancemorii-git/gate/actions/workflows/ci.yml"><img alt="Test" src="https://img.shields.io/github/actions/workflow/status/lancemorii-git/gate/ci.yml?branch=main&label=test" /></a>
-  <img alt="Coverage" src="https://img.shields.io/badge/coverage-reserved-lightgrey" />
-  <img alt="Downloads" src="https://img.shields.io/github/downloads/lancemorii-git/gate/total" />
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" />
-  <a href="https://github.com/lancemorii-git/gate/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/lancemorii-git/gate?style=social" /></a>
-  <a href="https://github.com/lancemorii-git/gate/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/lancemorii-git/gate" /></a>
-  <a href="https://github.com/lancemorii-git/gate/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/lancemorii-git/gate" /></a>
+  <img src="./assets/screenshots/hero.svg" alt="Gate dashboard preview" />
 </p>
 
-## 项目概览
+## Gate 是什么？
 
-Gate 是一个 Rust 优先的自托管隧道平台，包含桌面客户端、服务端运行时、认证、心跳、监控、集成测试与打包基础。本轮仓库整理聚焦开源生态建设：文档、CI、社区规范、安全策略、发布自动化、基准测试模板与统一品牌资产。
+Gate 是一个开源隧道项目，目标是让团队通过自己控制的公网入口访问内网、本地开发机或私有服务。项目包含 Rust 服务端与运行时基础、Tauri 桌面客户端、认证、心跳、监控视图、Docker 部署模板，以及面向开源维护的文档与社区规范。
 
-Gate 的目标不是绑定某个业务场景，而是为私有服务访问、团队协作和可控部署提供稳定的基础设施。
+Gate 当前处于 pre-1.0 alpha 阶段。服务端认证、协议与运行时基础已经存在，Tunnel 体验、桌面客户端流程和生产级稳定性仍在持续完善。
+
+## 为什么选择 Gate？
+
+| 需求 | Gate 的方式 |
+| --- | --- |
+| 流量与入口可控 | 服务器部署在你自己的 VPS、实验室机器或私有云上。 |
+| 避免 SaaS 绑定 | 配置、部署、示例和说明全部在仓库中维护。 |
+| 给团队一个可视化工作台 | 桌面客户端覆盖项目、隧道、服务器、日志、设置等流程。 |
+| 系统级技术基础 | Rust、Tokio、类型化协议 crate、集成测试与架构文档。 |
+| 运维可复用 | Docker、发布说明、故障排查、基准测试模板与升级指南。 |
+
+## 核心能力
+
+- 自部署服务端运行时，包含 token 认证与心跳基础能力。
+- Tauri、Vue、TypeScript、Pinia、Naive UI 构建的桌面客户端。
+- 客户端提供项目、Tunnel、Server、Dashboard、Log Center、Settings 等界面。
+- Rust workspace 拆分为 domain、application、infrastructure、protocol、communication、transport、engine、server、shared、integration 等模块。
+- Docker 与 Compose 模板。
+- 覆盖 TCP、Webhook、SSH、数据库、反向代理与常见后端框架的示例。
+- 面向真实场景的示例。
+- 维护者所需的文档、发布、基准测试、安全与贡献模板。
+
+## 截图
+
+| Dashboard | Tunnel Workspace | Log Center |
+| --- | --- | --- |
+| ![Dashboard](./assets/screenshots/dashboard.svg) | ![Tunnel](./assets/screenshots/tunnel.svg) | ![Log center](./assets/screenshots/log-center.svg) |
+
+截图规范见 [branding/screenshot-guidelines.md](./branding/screenshot-guidelines.md)。
 
 ## 快速开始
 
 ```bash
-git clone https://github.com/lancemorii-git/gate.git
+git clone https://gitee.com/lancemorii-git/gate.git
 cd gate
-
 cargo test --workspace
+```
+
+启动 alpha 服务端：
+
+```bash
+GATE_SERVER_ADDR=127.0.0.1:7000 \
+GATE_AUTH_TOKEN=gate-alpha-token \
 cargo run -p gate-server
 ```
 
-另开终端启动桌面客户端：
+Windows PowerShell：
+
+```powershell
+$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
+$env:GATE_AUTH_TOKEN = "gate-alpha-token"
+cargo run -p gate-server
+```
+
+启动桌面客户端：
 
 ```bash
 cd client
@@ -64,124 +97,149 @@ npm install
 npm run tauri dev
 ```
 
-## 核心特性
-
-- Rust workspace 分层：domain、application、infrastructure、protocol、communication、transport、server、desktop runtime。
-- Tauri 桌面客户端：Vue、TypeScript、IPC 命令、监控视图和打包钩子。
-- 自托管服务端：认证、心跳、监控和集成测试基础已经就绪。
-- Docker、Release、文档、Benchmark、安全与社区模板面向公开 GitHub 维护设计。
-- 英文与简体中文双语文档结构。
-
-## 架构
-
-```mermaid
-flowchart LR
-  User["用户 / 运维"] --> Client["Gate Client<br/>Tauri + Vue"]
-  Client --> IPC["IPC Commands"]
-  IPC --> Runtime["Client Runtime"]
-  Runtime --> Tunnel["Tunnel Engine"]
-  Tunnel <--> Transport["TCP / HTTP / WebSocket"]
-  Transport <--> Server["Gate Server<br/>Axum + Tokio"]
-  Server --> Auth["Authentication"]
-  Server --> Heartbeat["Heartbeat"]
-  Server --> Monitor["Monitoring"]
-  Server --> Domain["Domain Modules"]
-  Domain --> Infra["Infrastructure"]
-```
-
-更多细节见 [ARCHITECTURE.md](./ARCHITECTURE.md) 与 [docs/architecture.md](./docs/architecture.md)。
-
-## 截图
-
-正式 UI 截图将在公开发布前补充。
-
-![Gate Social Card](./assets/branding/social-card.svg)
+完整说明见 [docs/quick-start.md](./docs/quick-start.md)。
 
 ## 安装
 
 | 目标 | 命令 |
 | --- | --- |
-| 从源码安装服务端 | `cargo install --path server` |
 | 构建 workspace | `cargo build --workspace --release` |
-| 桌面开发模式 | `cd client && npm install && npm run tauri dev` |
-| 文档站 | `cd website && npm install && npm run dev` |
+| 从源码运行服务端 | `cargo run -p gate-server` |
+| 安装本地服务端二进制 | `cargo install --path server` |
+| 启动桌面 Web Shell | `cd client && npm install && npm run dev` |
+| 启动桌面应用 | `cd client && npm install && npm run tauri dev` |
 
-完整说明见 [docs/install.md](./docs/install.md)。
+平台依赖见 [docs/installation.md](./docs/installation.md)。
 
-## 快速部署
+## 部署
+
+```bash
+GATE_SERVER_ADDR=0.0.0.0:7000 \
+GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+./target/release/gate-server
+```
+
+部署文档：
+
+- [Server](./docs/server.md)
+- [Deployment](./docs/deployment.md)
+- [Docker](./docs/docker.md)
+- [Upgrade](./docs/upgrade.md)
+- [Troubleshooting](./docs/troubleshooting.md)
+
+## Docker
+
+```bash
+docker build -f docker/Dockerfile.server -t gate-server:local .
+docker run --rm -p 7000:7000 \
+  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+  -e GATE_AUTH_TOKEN=replace-me \
+  gate-server:local
+```
+
+也可以使用 Compose：
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-生产环境部署前请阅读 [docs/deployment.md](./docs/deployment.md)、[docs/docker.md](./docs/docker.md) 和 [SECURITY.md](./SECURITY.md)。
+## 桌面客户端
 
-## 配置
+桌面客户端面向偏好可视化操作的团队：
+
+- 首次启动 Welcome Wizard。
+- Server 管理自部署入口。
+- Project 管理业务分组。
+- Tunnel Wizard 创建端口映射。
+- Dashboard 查看连接与流量健康。
+- Log Center 过滤运行日志。
+
+## 服务端配置
+
+当前 alpha 服务端使用：
 
 ```bash
-GATE_ENV=production
-GATE_BIND=0.0.0.0:5800
-GATE_LOG=info
-GATE_DATA_DIR=/var/lib/gate
+GATE_SERVER_ADDR=0.0.0.0:7000
+GATE_AUTH_TOKEN=change-this-before-sharing-a-server
 ```
 
-完整配置模板见 [docs/configuration.md](./docs/configuration.md)。
+文档与示例使用的 Tunnel 配置模板：
 
-## 文档
+```toml
+[server]
+address = "127.0.0.1:7000"
+auth_token = "gate-alpha-token"
 
-| 主题 | 链接 |
-| --- | --- |
-| 快速开始 | [docs/quick-start.md](./docs/quick-start.md) |
-| 安装 | [docs/install.md](./docs/install.md) |
-| 配置 | [docs/configuration.md](./docs/configuration.md) |
-| 隧道 | [docs/tunnel.md](./docs/tunnel.md) |
-| 项目 | [docs/project.md](./docs/project.md) |
-| 认证 | [docs/authentication.md](./docs/authentication.md) |
-| 心跳 | [docs/heartbeat.md](./docs/heartbeat.md) |
-| 监控 | [docs/monitoring.md](./docs/monitoring.md) |
-| 部署 | [docs/deployment.md](./docs/deployment.md) |
-| Docker | [docs/docker.md](./docs/docker.md) |
-| 故障排查 | [docs/troubleshooting.md](./docs/troubleshooting.md) |
-| 开发指南 | [docs/development-guide.md](./docs/development-guide.md) |
-| 插件指南 | [docs/plugin-guide.md](./docs/plugin-guide.md) |
-| API | [docs/api.md](./docs/api.md) |
+[tunnel]
+name = "local-web"
+protocol = "tcp"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080
+```
 
-VitePress 文档站位于 [website](./website)。
+## 创建第一个 Tunnel
+
+1. 在本机启动一个应用，例如 `127.0.0.1:3000`。
+2. 启动 `gate-server` 并设置 token。
+3. 打开桌面客户端并添加 Server。
+4. 创建名为 `local-web` 的 TCP Tunnel。
+5. 设置本地端口 `3000`，远端端口 `18080`。
+6. 启动 Tunnel，并在 Dashboard 与 Log Center 中验证流量。
+
+## 常见使用场景
+
+- 本地接收微信支付、支付宝、OpenAI 等回调。
+- 调试 GitHub Webhook、Gitea、Jenkins 等集成。
+- 受控访问 SSH、MySQL、Redis 与内部工具。
+- 暴露 Node.js、Flask、Spring Boot、Go 服务给 QA 或协作者。
+- 访问家庭服务器、NAS 或远程开发机。
+- 评估自部署的 Cloudflare Tunnel 替代方案。
+
+## Roadmap
+
+当前路线图聚焦：
+
+- 稳定 Tunnel 运行时行为。
+- 完成桌面客户端核心流程。
+- 完善 Docker 与发布打包。
+- 发布真实基准测试数据。
+- 改进认证、升级与备份策略。
+
+详情见 [ROADMAP.md](./ROADMAP.md)。
 
 ## FAQ
 
-**Gate 是否适合生产环境？**  
-Gate 仍处于 pre-1.0 阶段。建议先在受控环境中使用，等 v1 稳定性目标完成后再扩大生产范围。
+**为什么选择 Gate？**
+如果你想要一个自部署、可审计、带桌面管理体验、并且以 Rust 架构构建的隧道基础设施，Gate 值得关注。
 
-**Gate 是否支持自托管？**  
-支持。自托管是 Gate 的核心目标。
+**与 FRP 有什么区别？**
+FRP 是成熟的隧道代理。Gate 是一个更年轻的项目，重点放在桌面优先的管理体验、类型化 Rust workspace 和开源项目可维护性上。Gate 目前还不是 FRP 的生产级平替。
 
-**必须使用 Docker 吗？**  
-不必须。Docker 是可选部署方式，也支持源码构建和原生包。
+**是否支持 Docker？**
+支持。Docker 资产位于 [docker](./docker)，说明见 [docs/docker.md](./docs/docker.md)。
 
-**插件系统是否可用？**  
-插件指南目前为预留内容。公开 API 和兼容性规则会在 v1.5 前逐步明确。
+**是否支持 HTTPS？**
+现阶段建议通过反向代理做 TLS 终止，原生 HTTPS 能力会随路线图完善。
 
-## 路线图
+**是否免费？**
+是。Gate 使用 MIT License 开源。
 
-路线图见 [ROADMAP.md](./ROADMAP.md)，采用 GitHub Project 风格维护：Todo、In Progress、Review、Done、Roadmap、Milestone。
+更多问题见 [docs/faq.md](./docs/faq.md)。
 
 ## 贡献
 
-欢迎贡献。非小型改动请先创建 issue 或 discussion。开始前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md) 与 [community/contribution-workflow.md](./community/contribution-workflow.md)。
+欢迎贡献文档、示例、测试、打包、问题复现与代码改进。开始前请阅读：
 
-## 许可证
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [docs/developer-guide.md](./docs/developer-guide.md)
+- [docs/contribution.md](./docs/contribution.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 
-Gate 使用 [MIT License](./LICENSE)。Apache-2.0 与双许可证模式作为未来治理选项预留。
+## License
 
-## 赞助
+Gate 使用 [MIT License](./LICENSE)。
 
-赞助入口预留在 [SPONSORS.md](./SPONSORS.md) 和 [.github/FUNDING.yml](./.github/FUNDING.yml)。
+## Star Gate
 
-## Star History
-
-Star History 会在 GitHub 公开发版后接入。
-
-```text
-https://star-history.com/#lancemorii-git/gate&Date
-```
+如果 Gate 对你有帮助，欢迎给仓库一个 Star。它会帮助更多开发者发现项目，也会给维护者一个清晰的开源反馈信号。

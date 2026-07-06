@@ -1,38 +1,82 @@
 # Troubleshooting
 
-Use this page to quickly isolate common Gate failures.
+Use this guide when Gate does not start, connect, authenticate, or forward traffic as expected.
 
 ## Server Does Not Start
 
-- Run `cargo run -p gate-server` locally and inspect logs.
-- Check whether the configured bind port is already in use.
-- Confirm required environment variables are present.
+Check whether the port is already in use:
+
+```bash
+netstat -ano | findstr :7000
+```
+
+Try a different bind address:
+
+```bash
+GATE_SERVER_ADDR=127.0.0.1:7001 cargo run -p gate-server
+```
 
 ## Client Cannot Connect
 
-- Confirm server address and port.
-- Check authentication settings.
-- Test network reachability with `curl` or platform tools.
-- Review reverse proxy timeout and WebSocket settings.
+Verify:
 
-## Tunnel Is Unhealthy
+- Server is running.
+- Address uses the correct host and port.
+- Firewall allows the port.
+- Token matches `GATE_AUTH_TOKEN`.
+- Docker container exposes port `7000`.
 
-- Check heartbeat status.
-- Confirm local service is reachable from the client machine.
-- Review tunnel protocol and port configuration.
-- Check server logs for rejected registration or forwarding errors.
+## Authentication Fails
 
-## Docker Container Exits
+Symptoms:
 
-- Run `docker logs <container>`.
-- Verify bind address uses `0.0.0.0` inside the container.
-- Mount a writable data directory.
+- Client disconnects after login.
+- Server logs mention authentication failure.
 
-## Useful Commands
+Fix:
+
+1. Stop the client.
+2. Confirm `GATE_AUTH_TOKEN` on the server.
+3. Update the saved server token in the client.
+4. Retry the connection.
+
+## Tunnel Does Not Receive Traffic
+
+Check:
+
+- Local service is running.
+- Local host and port are correct.
+- Remote port is not occupied.
+- Tunnel status is `running`.
+- Log Center has no `error` or `disconnected` event.
+
+## Docker Container Starts But Is Not Reachable
+
+Inside the container, use:
+
+```bash
+GATE_SERVER_ADDR=0.0.0.0:7000
+```
+
+Expose the same port:
+
+```bash
+-p 7000:7000
+```
+
+## Useful Diagnostics
 
 ```bash
 cargo test --workspace
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-npm --prefix client run typecheck
-docker compose -f docker/docker-compose.yml logs -f
+cargo run -p gate-server
+docker compose -f docker/docker-compose.yml logs -f gate-server
 ```
+
+When opening an issue, include:
+
+- Operating system.
+- Gate version or commit SHA.
+- Startup command.
+- Redacted environment variables.
+- Redacted logs.
+- Steps to reproduce.

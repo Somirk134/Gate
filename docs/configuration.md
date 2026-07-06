@@ -1,33 +1,52 @@
 # Configuration
 
-Gate uses environment variables for deployable services and local files for desktop preferences.
+Gate alpha uses environment variables for the server and local application state for the desktop client.
 
 ## Server Environment
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GATE_ENV` | `development` | Runtime profile |
-| `GATE_BIND` | `127.0.0.1:5800` | Server bind address |
-| `GATE_LOG` | `info` | Log filter |
-| `GATE_DATA_DIR` | `./data` | Data directory |
-| `GATE_CONFIG` | unset | Optional config file path |
-| `GATE_AUTH_REQUIRED` | `true` | Require authenticated sessions |
-| `GATE_HEARTBEAT_INTERVAL` | `30s` | Client heartbeat interval |
-| `GATE_HEARTBEAT_TIMEOUT` | `90s` | Heartbeat timeout window |
+| `GATE_SERVER_ADDR` | `127.0.0.1:7000` | TCP bind address |
+| `GATE_AUTH_TOKEN` | `gate-alpha-token` | Shared client/server token |
 
-## Example
+Older drafts mention variables such as `GATE_BIND`, `GATE_ENV`, or `GATE_DATA_DIR`. Those are reserved deployment concepts and should not be documented as active runtime behavior until the server reads them.
+
+## Local Server Example
 
 ```bash
-GATE_ENV=production \
-GATE_BIND=0.0.0.0:5800 \
-GATE_LOG=info \
-GATE_DATA_DIR=/var/lib/gate \
-cargo run -p gate-server --release
+GATE_SERVER_ADDR=127.0.0.1:7000 \
+GATE_AUTH_TOKEN=gate-alpha-token \
+cargo run -p gate-server
+```
+
+## Public Server Example
+
+```bash
+GATE_SERVER_ADDR=0.0.0.0:7000 \
+GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+./target/release/gate-server
+```
+
+## Tunnel Template
+
+```toml
+[server]
+address = "127.0.0.1:7000"
+auth_token = "gate-alpha-token"
+
+[tunnel]
+name = "local-web"
+protocol = "tcp"
+local_host = "127.0.0.1"
+local_port = 3000
+remote_port = 18080
+auto_start = false
 ```
 
 ## Configuration Principles
 
-- Prefer environment variables in containers.
-- Keep secrets outside the repository.
-- Use explicit production values rather than relying on development defaults.
-- Document every new public configuration option in this file.
+- Keep secrets out of git.
+- Prefer environment variables for deployable services.
+- Prefer local encrypted or OS-managed storage for desktop tokens.
+- Update docs and examples whenever public config changes.
+- Make alpha placeholders explicit.
