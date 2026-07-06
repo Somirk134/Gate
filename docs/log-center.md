@@ -43,4 +43,4 @@ Before sharing logs, remove:
 
 ## Screenshot
 
-![Log Center screenshot](../assets/screenshots/log-center.svg)
+![Log Center screenshot](../assets/screenshots/log-center.png)

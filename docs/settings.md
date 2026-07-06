@@ -26,4 +26,4 @@ Settings should be conservative:
 
 ## Screenshot
 
-![Settings screenshot](../assets/screenshots/settings.svg)
+![Settings screenshot](../assets/screenshots/settings.png)

@@ -30,4 +30,4 @@ Dashboard is the operator landing page. It should answer three questions quickly
 
 ## Screenshot
 
-![Dashboard screenshot](../assets/screenshots/dashboard.svg)
+![Dashboard screenshot](../assets/screenshots/dashboard.png)

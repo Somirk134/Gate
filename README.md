@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://gitee.com/lancemorii-git/gate">
-    <img src="./assets/logo/logo.svg" alt="Gate logo" width="132" />
+    <img src="./assets/logo/logo.png" alt="Gate logo" width="132" />
   </a>
 </p>
 
@@ -35,7 +35,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/screenshots/hero.svg" alt="Gate dashboard preview" />
+  <img src="./assets/screenshots/hero.png" alt="Gate dashboard preview" />
 </p>
 
 ## What Is Gate?
@@ -69,7 +69,7 @@ Gate is currently pre-1.0. The repository is being shaped in public, and this RE
 
 | Dashboard | Tunnel Workspace | Log Center |
 | --- | --- | --- |
-| ![Dashboard](./assets/screenshots/dashboard.svg) | ![Tunnel](./assets/screenshots/tunnel.svg) | ![Log center](./assets/screenshots/log-center.svg) |
+| ![Dashboard](./assets/screenshots/dashboard.png) | ![Tunnel](./assets/screenshots/tunnel.png) | ![Log center](./assets/screenshots/log-center.png) |
 
 Additional visual assets are documented in [branding/screenshot-guidelines.md](./branding/screenshot-guidelines.md).
 

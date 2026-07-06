@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://gitee.com/lancemorii-git/gate">
-    <img src="./assets/logo/logo.svg" alt="Gate logo" width="132" />
+    <img src="./assets/logo/logo.png" alt="Gate logo" width="132" />
   </a>
 </p>
 
@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/screenshots/hero.svg" alt="Gate dashboard preview" />
+  <img src="./assets/screenshots/hero.png" alt="Gate dashboard preview" />
 </p>
 
 ## Gate 是什么？
@@ -61,7 +61,7 @@ Gate 当前处于 pre-1.0 alpha 阶段。服务端认证、协议与运行时基
 
 | Dashboard | Tunnel Workspace | Log Center |
 | --- | --- | --- |
-| ![Dashboard](./assets/screenshots/dashboard.svg) | ![Tunnel](./assets/screenshots/tunnel.svg) | ![Log center](./assets/screenshots/log-center.svg) |
+| ![Dashboard](./assets/screenshots/dashboard.png) | ![Tunnel](./assets/screenshots/tunnel.png) | ![Log center](./assets/screenshots/log-center.png) |
 
 截图规范见 [branding/screenshot-guidelines.md](./branding/screenshot-guidelines.md)。
 
