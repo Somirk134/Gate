@@ -1,0 +1,61 @@
+name-template: "Gate $RESOLVED_VERSION"
+tag-template: "$RESOLVED_VERSION"
+version-template: "$MAJOR.$MINOR.$PATCH"
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&'
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  ## Verification
+
+  - CI: pending maintainer confirmation
+  - Docker: pending maintainer confirmation
+  - Documentation: pending maintainer confirmation
+
+categories:
+  - title: "Breaking Changes"
+    labels: ["breaking-change"]
+  - title: "Features"
+    labels: ["feature", "enhancement"]
+  - title: "Bug Fixes"
+    labels: ["bug", "fix"]
+  - title: "Documentation"
+    labels: ["docs", "documentation"]
+  - title: "Security"
+    labels: ["security"]
+  - title: "CI and Automation"
+    labels: ["ci", "github-actions"]
+  - title: "Dependencies"
+    labels: ["dependencies"]
+  - title: "Other Changes"
+    labels: ["chore", "refactor", "performance"]
+
+exclude-labels:
+  - "skip-changelog"
+
+autolabeler:
+  - label: "docs"
+    files:
+      - "*.md"
+      - "docs/**/*"
+      - "website/**/*"
+      - "community/**/*"
+  - label: "ci"
+    files:
+      - ".github/**/*"
+  - label: "docker"
+    files:
+      - "docker/**/*"
+      - "examples/docker/**/*"
+  - label: "client"
+    files:
+      - "client/**/*"
+  - label: "rust"
+    files:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**/*"
+      - "server/**/*"
+      - "integration/**/*"

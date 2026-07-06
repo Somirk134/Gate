@@ -1,0 +1,38 @@
+name: Performance Issue
+description: Report latency, CPU, memory, connection, or runtime performance concerns.
+title: "perf: "
+labels: ["performance", "needs-triage"]
+body:
+  - type: dropdown
+    id: metric
+    attributes:
+      label: Metric
+      options:
+        - Memory
+        - CPU
+        - Latency
+        - Connection
+        - Binary Size
+        - Runtime
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: Baseline and current result
+      description: Include numbers, version, and method.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction method
+      placeholder: Commands, load generator, tunnel count, payload size, duration.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+    validations:
+      required: true

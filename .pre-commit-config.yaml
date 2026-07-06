@@ -1,0 +1,44 @@
+repos:
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: rustfmt
+        entry: cargo fmt --all --check
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: clippy
+        name: clippy
+        entry: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        language: system
+        pass_filenames: false
+        types_or: [rust]
+
+      - id: eslint
+        name: eslint
+        entry: npm --prefix client run lint
+        language: system
+        pass_filenames: false
+        files: ^client/.*\.(ts|tsx|vue)$
+
+      - id: prettier
+        name: prettier
+        entry: npx prettier --check .
+        language: system
+        pass_filenames: false
+        types_or: [javascript, jsx, ts, tsx, css, scss, markdown, json, yaml]
+
+      - id: markdownlint
+        name: markdownlint
+        entry: npx markdownlint-cli2 "**/*.md" "#target/**" "#node_modules/**" "#client/node_modules/**" "#website/node_modules/**"
+        language: system
+        pass_filenames: false
+        types: [markdown]
+
+      - id: cspell
+        name: cspell
+        entry: npx cspell "**/*.md" --config cspell.json --no-progress
+        language: system
+        pass_filenames: false
+        types: [markdown]

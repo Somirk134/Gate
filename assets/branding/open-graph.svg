@@ -1,0 +1,9 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gate Open Graph image">
+  <rect width="1200" height="630" fill="#0B1020"/>
+  <use href="./social-card.svg#card"/>
+  <text x="96" y="170" fill="#F8FAFC" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="88" font-weight="850">Gate</text>
+  <text x="100" y="238" fill="#BAE6FD" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="34">Open Source Tunnel Runtime</text>
+  <text x="100" y="316" fill="#CBD5E1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25">A clean ecosystem for docs, CI, community, security, and releases.</text>
+  <path d="M100 420H1100" stroke="#1E293B" stroke-width="2"/>
+  <text x="100" y="488" fill="#A7F3D0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28">github.com/lancemorii-git/gate</text>
+</svg>

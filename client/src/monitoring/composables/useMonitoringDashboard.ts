@@ -1,10 +1,9 @@
 import { computed, onMounted, onUnmounted, shallowRef, ref } from "vue"
-import { mockDashboard } from "../mock"
-import { dashboardService } from "../services"
+import { createEmptyDashboardData, dashboardService } from "../services"
 import type { DashboardData } from "../types"
 
 export function useMonitoringDashboard() {
-  const data = shallowRef<DashboardData>(mockDashboard.snapshot())
+  const data = shallowRef<DashboardData>(createEmptyDashboardData())
   const loading = ref(false)
   const error = ref<string | null>(null)
   let unsubscribe: (() => void) | undefined
@@ -30,12 +29,10 @@ export function useMonitoringDashboard() {
     unsubscribe = dashboardService.subscribe((next) => {
       data.value = next
     })
-    mockDashboard.start(1000)
   })
 
   onUnmounted(() => {
     unsubscribe?.()
-    mockDashboard.stop()
   })
 
   return {

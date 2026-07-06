@@ -12,6 +12,18 @@
     </GCard>
 
     <template v-else>
+      <header class="logs-shell-header">
+        <div>
+          <p>Output</p>
+          <h1>Logs</h1>
+        </div>
+        <div class="logs-shell-header__meta">
+          <span :class="{ active: autoScroll && !paused }">Auto scroll</span>
+          <span :class="{ active: paused }">{{ paused ? "Paused" : "Live" }}</span>
+          <strong>{{ filteredLogs.length }} / {{ logs.length }}</strong>
+        </div>
+      </header>
+
       <LogToolbar
         :filter="filter"
         :paused="paused"

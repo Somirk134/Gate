@@ -1,0 +1,20 @@
+services:
+  gate-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    image: gate-server:local
+    restart: unless-stopped
+    environment:
+      GATE_ENV: production
+      GATE_BIND: 0.0.0.0:5800
+      GATE_LOG: info
+      GATE_DATA_DIR: /var/lib/gate
+      GATE_AUTH_REQUIRED: "true"
+    ports:
+      - "5800:5800"
+    volumes:
+      - gate-data:/var/lib/gate
+
+volumes:
+  gate-data:

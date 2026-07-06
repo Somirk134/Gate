@@ -10,8 +10,12 @@ gate-application = { path = "../crates/application" }
 gate-domain = { path = "../crates/domain" }
 gate-engine = { path = "../crates/engine" }
 gate-infrastructure = { path = "../crates/infrastructure" }
+gate-protocol = { path = "../crates/protocol" }
 gate-shared = { path = "../shared" }
 gate-transport = { path = "../crates/transport" }
 anyhow.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+uuid.workspace = true

@@ -64,4 +64,6 @@ pub use session::{
     SessionState, SessionStore,
 };
 pub use timeout::{TimeoutConfig, TimeoutKind};
-pub use transport::{Transport, TransportCapabilities, TransportEndpoint, TransportKind, TransportState};
+pub use transport::{
+    TcpTransport, Transport, TransportCapabilities, TransportEndpoint, TransportKind, TransportState,
+};

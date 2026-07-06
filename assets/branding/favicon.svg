@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gate favicon">
+  <rect width="64" height="64" rx="14" fill="#0B1020"/>
+  <path d="M18 49V23C18 18.582 21.582 15 26 15H38C42.418 15 46 18.582 46 23V49" stroke="#38BDF8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M26 49V30C26 27.791 27.791 26 30 26H34C36.209 26 38 27.791 38 30V49" stroke="#A7F3D0" stroke-width="5" stroke-linecap="round"/>
+  <path d="M22 49H42" stroke="#F8FAFC" stroke-width="5" stroke-linecap="round"/>
+</svg>

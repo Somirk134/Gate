@@ -1,0 +1,10 @@
+.git
+.github
+target
+client/node_modules
+website/node_modules
+node_modules
+*.log
+*.tmp
+.idea
+.vscode

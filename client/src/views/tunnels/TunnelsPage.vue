@@ -1,202 +1,216 @@
-<!--
-  TunnelsPage — 隧道工作区（Docker Desktop 风格三栏）
-  ------------------------------------------------------------------
-  左：Tunnel List（搜索 / 筛选 / 排序 + 列表项）
-  中：Tunnel Workspace（Header + 标签页：Overview / Traffic / Connection /
-     Logs / Statistics / Settings / Monitor）
-  右：Inspector（实时信息 + 统计 + 日志）
-
-  非传统后台管理布局。支持深链 /tunnels/:tunnelId。
-  所有数据来自 Mock，由 useTunnelMonitor 驱动实时刷新。
--->
 <template>
-  <div class="tunnels-page">
-    <!-- 加载态 -->
-    <template v-if="isLoading">
-      <TunnelLoading :count="8" />
-    </template>
+  <section class="tunnels-page">
+    <header class="tunnels-hero">
+      <div>
+        <p>Tunnel Workspace</p>
+        <h1>Tunnels</h1>
+        <span>{{ runningCount }} 个运行中 · {{ tunnels.length }} 个配置 · {{ formatSpeed(totalSpeed) }}</span>
+      </div>
+      <GButton variant="primary" icon="plus" @click="openCreate">创建 Tunnel</GButton>
+    </header>
 
-    <!-- 错误态 -->
-    <GCard v-else-if="isError" variant="plain" padding="lg" style="margin: var(--space-6)">
-      <GErrorState
-        title="加载失败"
-        :message="error || '无法加载隧道列表，请重试。'"
-        retry
-        @retry="retry"
-      />
+    <TunnelLoading v-if="isLoading" :count="8" />
+
+    <GCard v-else-if="isError" variant="plain" padding="lg">
+      <GErrorState title="加载失败" :message="error || '无法加载 Tunnel 列表。'" retry @retry="retry" />
     </GCard>
 
-    <!-- 空状态 -->
-    <TunnelEmpty v-else-if="!hasTunnels" @create="openCreate" />
-
-    <!-- 三栏工作区 -->
-    <div v-else class="tunnels-workspace">
-      <!-- ============ 左栏：隧道列表 ============ -->
-      <aside class="tunnel-list-pane">
-        <TunnelToolbar
-          :query="query"
-          :filter="filter"
-          :sort-by="sortBy"
-          :direction="direction"
-          :counts="counts"
-          @update:query="query = $event"
-          @update:filter="filter = $event"
-          @update:sort-by="sortBy = $event"
-          @update:direction="direction = $event"
-          @create="openCreate"
-        />
-
-        <div class="tunnel-list__items">
-          <template v-if="finalTunnels.length">
-            <TunnelCard
-              v-for="tunnel in finalTunnels"
-              :key="tunnel.id"
-              :tunnel="tunnel"
-              :active="selectedId === tunnel.id"
-              @select="onSelectTunnel"
-              @open="onOpenTunnel"
-              @contextmenu="onContextmenu"
-            />
-          </template>
-          <div v-else class="tunnel-list__items-empty">
-            <GIcon name="search" :size="20" />
-            <span>未找到匹配的隧道</span>
-          </div>
-        </div>
-
-        <div class="tunnel-list__footer">
-          <span>{{ finalTunnels.length }} / {{ tunnels.length }} 个隧道</span>
-          <span>{{ runningCount }} 运行中</span>
-        </div>
-      </aside>
-
-      <!-- ============ 中栏：工作区 ============ -->
-      <main class="tunnel-workspace-pane">
-        <template v-if="selectedTunnel">
-          <!-- 详情头部 -->
-          <TunnelHeader
-            :tunnel="selectedTunnel"
-            @start="onStart"
-            @stop="onStop"
-            @restart="onRestart"
-            @clone="onClone"
-            @export="onExport"
-            @delete="openDelete"
-            @toggle-pin="togglePin"
-            @toggle-favorite="toggleFavorite"
-          />
-
-          <!-- 标签页 -->
-          <div class="tunnel-workspace__tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              type="button"
-              class="tunnel-workspace__tab"
-              :class="{ 'tunnel-workspace__tab--active': activeTab === tab.key }"
-              @click="activeTab = tab.key"
-            >
-              <GIcon :name="tab.icon" :size="13" />
-              <span>{{ tab.label }}</span>
-            </button>
-          </div>
-
-          <!-- 工作区内容 -->
-          <div class="tunnel-workspace__content">
-            <component
-              :is="workspaceComponent"
-              :key="selectedTunnel.id"
-              :tunnel="selectedTunnel"
-              @save="onSettingsSave"
-              @export="onLogExport"
-              @clear="onLogClear"
-              @refresh="onConnectionRefresh"
-            />
-          </div>
-        </template>
-
-        <!-- 未选中占位 -->
-        <div v-else class="tunnel-workspace__placeholder">
-          <GIcon name="router" :size="40" />
-          <span>从左侧选择一个隧道查看详情</span>
-          <GButton variant="primary" icon="plus" @click="openCreate">New Tunnel</GButton>
-        </div>
-      </main>
-
-      <!-- ============ 右栏：Inspector ============ -->
-      <aside class="tunnel-inspector-pane">
-        <TunnelInspector v-if="selectedTunnel" :tunnel="selectedTunnel" />
-        <div v-else class="tunnel-workspace__placeholder">
-          <GIcon name="activity" :size="32" />
-          <span>实时检查器</span>
-        </div>
-      </aside>
+    <div v-else-if="!hasTunnels" class="tunnel-empty-state">
+      <div class="empty-illustration">
+        <GIcon name="router" :size="34" />
+      </div>
+      <h2>暂无 Tunnel</h2>
+      <p>创建第一个 Tunnel 后，本地服务就能通过公网地址访问。</p>
+      <GButton variant="primary" icon="plus" @click="openCreate">创建第一个 Tunnel</GButton>
     </div>
 
-    <!-- 创建/编辑对话框 -->
-    <TunnelDialog
-      v-model:visible="dialogVisible"
-      :tunnel="editingTunnel"
+    <template v-else>
+      <div class="tunnel-toolbar">
+        <label class="toolbar-search">
+          <GIcon name="search" :size="15" />
+          <input v-model.trim="query" placeholder="搜索名称、端口、项目或标签" />
+        </label>
+        <select v-model="filter">
+          <option value="all">全部</option>
+          <option value="running">运行中</option>
+          <option value="stopped">已停止</option>
+          <option value="http">HTTP</option>
+          <option value="tcp">TCP</option>
+          <option value="favorite">收藏</option>
+          <option value="recent">最近更新</option>
+        </select>
+        <select v-model="sortBy">
+          <option value="updatedAt">最近更新</option>
+          <option value="name">名称</option>
+          <option value="status">状态</option>
+          <option value="traffic">流量</option>
+          <option value="connections">连接数</option>
+        </select>
+        <button type="button" class="sort-direction" @click="direction = direction === 'asc' ? 'desc' : 'asc'">
+          <GIcon name="arrow-up-down" :size="15" />
+          {{ direction === "asc" ? "升序" : "降序" }}
+        </button>
+      </div>
+
+      <div class="tunnel-workspace">
+        <aside class="tunnel-list" aria-label="Tunnel list">
+          <div class="tunnel-list__header">
+            <strong>{{ finalTunnels.length }} results</strong>
+            <span>{{ query ? `for ${query}` : "ready" }}</span>
+          </div>
+
+          <button
+            v-for="tunnel in finalTunnels"
+            :key="tunnel.id"
+            type="button"
+            class="tunnel-row"
+            :class="{ active: selectedId === tunnel.id }"
+            @click="selectTunnel(tunnel.id)"
+          >
+            <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
+            <div class="tunnel-row__main">
+              <strong>{{ tunnel.name }}</strong>
+              <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.localHost }}:{{ tunnel.localPort }}</small>
+            </div>
+            <div class="tunnel-row__meta">
+              <span>{{ formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed) }}</span>
+              <small>{{ tunnel.statistics.connections }} conn</small>
+            </div>
+          </button>
+
+          <div v-if="!finalTunnels.length" class="tunnel-list__empty">
+            <GIcon name="search" :size="24" />
+            <span>没有匹配的 Tunnel</span>
+          </div>
+        </aside>
+
+        <main class="tunnel-detail" aria-live="polite">
+          <template v-if="selectedTunnel">
+            <div class="detail-header">
+              <div>
+                <div class="detail-title-row">
+                  <span :class="`is-${statusTone(selectedTunnel.status)}`" />
+                  <h2>{{ selectedTunnel.name }}</h2>
+                </div>
+                <p>{{ selectedTunnel.projectName }} · {{ selectedTunnel.serverName }}</p>
+              </div>
+              <div class="detail-actions">
+                <GButton
+                  v-if="canStart(selectedTunnel.status)"
+                  variant="primary"
+                  icon="play"
+                  @click="startSelected"
+                >
+                  启动
+                </GButton>
+                <GButton v-else variant="secondary" icon="pause" @click="stopSelected">停止</GButton>
+                <button type="button" class="icon-action" :class="{ active: selectedTunnel.favorite }" @click="toggleFavorite(selectedTunnel.id)">
+                  <GIcon name="star" :size="16" />
+                </button>
+                <button type="button" class="icon-action" @click="deleteSelected">
+                  <GIcon name="trash" :size="16" />
+                </button>
+              </div>
+            </div>
+
+            <div class="detail-metrics">
+              <article>
+                <span>公网地址</span>
+                <strong>{{ selectedTunnel.publicAddr }}</strong>
+              </article>
+              <article>
+                <span>今日流量</span>
+                <strong>{{ formatBytes(selectedTunnel.traffic.todayUpload + selectedTunnel.traffic.todayDownload) }}</strong>
+              </article>
+              <article>
+                <span>实时速度</span>
+                <strong>{{ formatSpeed(selectedTunnel.traffic.uploadSpeed + selectedTunnel.traffic.downloadSpeed) }}</strong>
+              </article>
+              <article>
+                <span>运行时间</span>
+                <strong>{{ formatDuration(selectedTunnel.statistics.uptime) }}</strong>
+              </article>
+            </div>
+
+            <div class="detail-grid">
+              <section class="detail-card">
+                <div class="detail-card__heading">
+                  <h3>路径</h3>
+                  <GIcon name="link" :size="16" />
+                </div>
+                <dl class="path-list">
+                  <div><dt>Local</dt><dd>{{ selectedTunnel.localHost }}:{{ selectedTunnel.localPort }}</dd></div>
+                  <div><dt>Public</dt><dd>{{ selectedTunnel.publicAddr }}</dd></div>
+                  <div><dt>Protocol</dt><dd>{{ selectedTunnel.protocol.toUpperCase() }}</dd></div>
+                  <div><dt>Status</dt><dd>{{ statusLabel(selectedTunnel.status) }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="detail-card">
+                <div class="detail-card__heading">
+                  <h3>标签</h3>
+                  <GIcon name="tag" :size="16" />
+                </div>
+                <div class="tag-list">
+                  <span v-for="tag in selectedTunnel.tags" :key="tag">{{ tag }}</span>
+                  <span v-if="!selectedTunnel.tags.length">No tags</span>
+                </div>
+              </section>
+            </div>
+
+            <section class="detail-card detail-card--logs">
+              <div class="detail-card__heading">
+                <h3>最近日志</h3>
+                <button type="button" @click="activeLogTunnel = selectedTunnel.id">
+                  <GIcon name="refresh" :size="14" />
+                </button>
+              </div>
+              <div class="mini-log-list">
+                <article v-for="log in selectedTunnel.logs.slice(-6).reverse()" :key="log.id">
+                  <span :class="`is-${log.level}`">{{ log.level }}</span>
+                  <p>{{ log.message }}</p>
+                  <small>{{ formatLogTime(log.timestamp) }}</small>
+                </article>
+              </div>
+            </section>
+          </template>
+
+          <div v-else class="tunnel-detail__placeholder">
+            <GIcon name="router" :size="34" />
+            <span>选择一个 Tunnel 查看状态和最近日志</span>
+          </div>
+        </main>
+      </div>
+    </template>
+
+    <TunnelCreateWizard
+      v-model:visible="wizardVisible"
       :projects="projectOptions"
       :server-names="serverNames"
-      @submit="handleSubmit"
+      @submit="handleCreate"
     />
-
-    <!-- 删除对话框 -->
-    <TunnelDeleteDialog
-      v-model:visible="deleteDialogVisible"
-      :tunnel="deletingTunnel"
-      @confirm="handleDelete"
-    />
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useFeedback } from "@composables/useFeedback"
-import GIcon from "@components/icons/GIcon.vue"
 import GButton from "@components/base/GButton.vue"
 import GCard from "@components/base/GCard.vue"
+import GIcon from "@components/icons/GIcon.vue"
 import GErrorState from "@components/feedback/GErrorState.vue"
-
-import TunnelToolbar from "./components/TunnelToolbar.vue"
-import TunnelCard from "./components/TunnelCard.vue"
-import TunnelHeader from "./components/TunnelHeader.vue"
-import TunnelInspector from "./components/TunnelInspector.vue"
-import TunnelOverview from "./components/TunnelOverview.vue"
-import TunnelTraffic from "./components/TunnelTraffic.vue"
-import TunnelConnection from "./components/TunnelConnection.vue"
-import TunnelLogs from "./components/TunnelLogs.vue"
-import TunnelStatistics from "./components/TunnelStatistics.vue"
-import TunnelSettings from "./components/TunnelSettings.vue"
-import TunnelMonitor from "./components/TunnelMonitor.vue"
-import TunnelEmpty from "./components/TunnelEmpty.vue"
 import TunnelLoading from "./components/TunnelLoading.vue"
-import TunnelDialog from "./components/TunnelDialog.vue"
-import TunnelDeleteDialog from "./components/TunnelDeleteDialog.vue"
-
+import TunnelCreateWizard from "./components/TunnelCreateWizard.vue"
 import { useTunnel } from "./composables/useTunnel"
-import { useTunnelFilter } from "./composables/useTunnelFilter"
-import { useTunnelSearch } from "./composables/useTunnelSearch"
-import { useTunnelSort } from "./composables/useTunnelSort"
 import { useTunnelMonitor } from "./composables/useTunnelMonitor"
 import { mockProjects, mockServerNames } from "./mock"
-import type {
-  Tunnel,
-  TunnelFilterType,
-  TunnelFormData,
-  TunnelSortType,
-  TunnelWorkspaceTab,
-  SortDirection,
-} from "./types"
-
+import type { SortDirection, Tunnel, TunnelFilterType, TunnelFormData, TunnelSortType, TunnelStatus } from "./types"
 import "./styles/tunnel.css"
 
 const route = useRoute()
 const router = useRouter()
-const { toast } = useFeedback()
-
+const { toast, confirm, confirmDanger } = useFeedback()
 const {
   tunnels,
   isLoading,
@@ -206,216 +220,708 @@ const {
   retry,
   getById,
   create,
-  update,
   remove,
   start,
   stop,
-  restart,
-  clone,
-  togglePin,
   toggleFavorite,
   store,
 } = useTunnel()
 
-// 启动实时监控
 useTunnelMonitor(store)
 
-// ── 工具栏状态 ──
 const query = ref("")
 const filter = ref<TunnelFilterType>("all")
 const sortBy = ref<TunnelSortType>("updatedAt")
 const direction = ref<SortDirection>("desc")
-
-// ── 筛选 → 搜索 → 排序 链式处理 ──
-const { filtered, counts } = useTunnelFilter(tunnels, filter)
-const { results } = useTunnelSearch(filtered, query)
-const { sorted } = useTunnelSort(results, sortBy, direction)
-
-const finalTunnels = computed(() => sorted.value)
-
-const runningCount = computed(
-  () => tunnels.value.filter((t) => t.status === "running").length,
-)
-
-// ── 选中隧道 ──
 const selectedId = ref<string | null>(null)
-const selectedTunnel = computed(() =>
-  selectedId.value ? getById(selectedId.value) : undefined,
-)
-
-// 深链支持：/tunnels/:tunnelId
-const routeTunnelId = computed(() => (route.params.tunnelId as string) || null)
-
-watch(
-  routeTunnelId,
-  (id) => {
-    if (id && getById(id)) {
-      selectedId.value = id
-    }
-  },
-  { immediate: true },
-)
-
-// 默认选中第一个
-watch(
-  tunnels,
-  (list) => {
-    if (!selectedId.value && list.length) {
-      selectedId.value = list[0].id
-    }
-  },
-  { immediate: true },
-)
-
-// ── 工作区标签页 ──
-const tabs: Array<{ key: TunnelWorkspaceTab; label: string; icon: string }> = [
-  { key: "overview", label: "Overview", icon: "info-circle" },
-  { key: "traffic", label: "Traffic", icon: "chart-line" },
-  { key: "connection", label: "Connection", icon: "link" },
-  { key: "logs", label: "Logs", icon: "terminal" },
-  { key: "statistics", label: "Statistics", icon: "chart-bar" },
-  { key: "monitor", label: "Monitor", icon: "activity" },
-  { key: "settings", label: "Settings", icon: "settings" },
-]
-
-const activeTab = ref<TunnelWorkspaceTab>("overview")
-
-const workspaceComponent = computed(() => {
-  switch (activeTab.value) {
-    case "overview":
-      return TunnelOverview
-    case "traffic":
-      return TunnelTraffic
-    case "connection":
-      return TunnelConnection
-    case "logs":
-      return TunnelLogs
-    case "statistics":
-      return TunnelStatistics
-    case "monitor":
-      return TunnelMonitor
-    case "settings":
-      return TunnelSettings
-    default:
-      return TunnelOverview
-  }
-})
-
-// ── 对话框状态 ──
-const dialogVisible = ref(false)
-const editingTunnel = ref<Tunnel | null>(null)
-const deleteDialogVisible = ref(false)
-const deletingTunnel = ref<Tunnel | null>(null)
-
+const wizardVisible = ref(false)
+const activeLogTunnel = ref("")
 const projectOptions = mockProjects
 const serverNames = mockServerNames
 
-// ── 操作处理 ──
-function onSelectTunnel(tunnel: Tunnel) {
-  selectedId.value = tunnel.id
-}
+const runningCount = computed(() => tunnels.value.filter((tunnel) => canStart(tunnel.status) === false).length)
+const totalSpeed = computed(() =>
+  tunnels.value.reduce((sum, tunnel) => sum + tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed, 0),
+)
 
-function onOpenTunnel(tunnel: Tunnel) {
-  selectedId.value = tunnel.id
-  activeTab.value = "overview"
-}
+const finalTunnels = computed(() => {
+  const keyword = query.value.toLowerCase()
+  const filtered = tunnels.value.filter((tunnel) => {
+    const matchesFilter =
+      filter.value === "all" ||
+      tunnel.protocol === filter.value ||
+      (filter.value === "running" && !canStart(tunnel.status)) ||
+      (filter.value === "stopped" && canStart(tunnel.status)) ||
+      (filter.value === "favorite" && tunnel.favorite) ||
+      filter.value === "recent"
+    const matchesQuery =
+      !keyword ||
+      [tunnel.name, tunnel.protocol, tunnel.projectName, tunnel.serverName, tunnel.publicAddr, ...tunnel.tags]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    return matchesFilter && matchesQuery
+  })
 
-function onContextmenu(tunnel: Tunnel) {
-  toast.info(`「${tunnel.name}」右键菜单（预留）`)
-}
+  const sorted = [...filtered].sort((a, b) => {
+    const modifier = direction.value === "asc" ? 1 : -1
+    if (sortBy.value === "name") return a.name.localeCompare(b.name) * modifier
+    if (sortBy.value === "status") return (statusOrder(a.status) - statusOrder(b.status)) * modifier
+    if (sortBy.value === "traffic") {
+      return (trafficTotal(a) - trafficTotal(b)) * modifier
+    }
+    if (sortBy.value === "connections") {
+      return (a.statistics.connections - b.statistics.connections) * modifier
+    }
+    return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * modifier
+  })
 
-function onStart() {
-  if (!selectedTunnel.value) return
-  start(selectedTunnel.value.id)
-  toast.success(`正在启动隧道「${selectedTunnel.value.name}」`)
-}
+  return filter.value === "recent" ? sorted.slice(0, 10) : sorted
+})
 
-function onStop() {
-  if (!selectedTunnel.value) return
-  stop(selectedTunnel.value.id)
-  toast.warning(`已停止隧道「${selectedTunnel.value.name}」`)
-}
+const selectedTunnel = computed(() => (selectedId.value ? getById(selectedId.value) : undefined))
 
-function onRestart() {
-  if (!selectedTunnel.value) return
-  restart(selectedTunnel.value.id)
-  toast.info(`正在重启隧道「${selectedTunnel.value.name}」`)
-}
+watch(
+  finalTunnels,
+  (list) => {
+    if (!selectedId.value || !list.some((tunnel) => tunnel.id === selectedId.value)) {
+      selectedId.value = list[0]?.id ?? null
+    }
+  },
+  { immediate: true },
+)
 
-function onClone() {
-  if (!selectedTunnel.value) return
-  const cloned = clone(selectedTunnel.value.id)
-  if (cloned) {
-    toast.success(`已克隆为「${cloned.name}」`)
-    selectedId.value = cloned.id
-  }
-}
+watch(
+  () => route.query.create,
+  (value) => {
+    if (value === "1") {
+      wizardVisible.value = true
+      void router.replace({ path: "/tunnels" })
+    }
+  },
+  { immediate: true },
+)
 
-function onExport() {
-  if (!selectedTunnel.value) return
-  toast.info(`导出「${selectedTunnel.value.name}」配置（预留）`)
+function selectTunnel(id: string) {
+  selectedId.value = id
 }
 
 function openCreate() {
-  editingTunnel.value = null
-  dialogVisible.value = true
+  wizardVisible.value = true
 }
 
-function openDelete() {
+function handleCreate(form: TunnelFormData) {
+  const created = create(form)
+  selectedId.value = created.id
+  toast.success(`Tunnel「${created.name}」已创建`)
+}
+
+function startSelected() {
   if (!selectedTunnel.value) return
-  deletingTunnel.value = selectedTunnel.value
-  deleteDialogVisible.value = true
+  start(selectedTunnel.value.id)
+  toast.success(`正在启动 Tunnel「${selectedTunnel.value.name}」`)
 }
 
-function handleSubmit(form: TunnelFormData, isEdit: boolean) {
-  if (isEdit && editingTunnel.value) {
-    update(editingTunnel.value.id, form)
-    toast.success(`隧道「${form.name}」已更新`)
-  } else {
-    const created = create(form)
-    toast.success(`隧道「${form.name}」已创建`)
-    selectedId.value = created.id
+function stopSelected() {
+  const tunnel = selectedTunnel.value
+  if (!tunnel) return
+  confirm({
+    title: "停止 Tunnel",
+    content: `停止「${tunnel.name}」后，公网访问会立即中断。`,
+    confirmText: "停止",
+    onConfirm: () => {
+      stop(tunnel.id)
+      toast.warning(`已停止 Tunnel「${tunnel.name}」`)
+    },
+  })
+}
+
+function deleteSelected() {
+  const tunnel = selectedTunnel.value
+  if (!tunnel) return
+  confirmDanger({
+    title: "删除 Tunnel",
+    content: `删除「${tunnel.name}」后，该配置会从列表中移除。`,
+    confirmText: "删除",
+    onConfirm: () => {
+      remove(tunnel.id)
+      selectedId.value = finalTunnels.value[0]?.id ?? null
+      toast.success(`Tunnel「${tunnel.name}」已删除`)
+    },
+  })
+}
+
+function canStart(status: TunnelStatus) {
+  return status === "stopped" || status === "offline" || status === "error" || status === "disconnected"
+}
+
+function statusTone(status: TunnelStatus) {
+  if (status === "running") return "online"
+  if (status === "error" || status === "disconnected") return "error"
+  if (status === "stopped" || status === "offline") return "offline"
+  return "warning"
+}
+
+function statusLabel(status: TunnelStatus) {
+  const labels: Record<TunnelStatus, string> = {
+    running: "运行中",
+    stopped: "已停止",
+    starting: "启动中",
+    stopping: "停止中",
+    restarting: "重启中",
+    error: "异常",
+    disconnected: "已断开",
+    connecting: "连接中",
+    offline: "离线",
   }
-  editingTunnel.value = null
+  return labels[status]
 }
 
-function handleDelete(tunnel: Tunnel) {
-  remove(tunnel.id)
-  toast.success(`隧道「${tunnel.name}」已删除`)
-  // 选中下一个
-  const next = tunnels.value[0]
-  selectedId.value = next ? next.id : null
-  deletingTunnel.value = null
-  if (!next) router.push("/tunnels")
+function statusOrder(status: TunnelStatus) {
+  const order: Record<TunnelStatus, number> = {
+    running: 0,
+    connecting: 1,
+    starting: 2,
+    restarting: 3,
+    stopping: 4,
+    error: 5,
+    disconnected: 6,
+    stopped: 7,
+    offline: 8,
+  }
+  return order[status]
 }
 
-function onSettingsSave(id: string, patch: Partial<TunnelFormData>) {
-  update(id, patch)
+function trafficTotal(tunnel: Tunnel) {
+  return tunnel.traffic.totalUpload + tunnel.traffic.totalDownload
 }
 
-function onLogExport() {
-  toast.info("导出日志（预留）")
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
+  const value = bytes / 1024 ** index
+  return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
 
-function onLogClear() {
-  if (!selectedTunnel.value) return
-  selectedTunnel.value.logs = []
-  toast.success("日志已清空")
+function formatSpeed(bytesPerSecond: number): string {
+  return `${formatBytes(bytesPerSecond)}/s`
 }
 
-function onConnectionRefresh() {
-  toast.info("连接列表已刷新（Mock）")
+function formatDuration(seconds: number): string {
+  if (seconds <= 0) return "-"
+  const day = Math.floor(seconds / 86400)
+  const hour = Math.floor((seconds % 86400) / 3600)
+  const minute = Math.floor((seconds % 3600) / 60)
+  if (day) return `${day}d ${hour}h`
+  if (hour) return `${hour}h ${minute}m`
+  return `${Math.max(1, minute)}m`
+}
+
+function formatLogTime(timestamp: number): string {
+  return new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(timestamp)
 }
 </script>
 
 <style scoped>
-.tunnel-list__items-empty {
+.tunnels-page {
+  width: min(100%, var(--content-max-width));
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tunnels-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.tunnels-hero p {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+}
+
+.tunnels-hero h1 {
+  margin-top: 2px;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+}
+
+.tunnels-hero span {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.tunnel-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 136px 148px auto;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.toolbar-search,
+.tunnel-toolbar select,
+.sort-direction {
+  height: 36px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.toolbar-search {
+  display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-8);
+  padding: 0 var(--space-3);
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+}
+
+.toolbar-search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.toolbar-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.tunnel-toolbar select,
+.sort-direction {
+  padding: 0 var(--space-3);
+}
+
+.sort-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.tunnel-workspace {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.tunnel-list,
+.tunnel-detail,
+.detail-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.tunnel-list {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2);
+}
+
+.tunnel-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.tunnel-list__header strong {
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.tunnel-row {
+  width: 100%;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tunnel-row:hover,
+.tunnel-row.active {
+  border-color: var(--border-default);
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-row.active {
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
+.tunnel-row__status,
+.detail-title-row > span {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--status-offline);
+}
+
+.is-online { background: var(--status-online); color: var(--status-online); }
+.is-warning { background: var(--status-warning); color: var(--status-warning); }
+.is-error { background: var(--status-error); color: var(--status-error); }
+.is-offline { background: var(--status-offline); color: var(--status-offline); }
+
+.tunnel-row__main {
+  min-width: 0;
+}
+
+.tunnel-row__main strong,
+.tunnel-row__main small,
+.tunnel-row__meta span,
+.tunnel-row__meta small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tunnel-row__main small,
+.tunnel-row__meta small {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.tunnel-row__meta {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-align: right;
+}
+
+.tunnel-list__empty,
+.tunnel-detail__placeholder,
+.tunnel-empty-state {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.tunnel-list__empty {
+  min-height: 220px;
+}
+
+.tunnel-empty-state {
+  min-height: 460px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+}
+
+.empty-illustration {
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+.tunnel-empty-state h2 {
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  letter-spacing: 0;
+}
+
+.tunnel-empty-state p {
+  max-width: 420px;
+  color: var(--text-secondary);
+}
+
+.tunnel-detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-5);
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.detail-title-row h2 {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+}
+
+.detail-header p {
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.icon-action {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.icon-action:hover,
+.icon-action.active {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.detail-metrics article {
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.detail-metrics span,
+.path-list dt {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.detail-metrics strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.detail-card {
+  padding: var(--space-4);
+}
+
+.detail-card__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.detail-card__heading h3 {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.detail-card__heading button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.detail-card__heading button:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.path-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.path-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.path-list dd {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tag-list span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.detail-card--logs {
+  margin-top: var(--space-4);
+}
+
+.mini-log-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mini-log-list article {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 34px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.mini-log-list span {
+  background: transparent;
+  font: var(--weight-semibold) var(--text-xs) var(--font-mono);
+  text-transform: uppercase;
+}
+
+.mini-log-list span.is-info,
+.mini-log-list span.is-success { color: var(--color-info); }
+.mini-log-list span.is-warn { color: var(--color-warning); }
+.mini-log-list span.is-error { color: var(--color-error); }
+.mini-log-list span.is-debug { color: var(--text-tertiary); }
+
+.mini-log-list p {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-log-list small {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.tunnel-detail__placeholder {
+  min-height: 420px;
+}
+
+@media (max-width: 1120px) {
+  .tunnel-workspace,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tunnel-list {
+    max-height: 360px;
+  }
+
+  .detail-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .tunnels-hero,
+  .detail-header {
+    flex-direction: column;
+  }
+
+  .tunnel-toolbar,
+  .detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .mini-log-list article {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .mini-log-list small {
+    display: none;
+  }
 }
 </style>

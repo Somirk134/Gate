@@ -51,7 +51,7 @@ function iconForType(type: NotificationType): string {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    max-width: 360px;
+    width: min(380px, calc(100vw - 32px));
 }
 
 .notification-list {
@@ -65,14 +65,16 @@ function iconForType(type: NotificationType): string {
     display: flex;
     align-items: flex-start;
     gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-surface-raised);
+    min-height: 58px;
+    padding: var(--space-3);
+    background: color-mix(in srgb, var(--bg-surface-raised) 92%, transparent);
     border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-popup);
+    backdrop-filter: blur(14px);
     cursor: pointer;
     transition: all var(--duration-fast) var(--ease-out);
-    animation: none;
+    animation: g-toast-in var(--duration-base) var(--ease-out);
 }
 
 .notification-item:hover {
@@ -115,7 +117,7 @@ function iconForType(type: NotificationType): string {
 
 .notification-title {
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: var(--weight-semibold);
     color: var(--text-primary);
 }
 

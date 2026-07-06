@@ -1,0 +1,25 @@
+title: "support: "
+labels: ["support"]
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: Support request
+      placeholder: What are you trying to run, configure, or debug?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Version, OS, Docker, reverse proxy, network, logs.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: I removed secrets and private endpoints from shared logs.
+          required: true
+category: Support

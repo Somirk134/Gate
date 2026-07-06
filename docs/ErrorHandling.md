@@ -1,8 +1,8 @@
-# Gate Error Handling
+﻿# Gate Error Handling
 
 ## Error Types
 
-统一错误体系定义在 `gate-shared`：
+缁熶竴閿欒浣撶郴瀹氫箟鍦?`gate-shared`锛?
 
 - `AppError`
 - `NetworkError`
@@ -11,23 +11,23 @@
 - `InternalError`
 - `ErrorCode`
 
-所有错误类型通过 `thiserror` 实现 `std::error::Error`。
+鎵€鏈夐敊璇被鍨嬮€氳繃 `thiserror` 瀹炵幇 `std::error::Error`銆?
 
 ## ErrorCode
 
-`ErrorCode` 是稳定分类，不直接绑定 HTTP status、CLI exit code 或日志格式：
+`ErrorCode` 鏄ǔ瀹氬垎绫伙紝涓嶇洿鎺ョ粦瀹?HTTP status銆丆LI exit code 鎴栨棩蹇楁牸寮忥細
 
-| Code | 含义 |
-| --- | --- |
-| `UNKNOWN` | 未分类错误预留 |
-| `CONFIG` | 配置来源、配置值、配置优先级相关错误 |
-| `NETWORK` | 网络组件边界错误 |
-| `TUNNEL` | Tunnel 能力预留错误 |
-| `INTERNAL` | 组件缺失、运行期不变量失败 |
+| Code       | 鍚箟                                               |
+| ---------- | --------------------------------------------------- |
+| `UNKNOWN`  | 鏈垎绫婚敊璇鐣?                                  |
+| `CONFIG`   | 閰嶇疆鏉ユ簮銆侀厤缃€笺€侀厤缃紭鍏堢骇鐩稿叧閿欒 |
+| `NETWORK`  | 缃戠粶缁勪欢杈圭晫閿欒                             |
+| `TUNNEL`   | Tunnel 鑳藉姏棰勭暀閿欒                            |
+| `INTERNAL` | 缁勪欢缂哄け銆佽繍琛屾湡涓嶅彉閲忓け璐?             |
 
 ## AppError
 
-`AppError` 是跨层返回的统一错误类型：
+`AppError` 鏄法灞傝繑鍥炵殑缁熶竴閿欒绫诲瀷锛?
 
 ```rust
 pub enum AppError {
@@ -38,13 +38,8 @@ pub enum AppError {
 }
 ```
 
-应用层、基础设施端口、传输层端口都应该返回 `AppError` 或更局部的错误，然后在边界处转换为 `AppError`。
+搴旂敤灞傘€佸熀纭€璁炬柦绔彛銆佷紶杈撳眰绔彛閮藉簲璇ヨ繑鍥?`AppError` 鎴栨洿灞€閮ㄧ殑閿欒锛岀劧鍚庡湪杈圭晫澶勮浆鎹负 `AppError`銆?
 
 ## Rules
 
-- 不使用字符串作为长期错误协议。
-- 不把 SQLx、Redis、Axum、Tower 的具体错误泄漏到领域层。
-- 不在错误类型里携带认证、Token、密钥、连接负载等敏感内容。
-- `TunnelError` 当前只表示未来能力预留，不代表已经实现 Tunnel。
-- `InternalError` 只描述基础设施或运行期不变量，不承载业务失败。
-
+- 涓嶄娇鐢ㄥ瓧绗︿覆浣滀负闀挎湡閿欒鍗忚銆?- 涓嶆妸 SQLx銆丷edis銆丄xum銆乀ower 鐨勫叿浣撻敊璇硠婕忓埌棰嗗煙灞傘€?- 涓嶅湪閿欒绫诲瀷閲屾惡甯﹁璇併€乀oken銆佸瘑閽ャ€佽繛鎺ヨ礋杞界瓑鏁忔劅鍐呭銆?- `TunnelError` 褰撳墠鍙〃绀烘湭鏉ヨ兘鍔涢鐣欙紝涓嶄唬琛ㄥ凡缁忓疄鐜?Tunnel銆?- `InternalError` 鍙弿杩板熀纭€璁炬柦鎴栬繍琛屾湡涓嶅彉閲忥紝涓嶆壙杞戒笟鍔″け璐ャ€?

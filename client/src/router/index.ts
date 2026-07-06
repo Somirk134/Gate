@@ -55,6 +55,18 @@ const routes: RouteRecordRaw[] = [
                 meta: { title: 'Logs', icon: 'logs', keepAlive: false },
             },
             {
+                path: 'diagnostics',
+                name: 'diagnostics',
+                component: () => import('@views/diagnostics/DiagnosticsPage.vue'),
+                meta: { title: 'Diagnostics', icon: 'activity', keepAlive: false },
+            },
+            {
+                path: 'feedback',
+                name: 'feedback',
+                component: () => import('@views/feedback/FeedbackPage.vue'),
+                meta: { title: 'Feedback', icon: 'message', keepAlive: false },
+            },
+            {
                 path: 'settings',
                 name: 'settings',
                 component: () => import('@views/settings/SettingsPage.vue'),
@@ -77,4 +89,3 @@ const routes: RouteRecordRaw[] = [
 ]
 
 export default routes
-

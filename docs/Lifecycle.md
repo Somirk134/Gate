@@ -1,8 +1,8 @@
-# Gate Server Lifecycle
+﻿# Gate Server Lifecycle
 
 ## Server State
 
-统一状态定义在 `gate_shared::lifecycle::ServerState`：
+缁熶竴鐘舵€佸畾涔夊湪 `gate_shared::lifecycle::ServerState`锛?
 
 - `Starting`
 - `Initializing`
@@ -14,7 +14,7 @@
 
 ## Runtime Phase
 
-Application Runtime 的阶段定义为：
+Application Runtime 鐨勯樁娈靛畾涔変负锛?
 
 - `Boot`
 - `Initialize`
@@ -41,7 +41,7 @@ stateDiagram-v2
 
 ## Runtime Contract
 
-`ApplicationRuntime` 只暴露状态读取和阶段切换：
+`ApplicationRuntime` 鍙毚闇茬姸鎬佽鍙栧拰闃舵鍒囨崲锛?
 
 ```rust
 pub trait ApplicationRuntime: Send + Sync {
@@ -50,7 +50,7 @@ pub trait ApplicationRuntime: Send + Sync {
 }
 ```
 
-`GracefulShutdown` 只描述关闭边界：
+`GracefulShutdown` 鍙弿杩板叧闂竟鐣岋細
 
 ```rust
 pub trait GracefulShutdown: Send + Sync {
@@ -60,14 +60,7 @@ pub trait GracefulShutdown: Send + Sync {
 
 ## Graceful Shutdown
 
-未来实现 graceful shutdown 时必须统一管理：
+鏈潵瀹炵幇 graceful shutdown 鏃跺繀椤荤粺涓€绠＄悊锛?
 
-- 停止接收新连接。
-- 通知调度器暂停任务。
-- 等待运行中任务在配置超时时间内完成。
-- Flush tracing sink。
-- 释放基础设施组件。
-- 状态最终进入 `Stopped`。
-
-当前阶段不实现上述行为，只保留生命周期契约。
-
+- 鍋滄鎺ユ敹鏂拌繛鎺ャ€?- 閫氱煡璋冨害鍣ㄦ殏鍋滀换鍔°€?- 绛夊緟杩愯涓换鍔″湪閰嶇疆瓒呮椂鏃堕棿鍐呭畬鎴愩€?- Flush tracing sink銆?- 閲婃斁鍩虹璁炬柦缁勪欢銆?- 鐘舵€佹渶缁堣繘鍏?`Stopped`銆?
+  褰撳墠闃舵涓嶅疄鐜颁笂杩拌涓猴紝鍙繚鐣欑敓鍛藉懆鏈熷绾︺€?

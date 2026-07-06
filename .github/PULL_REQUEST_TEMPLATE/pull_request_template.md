@@ -1,30 +1,39 @@
 ## Description
 
-Please include a summary of the change and which issue is fixed.
+Describe the change and why it is needed.
 
-Fixes #(issue)
-
-## Type of Change
-
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Refactoring
-- [ ] Performance improvement
-
-## How Has This Been Tested?
-
-Please describe the tests that you ran to verify your changes.
+Fixes #
 
 ## Checklist
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
+- [ ] The change is scoped and reviewable.
+- [ ] I ran relevant local checks.
+- [ ] I updated documentation for user-visible behavior.
+- [ ] I added or updated tests where appropriate.
+- [ ] I removed secrets, tokens, and private endpoints from logs and screenshots.
 
-## Screenshots (if appropriate)
+## Test
+
+List commands or manual verification:
+
+```bash
+
+```
+
+## Screenshot
+
+Add screenshots or recordings for UI and documentation-site changes.
+
+## Breaking Change
+
+- [ ] No breaking change.
+- [ ] Breaking change documented below.
+
+## Documentation
+
+- [ ] Not required.
+- [ ] Updated README/docs/website/community/templates.
+
+## Maintainer Notes
+
+Call out risks, release-note text, or follow-up work.

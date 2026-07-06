@@ -1,4 +1,6 @@
 import type { Disposable } from "@/utils/disposable"
+import { emit as tauriEmit, listen as tauriListen } from "@tauri-apps/api/event"
+import { invoke as tauriInvoke } from "@tauri-apps/api/core"
 
 export type IpcPayload = Record<string, unknown> | undefined
 
@@ -20,25 +22,34 @@ export interface IpcClient {
   remove(event: string): Promise<void>
 }
 
-export class NoopIpcClient implements IpcClient {
+export class TauriIpcClient implements IpcClient {
   async invoke<TResult = unknown, TArgs = IpcPayload>(
-    _command: string,
-    _args?: TArgs,
+    command: string,
+    args?: TArgs,
   ): Promise<TResult> {
-    throw new Error("IPC invoke is not connected in the application foundation layer.")
+    return tauriInvoke<TResult>(command, args as Record<string, unknown> | undefined)
   }
 
   async listen<TPayload = unknown>(
-    _event: string,
-    _handler: (payload: IpcEvent<TPayload>) => void | Promise<void>,
+    event: string,
+    handler: (payload: IpcEvent<TPayload>) => void | Promise<void>,
   ): Promise<Disposable> {
+    const unlisten = await tauriListen<TPayload>(event, async (payload) => {
+      await handler({
+        name: event,
+        payload: payload.payload,
+      })
+    })
+
     return {
-      dispose: () => undefined,
+      dispose: () => {
+        unlisten()
+      },
     }
   }
 
-  async emit<TPayload = unknown>(_event: string, _payload?: TPayload) {
-    return undefined
+  async emit<TPayload = unknown>(event: string, payload?: TPayload) {
+    await tauriEmit(event, payload)
   }
 
   async remove(_event: string) {

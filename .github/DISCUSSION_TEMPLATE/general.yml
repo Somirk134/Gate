@@ -1,0 +1,18 @@
+title: "general: "
+labels: ["discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: Use General for project conversation that is not yet actionable work.
+  - type: textarea
+    id: topic
+    attributes:
+      label: Topic
+      placeholder: What would you like to discuss?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+category: General

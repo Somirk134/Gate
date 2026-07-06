@@ -1,0 +1,26 @@
+FROM rust:1.78-bookworm AS builder
+
+WORKDIR /workspace
+COPY . .
+RUN cargo build -p gate-server --release
+
+FROM debian:bookworm-slim
+
+RUN useradd --system --create-home --home-dir /var/lib/gate gate \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /workspace/target/release/gate-server /usr/local/bin/gate-server
+
+USER gate
+WORKDIR /var/lib/gate
+
+ENV GATE_ENV=production
+ENV GATE_BIND=0.0.0.0:5800
+ENV GATE_DATA_DIR=/var/lib/gate
+ENV GATE_LOG=info
+
+EXPOSE 5800
+
+ENTRYPOINT ["gate-server"]

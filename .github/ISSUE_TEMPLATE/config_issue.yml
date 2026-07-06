@@ -1,0 +1,32 @@
+name: Config Issue
+description: Report a configuration or deployment problem.
+title: "config: "
+labels: ["config", "needs-triage"]
+body:
+  - type: textarea
+    id: config
+    attributes:
+      label: Sanitized configuration
+      description: Remove secrets before pasting.
+      render: toml
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What did the configuration do unexpectedly?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: OS, Docker, reverse proxy, network, version.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: shell

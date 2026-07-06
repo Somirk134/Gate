@@ -1,0 +1,8 @@
+[server]
+address = "127.0.0.1:5800"
+
+[tunnel]
+name = "basic-web"
+protocol = "tcp"
+local = "127.0.0.1:3000"
+remote = "0.0.0.0:8080"

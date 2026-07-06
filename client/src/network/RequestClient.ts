@@ -21,10 +21,43 @@ export interface RequestClient {
   ): Promise<RequestResponse<TData>>
 }
 
-export class NoopRequestClient implements RequestClient {
+export class FetchRequestClient implements RequestClient {
   async request<TData = unknown, TBody = unknown>(
-    _options: RequestOptions<TBody>,
+    options: RequestOptions<TBody>,
   ): Promise<RequestResponse<TData>> {
-    throw new Error("Request client is not implemented in the application foundation layer.")
+    const controller = new AbortController()
+    const timeout = options.timeout
+      ? window.setTimeout(() => controller.abort(), options.timeout)
+      : undefined
+
+    try {
+      const response = await fetch(options.url, {
+        method: options.method,
+        headers: {
+          "content-type": "application/json",
+          ...options.headers,
+        },
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        signal: options.signal ?? controller.signal,
+      })
+      const contentType = response.headers.get("content-type") ?? ""
+      const data = contentType.includes("application/json")
+        ? ((await response.json()) as TData)
+        : ((await response.text()) as TData)
+      const headers: Record<string, string> = {}
+      response.headers.forEach((value, key) => {
+        headers[key] = value
+      })
+
+      return {
+        status: response.status,
+        data,
+        headers,
+      }
+    } finally {
+      if (timeout) {
+        window.clearTimeout(timeout)
+      }
+    }
   }
 }

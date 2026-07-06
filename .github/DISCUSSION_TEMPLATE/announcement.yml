@@ -1,0 +1,11 @@
+title: "announcement: "
+labels: ["announcement"]
+body:
+  - type: textarea
+    id: announcement
+    attributes:
+      label: Announcement
+      placeholder: Maintainer announcement content.
+    validations:
+      required: true
+category: Announcement

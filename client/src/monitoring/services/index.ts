@@ -1,4 +1,4 @@
-import { mockDashboard, mockHealth, mockMetrics, mockStatistics } from "../mock"
+import { TauriIpcClient } from "@/ipc"
 import type {
   DashboardData,
   HealthReport,
@@ -6,6 +6,8 @@ import type {
   Statistics,
   TrafficStatistics,
 } from "../types"
+
+const ipc = new TauriIpcClient()
 
 /** Client-side statistics service contract. */
 export interface StatisticsService {
@@ -35,51 +37,168 @@ export interface ExportService {
   exportCsv(): Promise<string>
 }
 
-/** Mock implementation of StatisticsService. */
-export class MockStatisticsService implements StatisticsService {
+export function createEmptyDashboardData(now = Date.now()): DashboardData {
+  const traffic: TrafficStatistics = {
+    uploadBytes: 0,
+    downloadBytes: 0,
+    uploadSpeedBps: 0,
+    downloadSpeedBps: 0,
+    peakSpeedBps: 0,
+    averageSpeedBps: 0,
+    todayTrafficBytes: 0,
+    totalTrafficBytes: 0,
+  }
+  const statistics: Statistics = {
+    collectedAt: now,
+    tunnel: {
+      tunnelCount: 0,
+      runningTunnel: 0,
+      stoppedTunnel: 0,
+      upload: 0,
+      download: 0,
+      peakSpeedBps: 0,
+      averageSpeedBps: 0,
+      runningTimeSeconds: 0,
+      todayTraffic: 0,
+      totalTraffic: 0,
+    },
+    traffic,
+    connection: {
+      currentConnection: 0,
+      totalConnection: 0,
+      success: 0,
+      failure: 0,
+      reconnect: 0,
+      disconnect: 0,
+      connectionDurationMs: 0,
+      averageRttMs: 0,
+    },
+    runtime: {
+      runningTask: 0,
+      workerCount: 0,
+      schedulerQueue: 0,
+      bufferUsage: 0,
+      sessionCount: 0,
+      runtimeUptimeSeconds: 0,
+    },
+    system: {
+      cpuUsage: 0,
+      memoryUsage: 0,
+      diskUsage: 0,
+      threadCount: 0,
+      processUptimeSeconds: 0,
+      openFile: 0,
+    },
+    client: {
+      onlineTimeSeconds: 0,
+      openProject: 0,
+      currentWorkspace: "Gate Alpha V1",
+      uiFps: 0,
+      memoryBytes: 0,
+    },
+  }
+
+  return {
+    overview: {
+      tunnelCount: 0,
+      runningTunnel: 0,
+      currentConnection: 0,
+      todayTraffic: 0,
+      totalTraffic: 0,
+      averageRttMs: 0,
+      runtimeUptimeSeconds: 0,
+      healthScore: 0,
+    },
+    statistics,
+    realtimeSpeed: [],
+    connectionTrend: [],
+    trafficTrend: [],
+    tunnelStatus: [],
+    serverStatus: [],
+    systemHealth: {
+      overall: "offline",
+      signals: [],
+      updatedAt: now,
+    },
+    tunnels: [],
+    recentActivity: [],
+    generatedAt: now,
+  }
+}
+
+class RuntimeStatisticsService implements StatisticsService {
   async getStatistics() {
-    return mockStatistics.snapshot()
+    return ipc.invoke<Statistics>("runtime_get_statistics")
   }
 
   async getTraffic() {
-    return mockStatistics.snapshot().traffic
+    return (await this.getStatistics()).traffic
   }
 }
 
-/** Mock implementation of MetricsService. */
-export class MockMetricsService implements MetricsService {
+class RuntimeMetricsService implements MetricsService {
   async collect() {
-    return mockMetrics.collect()
+    return ipc.invoke<Metric[]>("runtime_collect_metrics")
   }
 }
 
-/** Mock implementation of HealthService. */
-export class MockHealthService implements HealthService {
+class RuntimeHealthService implements HealthService {
   async getHealthReport() {
-    const statistics = mockStatistics.snapshot()
-    return mockHealth.report(statistics)
+    return ipc.invoke<HealthReport>("runtime_get_health")
   }
 }
 
-/** Mock implementation of DashboardService. */
-export class MockDashboardService implements DashboardService {
+class RuntimeDashboardService implements DashboardService {
+  private readonly listeners = new Set<(data: DashboardData) => void>()
+  private timer: number | undefined
+
   async getDashboard() {
-    return mockDashboard.snapshot()
+    return ipc.invoke<DashboardData>("runtime_get_dashboard")
   }
 
   subscribe(listener: (data: DashboardData) => void) {
-    return mockDashboard.subscribe(listener)
+    this.listeners.add(listener)
+    void this.publish()
+    this.start()
+
+    return () => {
+      this.listeners.delete(listener)
+      if (this.listeners.size === 0) {
+        this.stop()
+      }
+    }
+  }
+
+  private start() {
+    if (this.timer !== undefined) return
+    this.timer = window.setInterval(() => {
+      void this.publish()
+    }, 1000)
+  }
+
+  private stop() {
+    if (this.timer === undefined) return
+    window.clearInterval(this.timer)
+    this.timer = undefined
+  }
+
+  private async publish() {
+    try {
+      const data = await this.getDashboard()
+      this.listeners.forEach((listener) => listener(data))
+    } catch {
+      // Refresh errors are surfaced by explicit refresh calls in the composable.
+    }
   }
 }
 
-/** Mock implementation of ExportService. */
-export class MockExportService implements ExportService {
+class RuntimeExportService implements ExportService {
   async exportJson() {
-    return JSON.stringify(mockDashboard.snapshot(), null, 2)
+    return JSON.stringify(await dashboardService.getDashboard(), null, 2)
   }
 
   async exportCsv() {
-    const metrics = mockMetrics.collect()
+    const metrics = await metricsService.collect()
     const rows = ["name,kind,scope,unit,value,timestamp"]
     for (const metric of metrics) {
       rows.push(
@@ -97,8 +216,8 @@ export class MockExportService implements ExportService {
   }
 }
 
-export const statisticsService: StatisticsService = new MockStatisticsService()
-export const metricsService: MetricsService = new MockMetricsService()
-export const healthService: HealthService = new MockHealthService()
-export const dashboardService: DashboardService = new MockDashboardService()
-export const exportService: ExportService = new MockExportService()
+export const statisticsService: StatisticsService = new RuntimeStatisticsService()
+export const metricsService: MetricsService = new RuntimeMetricsService()
+export const healthService: HealthService = new RuntimeHealthService()
+export const dashboardService: DashboardService = new RuntimeDashboardService()
+export const exportService: ExportService = new RuntimeExportService()

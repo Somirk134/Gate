@@ -1,0 +1,16 @@
+[project]
+name = "example-stack"
+owner = "platform-team"
+environment = "development"
+
+[[tunnels]]
+name = "web"
+protocol = "tcp"
+local = "127.0.0.1:3000"
+remote = "0.0.0.0:8080"
+
+[[tunnels]]
+name = "api"
+protocol = "tcp"
+local = "127.0.0.1:4000"
+remote = "0.0.0.0:8081"

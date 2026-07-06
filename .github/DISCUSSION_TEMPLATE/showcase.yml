@@ -1,0 +1,15 @@
+title: "showcase: "
+labels: ["showcase"]
+body:
+  - type: textarea
+    id: showcase
+    attributes:
+      label: What did you build or deploy?
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      placeholder: Architecture, deployment notes, screenshots, or lessons learned.
+category: Showcase

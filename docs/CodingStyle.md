@@ -1,50 +1,50 @@
 # Gate Rust Coding Style
 
-## 基本原则
+## Basic principles
 
-- Rust Stable only。
-- 所有 crate 职责单一。
-- 依赖方向必须遵守 Clean Architecture，不允许跨层捷径。
-- 不使用全局可变状态；运行期依赖通过 `AppContext`、Registry、Provider、Factory 注入。
-- 默认不添加抽象，除非它代表清晰边界或已有局部模式。
+- Use stable Rust.
+- Keep each crate focused on one responsibility.
+- Keep dependency direction aligned with Clean Architecture.
+- Do not introduce cross-layer shortcuts.
+- Avoid global mutable state. Runtime dependencies should be injected through `AppContext`, registries, providers, or factories.
+- Add abstractions only when they express a clear boundary or match an existing local pattern.
 
-## Module Convention
+## Module convention
 
-- `mod.rs` 只声明模块和必要 re-export。
-- 业务模块统一包含 `service.rs`、`repository.rs`、`entity.rs`、`error.rs`、`event.rs`、`handler.rs`、`types.rs`。
-- 不在 `shared` 放领域实体。
-- 不在 `domain` 引入 Axum、Tower、SQLx、Redis、Tokio 网络类型。
-- 不在 `transport` 写业务决策。
+- `mod.rs` should declare modules and expose only necessary re-exports.
+- Domain modules use a consistent file shape: `service.rs`, `repository.rs`, `entity.rs`, `error.rs`, `event.rs`, `handler.rs`, and `types.rs`.
+- Do not place domain entities in `shared`.
+- Do not introduce Axum, Tower, SQLx, Redis, or Tokio network types into `domain`.
+- Do not put business decisions in `transport`.
 
-## Error Convention
+## Error convention
 
-- 跨层错误统一进入 `gate_shared::error`。
-- 对外暴露 `AppError`。
-- 具体类别使用 `ConfigError`、`NetworkError`、`TunnelError`、`InternalError`。
-- 新错误必须提供稳定 `ErrorCode` 映射。
-- 使用 `thiserror` 实现 Error Trait。
+- Cross-layer errors should flow through `gate_shared::error`.
+- Public boundaries expose `AppError`.
+- Specific categories use `ConfigError`, `NetworkError`, `TunnelError`, and `InternalError`.
+- New error types must provide stable `ErrorCode` mapping.
+- Use `thiserror` to implement the `Error` trait.
 
-## Async Convention
+## Async convention
 
-- Tokio 作为异步运行时。
-- 当前 Trait 先保持同步抽象；需要异步时先评估对象安全、生命周期和调用边界。
-- 不在本阶段启动后台任务、监听端口或 spawn 长生命周期任务。
+- Tokio is the async runtime.
+- Keep traits synchronous until an async boundary is justified by object safety, lifetimes, and call boundaries.
+- Do not start background tasks, listeners, or long-lived spawned jobs without an explicit lifecycle owner.
 
-## Logging Convention
+## Logging convention
 
-- 统一使用 `tracing`。
-- 日志级别为 `Trace`、`Debug`、`Info`、`Warn`、`Error`。
-- Console、File、JSON 输出当前只建配置与接口，具体 sink 后续再接入。
+- Use `tracing`.
+- Log levels are `Trace`, `Debug`, `Info`, `Warn`, and `Error`.
+- Console, file, and JSON outputs should be configured through explicit sinks.
+- Never log secrets, credentials, tokens, or raw tunnel payloads.
 
-## CI Reservation
+## CI checks
 
-CI 阶段预留：
+The Rust CI baseline includes:
 
-- `fmt`
-- `clippy`
-- `test`
-- `build`
-- `release`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `cargo test --workspace --all-features`
+- `cargo build --workspace --all-features`
 
-当前 Rust workspace 的 default members 聚焦服务端基础架构，避免客户端 Tauri 构建影响服务端骨架迭代。
-
+The workspace default members focus on server-side infrastructure so desktop Tauri builds do not block server iteration.

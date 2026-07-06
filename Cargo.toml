@@ -11,6 +11,7 @@ members = [
     "crates/protocol",
     "crates/communication",
     "crates/transport",
+    "integration",
 ]
 default-members = [
     "server",
@@ -22,6 +23,7 @@ default-members = [
     "crates/protocol",
     "crates/communication",
     "crates/transport",
+    "integration",
 ]
 
 [workspace.package]

@@ -1,46 +1,55 @@
 # Security Policy
 
+Gate is a tunnel and remote access project. Security reports are handled with higher urgency than
+ordinary bugs.
+
 ## Supported Versions
 
-| Version | Supported          |
-|---------|-------------------|
-| 0.1.x   | :white_check_mark: |
+See [SUPPORTED_VERSIONS.md](./SUPPORTED_VERSIONS.md).
 
-## Reporting a Vulnerability
+## Responsible Disclosure
 
-Gate is a network tunneling tool that handles sensitive connection data. Security is our top priority.
+Please do not open public issues for vulnerabilities.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+Report privately through one of these channels:
 
-Instead, please report them via email to **security@gate-project.dev** (placeholder — will be updated before public release).
+- GitHub Security Advisories for this repository.
+- Email: [security@example.com](mailto:security@example.com)
 
-You should receive a response within 48 hours. If you don't, please follow up.
+Include:
 
-### What to include
+- Affected version or commit.
+- Reproduction steps.
+- Impact assessment.
+- Logs, packet captures, or proof of concept when safe to share.
+- Whether the report is already disclosed elsewhere.
 
-- Type of vulnerability
-- Full reproduction steps
-- Impact assessment
-- Suggested fix (if any)
+## Response Targets
 
-### Scope
+| Stage | Target |
+| --- | --- |
+| Initial acknowledgement | 3 business days |
+| Triage result | 7 business days |
+| Fix plan for confirmed high severity issues | 14 business days |
+| Coordinated disclosure | After patched release or agreed date |
 
-- The Gate server and client binaries
-- The tunnel protocol implementation
-- Authentication and authorization mechanisms
-- Configuration and secret storage
+## Dependency Policy
 
-## Disclosure Policy
+- Dependabot monitors Cargo, npm, GitHub Actions, and Docker dependencies.
+- Security updates are prioritized above ordinary dependency upgrades.
+- Runtime dependency changes should include a short risk note in the pull request.
+- New dependencies must have an active upstream, clear license, and reasonable maintenance history.
 
-We follow coordinated disclosure:
+## Cryptography Policy
 
-1. Report received and acknowledged
-2. Investigation and fix development
-3. Release and public disclosure
+Cryptography policy is reserved. Until published:
 
-## Security Considerations
+- Prefer well-reviewed libraries over custom cryptographic code.
+- Do not implement custom token signing, password hashing, or encryption primitives.
+- Document key and token handling for any security-sensitive change.
 
-- Always use TLS in production deployments
-- Rotate authentication tokens regularly
-- Gate does not log tunnel payload content by default
-- Network traffic through tunnels is unencrypted by default; use application-level encryption for sensitive data
+## Security Baseline
+
+- CodeQL runs on Rust, TypeScript, and GitHub Actions.
+- CI enforces formatting, linting, type checks, and tests.
+- Docker images should avoid embedding secrets and should use explicit runtime configuration.

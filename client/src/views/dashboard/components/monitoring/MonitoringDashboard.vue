@@ -3,7 +3,7 @@
     <header class="monitoring-dashboard__header">
       <div>
         <h1>Monitoring Center</h1>
-        <p>Unified mock observability for tunnels, runtime, connections, health, and traffic.</p>
+        <p>Live observability for tunnels, runtime, connections, health, and traffic.</p>
       </div>
       <button type="button" class="monitoring-dashboard__refresh" @click="refresh">
         <GIcon name="refresh" :size="14" />

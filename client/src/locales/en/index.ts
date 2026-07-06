@@ -35,6 +35,8 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         tunnels: "Tunnels",
         servers: "Servers",
         logs: "Logs",
+        diagnostics: "Diagnostics",
+        feedback: "Feedback",
         settings: "Settings",
         about: "About",
     },

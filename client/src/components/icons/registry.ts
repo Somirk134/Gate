@@ -33,7 +33,7 @@ import {
   TrendingUp, TrendingDown, ChartBar, ChartLine, ChartPie,
   Inbox, Package, Boxes, Box, Layers, GitBranch, GitCommitHorizontal,
   Plug, PlugZap, Router, Cable, Antenna, Radio,
-  Rocket, Sparkles, Github, History, MemoryStick, CircuitBoard,
+  Rocket, Sparkles, Github, History, MemoryStick, CircuitBoard, CreditCard,
   type LucideIcon,
 } from "lucide-vue-next"
 
@@ -223,6 +223,7 @@ export const iconRegistry: Record<string, LucideIcon> = {
   history: History,
   "memory-stick": MemoryStick,
   "circuit-board": CircuitBoard,
+  "credit-card": CreditCard,
 }
 
 /** 根据名称取图标组件，找不到时回退到 info */

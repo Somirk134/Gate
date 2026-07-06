@@ -3,6 +3,8 @@ node_modules/
 .npm-cache/
 out/
 dist/
+.vitepress/dist/
+.vitepress/cache/
 *.tsbuildinfo
 .env*
 !.env.example

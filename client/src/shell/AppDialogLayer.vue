@@ -1,5 +1,5 @@
 <template>
-    <div class="dialog-layer">
+    <div class="dialog-layer" @keydown.esc="dialogStore.closeAll">
         <transition-group name="dialog">
             <div
                 v-for="dialog in dialogStore.activeDialogs"
@@ -7,7 +7,13 @@
                 class="dialog-overlay"
                 @click.self="dialogStore.dismissDialog(dialog.id)"
             >
-                <div class="dialog-container" :class="`type-${dialog.type}`">
+                <div
+                    class="dialog-container"
+                    :class="`type-${dialog.type}`"
+                    role="dialog"
+                    aria-modal="true"
+                    tabindex="-1"
+                >
                     <div class="dialog-header">
                         <div class="dialog-icon" v-if="dialog.type === 'delete'">
                             <GIcon name="alert-triangle" :size="20" />
@@ -31,14 +37,14 @@
                             class="dialog-btn dialog-btn-secondary"
                             @click="dialogStore.dismissDialog(dialog.id)"
                         >
-                            Cancel
+                            {{ cancelLabel(dialog) }}
                         </button>
                         <button
                             class="dialog-btn dialog-btn-primary"
                             :class="{ danger: dialog.type === 'delete' }"
                             @click="dialogStore.closeDialog(dialog.id, true)"
                         >
-                            {{ confirmLabel(dialog.type) }}
+                            {{ confirmLabel(dialog) }}
                         </button>
                     </div>
                 </div>
@@ -49,19 +55,26 @@
 
 <script setup lang="ts">
 import { useDialogStore } from "@stores"
-import type { DialogType } from "@/types/shell"
+import type { DialogItem } from "@stores/modules/dialog"
 import GIcon from "@components/icons/GIcon.vue"
 
 const dialogStore = useDialogStore()
 
-function confirmLabel(type: DialogType): string {
-    switch (type) {
-        case 'delete': return 'Delete'
-        case 'confirm': return 'Confirm'
-        case 'alert': return 'OK'
-        case 'form': return 'Submit'
-        default: return 'OK'
+function confirmLabel(dialog: DialogItem): string {
+    const label = dialog.props?.confirmText
+    if (typeof label === "string") return label
+    switch (dialog.type) {
+        case "delete": return "删除"
+        case "confirm": return "确认"
+        case "alert": return "知道了"
+        case "form": return "提交"
+        default: return "确认"
     }
+}
+
+function cancelLabel(dialog: DialogItem): string {
+    const label = dialog.props?.cancelText
+    return typeof label === "string" ? label : "取消"
 }
 </script>
 
@@ -81,7 +94,8 @@ function confirmLabel(type: DialogType): string {
     align-items: center;
     justify-content: center;
     pointer-events: auto;
-    animation: fadeIn var(--duration-fast) var(--ease-out);
+    animation: g-fade-in var(--duration-fast) var(--ease-out);
+    backdrop-filter: blur(8px);
 }
 
 .dialog-container {
@@ -92,7 +106,7 @@ function confirmLabel(type: DialogType): string {
     width: 100%;
     max-width: 440px;
     margin: var(--space-4);
-    animation: dialogEnter var(--duration-standard) var(--ease-out);
+    animation: g-dialog-in var(--duration-standard) var(--ease-out);
     overflow: hidden;
 }
 
@@ -230,19 +244,4 @@ function confirmLabel(type: DialogType): string {
     opacity: 0;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes dialogEnter {
-    from {
-        opacity: 0;
-        transform: scale(0.96) translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
 </style>

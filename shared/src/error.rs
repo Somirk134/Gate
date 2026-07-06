@@ -53,8 +53,8 @@ impl AppError {
 
 #[derive(Debug, Error)]
 pub enum ConfigError {
-    #[error("configuration source is unavailable: {source}")]
-    SourceUnavailable { source: String },
+    #[error("configuration source is unavailable: {source_name}")]
+    SourceUnavailable { source_name: String },
 
     #[error("configuration value is invalid: {key}")]
     InvalidValue { key: String },

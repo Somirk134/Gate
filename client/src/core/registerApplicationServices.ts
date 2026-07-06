@@ -10,8 +10,8 @@ import { EventNotificationService } from "@/services/NotificationService"
 import { GlobalErrorHandler } from "@/errors/ErrorHandler"
 import { LocalStorageService } from "@/storage/StorageService"
 import { MemoryCacheManager } from "@/cache/CacheManager"
-import { NoopIpcClient } from "@/ipc"
-import { NoopRequestClient } from "@/network"
+import { TauriIpcClient } from "@/ipc"
+import { FetchRequestClient } from "@/network"
 import { StubAutoUpdateService } from "@/updates"
 import { createPluginAPI } from "@/plugins/PluginAPI"
 import {
@@ -67,8 +67,8 @@ export function registerApplicationServices(context: AppContext) {
     ),
     { eager: true },
   )
-  services.register(IPC_SERVICE, () => new NoopIpcClient(), { eager: true })
-  services.register(REQUEST_SERVICE, () => new NoopRequestClient(), { eager: true })
+  services.register(IPC_SERVICE, () => new TauriIpcClient(), { eager: true })
+  services.register(REQUEST_SERVICE, () => new FetchRequestClient(), { eager: true })
   services.register(UPDATE_SERVICE, () => new StubAutoUpdateService(events), { eager: true })
   services.register(
     PLUGIN_MANAGER_SERVICE,

@@ -1,149 +1,127 @@
-/* ==================================================================
-   Gate Design System — Animations
-   ------------------------------------------------------------------
-   所有 keyframes 与动画工具类集中于此。
-   组件内应优先使用 tokens.css 中的 --duration-* / --ease-* 变量。
-   ================================================================== */
-
-/* ── Fade ── */
+/* Gate motion system. Keep transitions subtle, fast, and consistent. */
 @keyframes g-fade-in {
   from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
+
 @keyframes g-fade-out {
   from { opacity: 1; }
-  to   { opacity: 0; }
+  to { opacity: 0; }
 }
 
-/* ── Slide ── */
-@keyframes g-slide-in-right {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-@keyframes g-slide-out-right {
-  from { transform: translateX(0);    opacity: 1; }
-  to   { transform: translateX(100%); opacity: 0; }
-}
-@keyframes g-slide-in-left {
-  from { transform: translateX(-100%); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
 @keyframes g-slide-in-up {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
 @keyframes g-slide-in-down {
-  from { transform: translateY(-12px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Scale ── */
+@keyframes g-slide-in-right {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes g-scale-in {
-  from { transform: scale(0.96); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-@keyframes g-scale-out {
-  from { transform: scale(1);    opacity: 1; }
-  to   { transform: scale(0.96); opacity: 0; }
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ── Dialog / Notification 入场 ── */
 @keyframes g-dialog-in {
-  from { transform: scale(0.95) translateY(-8px); opacity: 0; }
-  to   { transform: scale(1)    translateY(0);    opacity: 1; }
-}
-@keyframes g-toast-in {
-  from { transform: translateX(120%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ── 旋转 / 脉冲 ── */
+@keyframes g-toast-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes g-spin {
   to { transform: rotate(360deg); }
 }
+
 @keyframes g-pulse {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.35; }
+  50% { opacity: 0.42; }
 }
+
 @keyframes g-ping {
-  0%   { transform: scale(1);   opacity: 1; }
-  75%, 100% { transform: scale(2.2); opacity: 0; }
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.1); }
 }
+
 @keyframes g-shimmer {
-  0%   { background-position: -200% 0; }
+  0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-@keyframes g-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
-}
 
-/* ==================================================================
-   动画工具类（可在模板中直接使用）
-   ================================================================== */
-.g-anim-fade-in   { animation: g-fade-in     var(--duration-base) var(--ease-out) both; }
-.g-anim-slide-up  { animation: g-slide-in-up var(--duration-base) var(--ease-out) both; }
-.g-anim-slide-down{ animation: g-slide-in-down var(--duration-base) var(--ease-out) both; }
-.g-anim-scale-in  { animation: g-scale-in   var(--duration-base) var(--ease-spring) both; }
-.g-anim-spin      { animation: g-spin  var(--duration-slow) var(--ease-linear) infinite; }
-.g-anim-pulse     { animation: g-pulse 1.5s var(--ease-in-out) infinite; }
+.g-anim-fade-in { animation: g-fade-in var(--duration-base) var(--ease-out) both; }
+.g-anim-slide-up { animation: g-slide-in-up var(--duration-base) var(--ease-out) both; }
+.g-anim-slide-down { animation: g-slide-in-down var(--duration-base) var(--ease-out) both; }
+.g-anim-scale-in { animation: g-scale-in var(--duration-base) var(--ease-spring) both; }
+.g-anim-spin { animation: g-spin 700ms var(--ease-linear) infinite; }
+.g-anim-pulse { animation: g-pulse 1.5s var(--ease-in-out) infinite; }
 
-/* ── 过渡工具类 ── */
 .g-transition {
-  transition: all var(--duration-base) var(--ease-out);
-}
-.g-transition-colors {
-  transition: color var(--duration-fast) var(--ease-out),
-              background-color var(--duration-fast) var(--ease-out),
-              border-color var(--duration-fast) var(--ease-out);
-}
-.g-transition-transform {
-  transition: transform var(--duration-fast) var(--ease-out);
+  transition: background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
-/* ── 页面切换过渡（配合 <transition name="g-page">） ── */
-.g-page-enter-active,
-.g-page-leave-active {
-  transition: opacity var(--duration-base) var(--ease-out),
-              transform var(--duration-base) var(--ease-out);
+.g-transition-colors {
+  transition: background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
-.g-page-enter-from {
+
+.g-transition-transform {
+  transition: transform var(--transition-fast);
+}
+
+.g-page-enter-active,
+.g-page-leave-active,
+.page-enter-active,
+.page-leave-active {
+  transition: opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.g-page-enter-from,
+.page-enter-from {
   opacity: 0;
   transform: translateY(8px);
 }
-.g-page-leave-to {
+
+.g-page-leave-to,
+.page-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-4px);
 }
 
-/* ── Sidebar 折叠过渡 ── */
-.g-sidebar-enter-active,
-.g-sidebar-leave-active {
-  transition: transform var(--duration-slow) var(--ease-out),
-              opacity var(--duration-base) var(--ease-out);
-}
-.g-sidebar-enter-from { transform: translateX(-100%); opacity: 0; }
-.g-sidebar-leave-to   { transform: translateX(-100%); opacity: 0; }
-
-/* ── Skeleton 骨架 shimmer 背景 ── */
 .g-skeleton {
   background: linear-gradient(
     90deg,
     var(--bg-surface) 0%,
-    var(--bg-surface-hover) 50%,
+    var(--bg-surface-hover) 45%,
     var(--bg-surface) 100%
   );
   background-size: 200% 100%;
-  animation: g-shimmer 1.6s var(--ease-in-out) infinite;
+  animation: g-shimmer 1.35s var(--ease-in-out) infinite;
 }
 
-/* ── 尊重用户的减少动效偏好 ── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }

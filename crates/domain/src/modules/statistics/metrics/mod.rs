@@ -184,7 +184,7 @@ pub trait MetricsProvider {
 }
 
 macro_rules! scalar_metric {
-    ($name:ident, $kind:expr, $record:block) => {
+    ($name:ident, $kind:expr, $record:expr) => {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct $name {
             descriptor: MetricDescriptor,
@@ -216,9 +216,7 @@ macro_rules! scalar_metric {
             }
 
             fn record(&mut self, value: f64) {
-                let current = &mut self.value;
-                let incoming = value;
-                $record
+                self.value = $record(self.value, value);
             }
 
             fn snapshot(&self) -> Metric {
@@ -236,40 +234,36 @@ macro_rules! scalar_metric {
     };
 }
 
-scalar_metric!(CounterMetric, MetricKind::Counter, {
-    *current += incoming.max(0.0);
+scalar_metric!(CounterMetric, MetricKind::Counter, |current: f64, incoming: f64| {
+    current + incoming.max(0.0)
 });
 
-scalar_metric!(GaugeMetric, MetricKind::Gauge, {
-    *current = incoming;
-});
+scalar_metric!(GaugeMetric, MetricKind::Gauge, |_current: f64, incoming: f64| incoming);
 
-scalar_metric!(RateMetric, MetricKind::Rate, {
-    *current = incoming;
-});
+scalar_metric!(RateMetric, MetricKind::Rate, |_current: f64, incoming: f64| incoming);
 
-scalar_metric!(AverageMetric, MetricKind::Average, {
-    *current = if *current == 0.0 {
+scalar_metric!(AverageMetric, MetricKind::Average, |current: f64, incoming: f64| {
+    if current == 0.0 {
         incoming
     } else {
-        (*current + incoming) / 2.0
-    };
+        (current + incoming) / 2.0
+    }
 });
 
-scalar_metric!(PeakMetric, MetricKind::Peak, {
-    *current = (*current).max(incoming);
+scalar_metric!(PeakMetric, MetricKind::Peak, |current: f64, incoming: f64| {
+    current.max(incoming)
 });
 
-scalar_metric!(MinMetric, MetricKind::Min, {
-    *current = if *current == 0.0 {
+scalar_metric!(MinMetric, MetricKind::Min, |current: f64, incoming: f64| {
+    if current == 0.0 {
         incoming
     } else {
-        (*current).min(incoming)
-    };
+        current.min(incoming)
+    }
 });
 
-scalar_metric!(MaxMetric, MetricKind::Max, {
-    *current = (*current).max(incoming);
+scalar_metric!(MaxMetric, MetricKind::Max, |current: f64, incoming: f64| {
+    current.max(incoming)
 });
 
 /// Histogram instrument with lightweight bucket storage.

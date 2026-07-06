@@ -24,6 +24,7 @@
         <AppNotificationLayer />
         <AppDialogLayer />
         <AppLoadingLayer v-if="loading.isLoading" />
+        <AppWelcomeOverlay />
     </div>
 </template>
 
@@ -39,6 +40,7 @@ import AppCommandPalette from "./AppCommandPalette.vue"
 import AppNotificationLayer from "./AppNotificationLayer.vue"
 import AppDialogLayer from "./AppDialogLayer.vue"
 import AppLoadingLayer from "./AppLoadingLayer.vue"
+import AppWelcomeOverlay from "./AppWelcomeOverlay.vue"
 
 const layout = useLayoutStore()
 const loading = useLoadingStore()

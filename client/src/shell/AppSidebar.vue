@@ -75,6 +75,8 @@ const navItems = computed(() => [
     { path: "/tunnels", label: t("nav.tunnels"), icon: "router", shortcut: "" },
     { path: "/servers", label: t("nav.servers"), icon: "servers", shortcut: "" },
     { path: "/logs", label: t("nav.logs"), icon: "logs", shortcut: "" },
+    { path: "/diagnostics", label: t("nav.diagnostics"), icon: "activity", shortcut: "" },
+    { path: "/feedback", label: t("nav.feedback"), icon: "message", shortcut: "" },
     { path: "/settings", label: t("nav.settings"), icon: "settings", shortcut: "" },
     { path: "/about", label: t("nav.about"), icon: "about", shortcut: "" },
 ])

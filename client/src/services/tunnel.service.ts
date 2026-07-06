@@ -1,15 +1,23 @@
-import { api } from '@api'
+import { TauriIpcClient } from "@/ipc"
+import type { DashboardData } from "@/monitoring/types"
+
+const ipc = new TauriIpcClient()
 
 export const tunnelService = {
     async list() {
-        return api.get('/tunnels')
+        const dashboard = await ipc.invoke<DashboardData>("runtime_get_dashboard")
+        return dashboard.tunnels
     },
 
     async create(data: { localPort: number; remotePort: number; protocol: string }) {
-        return api.post('/tunnels', data)
+        return ipc.invoke<string>("create_tunnel", {
+            localPort: data.localPort,
+            remotePort: data.remotePort,
+            protocol: data.protocol,
+        })
     },
 
     async delete(id: string) {
-        return api.delete(`/tunnels/${id}`)
+        return ipc.invoke<void>("delete_tunnel", { tunnelId: id })
     },
 }

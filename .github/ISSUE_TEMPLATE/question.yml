@@ -1,0 +1,24 @@
+name: Question
+description: Ask a focused usage or maintenance question.
+title: "question: "
+labels: ["question", "needs-triage"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      placeholder: What are you trying to understand?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      placeholder: Version, environment, docs you already read, and what you tried.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched docs, issues, and discussions first.
+          required: true

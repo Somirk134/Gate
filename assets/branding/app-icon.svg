@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gate app icon">
+  <rect width="512" height="512" rx="112" fill="#0B1020"/>
+  <path d="M128 381V175C128 150.147 148.147 130 173 130H339C363.853 130 384 150.147 384 175V381" stroke="#38BDF8" stroke-width="36" stroke-linecap="round"/>
+  <path d="M190 381V220C190 209.507 198.507 201 209 201H303C313.493 201 322 209.507 322 220V381" stroke="#A7F3D0" stroke-width="28" stroke-linecap="round"/>
+  <path d="M160 381H352" stroke="#F8FAFC" stroke-width="30" stroke-linecap="round"/>
+  <path d="M220 286H292" stroke="#FACC15" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="256" cy="286" r="14" fill="#F8FAFC"/>
+</svg>
