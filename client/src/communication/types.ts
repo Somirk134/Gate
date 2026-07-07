@@ -57,7 +57,7 @@ export type TransportState =
 
 export type SessionState = "created" | "active" | "suspended" | "closed"
 
-export type TransportKind = "tcp" | "websocket" | "quic" | "mock" | "custom"
+export type TransportKind = "tcp" | "websocket" | "quic" | "custom"
 
 export interface TransportEndpoint {
   kind: TransportKind

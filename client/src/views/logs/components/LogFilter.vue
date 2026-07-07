@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { LogFilter as LogFilterState, LogGroupBy, LogLevel, LogSource, LogTimeRange } from "../types"
-import { LOG_LEVELS, LOG_SOURCE_LABELS, LOG_SOURCE_LIST } from "../mock"
+import { LOG_LEVELS, LOG_SOURCE_LABELS, LOG_SOURCE_LIST } from "../constants"
 
 const props = defineProps<{
   filter: LogFilterState

@@ -1,6 +1,5 @@
 import { defineStore } from "pinia"
 import { computed, ref, watch } from "vue"
-import { settingsCategories } from "../mock"
 import type {
   SettingActionStatus,
   SettingCategory,
@@ -17,6 +16,76 @@ import {
   isEqualSettingValue,
   validateSettingValue,
 } from "../utils"
+
+const settingsCategories: SettingCategory[] = [
+  {
+    id: "general",
+    label: "General",
+    description: "基础应用偏好。",
+    icon: "settings",
+    order: 1,
+    groups: [
+      {
+        id: "general.language",
+        categoryId: "general",
+        label: "Language",
+        items: [
+          {
+            id: "general.language",
+            key: "general.language",
+            categoryId: "general",
+            groupId: "general.language",
+            label: "Language",
+            description: "界面语言。",
+            control: {
+              type: "select",
+              options: [
+                { label: "简体中文", value: "zh-CN" },
+                { label: "English", value: "en" },
+              ],
+            },
+            defaultValue: "zh-CN",
+            status: "stable",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    description: "界面主题偏好。",
+    icon: "palette",
+    order: 2,
+    groups: [
+      {
+        id: "appearance.theme",
+        categoryId: "appearance",
+        label: "Theme",
+        items: [
+          {
+            id: "appearance.theme",
+            key: "appearance.theme",
+            categoryId: "appearance",
+            groupId: "appearance.theme",
+            label: "Theme",
+            description: "选择浅色、深色或跟随系统。",
+            control: {
+              type: "select",
+              options: [
+                { label: "Dark", value: "dark" },
+                { label: "Light", value: "light" },
+                { label: "System", value: "system" },
+              ],
+            },
+            defaultValue: "dark",
+            status: "stable",
+          },
+        ],
+      },
+    ],
+  },
+]
 
 export const useSettingsStore = defineStore("settings", () => {
   const categories = ref<SettingCategory[]>(settingsCategories)
@@ -171,20 +240,12 @@ export const useSettingsStore = defineStore("settings", () => {
     categoryFilter.value = categoryId
   }
 
-  function runMockAction(actionId: string) {
-    actionStatuses.value = { ...actionStatuses.value, [actionId]: "running" }
-
-    window.setTimeout(() => {
-      if (actionId === "developer.resetMock" || actionId === "storage.reset") {
-        resetAll()
-      }
-
-      actionStatuses.value = { ...actionStatuses.value, [actionId]: "done" }
-
-      window.setTimeout(() => {
-        actionStatuses.value = { ...actionStatuses.value, [actionId]: "idle" }
-      }, 1200)
-    }, 520)
+  function runAction(actionId: string) {
+    actionStatuses.value = { ...actionStatuses.value, [actionId]: "idle" }
+    validationErrors.value = {
+      ...validationErrors.value,
+      [actionId]: "该功能暂未实现",
+    }
   }
 
   return {
@@ -221,6 +282,6 @@ export const useSettingsStore = defineStore("settings", () => {
     setSelectedSetting,
     setSearchQuery,
     setCategoryFilter,
-    runMockAction,
+    runAction,
   }
 })

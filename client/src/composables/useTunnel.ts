@@ -1,21 +1,40 @@
-import { useTunnelStore } from '@stores'
+import { computed, ref } from "vue"
+import { tunnelService } from "@/services/tunnel.service"
 
 export function useTunnel() {
-    const tunnelStore = useTunnelStore()
+    const tunnels = ref<Awaited<ReturnType<typeof tunnelService.list>>>([])
+    const loading = ref(false)
+    const error = ref("")
 
-    function createTunnel(_localPort: number, _remotePort: number, _protocol: string) {
-        // TODO: implement
+    async function fetchTunnels() {
+        loading.value = true
+        error.value = ""
+        try {
+            tunnels.value = await tunnelService.list()
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : "Failed to load tunnels"
+        } finally {
+            loading.value = false
+        }
     }
 
-    function deleteTunnel(_id: string) {
-        // TODO: implement
+    async function createTunnel(localPort: number, remotePort: number, protocol: string) {
+        const id = await tunnelService.create({ localPort, remotePort, protocol })
+        await fetchTunnels()
+        return id
+    }
+
+    async function deleteTunnel(id: string) {
+        await tunnelService.delete(id)
+        await fetchTunnels()
     }
 
     return {
-        tunnels: tunnelStore.tunnels,
-        loading: tunnelStore.loading,
+        tunnels: computed(() => tunnels.value),
+        loading: computed(() => loading.value),
+        error: computed(() => error.value),
         createTunnel,
         deleteTunnel,
-        fetchTunnels: tunnelStore.fetchTunnels,
+        fetchTunnels,
     }
 }

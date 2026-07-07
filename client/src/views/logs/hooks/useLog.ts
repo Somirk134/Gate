@@ -27,8 +27,6 @@ export function useLog() {
     pause: store.pause,
     resume: store.resume,
     setAutoScroll: store.setAutoScroll,
-    generateTestLogs: store.generateTestLogs,
-    appendTestLog: store.appendTestLog,
     setLevel: store.setLevel,
     setSource: store.setSource,
     store,

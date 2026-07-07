@@ -234,7 +234,7 @@ import {
   isValidPort,
   isValidToken,
 } from "../utils"
-import { defaultServerForm } from "../mock"
+import { defaultServerForm } from "../store/server"
 
 const props = defineProps<{
   visible: boolean
@@ -406,11 +406,8 @@ function handleSubmit() {
   validateField("heartbeatInterval")
   validateField("reconnectInterval")
   if (!isValid.value) return
-  submitting.value = true
-  setTimeout(() => {
-    submitting.value = false
-    emit("submit", { ...form, tags: [...form.tags] }, isEdit.value)
-    emit("update:visible", false)
-  }, 400)
+  submitting.value = false
+  emit("submit", { ...form, tags: [...form.tags] }, isEdit.value)
+  emit("update:visible", false)
 }
 </script>

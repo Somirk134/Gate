@@ -55,23 +55,23 @@ export function useTunnel() {
   }
 
   function update(id: string, patch: Partial<TunnelFormData>) {
-    store.updateTunnel(id, patch)
+    return store.updateTunnel(id, patch)
   }
 
   function remove(id: string) {
-    store.removeTunnel(id)
+    return store.removeTunnel(id)
   }
 
   function start(id: string) {
-    store.startTunnel(id)
+    return store.startTunnel(id)
   }
 
   function stop(id: string) {
-    store.stopTunnel(id)
+    return store.stopTunnel(id)
   }
 
   function restart(id: string) {
-    store.restartTunnel(id)
+    return store.restartTunnel(id)
   }
 
   function clone(id: string) {

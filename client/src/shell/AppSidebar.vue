@@ -85,6 +85,7 @@ const navItems = computed(() => [
     { path: "/tunnels", label: t("nav.tunnels"), icon: "router", shortcut: "", tourTarget: "tunnels" },
     { path: "/servers", label: t("nav.servers"), icon: "servers", shortcut: "", tourTarget: "servers" },
     { path: "/logs", label: t("nav.logs"), icon: "logs", shortcut: "", tourTarget: "logs" },
+    { path: "/certificates", label: t("nav.certificates"), icon: "shield-check", shortcut: "", tourTarget: "certificates" },
     { path: "/diagnostics", label: t("nav.diagnostics"), icon: "activity", shortcut: "", tourTarget: "diagnostics" },
     { path: "/feedback", label: t("nav.feedback"), icon: "message", shortcut: "", tourTarget: "feedback" },
     { path: "/settings", label: t("nav.settings"), icon: "settings", shortcut: "", tourTarget: "settings" },

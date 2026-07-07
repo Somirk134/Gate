@@ -1,6 +1,7 @@
 <template>
   <DashboardWidget title="Traffic Trend" icon="chart-line">
-    <div class="traffic-chart">
+    <GEmptyState v-if="!points.length" title="暂无数据" description="暂无流量趋势样本。真实流量产生后将在这里显示。" />
+    <div v-else class="traffic-chart">
       <div class="traffic-chart__legend">
         <span><i class="traffic-chart__dot traffic-chart__dot--upload" />Upload</span>
         <span><i class="traffic-chart__dot traffic-chart__dot--download" />Download</span>
@@ -20,6 +21,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
+import GEmptyState from "@components/feedback/GEmptyState.vue"
 import DashboardWidget from "./DashboardWidget.vue"
 import type { TrafficTrendPoint } from "@/monitoring/types"
 

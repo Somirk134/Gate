@@ -61,6 +61,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { title: 'Logs', icon: 'logs', keepAlive: false },
             },
             {
+                path: 'certificates',
+                name: 'certificates',
+                component: () => import('@views/certificates/CertificatePage.vue'),
+                meta: { title: 'Certificates', icon: 'shield-check', keepAlive: false },
+            },
+            {
                 path: 'diagnostics',
                 name: 'diagnostics',
                 component: () => import('@views/diagnostics/DiagnosticsPage.vue'),

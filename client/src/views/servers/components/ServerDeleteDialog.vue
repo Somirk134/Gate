@@ -94,11 +94,8 @@ function handleClose() {
 
 function handleDelete() {
   if (confirmText.value !== props.server?.name) return
-  deleting.value = true
-  setTimeout(() => {
-    deleting.value = false
-    if (props.server) emit("confirm", props.server)
-    emit("update:visible", false)
-  }, 500)
+  deleting.value = false
+  if (props.server) emit("confirm", props.server)
+  emit("update:visible", false)
 }
 </script>

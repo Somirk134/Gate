@@ -250,21 +250,18 @@ function handleSave() {
   validateField("localPort")
   validateField("remotePort")
   if (!isValid.value) return
-  saving.value = true
-  setTimeout(() => {
-    saving.value = false
-    emit("save", props.tunnel.id, {
-      name: form.name,
-      protocol: form.protocol,
-      localHost: form.localHost,
-      localPort: form.localPort,
-      remotePort: form.remotePort,
-      remark: form.remark,
-      autoStart: form.autoStart,
-    })
-    snapshot = JSON.stringify(form)
+  saving.value = false
+  emit("save", props.tunnel.id, {
+    name: form.name,
+    protocol: form.protocol,
+    localHost: form.localHost,
+    localPort: form.localPort,
+    remotePort: form.remotePort,
+    remark: form.remark,
+    autoStart: form.autoStart,
+  })
+  snapshot = JSON.stringify(form)
     toast.success(`隧道「${form.name}」设置已保存`)
-  }, 400)
 }
 </script>
 

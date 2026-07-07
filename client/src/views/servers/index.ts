@@ -23,9 +23,4 @@ export { useServerStatistics } from "./composables/useServerStatistics"
 export { useServerHealth } from "./composables/useServerHealth"
 export { useServerMonitor } from "./composables/useServerMonitor"
 
-// ── Mock ──
-export {
-  mockServers,
-  defaultServerForm,
-  connectionMethods,
-} from "./mock"
+export { defaultServerForm } from "./store/server"

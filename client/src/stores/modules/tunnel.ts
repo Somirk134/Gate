@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { tunnelService } from '@/services/tunnel.service'
 
 export interface Tunnel {
     id: string
@@ -12,24 +13,44 @@ export interface Tunnel {
 export const useTunnelStore = defineStore('tunnel', () => {
     const tunnels = ref<Tunnel[]>([])
     const loading = ref(false)
+    const error = ref('')
 
     async function fetchTunnels() {
         loading.value = true
-        // TODO: fetch from API
-        loading.value = false
+        error.value = ''
+        try {
+            tunnels.value = (await tunnelService.list()).map((tunnel) => ({
+                id: tunnel.id,
+                localPort: tunnel.localPort ?? 0,
+                remotePort: tunnel.remotePort ?? 0,
+                protocol: tunnel.protocol,
+                status: tunnel.status,
+            }))
+        } catch (err) {
+            error.value = err instanceof Error ? err.message : 'Failed to load tunnels'
+        } finally {
+            loading.value = false
+        }
     }
 
-    function addTunnel(tunnel: Tunnel) {
-        tunnels.value.push(tunnel)
+    async function addTunnel(tunnel: Tunnel) {
+        await tunnelService.create({
+            localPort: tunnel.localPort,
+            remotePort: tunnel.remotePort,
+            protocol: tunnel.protocol,
+        })
+        await fetchTunnels()
     }
 
-    function removeTunnel(id: string) {
-        tunnels.value = tunnels.value.filter((t) => t.id !== id)
+    async function removeTunnel(id: string) {
+        await tunnelService.delete(id)
+        await fetchTunnels()
     }
 
     return {
         tunnels,
         loading,
+        error,
         fetchTunnels,
         addTunnel,
         removeTunnel,

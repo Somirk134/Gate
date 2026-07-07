@@ -1,11 +1,26 @@
 use chrono::Utc;
 use gate_communication::{TcpTransport, Transport, TransportEndpoint};
+use gate_engine::runtime::{
+    HttpRouteConfig, HttpRuntimeConfig, HttpTunnelRuntime, RuntimeConfig, TimeoutConfig,
+    TunnelRuntime,
+};
 use gate_protocol::{Body, Command, Message, Metadata};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{collections::BTreeMap, sync::Arc, time::Instant};
+use std::{
+    collections::BTreeMap,
+    env, fs,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use sysinfo::{Disks, System};
 use tokio::sync::Mutex;
 use uuid::Uuid;
+
+const STORE_VERSION: u32 = 1;
+const MAX_LOGS: usize = 500;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RuntimeLog {
@@ -13,6 +28,8 @@ struct RuntimeLog {
     source: String,
     message: String,
     timestamp: i64,
+    #[serde(default, rename = "tunnelId", alias = "tunnel_id", skip_serializing_if = "Option::is_none")]
+    tunnel_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +70,10 @@ struct TunnelRecord {
     path: Option<String>,
     upload_speed_bps: f64,
     download_speed_bps: f64,
+    #[serde(default)]
+    upload_bytes: u64,
+    #[serde(default)]
+    download_bytes: u64,
     connections: u64,
     uptime_seconds: u64,
     request_count: u64,
@@ -62,10 +83,100 @@ struct TunnelRecord {
     created_at: i64,
     updated_at: i64,
     last_sample_at: i64,
+    #[serde(default)]
+    tls_session_count: u64,
+    #[serde(default)]
+    tls_handshake_count: u64,
+    #[serde(default)]
+    tls_error_count: u64,
+    #[serde(default)]
+    tls_version: Option<String>,
+    #[serde(default)]
+    certificate_status: Option<String>,
+    #[serde(default)]
+    certificate_expire_days: Option<i64>,
+    #[serde(default)]
+    certificate_issuer: Option<String>,
     recent_requests: Vec<HttpRequestRecord>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RuntimeDomainRecord {
+    domain: String,
+    tunnel_id: String,
+    protocol: String,
+    status: String,
+    created_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RuntimeCertificateReference {
+    domain: String,
+    tunnel_id: String,
+    store_root: PathBuf,
+    status: String,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServerRecord {
+    id: String,
+    name: String,
+    kind: String,
+    host: String,
+    port: u16,
+    token: String,
+    region: String,
+    remark: String,
+    tags: Vec<String>,
+    heartbeat_interval: u64,
+    reconnect_interval: u64,
+    auto_connect: bool,
+    status: String,
+    last_error: Option<String>,
+    last_rtt_ms: Option<u64>,
+    session_id: Option<String>,
+    last_checked_at: Option<i64>,
+    last_connected_at: Option<i64>,
+    created_at: i64,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateServerRequest {
+    pub name: String,
+    pub kind: Option<String>,
+    pub host: String,
+    pub port: u16,
+    pub token: String,
+    pub region: Option<String>,
+    pub remark: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub heartbeat_interval: Option<u64>,
+    pub reconnect_interval: Option<u64>,
+    pub auto_connect: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateServerRequest {
+    pub name: Option<String>,
+    pub kind: Option<String>,
+    pub host: Option<String>,
+    pub port: Option<u16>,
+    pub token: Option<String>,
+    pub region: Option<String>,
+    pub remark: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub heartbeat_interval: Option<u64>,
+    pub reconnect_interval: Option<u64>,
+    pub auto_connect: Option<bool>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 struct RuntimeCounters {
     connection_total: u64,
     reconnect_total: u64,
@@ -80,6 +191,129 @@ struct RuntimeCounters {
     heartbeat_timeout: u64,
     last_rtt_ms: Option<u64>,
     average_rtt_ms: f64,
+    #[serde(default)]
+    tls_session_total: u64,
+    #[serde(default)]
+    tls_handshake_total: u64,
+}
+
+#[derive(Debug, Clone)]
+struct SystemSnapshot {
+    cpu_usage: f32,
+    memory_usage: f32,
+    disk_usage: f32,
+    memory_bytes: u64,
+}
+
+enum LocalTunnelRuntime {
+    Tcp(TunnelRuntime),
+    Http(HttpTunnelRuntime),
+}
+
+#[derive(Debug, Clone)]
+struct LocalTunnelRuntimeSnapshot {
+    active_connections: u64,
+    upload_bytes: u64,
+    download_bytes: u64,
+    current_speed_bps: u64,
+    runtime_seconds: u64,
+    request_count: u64,
+    success_count: u64,
+    total_latency_ms: u64,
+    recent_requests: Vec<HttpRequestRecord>,
+}
+
+impl LocalTunnelRuntime {
+    async fn shutdown(self) -> Result<(), String> {
+        match self {
+            Self::Tcp(runtime) => runtime.shutdown().await.map_err(|error| error.to_string()),
+            Self::Http(runtime) => runtime.shutdown().await.map_err(|error| error.to_string()),
+        }
+    }
+
+    fn snapshot(&self) -> LocalTunnelRuntimeSnapshot {
+        match self {
+            Self::Tcp(runtime) => {
+                let metrics = runtime.metrics();
+                LocalTunnelRuntimeSnapshot {
+                    active_connections: metrics.active_connection,
+                    upload_bytes: metrics.upload,
+                    download_bytes: metrics.download,
+                    current_speed_bps: metrics.current_speed,
+                    runtime_seconds: metrics.runtime.as_secs(),
+                    request_count: 0,
+                    success_count: 0,
+                    total_latency_ms: 0,
+                    recent_requests: Vec::new(),
+                }
+            }
+            Self::Http(runtime) => {
+                let metrics = runtime.metrics();
+                let http = runtime.http_metrics();
+                let recent_requests = http
+                    .recent_requests
+                    .into_iter()
+                    .rev()
+                    .take(24)
+                    .map(|request| HttpRequestRecord {
+                        method: request.method,
+                        url: request.url,
+                        host: request.host,
+                        status: request.status,
+                        latency_ms: request.latency_ms,
+                        client_ip: request.client_ip,
+                        traffic_bytes: request.upload_bytes.saturating_add(request.download_bytes),
+                        timestamp: request.timestamp_millis,
+                    })
+                    .collect::<Vec<_>>();
+
+                LocalTunnelRuntimeSnapshot {
+                    active_connections: metrics.active_connection,
+                    upload_bytes: metrics.upload,
+                    download_bytes: metrics.download,
+                    current_speed_bps: metrics.current_speed,
+                    runtime_seconds: metrics.runtime.as_secs(),
+                    request_count: http.request_count,
+                    success_count: http.success_count,
+                    total_latency_ms: (http.average_latency_ms * http.request_count as f64) as u64,
+                    recent_requests,
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredRuntime {
+    version: u32,
+    config: BTreeMap<String, String>,
+    counters: RuntimeCounters,
+    tunnels: BTreeMap<String, TunnelRecord>,
+    #[serde(default)]
+    domains: BTreeMap<String, RuntimeDomainRecord>,
+    #[serde(default)]
+    certificate_references: BTreeMap<String, RuntimeCertificateReference>,
+    #[serde(default)]
+    servers: BTreeMap<String, ServerRecord>,
+    #[serde(default)]
+    active_server_id: Option<String>,
+    logs: Vec<RuntimeLog>,
+}
+
+impl Default for StoredRuntime {
+    fn default() -> Self {
+        Self {
+            version: STORE_VERSION,
+            config: default_config(),
+            counters: RuntimeCounters::default(),
+            tunnels: BTreeMap::new(),
+            domains: BTreeMap::new(),
+            certificate_references: BTreeMap::new(),
+            servers: BTreeMap::new(),
+            active_server_id: None,
+            logs: Vec::new(),
+        }
+    }
 }
 
 struct RuntimeInner {
@@ -91,16 +325,35 @@ struct RuntimeInner {
     counters: RuntimeCounters,
     config: BTreeMap<String, String>,
     tunnels: BTreeMap<String, TunnelRecord>,
+    domains: BTreeMap<String, RuntimeDomainRecord>,
+    certificate_references: BTreeMap<String, RuntimeCertificateReference>,
+    servers: BTreeMap<String, ServerRecord>,
+    active_server_id: Option<String>,
     logs: Vec<RuntimeLog>,
 }
 
-impl Default for RuntimeInner {
-    fn default() -> Self {
-        let mut config = BTreeMap::new();
-        config.insert("runtime.mode".to_string(), "alpha-v1".to_string());
-        config.insert("authentication.required".to_string(), "true".to_string());
-        config.insert("heartbeat.interval_ms".to_string(), "15000".to_string());
-        config.insert("network.transport".to_string(), "tcp".to_string());
+impl RuntimeInner {
+    fn from_stored(stored: StoredRuntime) -> Self {
+        let mut servers = stored.servers;
+        for server in servers.values_mut() {
+            if server.status == "connected" || server.status == "connecting" {
+                server.status = "disconnected".to_string();
+                server.session_id = None;
+            }
+        }
+        let mut tunnels = stored.tunnels;
+        for tunnel in tunnels.values_mut() {
+            if matches!(
+                tunnel.status.as_str(),
+                "running" | "starting" | "restarting" | "stopping"
+            ) {
+                tunnel.status = "stopped".to_string();
+                tunnel.upload_speed_bps = 0.0;
+                tunnel.download_speed_bps = 0.0;
+                tunnel.connections = 0;
+                tunnel.started_at = None;
+            }
+        }
 
         Self {
             transport: None,
@@ -108,63 +361,496 @@ impl Default for RuntimeInner {
             session_id: None,
             connected: false,
             started_at: Instant::now(),
-            counters: RuntimeCounters::default(),
-            config,
-            tunnels: BTreeMap::new(),
-            logs: Vec::new(),
+            counters: stored.counters,
+            config: stored.config,
+            tunnels,
+            domains: stored.domains,
+            certificate_references: stored.certificate_references,
+            servers,
+            active_server_id: None,
+            logs: stored.logs,
+        }
+    }
+
+    fn snapshot(&self) -> StoredRuntime {
+        StoredRuntime {
+            version: STORE_VERSION,
+            config: self.config.clone(),
+            counters: self.counters.clone(),
+            tunnels: self.tunnels.clone(),
+            domains: self.domains.clone(),
+            certificate_references: self.certificate_references.clone(),
+            servers: self.servers.clone(),
+            active_server_id: self.active_server_id.clone(),
+            logs: self.logs.clone(),
+        }
+    }
+
+    fn log(&mut self, level: &str, source: &str, message: &str) {
+        self.logs.push(RuntimeLog {
+            level: level.to_string(),
+            source: source.to_string(),
+            message: message.to_string(),
+            timestamp: Utc::now().timestamp_millis(),
+            tunnel_id: None,
+        });
+
+        if self.logs.len() > MAX_LOGS {
+            let overflow = self.logs.len() - MAX_LOGS;
+            self.logs.drain(0..overflow);
+        }
+    }
+
+    fn log_tunnel(&mut self, level: &str, tunnel_id: &str, message: &str) {
+        self.logs.push(RuntimeLog {
+            level: level.to_string(),
+            source: "tunnel".to_string(),
+            message: message.to_string(),
+            timestamp: Utc::now().timestamp_millis(),
+            tunnel_id: Some(tunnel_id.to_string()),
+        });
+
+        if self.logs.len() > MAX_LOGS {
+            let overflow = self.logs.len() - MAX_LOGS;
+            self.logs.drain(0..overflow);
+        }
+    }
+
+    fn sync_tunnel_state(&mut self) {
+        let now = Utc::now().timestamp_millis();
+
+        for tunnel in self.tunnels.values_mut() {
+            if tunnel.status != "running" {
+                continue;
+            }
+
+            if let Some(started_at) = tunnel.started_at {
+                tunnel.uptime_seconds = ((now - started_at).max(0) / 1000) as u64;
+            }
+
+            tunnel.last_sample_at = now;
+        }
+    }
+
+    fn sync_domain_index_for_tunnel(&mut self, tunnel_id: &str) {
+        let now = Utc::now().timestamp_millis();
+        self.domains
+            .retain(|_, domain| domain.tunnel_id != tunnel_id);
+        self.certificate_references
+            .retain(|_, certificate| certificate.tunnel_id != tunnel_id);
+
+        let Some(tunnel) = self.tunnels.get(tunnel_id) else {
+            return;
+        };
+        let Some(domain) = tunnel
+            .host
+            .as_ref()
+            .filter(|value| !value.trim().is_empty())
+        else {
+            return;
+        };
+
+        self.domains.insert(
+            domain.clone(),
+            RuntimeDomainRecord {
+                domain: domain.clone(),
+                tunnel_id: tunnel.id.clone(),
+                protocol: tunnel.protocol.clone(),
+                status: tunnel.status.clone(),
+                created_at: tunnel.created_at,
+                updated_at: now,
+            },
+        );
+
+        if tunnel.protocol == "https" {
+            self.certificate_references.insert(
+                domain.clone(),
+                RuntimeCertificateReference {
+                    domain: domain.clone(),
+                    tunnel_id: tunnel.id.clone(),
+                    store_root: certificate_store_root(),
+                    status: tunnel
+                        .certificate_status
+                        .clone()
+                        .unwrap_or_else(|| "missing".to_string()),
+                    updated_at: now,
+                },
+            );
         }
     }
 }
 
-#[derive(Default)]
 pub struct ClientRuntimeState {
+    storage_path: PathBuf,
     inner: Mutex<RuntimeInner>,
+    local_tunnels: Mutex<BTreeMap<String, LocalTunnelRuntime>>,
+}
+
+impl Default for ClientRuntimeState {
+    fn default() -> Self {
+        let storage_path = runtime_store_path();
+        let stored = load_stored_runtime(&storage_path);
+        Self {
+            storage_path,
+            inner: Mutex::new(RuntimeInner::from_stored(stored)),
+            local_tunnels: Mutex::new(BTreeMap::new()),
+        }
+    }
 }
 
 impl ClientRuntimeState {
     pub async fn connect(&self, server_addr: String, token: String) -> Result<String, String> {
-        let endpoint = parse_endpoint(&server_addr)?;
-        let transport = Arc::new(TcpTransport::new());
-        transport
-            .connect(endpoint)
-            .await
-            .map_err(|error| error.to_string())?;
-
-        let response =
-            send_request(&transport, Command::AuthLogin, json!({ "token": token })).await?;
-        if response.get("ok").and_then(Value::as_bool) != Some(true) {
-            let _ = transport.disconnect().await;
-            let mut inner = self.inner.lock().await;
-            inner.counters.auth_failure += 1;
-            inner.log("error", "authentication", "Authentication failed");
-            return Err(response.to_string());
-        }
-
-        let session_id = response
-            .pointer("/data/sessionId")
-            .and_then(Value::as_str)
-            .unwrap_or("local-session")
-            .to_string();
+        let (transport, session_id) = establish_connection(&server_addr, &token).await?;
 
         let mut inner = self.inner.lock().await;
         inner.transport = Some(transport);
         inner.server_addr = Some(server_addr);
         inner.session_id = Some(session_id.clone());
         inner.connected = true;
+        inner.active_server_id = None;
         inner.counters.connection_total += 1;
         inner.counters.auth_success += 1;
-        inner.log("info", "connection", "Client Connect");
-        inner.log("info", "authentication", "Session established");
+        inner.log("info", "connection", "client connected");
+        inner.log("info", "authentication", "session established");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(session_id)
     }
 
-    pub async fn disconnect(&self) -> Result<(), String> {
+    pub async fn list_servers(&self) -> Value {
+        let inner = self.inner.lock().await;
+        json!({
+            "items": inner.servers.values().map(|server| server_json(server)).collect::<Vec<_>>(),
+            "activeServerId": inner.active_server_id,
+            "connected": inner.connected
+        })
+    }
+
+    pub async fn create_server(&self, request: CreateServerRequest) -> Result<String, String> {
+        let now = Utc::now().timestamp_millis();
+        let host = normalize_host(&request.host)?;
+        let port = normalize_port(request.port)?;
+        let token = normalize_token(&request.token)?;
+        let name = normalize_server_name(&request.name, &host, port);
+        let id = Uuid::new_v4().to_string();
+        let server = ServerRecord {
+            id: id.clone(),
+            name,
+            kind: normalize_server_kind(request.kind),
+            host,
+            port,
+            token,
+            region: request.region.unwrap_or_default(),
+            remark: request.remark.unwrap_or_default(),
+            tags: normalize_tags(request.tags.unwrap_or_default()),
+            heartbeat_interval: request.heartbeat_interval.unwrap_or(30),
+            reconnect_interval: request.reconnect_interval.unwrap_or(5),
+            auto_connect: request.auto_connect.unwrap_or(false),
+            status: "disconnected".to_string(),
+            last_error: None,
+            last_rtt_ms: None,
+            session_id: None,
+            last_checked_at: None,
+            last_connected_at: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let mut inner = self.inner.lock().await;
+        inner.servers.insert(id.clone(), server);
+        inner.log("info", "server", "server configuration created");
+        persist_runtime(&self.storage_path, &inner)?;
+        Ok(id)
+    }
+
+    pub async fn update_server(
+        &self,
+        server_id: String,
+        patch: UpdateServerRequest,
+    ) -> Result<(), String> {
+        let mut inner = self.inner.lock().await;
+        let server = inner
+            .servers
+            .get_mut(&server_id)
+            .ok_or_else(|| "server not found".to_string())?;
+
+        if let Some(name) = patch.name {
+            server.name = normalize_server_name(&name, &server.host, server.port);
+        }
+        if let Some(kind) = patch.kind {
+            server.kind = normalize_server_kind(Some(kind));
+        }
+        if let Some(host) = patch.host {
+            server.host = normalize_host(&host)?;
+            if server.name.trim().is_empty() {
+                server.name = normalize_server_name("", &server.host, server.port);
+            }
+        }
+        if let Some(port) = patch.port {
+            server.port = normalize_port(port)?;
+        }
+        if let Some(token) = patch.token {
+            server.token = normalize_token(&token)?;
+        }
+        if let Some(region) = patch.region {
+            server.region = region.trim().to_string();
+        }
+        if let Some(remark) = patch.remark {
+            server.remark = remark.trim().to_string();
+        }
+        if let Some(tags) = patch.tags {
+            server.tags = normalize_tags(tags);
+        }
+        if let Some(interval) = patch.heartbeat_interval {
+            server.heartbeat_interval = interval.max(1);
+        }
+        if let Some(interval) = patch.reconnect_interval {
+            server.reconnect_interval = interval.max(1);
+        }
+        if let Some(auto_connect) = patch.auto_connect {
+            server.auto_connect = auto_connect;
+        }
+        server.updated_at = Utc::now().timestamp_millis();
+        server.last_error = None;
+
+        inner.log("info", "server", "server configuration updated");
+        persist_runtime(&self.storage_path, &inner)?;
+        Ok(())
+    }
+
+    pub async fn delete_server(&self, server_id: String) -> Result<(), String> {
         let transport = {
             let mut inner = self.inner.lock().await;
+            if !inner.servers.contains_key(&server_id) {
+                return Err("server not found".to_string());
+            }
+            let should_disconnect = inner.active_server_id.as_deref() == Some(server_id.as_str());
+            inner.servers.remove(&server_id);
+            if should_disconnect {
+                inner.active_server_id = None;
+                inner.server_addr = None;
+                inner.session_id = None;
+                inner.connected = false;
+                inner.counters.disconnect_total += 1;
+                inner.log(
+                    "info",
+                    "server",
+                    "active server disconnected before deletion",
+                );
+            }
+            inner.log("info", "server", "server configuration deleted");
+            let transport = if should_disconnect {
+                inner.transport.take()
+            } else {
+                None
+            };
+            persist_runtime(&self.storage_path, &inner)?;
+            transport
+        };
+
+        if let Some(transport) = transport {
+            transport
+                .disconnect()
+                .await
+                .map_err(|error| error.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn connect_server(&self, server_id: String) -> Result<String, String> {
+        let (server_addr, token) = {
+            let mut inner = self.inner.lock().await;
+            let server = inner
+                .servers
+                .get_mut(&server_id)
+                .ok_or_else(|| "server not found".to_string())?;
+            server.status = "connecting".to_string();
+            server.last_error = None;
+            server.updated_at = Utc::now().timestamp_millis();
+            let server_addr = format!("{}:{}", server.host, server.port);
+            let token = server.token.clone();
+            persist_runtime(&self.storage_path, &inner)?;
+            (server_addr, token)
+        };
+
+        match establish_connection(&server_addr, &token).await {
+            Ok((transport, session_id)) => {
+                let now = Utc::now().timestamp_millis();
+                let mut inner = self.inner.lock().await;
+
+                for server in inner.servers.values_mut() {
+                    if server.status == "connected" || server.status == "connecting" {
+                        server.status = "disconnected".to_string();
+                        server.session_id = None;
+                    }
+                }
+
+                if let Some(server) = inner.servers.get_mut(&server_id) {
+                    server.status = "connected".to_string();
+                    server.session_id = Some(session_id.clone());
+                    server.last_connected_at = Some(now);
+                    server.last_checked_at = Some(now);
+                    server.last_error = None;
+                    server.updated_at = now;
+                }
+
+                inner.transport = Some(transport);
+                inner.server_addr = Some(server_addr);
+                inner.session_id = Some(session_id.clone());
+                inner.connected = true;
+                inner.active_server_id = Some(server_id);
+                inner.counters.connection_total += 1;
+                inner.counters.auth_success += 1;
+                inner.log("info", "server", "server connected");
+                inner.log("info", "authentication", "session established");
+                persist_runtime(&self.storage_path, &inner)?;
+                Ok(session_id)
+            }
+            Err(error) => {
+                let mut inner = self.inner.lock().await;
+                if let Some(server) = inner.servers.get_mut(&server_id) {
+                    server.status = "error".to_string();
+                    server.last_error = Some(error.clone());
+                    server.last_checked_at = Some(Utc::now().timestamp_millis());
+                    server.updated_at = Utc::now().timestamp_millis();
+                    server.session_id = None;
+                }
+                inner.counters.auth_failure += 1;
+                inner.log(
+                    "error",
+                    "server",
+                    &format!("server connection failed: {error}"),
+                );
+                persist_runtime(&self.storage_path, &inner)?;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn disconnect_server(&self, server_id: String) -> Result<(), String> {
+        self.shutdown_all_local_tunnels().await?;
+        let transport = {
+            let mut inner = self.inner.lock().await;
+            if !inner.servers.contains_key(&server_id) {
+                return Err("server not found".to_string());
+            }
+
+            let is_active = inner.active_server_id.as_deref() == Some(server_id.as_str());
+            if let Some(server) = inner.servers.get_mut(&server_id) {
+                server.status = "disconnected".to_string();
+                server.session_id = None;
+                server.last_error = None;
+                server.updated_at = Utc::now().timestamp_millis();
+            }
+
+            if is_active {
+                stop_running_tunnels(&mut inner);
+                inner.connected = false;
+                inner.active_server_id = None;
+                inner.session_id = None;
+                inner.server_addr = None;
+                inner.counters.disconnect_total += 1;
+                inner.log("info", "server", "server disconnected");
+                let transport = inner.transport.take();
+                persist_runtime(&self.storage_path, &inner)?;
+                transport
+            } else {
+                persist_runtime(&self.storage_path, &inner)?;
+                None
+            }
+        };
+
+        if let Some(transport) = transport {
+            transport
+                .disconnect()
+                .await
+                .map_err(|error| error.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn test_server(&self, server_id: String) -> Result<Value, String> {
+        let (server_addr, token) = {
+            let inner = self.inner.lock().await;
+            let server = inner
+                .servers
+                .get(&server_id)
+                .ok_or_else(|| "server not found".to_string())?;
+            (
+                format!("{}:{}", server.host, server.port),
+                server.token.clone(),
+            )
+        };
+
+        let started = Instant::now();
+        match establish_connection(&server_addr, &token).await {
+            Ok((transport, session_id)) => {
+                let rtt_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+                let _ = transport.disconnect().await;
+                let now = Utc::now().timestamp_millis();
+                let mut inner = self.inner.lock().await;
+                if let Some(server) = inner.servers.get_mut(&server_id) {
+                    server.last_rtt_ms = Some(rtt_ms);
+                    server.last_checked_at = Some(now);
+                    server.last_error = None;
+                    if server.status == "error" {
+                        server.status = "disconnected".to_string();
+                    }
+                    server.updated_at = now;
+                }
+                inner.log("info", "server", "server connection test completed");
+                persist_runtime(&self.storage_path, &inner)?;
+                Ok(json!({
+                    "ok": true,
+                    "rttMs": rtt_ms,
+                    "sessionId": session_id,
+                    "checkedAt": now
+                }))
+            }
+            Err(error) => {
+                let now = Utc::now().timestamp_millis();
+                let mut inner = self.inner.lock().await;
+                if let Some(server) = inner.servers.get_mut(&server_id) {
+                    server.status = "error".to_string();
+                    server.last_error = Some(error.clone());
+                    server.last_checked_at = Some(now);
+                    server.updated_at = now;
+                }
+                inner.log(
+                    "error",
+                    "server",
+                    &format!("server connection test failed: {error}"),
+                );
+                persist_runtime(&self.storage_path, &inner)?;
+                Ok(json!({
+                    "ok": false,
+                    "error": error,
+                    "checkedAt": now
+                }))
+            }
+        }
+    }
+
+    pub async fn disconnect(&self) -> Result<(), String> {
+        self.shutdown_all_local_tunnels().await?;
+        let transport = {
+            let mut inner = self.inner.lock().await;
+            stop_running_tunnels(&mut inner);
             inner.connected = false;
             inner.session_id = None;
+            let active_server_id = inner.active_server_id.take();
+            if let Some(server_id) = active_server_id {
+                if let Some(server) = inner.servers.get_mut(&server_id) {
+                    server.status = "disconnected".to_string();
+                    server.session_id = None;
+                    server.updated_at = Utc::now().timestamp_millis();
+                }
+            }
+            inner.server_addr = None;
             inner.counters.disconnect_total += 1;
-            inner.log("info", "connection", "Disconnect");
+            inner.log("info", "connection", "client disconnected");
+            persist_runtime(&self.storage_path, &inner)?;
             inner.transport.take()
         };
 
@@ -186,12 +872,7 @@ impl ClientRuntimeState {
                 json!({ "sentAt": Utc::now().timestamp_millis() }),
             )
             .await?;
-        if response.get("ok").and_then(Value::as_bool) != Some(true) {
-            let mut inner = self.inner.lock().await;
-            inner.counters.heartbeat_timeout += 1;
-            inner.log("error", "heartbeat", "Heartbeat rejected");
-            return Err(response.to_string());
-        }
+        ensure_ok(&response)?;
 
         let rtt_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         let mut inner = self.inner.lock().await;
@@ -205,7 +886,8 @@ impl ClientRuntimeState {
                 + rtt_ms as f64)
                 / inner.counters.heartbeat_pong as f64
         };
-        inner.log("info", "heartbeat", "Ping/Pong");
+        inner.log("info", "heartbeat", "heartbeat completed");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(rtt_ms)
     }
 
@@ -221,45 +903,44 @@ impl ClientRuntimeState {
         let tunnel_id = Uuid::new_v4().to_string();
         let protocol = normalize_protocol(&protocol)?;
         let local_host = local_host.unwrap_or_else(|| "127.0.0.1".to_string());
-        let host = host.or_else(|| {
-            if protocol == "http" {
-                Some("example.com".to_string())
-            } else {
-                None
-            }
-        });
         let path = path.map(|value| normalize_http_path(&value)).or_else(|| {
-            if protocol == "http" {
+            if protocol == "http" || protocol == "https" {
                 Some("/".to_string())
             } else {
                 None
             }
         });
-        let _ = self
-            .request(
-                Command::TunnelCreate,
-                json!({
-                    "id": tunnel_id,
-                    "localHost": local_host.clone(),
-                    "localPort": local_port,
-                    "remotePort": remote_port,
-                    "protocol": protocol.clone(),
-                    "host": host.clone(),
-                    "path": path.clone()
-                }),
-            )
-            .await;
+
+        self.ensure_connected_server().await?;
+
+        self.request_if_connected(
+            Command::TunnelCreate,
+            json!({
+                "id": tunnel_id,
+                "localHost": local_host.clone(),
+                "localPort": local_port,
+                "remotePort": remote_port,
+                "protocol": protocol.clone(),
+                "host": host.clone(),
+                "path": path.clone()
+            }),
+        )
+        .await?;
 
         let now = Utc::now().timestamp_millis();
+        let tls_version = if protocol == "https" {
+            Some("TLS".to_string())
+        } else {
+            None
+        };
         let mut inner = self.inner.lock().await;
-        let status = "stopped".to_string();
         inner.tunnels.insert(
             tunnel_id.clone(),
             TunnelRecord {
                 id: tunnel_id.clone(),
                 name: format!("{}-{}", protocol, local_port),
                 protocol,
-                status,
+                status: "stopped".to_string(),
                 local_host,
                 local_port,
                 remote_port,
@@ -267,6 +948,8 @@ impl ClientRuntimeState {
                 path,
                 upload_speed_bps: 0.0,
                 download_speed_bps: 0.0,
+                upload_bytes: 0,
+                download_bytes: 0,
                 connections: 0,
                 uptime_seconds: 0,
                 request_count: 0,
@@ -276,17 +959,66 @@ impl ClientRuntimeState {
                 created_at: now,
                 updated_at: now,
                 last_sample_at: now,
+                tls_session_count: 0,
+                tls_handshake_count: 0,
+                tls_error_count: 0,
+                tls_version,
+                certificate_status: None,
+                certificate_expire_days: None,
+                certificate_issuer: None,
                 recent_requests: Vec::new(),
             },
         );
-        inner.log("info", "tunnel", "Tunnel created");
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        inner.log("info", "tunnel", "tunnel configuration created");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(tunnel_id)
     }
 
     pub async fn start_tunnel(&self, tunnel_id: String) -> Result<(), String> {
-        let _ = self
-            .request(Command::TunnelStart, json!({ "id": tunnel_id }))
-            .await;
+        self.ensure_tunnel_exists(&tunnel_id).await?;
+        if let Err(error) = self.ensure_connected_server().await {
+            self.record_tunnel_start_failure(&tunnel_id, &error).await;
+            return Err(error);
+        }
+
+        if let Err(error) = self
+            .request_required(Command::TunnelStart, json!({ "id": tunnel_id }))
+            .await
+        {
+            let message = explain_server_control_error(&error);
+            self.record_server_control_failure(&message).await;
+            self.record_tunnel_start_failure(&tunnel_id, &message).await;
+            return Err(message);
+        }
+
+        if !self.local_tunnels.lock().await.contains_key(&tunnel_id) {
+            let tunnel = {
+                let inner = self.inner.lock().await;
+                inner
+                    .tunnels
+                    .get(&tunnel_id)
+                    .cloned()
+                    .ok_or_else(|| "tunnel not found".to_string())?
+            };
+            match start_local_tunnel_runtime(&tunnel).await {
+                Ok(runtime) => {
+                    self.local_tunnels
+                        .lock()
+                        .await
+                        .insert(tunnel_id.clone(), runtime);
+                }
+                Err(error) => {
+                    let message = explain_local_runtime_error(&tunnel, &error);
+                    let _ = self
+                        .request_if_connected(Command::TunnelStop, json!({ "id": tunnel_id }))
+                        .await;
+                    self.record_tunnel_start_failure(&tunnel_id, &message).await;
+                    return Err(message);
+                }
+            }
+        }
+
         let mut inner = self.inner.lock().await;
         let now = Utc::now().timestamp_millis();
         let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
@@ -298,14 +1030,17 @@ impl ClientRuntimeState {
         } else {
             return Err("tunnel not found".to_string());
         };
-        inner.log("info", "tunnel", &format!("Tunnel started: {name}"));
+        inner.log_tunnel("info", &tunnel_id, &format!("tunnel started: {name}"));
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(())
     }
 
     pub async fn stop_tunnel(&self, tunnel_id: String) -> Result<(), String> {
-        let _ = self
-            .request(Command::TunnelStop, json!({ "id": tunnel_id }))
-            .await;
+        self.ensure_tunnel_exists(&tunnel_id).await?;
+        self.shutdown_local_tunnel(&tunnel_id).await?;
+        self.request_required(Command::TunnelStop, json!({ "id": tunnel_id }))
+            .await?;
+
         let mut inner = self.inner.lock().await;
         let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
             tunnel.status = "stopped".to_string();
@@ -318,26 +1053,21 @@ impl ClientRuntimeState {
         } else {
             return Err("tunnel not found".to_string());
         };
-        inner.log("info", "tunnel", &format!("Tunnel stopped: {name}"));
+        inner.log_tunnel("info", &tunnel_id, &format!("tunnel stopped: {name}"));
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(())
     }
 
     pub async fn restart_tunnel(&self, tunnel_id: String) -> Result<(), String> {
-        let _ = self
-            .request(Command::TunnelRestart, json!({ "id": tunnel_id }))
-            .await;
+        self.ensure_tunnel_exists(&tunnel_id).await?;
+        self.shutdown_local_tunnel(&tunnel_id).await?;
+        self.start_tunnel(tunnel_id.clone()).await?;
         let mut inner = self.inner.lock().await;
-        let now = Utc::now().timestamp_millis();
-        let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
-            tunnel.status = "running".to_string();
-            tunnel.started_at = Some(now);
-            tunnel.updated_at = now;
-            tunnel.last_sample_at = now;
-            tunnel.name.clone()
-        } else {
-            return Err("tunnel not found".to_string());
-        };
-        inner.log("info", "tunnel", &format!("Tunnel restarted: {name}"));
+        if let Some(tunnel) = inner.tunnels.get(&tunnel_id) {
+            let name = tunnel.name.clone();
+            inner.log_tunnel("info", &tunnel_id, &format!("tunnel restarted: {name}"));
+            persist_runtime(&self.storage_path, &inner)?;
+        }
         Ok(())
     }
 
@@ -346,15 +1076,16 @@ impl ClientRuntimeState {
         tunnel_id: String,
         patch: UpdateTunnelRequest,
     ) -> Result<(), String> {
-        let _ = self
-            .request(
-                Command::TunnelCreate,
-                json!({
-                    "id": tunnel_id,
-                    "patch": patch.clone()
-                }),
-            )
-            .await;
+        self.ensure_tunnel_exists(&tunnel_id).await?;
+        self.request_if_connected(
+            Command::TunnelCreate,
+            json!({
+                "id": tunnel_id,
+                "patch": patch.clone()
+            }),
+        )
+        .await?;
+
         let mut inner = self.inner.lock().await;
         let tunnel = inner
             .tunnels
@@ -382,17 +1113,23 @@ impl ClientRuntimeState {
             tunnel.path = Some(normalize_http_path(&path));
         }
         tunnel.updated_at = Utc::now().timestamp_millis();
-        inner.log("info", "tunnel", "Tunnel updated");
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        inner.log("info", "tunnel", "tunnel configuration updated");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(())
     }
 
     pub async fn delete_tunnel(&self, tunnel_id: String) -> Result<(), String> {
-        let _ = self
-            .request(Command::TunnelStop, json!({ "id": tunnel_id }))
-            .await;
+        self.ensure_tunnel_exists(&tunnel_id).await?;
+        self.shutdown_local_tunnel(&tunnel_id).await?;
+        self.request_if_connected(Command::TunnelStop, json!({ "id": tunnel_id }))
+            .await?;
+
         let mut inner = self.inner.lock().await;
         inner.tunnels.remove(&tunnel_id);
-        inner.log("info", "tunnel", "Tunnel deleted");
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        inner.log_tunnel("info", &tunnel_id, "tunnel configuration deleted");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(())
     }
 
@@ -404,17 +1141,20 @@ impl ClientRuntimeState {
     pub async fn set_config(&self, key: String, value: String) -> Result<(), String> {
         let mut inner = self.inner.lock().await;
         inner.config.insert(key, value);
-        inner.log("info", "settings", "Runtime config updated");
+        inner.log("info", "settings", "runtime config updated");
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(())
     }
 
     pub async fn statistics(&self) -> Value {
+        self.sync_local_tunnel_metrics().await;
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
         statistics_json(&inner)
     }
 
     pub async fn dashboard(&self) -> Value {
+        self.sync_local_tunnel_metrics().await;
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
         dashboard_json(&inner)
@@ -426,9 +1166,11 @@ impl ClientRuntimeState {
     }
 
     pub async fn metrics(&self) -> Value {
+        self.sync_local_tunnel_metrics().await;
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
         let now = Utc::now().timestamp_millis();
+        let traffic = runtime_traffic(&inner);
         json!([
             metric(
                 "gate.connection.current",
@@ -470,14 +1212,200 @@ impl ClientRuntimeState {
                     .map(|tunnel| tunnel.request_count)
                     .sum::<u64>() as f64,
                 now
+            ),
+            metric(
+                "gate.traffic.bytes.total",
+                "Runtime total traffic",
+                "counter",
+                "runtime",
+                "bytes",
+                traffic.total_bytes as f64,
+                now
+            ),
+            metric(
+                "gate.tls.handshake.count",
+                "TLS handshakes",
+                "counter",
+                "runtime",
+                "count",
+                runtime_tls(&inner).handshake_count as f64,
+                now
             )
         ])
     }
 
     pub async fn logs(&self) -> Value {
+        self.sync_local_tunnel_metrics().await;
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
         json!(&inner.logs)
+    }
+
+    pub async fn runtime_store_report(&self) -> Value {
+        let inner = self.inner.lock().await;
+        json!({
+            "path": self.storage_path,
+            "version": STORE_VERSION,
+            "persisted": {
+                "tunnel": { "ok": true, "count": inner.tunnels.len() },
+                "runtime": { "ok": true, "count": 1 },
+                "server": { "ok": true, "count": inner.servers.len(), "activeServerId": inner.active_server_id },
+                "domain": { "ok": true, "count": inner.domains.len() },
+                "certificate": { "ok": true, "count": inner.certificate_references.len(), "storeRoot": certificate_store_root() },
+                "settings": { "ok": true, "count": inner.config.len() },
+                "logs": { "ok": true, "count": inner.logs.len() },
+                "counters": { "ok": true, "count": 1 }
+            },
+            "restartRecovery": {
+                "servers": inner.servers.keys().collect::<Vec<_>>(),
+                "tunnels": inner.tunnels.keys().collect::<Vec<_>>(),
+                "domains": inner.domains.keys().collect::<Vec<_>>(),
+                "certificates": inner.certificate_references.keys().collect::<Vec<_>>()
+            }
+        })
+    }
+
+    pub async fn startup_diagnostics(&self) -> Value {
+        let mut inner = self.inner.lock().await;
+        let report = startup_diagnostics_json(&self.storage_path, &inner);
+        inner.log("info", "diagnostics", "startup diagnostics completed");
+        let _ = persist_runtime(&self.storage_path, &inner);
+        report
+    }
+
+    async fn shutdown_local_tunnel(&self, tunnel_id: &str) -> Result<(), String> {
+        let runtime = self.local_tunnels.lock().await.remove(tunnel_id);
+        if let Some(runtime) = runtime {
+            runtime.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    async fn shutdown_all_local_tunnels(&self) -> Result<(), String> {
+        let runtimes = {
+            let mut local_tunnels = self.local_tunnels.lock().await;
+            std::mem::take(&mut *local_tunnels)
+        };
+
+        for runtime in runtimes.into_values() {
+            runtime.shutdown().await?;
+        }
+
+        Ok(())
+    }
+
+    async fn record_tunnel_start_failure(&self, tunnel_id: &str, reason: &str) {
+        let mut inner = self.inner.lock().await;
+        if let Some(tunnel) = inner.tunnels.get_mut(tunnel_id) {
+            tunnel.status = "stopped".to_string();
+            tunnel.upload_speed_bps = 0.0;
+            tunnel.download_speed_bps = 0.0;
+            tunnel.connections = 0;
+            tunnel.started_at = None;
+            tunnel.updated_at = Utc::now().timestamp_millis();
+        }
+        inner.log_tunnel("error", tunnel_id, &format!("tunnel start failed: {reason}"));
+        let _ = persist_runtime(&self.storage_path, &inner);
+    }
+
+    async fn record_server_control_failure(&self, reason: &str) {
+        let transport = {
+            let mut inner = self.inner.lock().await;
+            let active_server_id = inner.active_server_id.take();
+            if let Some(server_id) = active_server_id.as_deref() {
+                if let Some(server) = inner.servers.get_mut(server_id) {
+                    server.status = "error".to_string();
+                    server.last_error = Some(reason.to_string());
+                    server.session_id = None;
+                    server.updated_at = Utc::now().timestamp_millis();
+                }
+            }
+            inner.connected = false;
+            inner.session_id = None;
+            inner.server_addr = None;
+            inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
+            inner.log("error", "server", reason);
+            let transport = inner.transport.take();
+            let _ = persist_runtime(&self.storage_path, &inner);
+            transport
+        };
+
+        if let Some(transport) = transport {
+            let _ = transport.disconnect().await;
+        }
+    }
+
+    async fn sync_local_tunnel_metrics(&self) {
+        let snapshots = {
+            let local_tunnels = self.local_tunnels.lock().await;
+            local_tunnels
+                .iter()
+                .map(|(id, runtime)| (id.clone(), runtime.snapshot()))
+                .collect::<Vec<_>>()
+        };
+
+        if snapshots.is_empty() {
+            return;
+        }
+
+        let mut inner = self.inner.lock().await;
+        let now = Utc::now().timestamp_millis();
+        for (id, snapshot) in snapshots {
+            let Some(tunnel) = inner.tunnels.get_mut(&id) else {
+                continue;
+            };
+
+            tunnel.connections = snapshot.active_connections;
+            tunnel.upload_bytes = snapshot.upload_bytes;
+            tunnel.download_bytes = snapshot.download_bytes;
+            tunnel.upload_speed_bps = snapshot.current_speed_bps as f64;
+            tunnel.download_speed_bps = 0.0;
+            tunnel.uptime_seconds = snapshot.runtime_seconds;
+            tunnel.request_count = snapshot.request_count;
+            tunnel.success_count = snapshot.success_count;
+            tunnel.total_latency_ms = snapshot.total_latency_ms;
+            tunnel.recent_requests = snapshot.recent_requests;
+            tunnel.last_sample_at = now;
+        }
+
+        let _ = persist_runtime(&self.storage_path, &inner);
+    }
+
+    async fn ensure_tunnel_exists(&self, tunnel_id: &str) -> Result<(), String> {
+        let inner = self.inner.lock().await;
+        if inner.tunnels.contains_key(tunnel_id) {
+            Ok(())
+        } else {
+            Err("tunnel not found".to_string())
+        }
+    }
+
+    async fn ensure_connected_server(&self) -> Result<(), String> {
+        let inner = self.inner.lock().await;
+        if inner.connected && inner.transport.is_some() && inner.active_server_id.is_some() {
+            Ok(())
+        } else {
+            Err(tunnel_server_not_ready_message(&inner))
+        }
+    }
+
+    async fn request_if_connected(&self, command: Command, body: Value) -> Result<(), String> {
+        let connected = {
+            let inner = self.inner.lock().await;
+            inner.transport.is_some()
+        };
+
+        if !connected {
+            return Ok(());
+        }
+
+        let response = self.request(command, body).await?;
+        ensure_ok(&response)
+    }
+
+    async fn request_required(&self, command: Command, body: Value) -> Result<(), String> {
+        let response = self.request(command, body).await?;
+        ensure_ok(&response)
     }
 
     async fn request(&self, command: Command, body: Value) -> Result<Value, String> {
@@ -486,99 +1414,257 @@ impl ClientRuntimeState {
             inner.counters.request_total += 1;
             inner.transport.clone()
         }
-        .ok_or_else(|| "client is not connected".to_string())?;
+        .ok_or_else(|| "runtime backend is not connected".to_string())?;
 
         let response = send_request(&transport, command, body).await?;
         let mut inner = self.inner.lock().await;
         inner.counters.response_total += 1;
+        persist_runtime(&self.storage_path, &inner)?;
         Ok(response)
     }
 }
 
-impl RuntimeInner {
-    fn log(&mut self, level: &str, source: &str, message: &str) {
-        self.logs.push(RuntimeLog {
-            level: level.to_string(),
-            source: source.to_string(),
-            message: message.to_string(),
-            timestamp: Utc::now().timestamp_millis(),
-        });
+async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnelRuntime, String> {
+    let listen_addr = local_listen_addr(tunnel.remote_port);
+    let target_addr = resolve_target_addr(&tunnel.local_host, tunnel.local_port).await?;
+    verify_target_reachable(target_addr).await?;
+    let timeout = local_runtime_timeout();
 
-        if self.logs.len() > 500 {
-            let overflow = self.logs.len() - 500;
-            self.logs.drain(0..overflow);
+    match tunnel.protocol.as_str() {
+        "tcp" => {
+            let runtime = TunnelRuntime::new(
+                RuntimeConfig::builder()
+                    .name(tunnel.name.clone())
+                    .listen_addr(listen_addr)
+                    .target_addr(target_addr)
+                    .timeout(timeout)
+                    .build(),
+            );
+            runtime.start().await.map_err(|error| {
+                format!(
+                    "无法启动本地 TCP 监听 {} -> {}：{}",
+                    listen_addr, target_addr, error
+                )
+            })?;
+            Ok(LocalTunnelRuntime::Tcp(runtime))
+        }
+        "http" => {
+            let mut route = HttpRouteConfig::new(tunnel.name.clone(), target_addr)
+                .path_prefix(tunnel.path.as_deref().unwrap_or("/"));
+            if let Some(host) = tunnel.host.as_deref().filter(|value| !value.trim().is_empty()) {
+                route = route.host(host);
+            }
+
+            let runtime = HttpTunnelRuntime::new(
+                HttpRuntimeConfig::builder()
+                    .name(tunnel.name.clone())
+                    .listen_addr(listen_addr)
+                    .route(route)
+                    .timeout(timeout)
+                    .build(),
+            );
+            runtime.start().await.map_err(|error| {
+                format!(
+                    "无法启动本地 HTTP 监听 {} -> {}：{}",
+                    listen_addr, target_addr, error
+                )
+            })?;
+            Ok(LocalTunnelRuntime::Http(runtime))
+        }
+        "https" => Err(
+            "HTTPS 隧道需要可用证书后才能启动本地 TLS 监听；请先用 HTTP 隧道完成连通性测试。"
+                .to_string(),
+        ),
+        protocol => Err(format!("不支持的 Tunnel 协议：{protocol}")),
+    }
+}
+
+fn local_listen_addr(remote_port: u16) -> SocketAddr {
+    SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), remote_port)
+}
+
+async fn resolve_target_addr(host: &str, port: u16) -> Result<SocketAddr, String> {
+    let host = host.trim();
+    if host.is_empty() {
+        return Err("本地服务地址不能为空".to_string());
+    }
+
+    let mut addrs = tokio::net::lookup_host((host, port))
+        .await
+        .map_err(|error| format!("无法解析本地服务地址 {host}:{port}：{error}"))?;
+    addrs
+        .next()
+        .ok_or_else(|| format!("无法解析本地服务地址 {host}:{port}"))
+}
+
+async fn verify_target_reachable(target_addr: SocketAddr) -> Result<(), String> {
+    match tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(target_addr))
+        .await
+    {
+        Ok(Ok(_stream)) => Ok(()),
+        Ok(Err(error)) => Err(format!("本地服务不可访问 {target_addr}：{error}")),
+        Err(_) => Err(format!("本地服务连接超时 {target_addr}")),
+    }
+}
+
+fn local_runtime_timeout() -> TimeoutConfig {
+    TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(3))
+        .idle_timeout(Duration::from_secs(60))
+        .shutdown_timeout(Duration::from_secs(3))
+        .build()
+}
+
+fn tunnel_server_not_ready_message(inner: &RuntimeInner) -> String {
+    if inner.servers.is_empty() {
+        return "没有可用服务器配置。请先到“服务器”页面添加并连接服务器；本机测试先运行 npm run dev:server。".to_string();
+    }
+
+    if let Some(server_id) = inner.active_server_id.as_deref() {
+        if let Some(server) = inner.servers.get(server_id) {
+            return format!(
+                "服务器「{}」当前没有可用连接。请确认服务端正在运行（本机测试运行 npm run dev:server），然后到“服务器”页面重新连接 {}:{}。",
+                server.name, server.host, server.port
+            );
         }
     }
 
-    fn sync_tunnel_state(&mut self) {
-        let now = Utc::now().timestamp_millis();
-        let mut pending_logs = Vec::new();
+    let connected_server = inner
+        .servers
+        .values()
+        .find(|server| server.status == "connected")
+        .or_else(|| inner.servers.values().next());
 
-        for tunnel in self.tunnels.values_mut() {
-            if tunnel.status != "running" {
-                continue;
-            }
+    if let Some(server) = connected_server {
+        return format!(
+            "服务器未连接，Tunnel 无法启动。请先确认服务端进程已启动，再到“服务器”页面连接「{}」({}:{})。本机测试可运行 npm run dev:server。",
+            server.name, server.host, server.port
+        );
+    }
 
-            if let Some(started_at) = tunnel.started_at {
-                tunnel.uptime_seconds = ((now - started_at).max(0) / 1000) as u64;
-            }
+    "服务器未连接，Tunnel 无法启动。请先启动服务端并在“服务器”页面连接成功。".to_string()
+}
 
-            let elapsed_ms = (now - tunnel.last_sample_at).max(0);
-            if elapsed_ms < 1000 {
-                continue;
-            }
+fn explain_server_control_error(error: &str) -> String {
+    format!(
+        "服务端不可用或控制连接已断开：{error}。请检查服务端是否正在运行；本机测试请先运行 npm run dev:server，然后到“服务器”页面重新连接。如果仍失败，请确认 Token 与 GATE_AUTH_TOKEN 一致。"
+    )
+}
 
-            let elapsed_secs = (elapsed_ms / 1000).max(1) as u64;
-            tunnel.last_sample_at = now;
-            tunnel.connections = tunnel.connections.max(1);
+fn explain_local_runtime_error(tunnel: &TunnelRecord, error: &str) -> String {
+    let lower = error.to_ascii_lowercase();
+    if lower.contains("10048")
+        || lower.contains("address already in use")
+        || lower.contains("only one usage")
+        || lower.contains("通常每个套接字地址")
+    {
+        return format!(
+            "端口 {} 已被占用，无法作为测试访问入口。请停止占用该端口的程序，或把 Tunnel 的公网端口改成其他端口。",
+            tunnel.remote_port
+        );
+    }
 
-            if tunnel.protocol == "http" {
-                let samples = elapsed_secs.min(3);
-                for _ in 0..samples {
-                    tunnel.request_count = tunnel.request_count.saturating_add(1);
-                    tunnel.success_count = tunnel.success_count.saturating_add(1);
-                    let latency_ms = 12 + (tunnel.request_count % 37);
-                    let traffic_bytes = 4 * 1024 + (tunnel.request_count % 17) * 512;
-                    tunnel.total_latency_ms = tunnel.total_latency_ms.saturating_add(latency_ms);
-                    tunnel.upload_speed_bps = 1024.0 + (traffic_bytes / 4) as f64;
-                    tunnel.download_speed_bps = 2048.0 + traffic_bytes as f64;
-                    let request = HttpRequestRecord {
-                        method: if tunnel.request_count % 5 == 0 {
-                            "POST".to_string()
-                        } else {
-                            "GET".to_string()
-                        },
-                        url: tunnel.path.clone().unwrap_or_else(|| "/".to_string()),
-                        host: tunnel
-                            .host
-                            .clone()
-                            .unwrap_or_else(|| format!("localhost:{}", tunnel.remote_port)),
-                        status: 200,
-                        latency_ms,
-                        client_ip: "127.0.0.1".to_string(),
-                        traffic_bytes,
-                        timestamp: now,
-                    };
-                    tunnel.recent_requests.push(request);
-                    if tunnel.recent_requests.len() > 50 {
-                        let overflow = tunnel.recent_requests.len() - 50;
-                        tunnel.recent_requests.drain(0..overflow);
-                    }
-                }
-                pending_logs.push(format!(
-                    "HTTP {} handled {} request(s)",
-                    tunnel.name, samples
-                ));
-            } else {
-                tunnel.upload_speed_bps = 512.0 + (elapsed_secs * 128) as f64;
-                tunnel.download_speed_bps = 1024.0 + (elapsed_secs * 256) as f64;
-            }
-        }
+    if error.contains("本地服务不可访问") || error.contains("本地服务连接超时") {
+        return format!(
+            "本地服务 {}:{} 不可访问，Tunnel 已停止。请先启动你的本地应用，再重新启动 Tunnel。详细信息：{}",
+            tunnel.local_host, tunnel.local_port, error
+        );
+    }
 
-        for message in pending_logs {
-            self.log("info", "http", &message);
+    if error.contains("无法解析本地服务地址") {
+        return format!(
+            "本地服务地址配置有误：{}:{}。请检查 Host 和端口是否填写正确。详细信息：{}",
+            tunnel.local_host, tunnel.local_port, error
+        );
+    }
+
+    format!(
+        "本地 Runtime 启动失败。请检查本地服务 {}:{}、公网端口 {} 和协议 {}。详细信息：{}",
+        tunnel.local_host, tunnel.local_port, tunnel.remote_port, tunnel.protocol, error
+    )
+}
+
+fn stop_running_tunnels(inner: &mut RuntimeInner) {
+    let now = Utc::now().timestamp_millis();
+    for tunnel in inner.tunnels.values_mut() {
+        if tunnel.status == "running" {
+            tunnel.status = "stopped".to_string();
+            tunnel.upload_speed_bps = 0.0;
+            tunnel.download_speed_bps = 0.0;
+            tunnel.connections = 0;
+            tunnel.started_at = None;
+            tunnel.updated_at = now;
         }
     }
+}
+
+fn default_config() -> BTreeMap<String, String> {
+    let mut config = BTreeMap::new();
+    config.insert("runtime.mode".to_string(), "production".to_string());
+    config.insert("authentication.required".to_string(), "true".to_string());
+    config.insert("heartbeat.interval_ms".to_string(), "15000".to_string());
+    config.insert("network.transport".to_string(), "tcp".to_string());
+    config
+}
+
+fn runtime_store_path() -> PathBuf {
+    if let Some(appdata) = env::var_os("APPDATA") {
+        return PathBuf::from(appdata)
+            .join("Gate")
+            .join("client-runtime.json");
+    }
+
+    if let Some(xdg_data_home) = env::var_os("XDG_DATA_HOME") {
+        return PathBuf::from(xdg_data_home)
+            .join("Gate")
+            .join("client-runtime.json");
+    }
+
+    if let Some(home) = env::var_os("HOME") {
+        return PathBuf::from(home)
+            .join(".local")
+            .join("share")
+            .join("Gate")
+            .join("client-runtime.json");
+    }
+
+    PathBuf::from("gate-client-runtime.json")
+}
+
+fn runtime_data_dir() -> PathBuf {
+    runtime_store_path()
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from(".gate"))
+}
+
+fn certificate_store_root() -> PathBuf {
+    if let Some(value) = env::var_os("GATE_CERTIFICATE_STORE") {
+        return PathBuf::from(value);
+    }
+
+    if let Some(value) = env::var_os("GATE_CERT_DIR") {
+        return PathBuf::from(value);
+    }
+
+    runtime_data_dir().join("certificates")
+}
+
+fn load_stored_runtime(path: &Path) -> StoredRuntime {
+    let Ok(bytes) = fs::read(path) else {
+        return StoredRuntime::default();
+    };
+
+    serde_json::from_slice(&bytes).unwrap_or_default()
+}
+
+fn persist_runtime(path: &Path, inner: &RuntimeInner) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+
+    let bytes = serde_json::to_vec_pretty(&inner.snapshot()).map_err(|error| error.to_string())?;
+    fs::write(path, bytes).map_err(|error| error.to_string())
 }
 
 fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
@@ -597,8 +1683,8 @@ fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
 fn normalize_protocol(protocol: &str) -> Result<String, String> {
     let protocol = protocol.trim().to_ascii_lowercase();
     match protocol.as_str() {
-        "tcp" | "http" => Ok(protocol),
-        _ => Err("protocol must be tcp or http".to_string()),
+        "tcp" | "http" | "https" => Ok(protocol),
+        _ => Err("protocol must be tcp, http, or https".to_string()),
     }
 }
 
@@ -612,6 +1698,108 @@ fn normalize_http_path(path: &str) -> String {
     } else {
         format!("/{path}")
     }
+}
+
+fn normalize_host(host: &str) -> Result<String, String> {
+    let host = host.trim();
+    if host.is_empty() {
+        return Err("server host is required".to_string());
+    }
+    Ok(host.to_string())
+}
+
+fn normalize_token(token: &str) -> Result<String, String> {
+    let token = token.trim();
+    if token.is_empty() {
+        return Err("server token is required".to_string());
+    }
+    Ok(token.to_string())
+}
+
+fn normalize_port(port: u16) -> Result<u16, String> {
+    if port == 0 {
+        return Err("server port must be between 1 and 65535".to_string());
+    }
+    Ok(port)
+}
+
+fn normalize_server_name(name: &str, host: &str, port: u16) -> String {
+    let name = name.trim();
+    if name.is_empty() {
+        format!("{host}:{port}")
+    } else {
+        name.to_string()
+    }
+}
+
+fn normalize_server_kind(kind: Option<String>) -> String {
+    let kind = kind
+        .unwrap_or_else(|| "personal".to_string())
+        .trim()
+        .to_ascii_lowercase();
+    match kind.as_str() {
+        "personal" | "cloud" | "nas" | "company" | "docker" | "kubernetes" => kind,
+        _ => "personal".to_string(),
+    }
+}
+
+fn normalize_tags(tags: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+    for tag in tags {
+        let tag = tag.trim();
+        if !tag.is_empty() && !normalized.iter().any(|value: &String| value == tag) {
+            normalized.push(tag.to_string());
+        }
+    }
+    normalized
+}
+
+fn server_json(server: &ServerRecord) -> Value {
+    json!({
+        "id": server.id,
+        "name": server.name,
+        "kind": server.kind,
+        "host": server.host,
+        "port": server.port,
+        "token": server.token,
+        "region": server.region,
+        "remark": server.remark,
+        "tags": server.tags,
+        "heartbeatInterval": server.heartbeat_interval,
+        "reconnectInterval": server.reconnect_interval,
+        "autoConnect": server.auto_connect,
+        "status": server.status,
+        "lastError": server.last_error,
+        "lastRttMs": server.last_rtt_ms,
+        "sessionId": server.session_id,
+        "lastCheckedAt": server.last_checked_at,
+        "lastConnectedAt": server.last_connected_at,
+        "createdAt": server.created_at,
+        "updatedAt": server.updated_at
+    })
+}
+
+async fn establish_connection(
+    server_addr: &str,
+    token: &str,
+) -> Result<(Arc<TcpTransport>, String), String> {
+    let endpoint = parse_endpoint(server_addr)?;
+    let transport = Arc::new(TcpTransport::new());
+    transport
+        .connect(endpoint)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    let response = send_request(&transport, Command::AuthLogin, json!({ "token": token })).await?;
+    ensure_ok(&response)?;
+
+    let session_id = response
+        .pointer("/data/sessionId")
+        .and_then(Value::as_str)
+        .unwrap_or("local-session")
+        .to_string();
+
+    Ok((transport, session_id))
 }
 
 async fn send_request(
@@ -636,8 +1824,23 @@ async fn send_request(
     }
 }
 
+fn ensure_ok(response: &Value) -> Result<(), String> {
+    if response.get("ok").and_then(Value::as_bool) == Some(true) {
+        return Ok(());
+    }
+
+    if let Some(message) = response.pointer("/error/message").and_then(Value::as_str) {
+        return Err(message.to_string());
+    }
+
+    Err(response.to_string())
+}
+
 fn statistics_json(inner: &RuntimeInner) -> Value {
     let now = Utc::now().timestamp_millis();
+    let system = system_snapshot();
+    let traffic = runtime_traffic(inner);
+    let tls = runtime_tls(inner);
     let uptime = inner.started_at.elapsed().as_secs();
     let tunnel_count = inner.tunnels.len() as u64;
     let running_tunnel = inner
@@ -646,7 +1849,21 @@ fn statistics_json(inner: &RuntimeInner) -> Value {
         .filter(|tunnel| tunnel.status == "running")
         .count() as u64;
     let current_connection = if inner.connected { 1 } else { 0 };
-    let average_rtt = inner.counters.average_rtt_ms;
+    let upload_speed_bps = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.upload_speed_bps)
+        .sum::<f64>();
+    let download_speed_bps = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.download_speed_bps)
+        .sum::<f64>();
+    let current_tunnel_connections = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.connections)
+        .sum::<u64>();
 
     json!({
         "collectedAt": now,
@@ -654,56 +1871,62 @@ fn statistics_json(inner: &RuntimeInner) -> Value {
             "tunnelCount": tunnel_count,
             "runningTunnel": running_tunnel,
             "stoppedTunnel": tunnel_count.saturating_sub(running_tunnel),
-            "upload": 0,
-            "download": 0,
-            "peakSpeedBps": 0,
-            "averageSpeedBps": 0,
-            "runningTimeSeconds": uptime,
-            "todayTraffic": 0,
-            "totalTraffic": 0
+            "upload": upload_speed_bps,
+            "download": download_speed_bps,
+            "peakSpeedBps": upload_speed_bps.max(download_speed_bps),
+            "averageSpeedBps": if running_tunnel == 0 { 0.0 } else { (upload_speed_bps + download_speed_bps) / running_tunnel as f64 },
+            "runningTimeSeconds": inner.tunnels.values().map(|tunnel| tunnel.uptime_seconds).sum::<u64>(),
+            "todayTraffic": traffic.today_bytes,
+            "totalTraffic": traffic.total_bytes
         },
         "traffic": {
-            "uploadBytes": 0,
-            "downloadBytes": 0,
-            "uploadSpeedBps": 0,
-            "downloadSpeedBps": 0,
-            "peakSpeedBps": 0,
-            "averageSpeedBps": 0,
-            "todayTrafficBytes": 0,
-            "totalTrafficBytes": 0
+            "uploadBytes": traffic.upload_bytes,
+            "downloadBytes": traffic.download_bytes,
+            "uploadSpeedBps": upload_speed_bps,
+            "downloadSpeedBps": download_speed_bps,
+            "peakSpeedBps": upload_speed_bps.max(download_speed_bps),
+            "averageSpeedBps": if running_tunnel == 0 { 0.0 } else { (upload_speed_bps + download_speed_bps) / running_tunnel as f64 },
+            "todayTrafficBytes": traffic.today_bytes,
+            "totalTrafficBytes": traffic.total_bytes
         },
         "connection": {
-            "currentConnection": current_connection,
+            "currentConnection": current_connection + current_tunnel_connections,
             "totalConnection": inner.counters.connection_total,
             "success": inner.counters.auth_success,
             "failure": inner.counters.auth_failure,
             "reconnect": inner.counters.reconnect_total,
             "disconnect": inner.counters.disconnect_total,
             "connectionDurationMs": if inner.connected { inner.started_at.elapsed().as_millis() as u64 } else { 0 },
-            "averageRttMs": average_rtt
+            "averageRttMs": inner.counters.average_rtt_ms
         },
         "runtime": {
-            "runningTask": if inner.connected { 1 } else { 0 },
-            "workerCount": 1,
+            "runningTask": running_tunnel,
+            "workerCount": if inner.connected { 1 } else { 0 },
             "schedulerQueue": 0,
             "bufferUsage": 0,
             "sessionCount": inner.session_id.as_ref().map(|_| 1).unwrap_or(0),
             "runtimeUptimeSeconds": uptime
         },
+        "tls": {
+            "sessionCount": tls.session_count,
+            "handshakeCount": tls.handshake_count,
+            "errorCount": tls.error_count,
+            "trafficBytes": tls.traffic_bytes
+        },
         "system": {
-            "cpuUsage": 0,
-            "memoryUsage": 0,
-            "diskUsage": 0,
-            "threadCount": 1,
+            "cpuUsage": system.cpu_usage,
+            "memoryUsage": system.memory_usage,
+            "diskUsage": system.disk_usage,
+            "threadCount": if inner.connected { 1 } else { 0 },
             "processUptimeSeconds": uptime,
             "openFile": 0
         },
         "client": {
             "onlineTimeSeconds": if inner.connected { uptime } else { 0 },
             "openProject": 0,
-            "currentWorkspace": "Gate Alpha V1",
+            "currentWorkspace": "",
             "uiFps": 0,
-            "memoryBytes": 0
+            "memoryBytes": system.memory_bytes
         }
     })
 }
@@ -712,52 +1935,85 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
     let now = Utc::now().timestamp_millis();
     let statistics = statistics_json(inner);
     let health = health_json(inner);
+    let traffic = runtime_traffic(inner);
     let tunnel_count = inner.tunnels.len() as u64;
     let running_tunnel = inner
         .tunnels
         .values()
         .filter(|tunnel| tunnel.status == "running")
         .count() as u64;
-    let average_rtt = inner.counters.average_rtt_ms;
+    let upload_speed_bps = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.upload_speed_bps)
+        .sum::<f64>();
+    let download_speed_bps = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.download_speed_bps)
+        .sum::<f64>();
+    let has_realtime_speed = upload_speed_bps > 0.0 || download_speed_bps > 0.0;
+    let has_connection_data =
+        inner.connected || inner.counters.connection_total > 0 || inner.counters.auth_failure > 0;
 
     json!({
         "overview": {
             "tunnelCount": tunnel_count,
             "runningTunnel": running_tunnel,
             "currentConnection": if inner.connected { 1 } else { 0 },
-            "todayTraffic": 0,
-            "totalTraffic": 0,
-            "averageRttMs": average_rtt,
+            "todayTraffic": traffic.today_bytes,
+            "totalTraffic": traffic.total_bytes,
+            "averageRttMs": inner.counters.average_rtt_ms,
             "runtimeUptimeSeconds": inner.started_at.elapsed().as_secs(),
-            "healthScore": if inner.connected { 100 } else { 0 }
+            "healthScore": health.get("score").and_then(Value::as_u64).unwrap_or(0)
         },
         "statistics": statistics,
-        "realtimeSpeed": [{
-            "timestamp": now,
-            "uploadBps": 0,
-            "downloadBps": 0
-        }],
-        "connectionTrend": [{
-            "timestamp": now,
-            "current": if inner.connected { 1 } else { 0 },
-            "success": inner.counters.auth_success,
-            "failure": inner.counters.auth_failure,
-            "reconnect": inner.counters.reconnect_total
-        }],
-        "trafficTrend": [{
-            "timestamp": now,
-            "uploadBytes": 0,
-            "downloadBytes": 0
-        }],
-        "tunnelStatus": [
-            { "label": "running", "count": running_tunnel },
-            { "label": "stopped", "count": tunnel_count.saturating_sub(running_tunnel) }
-        ],
-        "serverStatus": [
-            { "label": "online", "count": if inner.connected { 1 } else { 0 } },
-            { "label": "warning", "count": 0 },
-            { "label": "offline", "count": if inner.connected { 0 } else { 1 } }
-        ],
+        "realtimeSpeed": if has_realtime_speed {
+            json!([{
+                "timestamp": now,
+                "uploadBps": upload_speed_bps,
+                "downloadBps": download_speed_bps
+            }])
+        } else {
+            json!([])
+        },
+        "connectionTrend": if has_connection_data {
+            json!([{
+                "timestamp": now,
+                "current": if inner.connected { 1 } else { 0 },
+                "success": inner.counters.auth_success,
+                "failure": inner.counters.auth_failure,
+                "reconnect": inner.counters.reconnect_total
+            }])
+        } else {
+            json!([])
+        },
+        "trafficTrend": if has_realtime_speed {
+            json!([{
+                "timestamp": now,
+                "uploadBytes": traffic.upload_bytes,
+                "downloadBytes": traffic.download_bytes
+            }])
+        } else {
+            json!([])
+        },
+        "tunnelStatus": if tunnel_count == 0 {
+            json!([])
+        } else {
+            json!([
+                { "label": "running", "count": running_tunnel },
+                { "label": "stopped", "count": tunnel_count.saturating_sub(running_tunnel) }
+            ])
+        },
+        "serverStatus": if has_connection_data {
+            json!([
+                { "label": "online", "count": if inner.connected { 1 } else { 0 } },
+                { "label": "warning", "count": 0 },
+                { "label": "offline", "count": if inner.connected { 0 } else { 1 } }
+            ])
+        } else {
+            json!([])
+        },
         "systemHealth": health,
         "tunnels": inner.tunnels.values().map(|tunnel| json!({
             "id": &tunnel.id,
@@ -776,6 +2032,30 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
             "requestCount": tunnel.request_count,
             "successRate": if tunnel.request_count == 0 { 0.0 } else { tunnel.success_count as f64 / tunnel.request_count as f64 },
             "averageResponseTimeMs": if tunnel.request_count == 0 { 0.0 } else { tunnel.total_latency_ms as f64 / tunnel.request_count as f64 },
+            "trafficBytes": tunnel.upload_bytes.saturating_add(tunnel.download_bytes).saturating_add(tunnel.recent_requests.iter().map(|request| request.traffic_bytes).sum::<u64>()),
+            "tls": if tunnel.protocol == "https" {
+                json!({
+                    "sessionCount": tunnel.tls_session_count,
+                    "handshakeCount": tunnel.tls_handshake_count,
+                    "errorCount": tunnel.tls_error_count,
+                    "tlsVersion": tunnel.tls_version.as_deref().unwrap_or("TLS"),
+                    "certificateStatus": tunnel.certificate_status.as_deref().unwrap_or("missing"),
+                    "certificateExpireDays": tunnel.certificate_expire_days.unwrap_or(0),
+                    "certificateIssuer": tunnel.certificate_issuer.as_deref().unwrap_or("")
+                })
+            } else {
+                Value::Null
+            },
+            "recentLogs": inner.logs.iter().rev()
+                .filter(|log| log.tunnel_id.as_deref() == Some(tunnel.id.as_str()))
+                .take(8)
+                .map(|log| json!({
+                    "level": &log.level,
+                    "source": &log.source,
+                    "message": &log.message,
+                    "timestamp": log.timestamp
+                }))
+                .collect::<Vec<_>>(),
             "recentRequests": &tunnel.recent_requests
         })).collect::<Vec<_>>(),
         "recentActivity": inner.logs.iter().rev().take(8).map(|log| json!({
@@ -790,13 +2070,26 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
 
 fn health_json(inner: &RuntimeInner) -> Value {
     let now = Utc::now().timestamp_millis();
+    let system = system_snapshot();
     let status = if inner.connected {
         "healthy"
     } else {
         "offline"
     };
+    let system_status = if system.cpu_usage >= 90.0 || system.memory_usage >= 90.0 {
+        "warning"
+    } else {
+        "healthy"
+    };
+    let score = if inner.connected {
+        let pressure = system.cpu_usage.max(system.memory_usage).round() as u64;
+        100_u64.saturating_sub(pressure.saturating_sub(70))
+    } else {
+        0
+    };
     json!({
         "overall": status,
+        "score": score,
         "signals": [
             {
                 "target": "connection",
@@ -808,7 +2101,7 @@ fn health_json(inner: &RuntimeInner) -> Value {
             {
                 "target": "heartbeat",
                 "status": if inner.counters.heartbeat_pong > 0 { "healthy" } else { status },
-                "message": if inner.counters.heartbeat_pong > 0 { "Heartbeat loop is active" } else { "Heartbeat has not completed yet" },
+                "message": if inner.counters.heartbeat_pong > 0 { "Heartbeat completed at least once" } else { "Heartbeat has not completed yet" },
                 "score": if inner.counters.heartbeat_pong > 0 { 100 } else { 0 },
                 "timestamp": now
             },
@@ -818,10 +2111,237 @@ fn health_json(inner: &RuntimeInner) -> Value {
                 "message": "Client runtime state is available",
                 "score": if inner.connected { 100 } else { 0 },
                 "timestamp": now
+            },
+            {
+                "target": "system",
+                "status": system_status,
+                "message": format!("CPU {:.0}% · Memory {:.0}%", system.cpu_usage, system.memory_usage),
+                "score": 100_u64.saturating_sub(system.cpu_usage.max(system.memory_usage).round() as u64),
+                "timestamp": now
             }
         ],
         "updatedAt": now
     })
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RuntimeTraffic {
+    upload_bytes: u64,
+    download_bytes: u64,
+    today_bytes: u64,
+    total_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RuntimeTls {
+    session_count: u64,
+    handshake_count: u64,
+    error_count: u64,
+    traffic_bytes: u64,
+}
+
+fn runtime_traffic(inner: &RuntimeInner) -> RuntimeTraffic {
+    let upload_bytes = inner
+        .tunnels
+        .values()
+        .map(|tunnel| tunnel.upload_bytes)
+        .sum::<u64>();
+    let download_bytes = inner
+        .tunnels
+        .values()
+        .map(|tunnel| {
+            tunnel.download_bytes.saturating_add(
+                tunnel
+                    .recent_requests
+                    .iter()
+                    .map(|request| request.traffic_bytes)
+                    .sum::<u64>(),
+            )
+        })
+        .sum::<u64>();
+    let total_bytes = upload_bytes.saturating_add(download_bytes);
+
+    RuntimeTraffic {
+        upload_bytes,
+        download_bytes,
+        today_bytes: total_bytes,
+        total_bytes,
+    }
+}
+
+fn runtime_tls(inner: &RuntimeInner) -> RuntimeTls {
+    RuntimeTls {
+        session_count: inner
+            .tunnels
+            .values()
+            .map(|tunnel| tunnel.tls_session_count)
+            .sum::<u64>()
+            .saturating_add(inner.counters.tls_session_total),
+        handshake_count: inner
+            .tunnels
+            .values()
+            .map(|tunnel| tunnel.tls_handshake_count)
+            .sum::<u64>()
+            .saturating_add(inner.counters.tls_handshake_total),
+        error_count: inner
+            .tunnels
+            .values()
+            .map(|tunnel| tunnel.tls_error_count)
+            .sum(),
+        traffic_bytes: inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.protocol == "https")
+            .map(|tunnel| {
+                tunnel
+                    .upload_bytes
+                    .saturating_add(tunnel.download_bytes)
+                    .saturating_add(
+                        tunnel
+                            .recent_requests
+                            .iter()
+                            .map(|request| request.traffic_bytes)
+                            .sum::<u64>(),
+                    )
+            })
+            .sum(),
+    }
+}
+
+fn system_snapshot() -> SystemSnapshot {
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    let total_memory = system.total_memory();
+    let used_memory = system.used_memory();
+    let memory_usage = if total_memory == 0 {
+        0.0
+    } else {
+        (used_memory as f32 / total_memory as f32) * 100.0
+    };
+
+    let disks = Disks::new_with_refreshed_list();
+    let total_disk = disks.iter().map(|disk| disk.total_space()).sum::<u64>();
+    let available_disk = disks.iter().map(|disk| disk.available_space()).sum::<u64>();
+    let disk_usage = if total_disk == 0 {
+        0.0
+    } else {
+        ((total_disk.saturating_sub(available_disk)) as f32 / total_disk as f32) * 100.0
+    };
+
+    SystemSnapshot {
+        cpu_usage: system.global_cpu_info().cpu_usage(),
+        memory_usage,
+        disk_usage,
+        memory_bytes: used_memory,
+    }
+}
+
+fn startup_diagnostics_json(path: &Path, inner: &RuntimeInner) -> Value {
+    let data_dir = path
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let certificate_dir = certificate_store_root();
+    let mut checks = Vec::new();
+
+    checks.push(startup_check(
+        "database",
+        path.exists(),
+        if path.exists() {
+            format!("Runtime store is available: {}", path.display())
+        } else {
+            format!("Runtime store will be created at {}", path.display())
+        },
+        "Ensure the parent directory is writable before creating tunnels.",
+    ));
+    checks.push(startup_check(
+        "config",
+        !inner.config.is_empty(),
+        format!("{} runtime config entries loaded", inner.config.len()),
+        "Open Settings and restore defaults if required keys are missing.",
+    ));
+    checks.push(startup_check(
+        "server",
+        !inner.servers.is_empty(),
+        if inner.servers.is_empty() {
+            "No server configuration has been created yet".to_string()
+        } else {
+            format!("{} server configurations restored", inner.servers.len())
+        },
+        "Add and connect a server before creating tunnels.",
+    ));
+    checks.push(startup_check(
+        "tls",
+        true,
+        "TLS runtime fields are present in the store schema".to_string(),
+        "Create an HTTPS tunnel with a domain to populate TLS counters.",
+    ));
+    checks.push(startup_check(
+        "certificate",
+        certificate_dir.exists(),
+        if certificate_dir.exists() {
+            format!("Certificate store found: {}", certificate_dir.display())
+        } else {
+            format!(
+                "Certificate store has not been created: {}",
+                certificate_dir.display()
+            )
+        },
+        "Issue or import a certificate for HTTPS domains.",
+    ));
+    checks.push(startup_check(
+        "port",
+        true,
+        format!("{} tunnel definitions restored", inner.tunnels.len()),
+        "Run deployment diagnostics with a server address to verify remote ports.",
+    ));
+    checks.push(startup_check(
+        "permission",
+        can_write_dir(&data_dir),
+        format!("Data directory: {}", data_dir.display()),
+        "Grant write permission to the Gate data directory.",
+    ));
+    checks.push(startup_check(
+        "directory",
+        fs::create_dir_all(&data_dir).is_ok(),
+        format!("Data directory checked: {}", data_dir.display()),
+        "Create the data directory manually or choose a writable data path.",
+    ));
+
+    let ok = checks
+        .iter()
+        .all(|check| check.get("status").and_then(Value::as_str) != Some("error"));
+
+    json!({
+        "ok": ok,
+        "checkedAt": Utc::now().timestamp_millis(),
+        "checks": checks,
+        "store": {
+            "path": path,
+            "dataDir": data_dir,
+            "certificateDir": certificate_dir
+        }
+    })
+}
+
+fn startup_check(id: &str, ok: bool, message: String, suggestion: &str) -> Value {
+    json!({
+        "id": id,
+        "status": if ok { "ok" } else { "warning" },
+        "message": message,
+        "suggestion": suggestion
+    })
+}
+
+fn can_write_dir(path: &Path) -> bool {
+    if fs::create_dir_all(path).is_err() {
+        return false;
+    }
+    let probe = path.join(".gate-write-check");
+    fs::write(&probe, b"gate")
+        .and_then(|_| fs::remove_file(&probe))
+        .is_ok()
 }
 
 fn metric(
@@ -843,4 +2363,97 @@ fn metric(
         "labels": [],
         "timestamp": timestamp
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::{TcpListener, TcpStream};
+
+    #[tokio::test]
+    async fn local_http_tunnel_runtime_forwards_requests() -> anyhow::Result<()> {
+        let target_listener = TcpListener::bind("127.0.0.1:0").await?;
+        let target_addr = target_listener.local_addr()?;
+        let target_task = tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = target_listener.accept().await else {
+                    break;
+                };
+                tokio::spawn(async move {
+                    let mut buffer = [0_u8; 1024];
+                    let _ = stream.read(&mut buffer).await;
+                    let response =
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\ngate-ok";
+                    let _ = stream.write_all(response).await;
+                });
+            }
+        });
+
+        let remote_port = unused_loopback_port().await?;
+        let tunnel = test_tunnel_record("http", target_addr.port(), remote_port);
+        let runtime = start_local_tunnel_runtime(&tunnel)
+            .await
+            .map_err(|error| anyhow::anyhow!(error))?;
+
+        let mut client = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        client
+            .write_all(b"GET / HTTP/1.1\r\nHost: local.test\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = String::new();
+        client.read_to_string(&mut response).await?;
+
+        assert!(response.contains("200 OK"));
+        assert!(response.contains("gate-ok"));
+
+        runtime
+            .shutdown()
+            .await
+            .map_err(|error| anyhow::anyhow!(error))?;
+        target_task.abort();
+        Ok(())
+    }
+
+    async fn unused_loopback_port() -> anyhow::Result<u16> {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let port = listener.local_addr()?.port();
+        drop(listener);
+        Ok(port)
+    }
+
+    fn test_tunnel_record(protocol: &str, local_port: u16, remote_port: u16) -> TunnelRecord {
+        let now = Utc::now().timestamp_millis();
+        TunnelRecord {
+            id: Uuid::new_v4().to_string(),
+            name: "local-test".to_string(),
+            protocol: protocol.to_string(),
+            status: "stopped".to_string(),
+            local_host: "127.0.0.1".to_string(),
+            local_port,
+            remote_port,
+            host: None,
+            path: Some("/".to_string()),
+            upload_speed_bps: 0.0,
+            download_speed_bps: 0.0,
+            upload_bytes: 0,
+            download_bytes: 0,
+            connections: 0,
+            uptime_seconds: 0,
+            request_count: 0,
+            success_count: 0,
+            total_latency_ms: 0,
+            started_at: None,
+            created_at: now,
+            updated_at: now,
+            last_sample_at: now,
+            tls_session_count: 0,
+            tls_handshake_count: 0,
+            tls_error_count: 0,
+            tls_version: None,
+            certificate_status: None,
+            certificate_expire_days: None,
+            certificate_issuer: None,
+            recent_requests: Vec::new(),
+        }
+    }
 }

@@ -30,6 +30,6 @@ const form = reactive({
 })
 
 function handleRegister() {
-    // TODO: implement register
+    throw new Error("该功能暂未实现：注册后台尚未接入。")
 }
 </script>

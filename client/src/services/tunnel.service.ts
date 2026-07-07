@@ -8,13 +8,15 @@ function isTauriRuntime() {
     return isTauri()
 }
 
-function makePreviewTunnelId(protocol: string) {
-    return `preview-${protocol}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+function ensureRuntime() {
+    if (!isTauriRuntime()) {
+        throw new Error("该功能暂未实现：当前环境未连接 Tauri Rust Backend。")
+    }
 }
 
 export const tunnelService = {
     async list() {
-        if (!isTauriRuntime()) return []
+        ensureRuntime()
         const dashboard = await ipc.invoke<DashboardData>("runtime_get_dashboard")
         return dashboard.tunnels
     },
@@ -27,7 +29,7 @@ export const tunnelService = {
         host?: string
         path?: string
     }) {
-        if (!isTauriRuntime()) return makePreviewTunnelId(data.protocol)
+        ensureRuntime()
         return ipc.invoke<string>("create_tunnel", {
             localPort: data.localPort,
             remotePort: data.remotePort,
@@ -39,17 +41,17 @@ export const tunnelService = {
     },
 
     async start(id: string) {
-        if (!isTauriRuntime()) return undefined
+        ensureRuntime()
         return ipc.invoke<void>("start_tunnel", { tunnelId: id })
     },
 
     async stop(id: string) {
-        if (!isTauriRuntime()) return undefined
+        ensureRuntime()
         return ipc.invoke<void>("stop_tunnel", { tunnelId: id })
     },
 
     async restart(id: string) {
-        if (!isTauriRuntime()) return undefined
+        ensureRuntime()
         return ipc.invoke<void>("restart_tunnel", { tunnelId: id })
     },
 
@@ -65,12 +67,12 @@ export const tunnelService = {
             path: string
         }>,
     ) {
-        if (!isTauriRuntime()) return undefined
+        ensureRuntime()
         return ipc.invoke<void>("edit_tunnel", { tunnelId: id, patch })
     },
 
     async delete(id: string) {
-        if (!isTauriRuntime()) return undefined
+        ensureRuntime()
         return ipc.invoke<void>("delete_tunnel", { tunnelId: id })
     },
 }

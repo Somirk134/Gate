@@ -92,6 +92,14 @@ export interface RuntimeStatistics {
   runtimeUptimeSeconds: number
 }
 
+/** TLS statistics sourced from the runtime. */
+export interface TlsStatistics {
+  sessionCount: number
+  handshakeCount: number
+  errorCount: number
+  trafficBytes: number
+}
+
 /** System statistics. */
 export interface SystemStatistics {
   cpuUsage: number
@@ -118,6 +126,7 @@ export interface Statistics {
   traffic: TrafficStatistics
   connection: ConnectionStatistics
   runtime: RuntimeStatistics
+  tls?: TlsStatistics
   system: SystemStatistics
   client: ClientStatistics
 }
@@ -190,6 +199,22 @@ export interface DashboardTunnel {
   requestCount?: number
   successRate?: number
   averageResponseTimeMs?: number
+  trafficBytes?: number
+  tls?: {
+    sessionCount: number
+    handshakeCount: number
+    errorCount: number
+    tlsVersion: string
+    certificateStatus: string
+    certificateExpireDays: number
+    certificateIssuer: string
+  } | null
+  recentLogs?: Array<{
+    level: string
+    source: string
+    message: string
+    timestamp: number
+  }>
   recentRequests?: HttpRequestRecord[]
 }
 

@@ -100,12 +100,16 @@
           </div>
           <GIcon name="chart-line" :size="18" />
         </div>
-        <div class="speed-sparkline" aria-label="Realtime speed trend">
+        <div v-if="sparkline.length" class="speed-sparkline" aria-label="Realtime speed trend">
           <span
             v-for="(point, index) in sparkline"
             :key="`${point.timestamp}-${index}`"
             :style="{ height: `${point.height}%` }"
           />
+        </div>
+        <div v-else class="mini-empty">
+          <GIcon name="chart-line" :size="22" />
+          <span>暂无数据</span>
         </div>
         <div class="speed-row">
           <span>Download <strong>{{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }}</strong></span>
@@ -151,7 +155,7 @@
           </div>
           <div>
             <dt>Runtime</dt>
-            <dd>Ready</dd>
+            <dd>{{ connectionStatusText }}</dd>
           </div>
           <div>
             <dt>Updated</dt>

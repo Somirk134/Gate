@@ -18,11 +18,27 @@ pub async fn runtime_get_health(state: State<'_, ClientRuntimeState>) -> Result<
 }
 
 #[tauri::command]
-pub async fn runtime_collect_metrics(state: State<'_, ClientRuntimeState>) -> Result<Value, String> {
+pub async fn runtime_collect_metrics(
+    state: State<'_, ClientRuntimeState>,
+) -> Result<Value, String> {
     Ok(state.metrics().await)
 }
 
 #[tauri::command]
 pub async fn runtime_get_logs(state: State<'_, ClientRuntimeState>) -> Result<Value, String> {
     Ok(state.logs().await)
+}
+
+#[tauri::command]
+pub async fn runtime_get_store_report(
+    state: State<'_, ClientRuntimeState>,
+) -> Result<Value, String> {
+    Ok(state.runtime_store_report().await)
+}
+
+#[tauri::command]
+pub async fn runtime_run_startup_diagnostics(
+    state: State<'_, ClientRuntimeState>,
+) -> Result<Value, String> {
+    Ok(state.startup_diagnostics().await)
 }

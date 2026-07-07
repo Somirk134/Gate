@@ -25,6 +25,8 @@ anyhow.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+sysinfo.workspace = true
 gate-shared = { path = "../../shared" }
 gate-communication = { path = "../../crates/communication" }
 gate-protocol = { path = "../../crates/protocol" }
+gate-engine = { path = "../../crates/engine" }

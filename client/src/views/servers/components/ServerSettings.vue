@@ -271,21 +271,18 @@ function handleSave() {
   validateField("heartbeatInterval")
   validateField("reconnectInterval")
   if (!isValid.value) return
-  saving.value = true
-  setTimeout(() => {
-    saving.value = false
-    emit("save", props.server.id, {
-      name: form.name,
-      host: form.host,
-      port: form.port,
-      token: form.token,
-      remark: form.remark,
-      heartbeatInterval: form.heartbeatInterval,
-      reconnectInterval: form.reconnectInterval,
-      autoConnect: form.autoConnect,
-    })
-    snapshot = JSON.stringify(form)
-    toast.success(`服务器「${form.name}」设置已保存`)
-  }, 400)
+  saving.value = false
+  emit("save", props.server.id, {
+    name: form.name,
+    host: form.host,
+    port: form.port,
+    token: form.token,
+    remark: form.remark,
+    heartbeatInterval: form.heartbeatInterval,
+    reconnectInterval: form.reconnectInterval,
+    autoConnect: form.autoConnect,
+  })
+  snapshot = JSON.stringify(form)
+  toast.success(`服务器「${form.name}」设置已保存`)
 }
 </script>

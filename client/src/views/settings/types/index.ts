@@ -89,7 +89,7 @@ export interface SettingItem {
   restartRequired?: boolean
   helpUrl?: string
   tags?: string[]
-  status?: "stable" | "reserved" | "mock"
+  status?: "stable" | "reserved" | "unimplemented"
   readonly?: boolean
 }
 

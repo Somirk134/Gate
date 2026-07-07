@@ -28,7 +28,7 @@ export class EventNotificationService implements NotificationService {
   }
 
   error(title: string, content?: string) {
-    return this.show({ type: "error", title, content, duration: 0 })
+    return this.show({ type: "error", title, content })
   }
 
   warning(title: string, content?: string) {

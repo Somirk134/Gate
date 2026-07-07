@@ -1,9 +1,9 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 pub async fn check_for_updates() -> Result<Option<String>> {
-    todo!("check for new client versions")
+    Ok(None)
 }
 
 pub async fn install_update() -> Result<()> {
-    todo!("download and install update")
+    Err(anyhow!("该功能暂未实现：更新安装尚未接入真实更新服务。"))
 }

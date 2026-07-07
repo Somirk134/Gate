@@ -11,16 +11,19 @@ export interface Connection {
 export const useConnectionStore = defineStore('connection', () => {
     const connections = ref<Connection[]>([])
     const loading = ref(false)
+    const error = ref('')
 
     async function fetchConnections() {
         loading.value = true
-        // TODO: fetch from API
+        error.value = ''
+        connections.value = []
         loading.value = false
     }
 
     return {
         connections,
         loading,
+        error,
         fetchConnections,
     }
 })

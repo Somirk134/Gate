@@ -1,4 +1,3 @@
-// TODO: register custom directives
 export function registerDirectives(_app: unknown) {
-    // placeholder
+    // No global directives are registered at the moment.
 }

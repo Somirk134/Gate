@@ -21,6 +21,6 @@ export function useSettings() {
     setSelectedSetting: store.setSelectedSetting,
     setSearchQuery: store.setSearchQuery,
     setCategoryFilter: store.setCategoryFilter,
-    runMockAction: store.runMockAction,
+    runAction: store.runAction,
   }
 }

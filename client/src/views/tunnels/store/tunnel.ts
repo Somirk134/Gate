@@ -1,46 +1,36 @@
-/* ==================================================================
-   Tunnel Store
-   ------------------------------------------------------------------
-   集中管理 Tunnel 模块的所有数据与状态。
-   当前从 mock 加载，后续替换为真实 Tunnel Engine 时，只需将 load
-   动作改为 API 调用并保持返回类型不变即可无缝迁移。
-
-   状态机：idle → loading → success / error
-   包含 monitor tick，模拟实时流量 / 连接 / 日志更新。
-   ================================================================== */
-
 import { defineStore } from "pinia"
-import { ref, computed } from "vue"
+import { computed, ref } from "vue"
 import { tunnelService } from "@/services/tunnel.service"
+import { useServerStore } from "@views/servers"
+import type { DashboardTunnel } from "@/monitoring/types"
 import type {
   Tunnel,
   TunnelFormData,
   TunnelLoadStatus,
-  TunnelLog,
+  TunnelProtocol,
+  TunnelStatus,
 } from "../types"
-import {
-  mockTunnels,
-  mockProjects,
-  mockServerNames,
-  defaultTunnelForm,
-} from "../mock"
-import {
-  TUNNEL_STATUS_CONFIG,
-  genId,
-  isRunningStatus,
-} from "../utils"
+import { TUNNEL_STATUS_CONFIG, isRunningStatus } from "../utils"
 
-/* 复用项目 / 服务器名（供创建对话框选项） */
-export { mockProjects, mockServerNames, defaultTunnelForm }
+export const defaultTunnelForm: TunnelFormData = {
+  name: "",
+  protocol: "tcp",
+  localHost: "127.0.0.1",
+  localPort: null,
+  remotePort: null,
+  projectId: "",
+  serverName: "",
+  autoStart: false,
+  remark: "",
+  tags: [],
+}
 
 export const useTunnelStore = defineStore("tunnel-module", () => {
-  // === State ===
   const tunnels = ref<Tunnel[]>([])
   const status = ref<TunnelLoadStatus>("idle")
   const error = ref<string>("")
   const lastUpdated = ref<number>(0)
 
-  // === Getters ===
   const isLoading = computed(() => status.value === "loading")
   const isError = computed(() => status.value === "error")
   const isReady = computed(() => status.value === "success")
@@ -83,18 +73,17 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
     return tunnels.value.find((t) => t.id === id)
   }
 
-  // === Actions ===
   async function load(): Promise<void> {
     status.value = "loading"
     error.value = ""
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      tunnels.value = structuredClone(mockTunnels)
+      const rows = await tunnelService.list()
+      tunnels.value = rows.map(mapRuntimeTunnel)
       status.value = "success"
       lastUpdated.value = Date.now()
     } catch (e) {
       status.value = "error"
-      error.value = e instanceof Error ? e.message : "加载失败"
+      error.value = e instanceof Error ? e.message : "Failed to load tunnels"
     }
   }
 
@@ -102,303 +91,106 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
     return load()
   }
 
-  /** 创建隧道 */
   async function createTunnel(form: TunnelFormData): Promise<Tunnel> {
-    const nowTs = Date.now()
-    const project = mockProjects.find((p) => p.id === form.projectId)
+    const serverStore = useServerStore()
+    if (serverStore.status === "idle") {
+      await serverStore.load()
+    }
+    if (!serverStore.onlineServers.length || !form.serverName) {
+      throw new Error("请先在服务器页面添加并连接一台服务器，然后再创建 Tunnel。")
+    }
+
     const id = await tunnelService.create({
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
       protocol: form.protocol,
       localHost: form.localHost || "127.0.0.1",
-      host: form.protocol === "http" ? "example.com" : undefined,
-      path: form.protocol === "http" ? "/" : undefined,
     })
-    const tunnel: Tunnel = {
-      id,
+
+    await tunnelService.edit(id, {
       name: form.name.trim(),
       protocol: form.protocol,
       localHost: form.localHost || "127.0.0.1",
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
-      publicAddr: `gate.dev:${form.remotePort ?? 0}`,
-      remark: form.remark.trim(),
-      status: "stopped",
-      autoStart: form.autoStart,
-      compression: false,
-      encryption: false,
-      tags: [...form.tags],
-      serverName: form.serverName,
-      projectName: project?.name ?? "—",
-      projectId: form.projectId,
-      pinned: false,
-      favorite: false,
-      traffic: {
-        uploadSpeed: 0,
-        downloadSpeed: 0,
-        totalUpload: 0,
-        totalDownload: 0,
-        todayUpload: 0,
-        todayDownload: 0,
-        history: [],
-      },
-      statistics: {
-        uptime: 0,
-        connections: 0,
-        totalConnections: 0,
-        requests: 0,
-        avgLatency: 0,
-        peakSpeed: 0,
-      },
-      connections: [],
-      logs: [
-        {
-          id: genId("log"),
-          level: "info",
-          message: "tunnel created, waiting to start",
-          timestamp: nowTs,
-          source: "frpc",
-        },
-      ],
-      lastStartedAt: "—",
-      createdAt: new Date(nowTs).toISOString(),
-      updatedAt: new Date(nowTs).toISOString(),
+    })
+
+    await load()
+    const created = getById(id)
+    if (!created) {
+      throw new Error("Tunnel was saved but could not be reloaded from backend.")
     }
-    tunnels.value.unshift(tunnel)
+
     if (form.autoStart) {
-      void startTunnel(tunnel.id)
+      await startTunnel(created.id)
+      return getById(created.id) ?? created
     }
-    return tunnel
+
+    return created
   }
 
-  /** 更新隧道 */
-  function updateTunnel(id: string, patch: Partial<TunnelFormData>): void {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (!t) return
-    if (patch.name !== undefined) t.name = patch.name.trim()
-    if (patch.protocol !== undefined) t.protocol = patch.protocol
-    if (patch.localHost !== undefined) t.localHost = patch.localHost
-    if (patch.localPort !== undefined) t.localPort = patch.localPort ?? 0
-    if (patch.remotePort !== undefined) {
-      t.remotePort = patch.remotePort ?? 0
-      t.publicAddr = `gate.dev:${t.remotePort}`
-    }
-    if (patch.projectId !== undefined) {
-      t.projectId = patch.projectId
-      const p = mockProjects.find((x) => x.id === patch.projectId)
-      t.projectName = p?.name ?? "—"
-    }
-    if (patch.serverName !== undefined) t.serverName = patch.serverName
-    if (patch.autoStart !== undefined) t.autoStart = patch.autoStart
-    if (patch.remark !== undefined) t.remark = patch.remark.trim()
-    if (patch.tags !== undefined) t.tags = [...patch.tags]
-    t.updatedAt = new Date().toISOString()
+  async function updateTunnel(id: string, patch: Partial<TunnelFormData>): Promise<void> {
+    await tunnelService.edit(id, {
+      name: patch.name,
+      protocol: patch.protocol,
+      localHost: patch.localHost,
+      localPort: patch.localPort ?? undefined,
+      remotePort: patch.remotePort ?? undefined,
+    })
+    await load()
   }
 
-  /** 删除隧道 */
   async function removeTunnel(id: string): Promise<void> {
     await tunnelService.delete(id)
-    const idx = tunnels.value.findIndex((x) => x.id === id)
-    if (idx !== -1) tunnels.value.splice(idx, 1)
+    await load()
   }
 
-  /** 启动隧道 */
   async function startTunnel(id: string): Promise<void> {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (!t) return
-    await tunnelService.start(id)
-    t.status = "starting"
-    pushLog(t, "info", `starting tunnel ${t.name}…`, "frpc")
-    setTimeout(() => {
-      if (!t) return
-      t.status = "running"
-      t.lastStartedAt = "刚刚"
-      t.statistics.uptime = 1
-      t.traffic.uploadSpeed = Math.floor(Math.random() * 50 * 1024)
-      t.traffic.downloadSpeed = Math.floor(Math.random() * 120 * 1024)
-      pushLog(t, "success", "tunnel established, public address ready", "transport")
-    }, 900)
+    try {
+      await tunnelService.start(id)
+    } finally {
+      await load()
+    }
   }
 
-  /** 停止隧道 */
   async function stopTunnel(id: string): Promise<void> {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (!t) return
-    await tunnelService.stop(id)
-    t.status = "stopping"
-    pushLog(t, "info", "stopping tunnel…", "frpc")
-    setTimeout(() => {
-      if (!t) return
-      t.status = "stopped"
-      t.lastStartedAt = "—"
-      t.traffic.uploadSpeed = 0
-      t.traffic.downloadSpeed = 0
-      t.statistics.connections = 0
-      t.connections = []
-      pushLog(t, "info", "tunnel stopped", "frpc")
-    }, 600)
+    try {
+      await tunnelService.stop(id)
+    } finally {
+      await load()
+    }
   }
 
-  /** 重启隧道 */
   async function restartTunnel(id: string): Promise<void> {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (!t) return
-    await tunnelService.restart(id)
-    t.status = "restarting"
-    pushLog(t, "info", "restarting tunnel…", "frpc")
-    setTimeout(() => {
-      if (!t) return
-      t.status = "running"
-      t.lastStartedAt = "刚刚"
-      t.statistics.uptime = 1
-      pushLog(t, "success", "tunnel restarted successfully", "transport")
-    }, 1000)
-  }
-
-  /** 克隆隧道 */
-  function cloneTunnel(id: string): Tunnel | undefined {
-    const src = tunnels.value.find((x) => x.id === id)
-    if (!src) return undefined
-    const nowTs = Date.now()
-    const clone: Tunnel = {
-      ...structuredClone(src),
-      id: genId(),
-      name: `${src.name}-copy`,
-      pinned: false,
-      favorite: false,
-      status: "stopped",
-      lastStartedAt: "—",
-      createdAt: new Date(nowTs).toISOString(),
-      updatedAt: new Date(nowTs).toISOString(),
-      traffic: {
-        uploadSpeed: 0,
-        downloadSpeed: 0,
-        totalUpload: 0,
-        totalDownload: 0,
-        todayUpload: 0,
-        todayDownload: 0,
-        history: [],
-      },
-      statistics: {
-        uptime: 0,
-        connections: 0,
-        totalConnections: 0,
-        requests: 0,
-        avgLatency: 0,
-        peakSpeed: 0,
-      },
-      connections: [],
-      logs: [
-        {
-          id: genId("log"),
-          level: "info",
-          message: `cloned from ${src.name}`,
-          timestamp: nowTs,
-          source: "frpc",
-        },
-      ],
+    try {
+      await tunnelService.restart(id)
+    } finally {
+      await load()
     }
-    const idx = tunnels.value.findIndex((x) => x.id === id)
-    tunnels.value.splice(idx + 1, 0, clone)
-    return clone
   }
 
-  /** 切换固定 */
-  function togglePin(id: string): void {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (t) t.pinned = !t.pinned
+  function cloneTunnel(_id: string): Tunnel | undefined {
+    error.value = "该功能暂未实现"
+    return undefined
   }
 
-  /** 切换收藏 */
-  function toggleFavorite(id: string): void {
-    const t = tunnels.value.find((x) => x.id === id)
-    if (t) t.favorite = !t.favorite
+  function togglePin(_id: string): void {
+    error.value = "该功能暂未实现"
   }
 
-  /** 推送日志（内部） */
-  function pushLog(
-    t: Tunnel,
-    level: TunnelLog["level"],
-    message: string,
-    source: string,
-  ): void {
-    t.logs.push({
-      id: genId("log"),
-      level,
-      message,
-      timestamp: Date.now(),
-      source,
-    })
-    // 限制日志条数，避免无限增长
-    if (t.logs.length > 200) t.logs.splice(0, t.logs.length - 200)
+  function toggleFavorite(_id: string): void {
+    error.value = "该功能暂未实现"
   }
 
-  /**
-   * Monitor tick —— 模拟实时数据更新。
-   * 由 useTunnelMonitor 在组件层定时调用。
-   * 仅对运行中隧道抖动流量 / 累计 / 时长 / 连接。
-   */
   function tick(): void {
-    for (const t of tunnels.value) {
-      if (!isRunningStatus(t.status)) continue
-      if (t.status !== "running") continue
-
-      // 速度抖动
-      const upJitter = (Math.random() - 0.4) * 30 * 1024
-      const downJitter = (Math.random() - 0.4) * 80 * 1024
-      t.traffic.uploadSpeed = Math.max(0, Math.floor(t.traffic.uploadSpeed + upJitter))
-      t.traffic.downloadSpeed = Math.max(0, Math.floor(t.traffic.downloadSpeed + downJitter))
-
-      // 累计流量
-      t.traffic.totalUpload += t.traffic.uploadSpeed
-      t.traffic.totalDownload += t.traffic.downloadSpeed
-      t.traffic.todayUpload += t.traffic.uploadSpeed
-      t.traffic.todayDownload += t.traffic.downloadSpeed
-
-      // 峰值
-      if (t.traffic.downloadSpeed > t.statistics.peakSpeed) {
-        t.statistics.peakSpeed = t.traffic.downloadSpeed
-      }
-
-      // 时长 +1
-      t.statistics.uptime += 1
-
-      // 推入历史采样点（保留 12 个）
-      const d = new Date()
-      const label = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-      t.traffic.history.push({
-        time: label,
-        upload: t.traffic.uploadSpeed,
-        download: t.traffic.downloadSpeed,
-      })
-      if (t.traffic.history.length > 12) t.traffic.history.shift()
-
-      // 连接时长 +1
-      for (const c of t.connections) {
-        c.duration += 1
-      }
-
-      // 偶发推送日志
-      if (Math.random() < 0.25) {
-        const samples: Array<{ level: TunnelLog["level"]; message: string; source: string }> = [
-          { level: "debug", message: "heartbeat packet sent", source: "transport" },
-          { level: "info", message: "new connection from client", source: "api" },
-          { level: "info", message: "connection closed by peer", source: "api" },
-          { level: "debug", message: "request forwarded to local service", source: "api" },
-        ]
-        const s = samples[Math.floor(Math.random() * samples.length)]
-        pushLog(t, s.level, s.message, s.source)
-      }
-    }
+    // Realtime samples are supplied by the Rust runtime dashboard.
   }
 
   return {
-    // state
     tunnels,
     status,
     error,
     lastUpdated,
-    // getters
     isLoading,
     isError,
     isReady,
@@ -415,7 +207,6 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
     totalUploadSpeed,
     totalDownloadSpeed,
     getById,
-    // actions
     load,
     refresh,
     createTunnel,
@@ -431,5 +222,92 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 })
 
-/* 导出状态配置，便于组件直接引用 */
+function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
+  const nowIso = new Date().toISOString()
+  const createdAt = nowIso
+  const protocol = normalizeProtocol(row.protocol)
+  const status = normalizeStatus(row.status)
+
+  return {
+    id: row.id,
+    name: row.name,
+    protocol,
+    localHost: row.localHost ?? "127.0.0.1",
+    localPort: row.localPort ?? 0,
+    remotePort: row.remotePort ?? 0,
+    publicAddr: publicAddress(row),
+    remark: "",
+    status,
+    autoStart: false,
+    compression: false,
+    encryption: false,
+    tags: [],
+    serverName: "",
+    projectName: "",
+    projectId: "",
+    pinned: false,
+    favorite: false,
+    traffic: {
+      uploadSpeed: row.uploadSpeedBps,
+      downloadSpeed: row.downloadSpeedBps,
+      totalUpload: 0,
+      totalDownload: 0,
+      todayUpload: 0,
+      todayDownload: 0,
+      history: [],
+    },
+    statistics: {
+      uptime: row.uptimeSeconds,
+      connections: row.connections,
+      totalConnections: row.connections,
+      requests: row.requestCount ?? 0,
+      avgLatency: row.averageResponseTimeMs ?? 0,
+      peakSpeed: Math.max(row.uploadSpeedBps, row.downloadSpeedBps),
+    },
+    connections: [],
+    logs: (row.recentLogs ?? []).map((log) => ({
+      id: `${row.id}-${log.source}-${log.timestamp}-${log.message}`,
+      level: normalizeLogLevel(log.level),
+      message: log.message,
+      timestamp: log.timestamp,
+      source: log.source,
+    })),
+    lastStartedAt: row.uptimeSeconds > 0 ? `${row.uptimeSeconds}s` : "",
+    createdAt,
+    updatedAt: nowIso,
+  }
+}
+
+function normalizeProtocol(protocol: DashboardTunnel["protocol"]): TunnelProtocol {
+  if (protocol === "http" || protocol === "tcp" || protocol === "https" || protocol === "udp") {
+    return protocol
+  }
+  return "tcp"
+}
+
+function normalizeStatus(status: DashboardTunnel["status"]): TunnelStatus {
+  if (status === "running") return "running"
+  if (status === "warning") return "error"
+  return "stopped"
+}
+
+function normalizeLogLevel(level: string): Tunnel["logs"][number]["level"] {
+  if (level === "debug" || level === "info" || level === "warn" || level === "error" || level === "success") {
+    return level
+  }
+  return "info"
+}
+
+function publicAddress(row: DashboardTunnel): string {
+  if ((row.protocol === "http" || row.protocol === "https") && row.host) {
+    return `${row.host}${row.path ?? "/"}`
+  }
+
+  if (row.remotePort) {
+    return `:${row.remotePort}`
+  }
+
+  return "Not assigned"
+}
+
 export { TUNNEL_STATUS_CONFIG }

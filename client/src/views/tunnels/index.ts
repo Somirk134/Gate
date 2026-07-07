@@ -22,10 +22,4 @@ export { useTunnelSort } from "./composables/useTunnelSort"
 export { useTunnelStatistics } from "./composables/useTunnelStatistics"
 export { useTunnelMonitor } from "./composables/useTunnelMonitor"
 
-// ── Mock ──
-export {
-  mockTunnels,
-  mockProjects,
-  mockServerNames,
-  defaultTunnelForm,
-} from "./mock"
+export { defaultTunnelForm } from "./store/tunnel"

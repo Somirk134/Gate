@@ -1,6 +1,7 @@
 <template>
   <DashboardWidget title="Realtime Speed" icon="activity">
-    <div class="realtime-chart">
+    <GEmptyState v-if="!points.length" title="暂无数据" description="暂无实时速度样本。真实流量产生后将在这里显示。" />
+    <div v-else class="realtime-chart">
       <div class="realtime-chart__speed">
         <div>
           <span>Upload</span>
@@ -22,6 +23,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
+import GEmptyState from "@components/feedback/GEmptyState.vue"
 import DashboardWidget from "./DashboardWidget.vue"
 import type { RealtimeSpeedPoint } from "@/monitoring/types"
 

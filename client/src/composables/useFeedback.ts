@@ -14,10 +14,10 @@ export function useFeedback() {
   }
 
   const notify = {
-    success: (title: string, content?: string) => notifications.success(title, content),
-    error: (title: string, content?: string) => notifications.error(title, content),
-    warning: (title: string, content?: string) => notifications.warning(title, content),
-    info: (title: string, content?: string) => notifications.info(title, content),
+    success: (title: string, content?: string, duration?: number) => notifications.success(title, content, duration),
+    error: (title: string, content?: string, duration?: number) => notifications.error(title, content, duration),
+    warning: (title: string, content?: string, duration?: number) => notifications.warning(title, content, duration),
+    info: (title: string, content?: string, duration?: number) => notifications.info(title, content, duration),
   }
 
   const confirm = (options: {

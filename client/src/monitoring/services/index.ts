@@ -81,6 +81,12 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
       sessionCount: 0,
       runtimeUptimeSeconds: 0,
     },
+    tls: {
+      sessionCount: 0,
+      handshakeCount: 0,
+      errorCount: 0,
+      trafficBytes: 0,
+    },
     system: {
       cpuUsage: 0,
       memoryUsage: 0,
@@ -92,7 +98,7 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
     client: {
       onlineTimeSeconds: 0,
       openProject: 0,
-      currentWorkspace: "Gate Alpha V1",
+      currentWorkspace: "",
       uiFps: 0,
       memoryBytes: 0,
     },

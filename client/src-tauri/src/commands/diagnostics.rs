@@ -4,8 +4,7 @@ use gate_protocol::{Body, Command, Message, Metadata};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::{
-    env,
-    fs,
+    env, fs,
     net::SocketAddr,
     path::PathBuf,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -315,7 +314,7 @@ async fn test_connection(
                 "对端关闭连接、协议版本不一致，或该端口不是 Gate Server。",
                 "检查服务端版本和协议版本；必要时重启服务端后再测试。",
                 started.elapsed().as_millis(),
-            )
+            );
         }
         Err(_) => {
             let _ = transport.disconnect().await;
@@ -327,7 +326,7 @@ async fn test_connection(
                 "网络链路不稳定，或服务端读取连接卡住。",
                 "检查网络延迟和服务端负载后重试。",
                 started.elapsed().as_millis(),
-            )
+            );
         }
     }
 
@@ -587,7 +586,12 @@ async fn check_runtime_config(state: State<'_, ClientRuntimeState>) -> Diagnosti
     DiagnosticFinding {
         id: "config.valid".to_string(),
         label: "配置合法性".to_string(),
-        status: if has_transport && has_auth { "ok" } else { "warning" }.to_string(),
+        status: if has_transport && has_auth {
+            "ok"
+        } else {
+            "warning"
+        }
+        .to_string(),
         reason: if has_transport && has_auth {
             "运行时配置包含网络传输和认证设置。".to_string()
         } else {
@@ -610,39 +614,43 @@ async fn check_runtime_config(state: State<'_, ClientRuntimeState>) -> Diagnosti
 async fn check_server_port(server_addr: String) -> DiagnosticFinding {
     let started = Instant::now();
     match parse_server_addr(&server_addr) {
-        Ok((host, port)) => match timeout(Duration::from_millis(2500), resolve_addr(&host, port)).await {
-            Ok(Ok(addr)) => match timeout(Duration::from_millis(2500), TcpStream::connect(addr)).await {
-                Ok(Ok(stream)) => {
-                    drop(stream);
-                    DiagnosticFinding {
+        Ok((host, port)) => match timeout(Duration::from_millis(2500), resolve_addr(&host, port))
+            .await
+        {
+            Ok(Ok(addr)) => {
+                match timeout(Duration::from_millis(2500), TcpStream::connect(addr)).await {
+                    Ok(Ok(stream)) => {
+                        drop(stream);
+                        DiagnosticFinding {
+                            id: "server.port".to_string(),
+                            label: "监听端口".to_string(),
+                            status: "ok".to_string(),
+                            reason: format!("{server_addr} 可以建立 TCP 连接。"),
+                            possible_cause: "无。".to_string(),
+                            solution: "继续测试 Token 和协议版本。".to_string(),
+                            elapsed_ms: Some(started.elapsed().as_millis()),
+                        }
+                    }
+                    Ok(Err(error)) => DiagnosticFinding {
                         id: "server.port".to_string(),
                         label: "监听端口".to_string(),
-                        status: "ok".to_string(),
-                        reason: format!("{server_addr} 可以建立 TCP 连接。"),
-                        possible_cause: "无。".to_string(),
-                        solution: "继续测试 Token 和协议版本。".to_string(),
+                        status: "error".to_string(),
+                        reason: error.to_string(),
+                        possible_cause: "服务端未监听、端口未开放或防火墙拒绝连接。".to_string(),
+                        solution: "启动 Rust Server，并放行服务器入站端口。".to_string(),
                         elapsed_ms: Some(started.elapsed().as_millis()),
-                    }
+                    },
+                    Err(_) => DiagnosticFinding {
+                        id: "server.port".to_string(),
+                        label: "监听端口".to_string(),
+                        status: "error".to_string(),
+                        reason: "端口连接超时。".to_string(),
+                        possible_cause: "安全组、防火墙、NAT 或网络链路阻止访问。".to_string(),
+                        solution: "检查服务器网络策略和公网访问路径。".to_string(),
+                        elapsed_ms: Some(started.elapsed().as_millis()),
+                    },
                 }
-                Ok(Err(error)) => DiagnosticFinding {
-                    id: "server.port".to_string(),
-                    label: "监听端口".to_string(),
-                    status: "error".to_string(),
-                    reason: error.to_string(),
-                    possible_cause: "服务端未监听、端口未开放或防火墙拒绝连接。".to_string(),
-                    solution: "启动 Rust Server，并放行服务器入站端口。".to_string(),
-                    elapsed_ms: Some(started.elapsed().as_millis()),
-                },
-                Err(_) => DiagnosticFinding {
-                    id: "server.port".to_string(),
-                    label: "监听端口".to_string(),
-                    status: "error".to_string(),
-                    reason: "端口连接超时。".to_string(),
-                    possible_cause: "安全组、防火墙、NAT 或网络链路阻止访问。".to_string(),
-                    solution: "检查服务器网络策略和公网访问路径。".to_string(),
-                    elapsed_ms: Some(started.elapsed().as_millis()),
-                },
-            },
+            }
             Ok(Err(error)) => DiagnosticFinding {
                 id: "server.port".to_string(),
                 label: "监听端口".to_string(),

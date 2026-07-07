@@ -5,7 +5,7 @@
     <GCard v-else-if="isError" variant="plain" padding="lg" class="logs-page__error">
       <GErrorState
         title="Log loading failed"
-        :message="error || 'Unable to read mock logs.'"
+        :message="error || 'Unable to read runtime logs.'"
         retry
         @retry="refresh"
       />
@@ -63,7 +63,7 @@
         <LogInspector :log="selectedLog" />
       </div>
 
-      <LogEmpty v-else @generate="generateTestLogs(1000)" />
+      <LogEmpty v-else />
 
       <LogStatusBar
         :total="logs.length"
@@ -113,7 +113,7 @@ import LogStatistics from "./components/LogStatistics.vue"
 import LogStatusBar from "./components/LogStatusBar.vue"
 import LogToolbar from "./components/LogToolbar.vue"
 import { useLog, useLogExport } from "./hooks"
-import { LOG_SOURCE_LIST, LOG_SOURCES } from "./mock"
+import { LOG_SOURCE_LIST, LOG_SOURCES } from "./constants"
 import type { LogFilter, LogItem, LogSource } from "./types"
 import type { LogExportFormat } from "./utils"
 import { serializeLogs } from "./utils"
@@ -142,7 +142,6 @@ const {
   pause,
   resume,
   setAutoScroll,
-  generateTestLogs,
 } = useLog()
 
 const consoleRef = ref<InstanceType<typeof LogConsole> | null>(null)

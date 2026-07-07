@@ -107,12 +107,14 @@
               <label>
                 <span>项目</span>
                 <select v-model="form.projectId">
+                  <option v-if="!projects.length" value="">未分组</option>
                   <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
                 </select>
               </label>
               <label>
                 <span>服务器</span>
                 <select v-model="form.serverName">
+                  <option v-if="!serverNames.length" value="">未连接服务器</option>
                   <option v-for="serverName in serverNames" :key="serverName" :value="serverName">{{ serverName }}</option>
                 </select>
               </label>
@@ -129,6 +131,7 @@
               <div><span>场景</span><strong>{{ selectedScenario?.title ?? "自定义" }}</strong></div>
               <div><span>模板</span><strong>{{ selectedTemplate.title }}</strong></div>
               <div><span>协议</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
+              <div><span>服务器</span><strong>{{ form.serverName || "未连接服务器" }}</strong></div>
               <div><span>本地服务</span><strong>{{ form.localHost }}:{{ form.localPort || "-" }}</strong></div>
               <div><span>公网端口</span><strong>{{ form.remotePort || "-" }}</strong></div>
               <div><span>访问地址</span><strong>{{ publicPreview }}</strong></div>
@@ -213,7 +216,7 @@ const selectedScenario = computed(() =>
 const selectedTemplate = computed(() => findTemplate(selectedTemplateId.value))
 const stepTitle = computed(() => steps.find((item) => item.index === step.value)?.title ?? "创建成功")
 const suggestedName = computed(() => form.name || selectedScenario.value?.suggestedName || selectedTemplate.value.suggestedName)
-const publicPreview = computed(() => `gate.dev:${form.remotePort || "端口"}`)
+const publicPreview = computed(() => (form.remotePort ? `:${form.remotePort}` : "保存后由 Runtime 返回"))
 
 watch(
   () => props.visible,
@@ -232,7 +235,7 @@ function reset() {
   form.localPort = null
   form.remotePort = null
   form.projectId = props.projects[0]?.id ?? ""
-  form.serverName = props.serverNames[0] ?? "Default"
+  form.serverName = props.serverNames[0] ?? ""
   form.autoStart = false
   form.remark = ""
   form.tags = []
@@ -274,7 +277,9 @@ function isValidPort(port: number | null) {
 function validateCurrentStep() {
   errorMessage.value = ""
   if (step.value === 3 || step.value === 4) {
-    if (!form.localHost.trim()) errorMessage.value = "请填写本地地址。"
+    if (!props.serverNames.length) errorMessage.value = "请先在服务器页面添加并连接服务器。"
+    else if (!form.serverName) errorMessage.value = "请选择一台已连接服务器。"
+    else if (!form.localHost.trim()) errorMessage.value = "请填写本地地址。"
     else if (!isValidPort(form.localPort)) errorMessage.value = "本地端口必须在 1-65535 之间。"
     else if (!isValidPort(form.remotePort)) errorMessage.value = "公网端口必须在 1-65535 之间。"
   }

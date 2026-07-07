@@ -1,5 +1,8 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::{fs, path::PathBuf};
+
+use crate::utils::get_app_data_dir;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
@@ -25,9 +28,22 @@ impl Default for AppConfig {
 }
 
 pub fn load_config() -> Result<AppConfig> {
-    todo!("load config from app data directory")
+    let path = config_path()?;
+    if !path.exists() {
+        return Ok(AppConfig::default());
+    }
+
+    let raw = fs::read_to_string(path)?;
+    Ok(serde_json::from_str(&raw)?)
 }
 
 pub fn save_config(config: &AppConfig) -> Result<()> {
-    todo!("save config to app data directory")
+    let path = config_path()?;
+    let raw = serde_json::to_string_pretty(config)?;
+    fs::write(path, raw)?;
+    Ok(())
+}
+
+fn config_path() -> Result<PathBuf> {
+    Ok(get_app_data_dir()?.join("client-config.json"))
 }

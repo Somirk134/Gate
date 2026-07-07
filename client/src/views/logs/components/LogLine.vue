@@ -23,7 +23,7 @@
 import { computed } from "vue"
 import GIcon from "@components/icons/GIcon.vue"
 import type { LogItem } from "../types"
-import { getLevelOption } from "../mock"
+import { getLevelOption } from "../constants"
 import { formatLogTime, highlightText } from "../utils"
 
 const props = defineProps<{

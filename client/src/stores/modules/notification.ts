@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
+const DEFAULT_NOTIFICATION_DURATION = 4000
+
 export interface NotificationItem {
     id: string
     type: NotificationType
@@ -26,12 +28,13 @@ export const useNotificationStore = defineStore('notification', () => {
     // === Actions ===
     function notify(options: Omit<NotificationItem, 'id' | 'timestamp'>) {
         const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        const { duration, closable, ...notification } = options
         const notif: NotificationItem = {
             id,
             timestamp: Date.now(),
-            duration: 4000,
-            closable: true,
-            ...options,
+            duration: duration ?? DEFAULT_NOTIFICATION_DURATION,
+            closable: closable ?? true,
+            ...notification,
         }
         notifications.value.unshift(notif)
 
@@ -50,7 +53,7 @@ export const useNotificationStore = defineStore('notification', () => {
     }
 
     function error(title: string, content?: string, duration?: number) {
-        return notify({ type: 'error', title, content, duration: duration ?? 0 })
+        return notify({ type: 'error', title, content, duration })
     }
 
     function warning(title: string, content?: string, duration?: number) {

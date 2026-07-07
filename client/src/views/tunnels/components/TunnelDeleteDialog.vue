@@ -94,12 +94,9 @@ function handleClose() {
 
 function handleDelete() {
   if (confirmText.value !== props.tunnel?.name) return
-  deleting.value = true
-  setTimeout(() => {
-    deleting.value = false
-    if (props.tunnel) emit("confirm", props.tunnel)
-    emit("update:visible", false)
-  }, 500)
+  deleting.value = false
+  if (props.tunnel) emit("confirm", props.tunnel)
+  emit("update:visible", false)
 }
 </script>
 

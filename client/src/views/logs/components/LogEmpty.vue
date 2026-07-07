@@ -5,15 +5,11 @@
     </div>
     <h2>Log Center</h2>
     <p>
-      Central debugging workspace for System, Client, Server, Project, Tunnel and future Plugin logs.
+      暂无运行时日志。连接后端、创建 Tunnel 或执行真实操作后，Tracing 与 Runtime 日志会显示在这里。
     </p>
-    <GButton variant="primary" icon="plus" @click="$emit('generate')">Generate Test Logs</GButton>
   </div>
 </template>
 
 <script setup lang="ts">
-import GButton from "@components/base/GButton.vue"
 import GIcon from "@components/icons/GIcon.vue"
-
-defineEmits<{ generate: [] }>()
 </script>

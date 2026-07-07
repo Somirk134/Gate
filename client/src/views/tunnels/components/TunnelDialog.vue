@@ -358,11 +358,8 @@ function handleSubmit() {
   validateField("localPort")
   validateField("remotePort")
   if (!isValid.value) return
-  submitting.value = true
-  setTimeout(() => {
-    submitting.value = false
-    emit("submit", { ...form, tags: [...form.tags] }, isEdit.value)
-    emit("update:visible", false)
-  }, 400)
+  submitting.value = false
+  emit("submit", { ...form, tags: [...form.tags] }, isEdit.value)
+  emit("update:visible", false)
 }
 </script>

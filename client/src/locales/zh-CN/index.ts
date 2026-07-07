@@ -35,6 +35,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         tunnels: "隧道",
         servers: "服务器",
         logs: "日志",
+        certificates: "证书",
         diagnostics: "诊断",
         feedback: "反馈",
         settings: "设置",

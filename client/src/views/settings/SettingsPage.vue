@@ -114,10 +114,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
 import GButton from "@components/base/GButton.vue"
 import GIcon from "@components/icons/GIcon.vue"
 import { useFeedback } from "@composables/useFeedback"
+import { TauriIpcClient } from "@/ipc"
 import "./styles/settings.css"
 
 type SettingControl = "switch" | "select" | "number" | "readonly" | "action"
@@ -161,6 +162,8 @@ const query = ref("")
 const activeCategory = ref("general")
 const importInput = ref<HTMLInputElement | null>(null)
 const { toast } = useFeedback()
+const ipc = new TauriIpcClient()
+let hydrating = false
 
 const categories: SettingCategory[] = [
   {
@@ -330,6 +333,29 @@ const defaultValues = Object.fromEntries(
   ),
 ) as Record<string, string | number | boolean>
 
+onMounted(async () => {
+  hydrating = true
+  try {
+    const saved = await ipc.invoke<Record<string, string>>("get_config")
+    for (const key of Object.keys(values)) {
+      if (saved[key] === undefined) continue
+      values[key] = parseSettingValue(saved[key], values[key])
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : "设置加载失败")
+  } finally {
+    hydrating = false
+  }
+})
+
+watch(
+  values,
+  () => {
+    if (!hydrating) void persistAllSettings()
+  },
+  { deep: true },
+)
+
 const visibleCategories = computed(() => {
   const keyword = query.value.toLowerCase()
   if (!keyword) return categories
@@ -353,6 +379,7 @@ function runSettingAction(action?: SettingAction) {
   if (!action) return
   if (action === "restoreDefaults") {
     Object.assign(values, defaultValues)
+    void persistAllSettings()
     toast.success("已恢复默认设置")
   }
   if (action === "exportConfig") {
@@ -378,8 +405,7 @@ function runSettingAction(action?: SettingAction) {
     toast.success("缓存已重置，下次启动会重新显示向导")
   }
   if (action === "clearLogs") {
-    localStorage.removeItem("gate.logs.cache")
-    toast.success("日志缓存已清理")
+    toast.info("该功能暂未实现：运行时日志由 Rust Backend 管理。")
   }
   if (action === "openOnboarding") {
     window.dispatchEvent(new CustomEvent("gate:onboarding:open", { detail: { restart: true } }))
@@ -410,6 +436,7 @@ function handleImportFile(event: Event) {
           values[key] = value
         }
       }
+      void persistAllSettings()
       toast.success("配置已导入")
     } catch {
       toast.error("导入失败：配置文件不是有效 JSON")
@@ -418,5 +445,30 @@ function handleImportFile(event: Event) {
     }
   }
   reader.readAsText(file)
+}
+
+async function persistAllSettings() {
+  try {
+    await Promise.all(
+      Object.entries(values).map(([key, value]) =>
+        ipc.invoke<void>("set_config", {
+          key,
+          value: JSON.stringify(value),
+        }),
+      ),
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : "设置保存失败")
+  }
+}
+
+function parseSettingValue(raw: string, fallback: string | number | boolean) {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed === typeof fallback) return parsed as string | number | boolean
+  } catch {
+    if (typeof fallback === "string") return raw
+  }
+  return fallback
 }
 </script>

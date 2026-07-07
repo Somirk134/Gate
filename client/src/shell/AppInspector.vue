@@ -28,26 +28,26 @@
         <div class="inspector-content">
             <div class="inspector-panel" v-show="activeTab === 'details'">
                 <div class="inspector-placeholder">
-                    <p class="placeholder-text">Details panel</p>
-                    <p class="placeholder-subtext">Contextual details for the current page will appear here.</p>
+                    <p class="placeholder-text">暂无数据</p>
+                    <p class="placeholder-subtext">当前页面未提供详情数据。</p>
                 </div>
             </div>
             <div class="inspector-panel" v-show="activeTab === 'logs'">
                 <div class="inspector-placeholder">
-                    <p class="placeholder-text">Logs</p>
-                    <p class="placeholder-subtext">Real-time logs will appear here.</p>
+                    <p class="placeholder-text">暂无日志</p>
+                    <p class="placeholder-subtext">当前上下文没有可显示的实时日志。</p>
                 </div>
             </div>
             <div class="inspector-panel" v-show="activeTab === 'stats'">
                 <div class="inspector-placeholder">
-                    <p class="placeholder-text">Statistics</p>
-                    <p class="placeholder-subtext">Usage statistics and metrics will appear here.</p>
+                    <p class="placeholder-text">暂无数据</p>
+                    <p class="placeholder-subtext">该统计面板暂未接入真实 Runtime 指标。</p>
                 </div>
             </div>
             <div class="inspector-panel" v-show="activeTab === 'properties'">
                 <div class="inspector-placeholder">
-                    <p class="placeholder-text">Properties</p>
-                    <p class="placeholder-subtext">Object properties and metadata will appear here.</p>
+                    <p class="placeholder-text">暂无属性</p>
+                    <p class="placeholder-subtext">请选择已接入的数据对象后查看属性。</p>
                 </div>
             </div>
         </div>

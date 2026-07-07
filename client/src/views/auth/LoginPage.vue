@@ -26,6 +26,6 @@ const form = reactive({
 })
 
 function handleLogin() {
-    // TODO: implement login
+    throw new Error("该功能暂未实现：登录后台尚未接入。")
 }
 </script>

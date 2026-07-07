@@ -135,6 +135,24 @@
               </article>
             </div>
 
+            <div class="test-url-panel">
+              <div>
+                <span>本机测试地址</span>
+                <strong>{{ testUrl(selectedTunnel) }}</strong>
+              </div>
+              <div class="test-url-panel__actions">
+                <GButton variant="secondary" icon="copy" @click="copyTestUrl(selectedTunnel)">复制</GButton>
+                <GButton
+                  v-if="canOpenTestUrl(selectedTunnel)"
+                  variant="primary"
+                  icon="external-link"
+                  @click="openTestUrl(selectedTunnel)"
+                >
+                  打开
+                </GButton>
+              </div>
+            </div>
+
             <div class="detail-grid">
               <section class="detail-card">
                 <div class="detail-card__heading">
@@ -174,6 +192,10 @@
                   <p>{{ log.message }}</p>
                   <small>{{ formatLogTime(log.timestamp) }}</small>
                 </article>
+                <div v-if="!selectedTunnel.logs.length" class="mini-empty">
+                  <GIcon name="logs" :size="22" />
+                  <span>暂无数据</span>
+                </div>
               </div>
             </section>
           </template>
@@ -207,13 +229,13 @@ import TunnelLoading from "./components/TunnelLoading.vue"
 import TunnelCreateWizard from "./components/TunnelCreateWizard.vue"
 import { useTunnel } from "./composables/useTunnel"
 import { useTunnelMonitor } from "./composables/useTunnelMonitor"
-import { mockProjects, mockServerNames } from "./mock"
+import { useServerStore } from "@views/servers"
 import type { SortDirection, Tunnel, TunnelFilterType, TunnelFormData, TunnelSortType, TunnelStatus } from "./types"
 import "./styles/tunnel.css"
 
 const route = useRoute()
 const router = useRouter()
-const { toast, confirm, confirmDanger } = useFeedback()
+const { toast, notify, confirm, confirmDanger } = useFeedback()
 const {
   tunnels,
   isLoading,
@@ -229,6 +251,7 @@ const {
   toggleFavorite,
   store,
 } = useTunnel()
+const serverStore = useServerStore()
 
 useTunnelMonitor(store)
 
@@ -239,8 +262,8 @@ const direction = ref<SortDirection>("desc")
 const selectedId = ref<string | null>(null)
 const wizardVisible = ref(false)
 const activeLogTunnel = ref("")
-const projectOptions = mockProjects
-const serverNames = mockServerNames
+const projectOptions: Array<{ id: string; name: string }> = []
+const serverNames = computed(() => serverStore.onlineServers.map((server) => server.name))
 
 const runningCount = computed(() => tunnels.value.filter((tunnel) => canStart(tunnel.status) === false).length)
 const totalSpeed = computed(() =>
@@ -295,10 +318,20 @@ watch(
 )
 
 watch(
+  () => serverStore.status,
+  (status) => {
+    if (status === "idle") {
+      void serverStore.load()
+    }
+  },
+  { immediate: true },
+)
+
+watch(
   () => route.query.create,
   (value) => {
     if (value === "1") {
-      wizardVisible.value = true
+      openCreate()
       void router.replace({ path: "/tunnels" })
     }
   },
@@ -310,19 +343,32 @@ function selectTunnel(id: string) {
 }
 
 function openCreate() {
+  if (!serverNames.value.length) {
+    toast.warning("请先添加并连接服务器，然后再创建 Tunnel。")
+    void router.push("/servers")
+    return
+  }
   wizardVisible.value = true
 }
 
 async function handleCreate(form: TunnelFormData) {
-  const created = await create(form)
-  selectedId.value = created.id
-  toast.success(`Tunnel「${created.name}」已创建`)
+  try {
+    const created = await create(form)
+    selectedId.value = created.id
+    toast.success(`Tunnel「${created.name}」已保存`)
+  } catch (err) {
+    notify.error("Tunnel 创建失败", errorMessage(err), 10000)
+  }
 }
 
-function startSelected() {
+async function startSelected() {
   if (!selectedTunnel.value) return
-  void start(selectedTunnel.value.id)
-  toast.success(`正在启动 Tunnel「${selectedTunnel.value.name}」`)
+  try {
+    await start(selectedTunnel.value.id)
+    toast.success(`Tunnel「${selectedTunnel.value.name}」已启动`)
+  } catch (err) {
+    notify.error("Tunnel 启动失败", errorMessage(err), 12000)
+  }
 }
 
 function stopSelected() {
@@ -332,9 +378,13 @@ function stopSelected() {
     title: "停止 Tunnel",
     content: `停止「${tunnel.name}」后，公网访问会立即中断。`,
     confirmText: "停止",
-    onConfirm: () => {
-      void stop(tunnel.id)
-      toast.warning(`已停止 Tunnel「${tunnel.name}」`)
+    onConfirm: async () => {
+      try {
+        await stop(tunnel.id)
+        toast.warning(`Tunnel「${tunnel.name}」已停止`)
+      } catch (err) {
+        notify.error("Tunnel 停止失败", errorMessage(err), 10000)
+      }
     },
   })
 }
@@ -347,9 +397,13 @@ function deleteSelected() {
     content: `删除「${tunnel.name}」后，该配置会从列表中移除。`,
     confirmText: "删除",
     onConfirm: async () => {
-      await remove(tunnel.id)
-      selectedId.value = finalTunnels.value[0]?.id ?? null
-      toast.success(`Tunnel「${tunnel.name}」已删除`)
+      try {
+        await remove(tunnel.id)
+        selectedId.value = finalTunnels.value[0]?.id ?? null
+        toast.success(`Tunnel「${tunnel.name}」已删除`)
+      } catch (err) {
+        notify.error("Tunnel 删除失败", errorMessage(err), 10000)
+      }
     },
   })
 }
@@ -397,6 +451,35 @@ function statusOrder(status: TunnelStatus) {
 
 function trafficTotal(tunnel: Tunnel) {
   return tunnel.traffic.totalUpload + tunnel.traffic.totalDownload
+}
+
+function testUrl(tunnel: Tunnel): string {
+  if (tunnel.protocol === "http") return `http://127.0.0.1:${tunnel.remotePort}/`
+  if (tunnel.protocol === "https") return `https://127.0.0.1:${tunnel.remotePort}/`
+  return `127.0.0.1:${tunnel.remotePort}`
+}
+
+function canOpenTestUrl(tunnel: Tunnel): boolean {
+  return tunnel.protocol === "http" || tunnel.protocol === "https"
+}
+
+async function copyTestUrl(tunnel: Tunnel) {
+  await navigator.clipboard.writeText(testUrl(tunnel))
+  toast.success("测试地址已复制")
+}
+
+function openTestUrl(tunnel: Tunnel) {
+  window.open(testUrl(tunnel), "_blank", "noopener,noreferrer")
+}
+
+function errorMessage(err: unknown): string {
+  if (typeof err === "string") return err
+  if (err instanceof Error && err.message) return err.message
+  if (err && typeof err === "object" && "message" in err) {
+    const message = (err as { message?: unknown }).message
+    if (typeof message === "string" && message.trim()) return message
+  }
+  return "请检查服务器连接、本地服务端口和 Tunnel 配置。"
 }
 
 function formatBytes(bytes: number): string {
@@ -764,6 +847,44 @@ function formatLogTime(timestamp: number): string {
   white-space: nowrap;
 }
 
+.test-url-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.test-url-panel span,
+.test-url-panel strong {
+  display: block;
+  min-width: 0;
+}
+
+.test-url-panel span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.test-url-panel strong {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.test-url-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -929,6 +1050,15 @@ function formatLogTime(timestamp: number): string {
 
   .detail-actions {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .test-url-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .test-url-panel__actions {
     flex-wrap: wrap;
   }
 

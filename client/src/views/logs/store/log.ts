@@ -1,8 +1,20 @@
 import { defineStore } from "pinia"
 import { computed, ref } from "vue"
+import { TauriIpcClient } from "@/ipc"
+import { buildLogStatistics } from "../constants"
 import type { LogFilter, LogItem, LogLevel, LogLoadStatus, LogSource } from "../types"
-import { buildLogStatistics, createMockLog, mockLogs } from "../mock"
 import { getTimeRangeStart, normalizeText } from "../utils"
+
+interface RuntimeLogRecord {
+  level: string
+  source: string
+  message: string
+  timestamp: number
+  tunnelId?: string
+  tunnel_id?: string
+}
+
+const ipc = new TauriIpcClient()
 
 export const defaultLogFilter: LogFilter = {
   levels: [],
@@ -105,8 +117,8 @@ export const useLogStore = defineStore("log-center", () => {
     status.value = "loading"
     error.value = ""
     try {
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      logs.value = structuredClone(mockLogs)
+      const runtimeLogs = await ipc.invoke<RuntimeLogRecord[]>("runtime_get_logs")
+      logs.value = runtimeLogs.map(mapRuntimeLog)
       status.value = "success"
       lastUpdated.value = Date.now()
       if (!selectedId.value && logs.value.length) selectedId.value = logs.value[logs.value.length - 1].id
@@ -179,19 +191,6 @@ export const useLogStore = defineStore("log-center", () => {
     if (value) paused.value = false
   }
 
-  function generateTestLogs(count = 1000): void {
-    logs.value = Array.from({ length: count }, (_, index) =>
-      createMockLog(index + 1, Date.now() - (count - index) * 15_000),
-    )
-    status.value = "success"
-    selectedId.value = logs.value[logs.value.length - 1]?.id ?? null
-    lastUpdated.value = Date.now()
-  }
-
-  function appendTestLog(): void {
-    append(createMockLog(logs.value.length + 1, Date.now()))
-  }
-
   function trimRetained(): void {
     const overflow = logs.value.length - maxRetained.value
     if (overflow <= 0) return
@@ -246,9 +245,55 @@ export const useLogStore = defineStore("log-center", () => {
     pause,
     resume,
     setAutoScroll,
-    generateTestLogs,
-    appendTestLog,
     setLevel,
     setSource,
   }
 })
+
+function mapRuntimeLog(log: RuntimeLogRecord): LogItem {
+  const level = normalizeLevel(log.level)
+  const source = normalizeSource(log.source)
+  const raw = JSON.stringify(log)
+  const tunnelId = log.tunnelId ?? log.tunnel_id
+
+  return {
+    id: `${log.source}-${log.timestamp}-${log.message}`,
+    timestamp: log.timestamp,
+    level,
+    source,
+    module: log.source || "runtime",
+    message: log.message,
+    tunnelId,
+    tunnelName: tunnelId,
+    context: {
+      environment: "desktop",
+      host: "local",
+      processId: 0,
+      thread: "runtime",
+      sessionId: "",
+    },
+    metadata: {
+      tags: [log.source, tunnelId].filter(Boolean) as string[],
+    },
+    raw,
+  }
+}
+
+function normalizeLevel(level: string): LogLevel {
+  const value = level.toUpperCase()
+  if (value === "TRACE" || value === "DEBUG" || value === "INFO" || value === "WARN" || value === "ERROR" || value === "FATAL") {
+    return value
+  }
+  return "INFO"
+}
+
+function normalizeSource(source: string): LogSource {
+  const value = source.toLowerCase()
+  if (value.includes("tunnel")) return "TUNNEL"
+  if (value.includes("server")) return "SERVER"
+  if (value.includes("stat") || value.includes("metric")) return "STATISTICS"
+  if (value.includes("update")) return "UPDATE"
+  if (value.includes("project")) return "PROJECT"
+  if (value.includes("client") || value.includes("connection") || value.includes("auth") || value.includes("heartbeat")) return "CLIENT"
+  return "SYSTEM"
+}
