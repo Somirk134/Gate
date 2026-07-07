@@ -41,8 +41,8 @@ impl ServerBootstrap {
             .ok()
             .and_then(|value| value.parse::<SocketAddr>().ok())
             .unwrap_or_else(|| SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 7000));
-        let token = std::env::var("GATE_AUTH_TOKEN")
-            .unwrap_or_else(|_| "gate-alpha-token".to_string());
+        let token =
+            std::env::var("GATE_AUTH_TOKEN").unwrap_or_else(|_| "gate-alpha-token".to_string());
 
         let listener = TcpListener::bind(addr).await.map_err(network_error)?;
         let bound_addr = listener.local_addr().map_err(network_error)?;

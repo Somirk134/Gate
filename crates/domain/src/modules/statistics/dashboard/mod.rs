@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::health::HealthReport;
 use super::statistics::{
-    ConnectionStatistics, RuntimeStatistics, SystemStatistics, TrafficStatistics,
-    TunnelStatistics,
+    ConnectionStatistics, RuntimeStatistics, SystemStatistics, TrafficStatistics, TunnelStatistics,
 };
 
 /// Overview values shown at the top of the monitoring dashboard.

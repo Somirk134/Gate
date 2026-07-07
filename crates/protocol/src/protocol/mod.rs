@@ -121,7 +121,10 @@ impl ProtocolRegistry {
     }
 
     pub fn latest(&self) -> Option<Arc<dyn Protocol>> {
-        self.protocols.iter().next_back().map(|(_, protocol)| protocol.clone())
+        self.protocols
+            .iter()
+            .next_back()
+            .map(|(_, protocol)| protocol.clone())
     }
 
     pub fn supported_versions(&self) -> Vec<ProtocolVersion> {
@@ -173,7 +176,10 @@ impl ProtocolManager {
     pub fn encode(&self, message: &Message) -> Result<Vec<u8>, ProtocolError> {
         let protocol = self.protocol()?;
         protocol.validate(message)?;
-        protocol.codec().encode(message).map_err(ProtocolError::from)
+        protocol
+            .codec()
+            .encode(message)
+            .map_err(ProtocolError::from)
     }
 
     pub fn decode(&self, bytes: &[u8]) -> Result<Message, ProtocolError> {

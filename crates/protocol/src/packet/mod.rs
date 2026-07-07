@@ -83,7 +83,11 @@ impl PacketParser {
         PacketBuilder::default().build(frame.payload)
     }
 
-    pub fn parse_message(&self, codec: &dyn Codec, packet: &Packet) -> Result<Message, PacketError> {
+    pub fn parse_message(
+        &self,
+        codec: &dyn Codec,
+        packet: &Packet,
+    ) -> Result<Message, PacketError> {
         self.validator.validate_packet(packet)?;
         codec
             .decode(&packet.payload)

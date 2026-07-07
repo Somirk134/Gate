@@ -103,16 +103,21 @@ pub struct ConnectionRegistry {
 impl ConnectionRegistry {
     pub fn insert(&self, connection: ServerConnection) -> Arc<ServerConnection> {
         let connection = Arc::new(connection);
-        self.connections.insert(connection.id(), Arc::clone(&connection));
+        self.connections
+            .insert(connection.id(), Arc::clone(&connection));
         connection
     }
 
     pub fn get(&self, id: &ConnectionId) -> Option<Arc<ServerConnection>> {
-        self.connections.get(id).map(|entry| Arc::clone(entry.value()))
+        self.connections
+            .get(id)
+            .map(|entry| Arc::clone(entry.value()))
     }
 
     pub fn remove(&self, id: &ConnectionId) -> Option<Arc<ServerConnection>> {
-        self.connections.remove(id).map(|(_, connection)| connection)
+        self.connections
+            .remove(id)
+            .map(|(_, connection)| connection)
     }
 
     pub fn len(&self) -> usize {
@@ -156,7 +161,9 @@ impl ClientRegistry {
     }
 
     pub fn unbind(&self, client_id: &ClientId) -> Option<ConnectionId> {
-        self.clients.remove(client_id).map(|(_, connection_id)| connection_id)
+        self.clients
+            .remove(client_id)
+            .map(|(_, connection_id)| connection_id)
     }
 }
 

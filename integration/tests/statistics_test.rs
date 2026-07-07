@@ -15,8 +15,14 @@ async fn statistics_query_returns_runtime_counters_from_real_flow() -> anyhow::R
 
     let body = gate_integration::protocol::json_body(&response)?;
     assert_eq!(body.get("ok").and_then(Value::as_bool), Some(true));
-    assert_eq!(body.pointer("/data/auth/success").and_then(Value::as_u64), Some(1));
-    assert_eq!(body.pointer("/data/heartbeat/ping").and_then(Value::as_u64), Some(1));
+    assert_eq!(
+        body.pointer("/data/auth/success").and_then(Value::as_u64),
+        Some(1)
+    );
+    assert_eq!(
+        body.pointer("/data/heartbeat/ping").and_then(Value::as_u64),
+        Some(1)
+    );
     assert!(
         body.pointer("/data/request_total")
             .and_then(Value::as_u64)

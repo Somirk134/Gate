@@ -2,12 +2,14 @@ use crate::config::DomainConfig;
 use crate::event::DomainEvent;
 use crate::model::{DomainId, DomainStatus, RecordType, TunnelId};
 use crate::repository::MemoryRepository;
-use crate::service::{CreateDomainRequest, DomainService, SearchDomainRequest, UpdateDomainRequest};
+use crate::service::{
+    CreateDomainRequest, DomainService, SearchDomainRequest, UpdateDomainRequest,
+};
 use crate::validator::RfcDomainValidator;
 
 #[test]
-fn domain_service_create_bind_search_rename_disable_delete() -> Result<(), Box<dyn std::error::Error>>
-{
+fn domain_service_create_bind_search_rename_disable_delete(
+) -> Result<(), Box<dyn std::error::Error>> {
     let service = DomainService::builder()
         .repository(MemoryRepository::new())
         .validator(RfcDomainValidator::new())

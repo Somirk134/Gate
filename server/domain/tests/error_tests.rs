@@ -12,5 +12,8 @@ fn error_codes_are_stable() {
 #[test]
 fn validate_error_converts_to_domain_error() {
     let error: DomainError = ValidateError::EmptyHost.into();
-    assert!(matches!(error, DomainError::Validation(ValidateError::EmptyHost)));
+    assert!(matches!(
+        error,
+        DomainError::Validation(ValidateError::EmptyHost)
+    ));
 }

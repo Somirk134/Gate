@@ -1,7 +1,5 @@
 use crate::error::{BindError, DomainError};
-use crate::model::{
-    Alias, BindStatus, Domain, DomainId, DomainStatus, Host, RecordType, TunnelId,
-};
+use crate::model::{Alias, BindStatus, Domain, DomainId, DomainStatus, Host, RecordType, TunnelId};
 
 #[test]
 fn host_normalizes_case_and_root_dot() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,8 +45,8 @@ fn alias_matching_primary_host_is_rejected() -> Result<(), Box<dyn std::error::E
 
 #[test]
 fn domain_bind_and_unbind_updates_state() -> Result<(), Box<dyn std::error::Error>> {
-    let mut domain = Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?)
-        .build()?;
+    let mut domain =
+        Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?).build()?;
     let tunnel_id = TunnelId::new("tunnel-1")?;
 
     domain.bind(tunnel_id.clone())?;
@@ -63,8 +61,8 @@ fn domain_bind_and_unbind_updates_state() -> Result<(), Box<dyn std::error::Erro
 
 #[test]
 fn binding_disabled_domain_is_rejected() -> Result<(), Box<dyn std::error::Error>> {
-    let mut domain = Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?)
-        .build()?;
+    let mut domain =
+        Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?).build()?;
     domain.disable();
 
     let result = domain.bind(TunnelId::new("tunnel-1")?);

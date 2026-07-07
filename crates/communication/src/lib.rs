@@ -48,7 +48,9 @@ pub use handler::{
     SystemHandler, TunnelHandler,
 };
 pub use metrics::{CommunicationMetrics, MetricsSnapshot};
-pub use queue::{IncomingQueue, MessageEnvelope, MessageQueue, OutgoingQueue, PriorityMessageQueue};
+pub use queue::{
+    IncomingQueue, MessageEnvelope, MessageQueue, OutgoingQueue, PriorityMessageQueue,
+};
 pub use reconnect::{RetryContext, RetryPolicy};
 pub use request::{
     PendingRequestSnapshot, Request, RequestId, RequestManager, RequestStatus, Response,
@@ -65,5 +67,6 @@ pub use session::{
 };
 pub use timeout::{TimeoutConfig, TimeoutKind};
 pub use transport::{
-    TcpTransport, Transport, TransportCapabilities, TransportEndpoint, TransportKind, TransportState,
+    TcpTransport, Transport, TransportCapabilities, TransportEndpoint, TransportKind,
+    TransportState,
 };

@@ -45,10 +45,7 @@ pub enum TransportError {
 #[derive(Debug, Error)]
 pub enum TimeoutError {
     #[error("{kind:?} timeout expired after {timeout_ms} ms")]
-    Expired {
-        kind: TimeoutKind,
-        timeout_ms: u64,
-    },
+    Expired { kind: TimeoutKind, timeout_ms: u64 },
 }
 
 #[derive(Debug, Error)]

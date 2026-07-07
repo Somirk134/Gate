@@ -86,7 +86,8 @@ impl ResponseDispatcher {
             .into());
         }
 
-        self.request_manager.resolve(Response::from_message(message))
+        self.request_manager
+            .resolve(Response::from_message(message))
     }
 
     pub fn request_manager(&self) -> Arc<RequestManager> {

@@ -248,7 +248,9 @@ impl Connection for BasicConnection {
         Box::pin(async move {
             match self.state() {
                 ConnectionState::Closed => {}
-                ConnectionState::Created | ConnectionState::Failed | ConnectionState::Disconnected => {
+                ConnectionState::Created
+                | ConnectionState::Failed
+                | ConnectionState::Disconnected => {
                     self.transition(ConnectionState::Closed)?;
                 }
                 _ => {

@@ -101,10 +101,7 @@ where
         ))
     }
 
-    pub fn delete_domain(
-        &self,
-        id: &DomainId,
-    ) -> Result<DomainServiceOutput<Domain>, DomainError> {
+    pub fn delete_domain(&self, id: &DomainId) -> Result<DomainServiceOutput<Domain>, DomainError> {
         let domain = self.repository.delete(id)?;
         Ok(DomainServiceOutput::with_event(
             domain.clone(),
@@ -156,10 +153,7 @@ where
         ))
     }
 
-    pub fn unbind_tunnel(
-        &self,
-        id: &DomainId,
-    ) -> Result<DomainServiceOutput<Domain>, DomainError> {
+    pub fn unbind_tunnel(&self, id: &DomainId) -> Result<DomainServiceOutput<Domain>, DomainError> {
         let domain = self.repository.unbind_tunnel(id)?;
         Ok(DomainServiceOutput::with_event(
             domain,
@@ -319,7 +313,10 @@ fn matches_keyword(domain: &Domain, keyword: Option<&str>) -> bool {
     match keyword {
         Some(value) => {
             domain.host().as_str().contains(value)
-                || domain.aliases().iter().any(|alias| alias.as_str().contains(value))
+                || domain
+                    .aliases()
+                    .iter()
+                    .any(|alias| alias.as_str().contains(value))
         }
         None => true,
     }

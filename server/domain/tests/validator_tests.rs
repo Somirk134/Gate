@@ -16,7 +16,10 @@ fn validator_accepts_rfc_host() -> Result<(), Box<dyn std::error::Error>> {
 fn validator_rejects_invalid_character() {
     let validator = RfcDomainValidator::new();
     let result = validator.validate_host("bad_host.gate.dev", &DomainConfig::default());
-    assert!(matches!(result, Err(ValidateError::InvalidCharacter { .. })));
+    assert!(matches!(
+        result,
+        Err(ValidateError::InvalidCharacter { .. })
+    ));
 }
 
 #[test]

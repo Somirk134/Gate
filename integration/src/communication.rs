@@ -28,8 +28,7 @@ impl HeartbeatSnapshot {
         self.average_rtt_ms = if self.pong == 1 {
             rtt_ms as f64
         } else {
-            ((self.average_rtt_ms * (self.pong - 1) as f64) + rtt_ms as f64)
-                / self.pong as f64
+            ((self.average_rtt_ms * (self.pong - 1) as f64) + rtt_ms as f64) / self.pong as f64
         };
     }
 }

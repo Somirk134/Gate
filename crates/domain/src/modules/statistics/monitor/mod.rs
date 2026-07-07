@@ -11,7 +11,9 @@ use super::dashboard::{
 };
 use super::error::StatisticsResult;
 use super::event::StatisticsEvent;
-use super::health::{HealthCenter, HealthProvider, HealthReport, HealthSignal, HealthStatus, HealthTarget};
+use super::health::{
+    HealthCenter, HealthProvider, HealthReport, HealthSignal, HealthStatus, HealthTarget,
+};
 use super::sampler::{Sampler, SamplingStrategy, StatisticsSampler};
 use super::statistics::Statistics;
 
@@ -175,7 +177,11 @@ impl MonitoringCenter {
             HealthTarget::System,
             system_status,
             "System resource health",
-            100.0 - statistics.system.cpu_usage.max(statistics.system.memory_usage),
+            100.0
+                - statistics
+                    .system
+                    .cpu_usage
+                    .max(statistics.system.memory_usage),
         ));
 
         let connection_status = if statistics.connection.failure > statistics.connection.success {

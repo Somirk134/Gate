@@ -54,10 +54,7 @@ impl Alias {
 }
 
 fn normalize_host(value: &str) -> String {
-    value
-        .trim()
-        .trim_end_matches('.')
-        .to_ascii_lowercase()
+    value.trim().trim_end_matches('.').to_ascii_lowercase()
 }
 
 impl PartialEq for Host {

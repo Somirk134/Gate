@@ -1,3 +1,4 @@
+use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, str::FromStr};
 
@@ -124,6 +125,6 @@ impl<'de> Deserialize<'de> for Command {
         D: Deserializer<'de>,
     {
         let value = String::deserialize(deserializer)?;
-        Ok(Command::from_str(&value).expect("Command parsing is infallible"))
+        Command::from_str(&value).map_err(D::Error::custom)
     }
 }

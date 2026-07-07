@@ -72,6 +72,7 @@ pub enum StorageError {
     DuplicateKey(String),
     NotFound(String),
     Unavailable(String),
+    Corrupted(String),
 }
 
 impl Display for DomainError {
@@ -85,7 +86,9 @@ impl Display for DomainError {
             Self::Resolve(error) => Display::fmt(error, formatter),
             Self::Dns(error) => Display::fmt(error, formatter),
             Self::Storage(error) => Display::fmt(error, formatter),
-            Self::InvalidOperation(message) => write!(formatter, "invalid domain operation: {message}"),
+            Self::InvalidOperation(message) => {
+                write!(formatter, "invalid domain operation: {message}")
+            }
         }
     }
 }
@@ -100,14 +103,19 @@ impl Display for ValidateError {
                 write!(formatter, "host is too long: max {max}, actual {actual}")
             }
             Self::LabelTooLong { max, actual } => {
-                write!(formatter, "domain label is too long: max {max}, actual {actual}")
+                write!(
+                    formatter,
+                    "domain label is too long: max {max}, actual {actual}"
+                )
             }
             Self::EmptyLabel => write!(formatter, "domain label is empty"),
             Self::InvalidCharacter { character } => {
                 write!(formatter, "host contains invalid character: {character}")
             }
             Self::InvalidLabel(label) => write!(formatter, "invalid domain label: {label}"),
-            Self::ReservedDomain(host) => write!(formatter, "reserved domain is not allowed: {host}"),
+            Self::ReservedDomain(host) => {
+                write!(formatter, "reserved domain is not allowed: {host}")
+            }
             Self::WildcardDisabled => write!(formatter, "wildcard domain is disabled"),
             Self::InvalidWildcard(host) => write!(formatter, "invalid wildcard domain: {host}"),
             Self::InternationalDomainDisabled => {
@@ -118,7 +126,10 @@ impl Display for ValidateError {
             }
             Self::DuplicateHost(host) => write!(formatter, "duplicate host: {host}"),
             Self::RepositoryUnavailable(message) => {
-                write!(formatter, "repository unavailable during validation: {message}")
+                write!(
+                    formatter,
+                    "repository unavailable during validation: {message}"
+                )
             }
         }
     }
@@ -161,7 +172,9 @@ impl Display for DnsError {
             Self::UnsupportedRecord(record_type) => {
                 write!(formatter, "unsupported DNS record type: {record_type}")
             }
-            Self::ResolverUnavailable(message) => write!(formatter, "DNS resolver unavailable: {message}"),
+            Self::ResolverUnavailable(message) => {
+                write!(formatter, "DNS resolver unavailable: {message}")
+            }
             Self::InvalidResponse(message) => write!(formatter, "invalid DNS response: {message}"),
             Self::Storage(error) => Display::fmt(error, formatter),
         }
@@ -175,6 +188,7 @@ impl Display for StorageError {
             Self::DuplicateKey(key) => write!(formatter, "duplicate storage key: {key}"),
             Self::NotFound(key) => write!(formatter, "storage key not found: {key}"),
             Self::Unavailable(message) => write!(formatter, "storage unavailable: {message}"),
+            Self::Corrupted(message) => write!(formatter, "storage corrupted: {message}"),
         }
     }
 }

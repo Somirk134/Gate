@@ -1,0 +1,20 @@
+[package]
+name = "gate-server-domain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Domain management repository and service layer for Gate"
+autotests = false
+
+[lib]
+path = "mod.rs"
+
+[dependencies]
+rusqlite = { workspace = true, features = ["bundled"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[features]
+default = ["sqlite"]
+sqlite = ["dep:rusqlite"]

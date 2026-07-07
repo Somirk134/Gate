@@ -32,7 +32,9 @@ where
         let domain = self
             .repository
             .find_by_host(&host)
-            .map_err(|error| ResolveError::Storage(crate::error::StorageError::Unavailable(error.to_string())))?
+            .map_err(|error| {
+                ResolveError::Storage(crate::error::StorageError::Unavailable(error.to_string()))
+            })?
             .ok_or_else(|| ResolveError::HostNotFound(host.to_string()))?;
 
         if domain.status() == &DomainStatus::Disabled {

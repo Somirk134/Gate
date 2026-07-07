@@ -51,10 +51,12 @@ where
 
     pub fn check(&self, query: &DnsQuery) -> Result<DnsCheckResult, DnsError> {
         let answer = self.resolver.resolve(query)?;
-        let resolved_to_server = answer
-            .values
-            .iter()
-            .any(|value| self.config.server_addresses.iter().any(|expected| expected == value));
+        let resolved_to_server = answer.values.iter().any(|value| {
+            self.config
+                .server_addresses
+                .iter()
+                .any(|expected| expected == value)
+        });
 
         let status = if resolved_to_server {
             DnsStatus::Matched
@@ -86,10 +88,9 @@ impl MockDnsResolver {
     }
 
     pub fn with_record(&self, query: DnsQuery, answer: DnsAnswer) -> Result<Self, DnsError> {
-        let mut guard = self
-            .records
-            .write()
-            .map_err(|_| DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string()))?;
+        let mut guard = self.records.write().map_err(|_| {
+            DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string())
+        })?;
         guard.insert(query, answer);
         Ok(self.clone())
     }
@@ -97,10 +98,9 @@ impl MockDnsResolver {
 
 impl DnsResolver for MockDnsResolver {
     fn resolve(&self, query: &DnsQuery) -> Result<DnsAnswer, DnsError> {
-        let guard = self
-            .records
-            .read()
-            .map_err(|_| DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string()))?;
+        let guard = self.records.read().map_err(|_| {
+            DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string())
+        })?;
 
         guard
             .get(query)

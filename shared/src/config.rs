@@ -1184,24 +1184,27 @@ fn merge_value(base: &mut Value, overlay: Value) {
 fn set_path(root: &mut Value, path: &[String], value: Value) {
     let mut cursor = root;
     for segment in &path[..path.len().saturating_sub(1)] {
-        if !cursor.is_object() {
-            *cursor = Value::Object(Map::new());
-        }
-        let map = cursor.as_object_mut().expect("cursor is object");
+        let map = ensure_object(cursor);
         cursor = map
             .entry(segment.clone())
             .or_insert_with(|| Value::Object(Map::new()));
     }
 
     if let Some(last) = path.last() {
-        if !cursor.is_object() {
-            *cursor = Value::Object(Map::new());
-        }
-        cursor
-            .as_object_mut()
-            .expect("cursor is object")
-            .insert(last.clone(), value);
+        ensure_object(cursor).insert(last.clone(), value);
     }
+}
+
+fn ensure_object(value: &mut Value) -> &mut Map<String, Value> {
+    if !value.is_object() {
+        *value = Value::Object(Map::new());
+    }
+
+    let Value::Object(map) = value else {
+        *value = Value::Object(Map::new());
+        return ensure_object(value);
+    };
+    map
 }
 
 fn parse_env_value(raw: &str) -> Value {
@@ -1278,11 +1281,5 @@ fn config_version(value: &Value) -> Option<u32> {
 }
 
 fn set_config_version(value: &mut Value, version: u32) {
-    if !value.is_object() {
-        *value = Value::Object(Map::new());
-    }
-    value
-        .as_object_mut()
-        .expect("value is object")
-        .insert("version".to_string(), Value::Number(version.into()));
+    ensure_object(value).insert("version".to_string(), Value::Number(version.into()));
 }

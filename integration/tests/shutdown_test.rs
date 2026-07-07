@@ -1,5 +1,7 @@
-use gate_integration::{AlphaClient, AlphaServer, AlphaServerState, RuntimeHarness, RuntimeHarnessConfig};
 use gate_engine::runtime::RuntimeState;
+use gate_integration::{
+    AlphaClient, AlphaServer, AlphaServerState, RuntimeHarness, RuntimeHarnessConfig,
+};
 use gate_protocol::Command;
 use serde_json::json;
 
@@ -20,6 +22,9 @@ async fn server_and_runtime_shutdown_gracefully() -> anyhow::Result<()> {
     assert_eq!(server.state().await, AlphaServerState::Shutdown);
 
     harness.shutdown().await?;
-    assert_eq!(harness.runtime().context().state.current(), RuntimeState::Closed);
+    assert_eq!(
+        harness.runtime().context().state.current(),
+        RuntimeState::Closed
+    );
     Ok(())
 }

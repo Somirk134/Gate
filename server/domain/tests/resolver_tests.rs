@@ -23,8 +23,7 @@ fn host_resolver_maps_host_to_tunnel() -> Result<(), Box<dyn std::error::Error>>
 #[test]
 fn host_resolver_rejects_unbound_host() -> Result<(), Box<dyn std::error::Error>> {
     let repository = MemoryRepository::new();
-    let domain = Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?)
-        .build()?;
+    let domain = Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?).build()?;
     repository.create(domain)?;
 
     let resolver = RepositoryHostResolver::new(repository);

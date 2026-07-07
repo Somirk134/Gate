@@ -13,10 +13,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::{
-    communication::AlphaStatistics,
-    protocol,
-};
+use crate::{communication::AlphaStatistics, protocol};
 
 /// Server lifecycle state for the Alpha integration runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -213,7 +210,8 @@ impl AlphaServer {
                 }
                 Command::StatisticsQuery if authenticated => {
                     let statistics = self.inner.statistics.read().await.clone();
-                    let response = protocol::response_for(&message, protocol::ok(json!(statistics)));
+                    let response =
+                        protocol::response_for(&message, protocol::ok(json!(statistics)));
                     let _ = protocol::write_message(&mut stream, &protocol, &response).await;
                     self.inner.statistics.write().await.response_total += 1;
                 }
@@ -237,10 +235,8 @@ impl AlphaServer {
                     statistics.event_total += 1;
                 }
                 Command::SystemShutdown if authenticated => {
-                    let response = protocol::response_for(
-                        &message,
-                        protocol::ok(json!({ "shutdown": true })),
-                    );
+                    let response =
+                        protocol::response_for(&message, protocol::ok(json!({ "shutdown": true })));
                     let _ = protocol::write_message(&mut stream, &protocol, &response).await;
                     self.inner.statistics.write().await.response_total += 1;
                     break;
@@ -255,10 +251,8 @@ impl AlphaServer {
                     break;
                 }
                 _ => {
-                    let response = protocol::response_for(
-                        &message,
-                        protocol::ok(json!({ "accepted": true })),
-                    );
+                    let response =
+                        protocol::response_for(&message, protocol::ok(json!({ "accepted": true })));
                     let _ = protocol::write_message(&mut stream, &protocol, &response).await;
                     self.inner.statistics.write().await.response_total += 1;
                 }

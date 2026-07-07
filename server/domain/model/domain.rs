@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use crate::error::{BindError, DomainError};
 use crate::model::{
-    Alias, BindStatus, DnsStatus, DomainId, DomainStatus, Host, RecordType, ResolveStatus, TunnelId,
-    VerifyStatus,
+    Alias, BindStatus, DnsStatus, DomainId, DomainStatus, Host, RecordType, ResolveStatus,
+    TunnelId, VerifyStatus,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -1,11 +1,9 @@
 //! Mock communication components for unit and integration testing.
 
 use parking_lot::RwLock;
-use std::{
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
 };
 
 use gate_protocol::{Message, MessageType};
@@ -19,7 +17,9 @@ use crate::{
     request::{Request, Response},
     server::ServerState,
     shared::{CommunicationFuture, CommunicationLogger},
-    transport::{Transport, TransportCapabilities, TransportEndpoint, TransportKind, TransportState},
+    transport::{
+        Transport, TransportCapabilities, TransportEndpoint, TransportKind, TransportState,
+    },
 };
 
 #[derive(Clone)]
@@ -101,7 +101,10 @@ impl Transport for MockTransport {
 
     fn send<'a>(&'a self, message: Message) -> CommunicationFuture<'a, ()> {
         Box::pin(async move {
-            if matches!(self.state(), TransportState::Closed | TransportState::Failed) {
+            if matches!(
+                self.state(),
+                TransportState::Closed | TransportState::Failed
+            ) {
                 return Err(TransportError::Closed.into());
             }
 

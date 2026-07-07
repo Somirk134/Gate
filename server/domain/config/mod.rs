@@ -19,11 +19,10 @@ pub enum ValidationMode {
 
 /// Storage backend kind.
 ///
-/// Only [`StorageKind::Memory`] is implemented in this phase.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StorageKind {
     Memory,
-    SqliteReserved,
+    Sqlite,
     RedisReserved,
     JsonReserved,
     FileReserved,

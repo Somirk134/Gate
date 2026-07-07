@@ -21,7 +21,12 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn new(message_type: MessageType, command: Command, body: Body, metadata: Metadata) -> Self {
+    pub fn new(
+        message_type: MessageType,
+        command: Command,
+        body: Body,
+        metadata: Metadata,
+    ) -> Self {
         let body_length = body.encoded_len_hint();
         Self {
             header: Header::new(message_type, command, body_length),
@@ -104,9 +109,9 @@ pub enum Body {
 impl Body {
     pub fn encoded_len_hint(&self) -> u64 {
         match self {
-            Self::Json(value) => {
-                serde_json::to_vec(value).map(|bytes| bytes.len()).unwrap_or(0) as u64
-            }
+            Self::Json(value) => serde_json::to_vec(value)
+                .map(|bytes| bytes.len())
+                .unwrap_or(0) as u64,
             Self::Binary(bytes) => bytes.len() as u64,
             Self::PluginPayload { payload, .. } => payload.len() as u64,
             Self::Empty => 0,

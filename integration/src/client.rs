@@ -1,7 +1,5 @@
 use anyhow::{anyhow, Result};
-use gate_communication::{
-    TcpTransport, Transport, TransportEndpoint, TransportState,
-};
+use gate_communication::{TcpTransport, Transport, TransportEndpoint, TransportState};
 use gate_protocol::{Command, Message};
 use serde_json::{json, Value};
 use std::{net::SocketAddr, sync::Arc, time::Instant};
@@ -88,7 +86,10 @@ impl AlphaClient {
         self.heartbeat.ping += 1;
         let sent_at = Instant::now();
         let response = self
-            .request(Command::HeartbeatPing, json!({ "sentAt": chrono::Utc::now() }))
+            .request(
+                Command::HeartbeatPing,
+                json!({ "sentAt": chrono::Utc::now() }),
+            )
             .await?;
         let body = protocol::json_body(&response)?;
         if body.get("ok").and_then(Value::as_bool) != Some(true) {

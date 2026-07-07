@@ -5,8 +5,8 @@
 //! future tunnel, server, runtime, authentication, and dashboard modules can
 //! plug into.
 
-pub mod alert;
 pub mod aggregator;
+pub mod alert;
 pub mod collector;
 pub mod config;
 pub mod dashboard;
@@ -24,8 +24,8 @@ pub mod service;
 pub mod statistics;
 pub mod types;
 
-pub use alert::{AlertEvent, AlertKind, AlertManager, AlertRule, AlertSeverity};
 pub use aggregator::{AggregationPeriod, AggregationWindow, Aggregator, StatisticsAggregator};
+pub use alert::{AlertEvent, AlertKind, AlertManager, AlertRule, AlertSeverity};
 pub use collector::{Collector, CollectorRegistry, CollectorState, MockMetricsCollector};
 pub use config::{
     AlertConfig, AlertConfigBuilder, CollectorConfig, CollectorConfigBuilder, DashboardConfig,
@@ -33,18 +33,20 @@ pub use config::{
     StatisticsConfigBuilder,
 };
 pub use dashboard::{
-    ConnectionTrendPoint, DashboardData, DashboardProvider, OverviewStatistics, RecentActivity,
-    RealtimeSpeedPoint, ServerStatusSummary, StatusBucket, TrafficTrendPoint,
+    ConnectionTrendPoint, DashboardData, DashboardProvider, OverviewStatistics, RealtimeSpeedPoint,
+    RecentActivity, ServerStatusSummary, StatusBucket, TrafficTrendPoint,
 };
 pub use entity::*;
 pub use error::*;
 pub use event::*;
 pub use exporter::{ExportFormat, ExportPayload, Exporter};
-pub use health::{HealthCenter, HealthProvider, HealthReport, HealthSignal, HealthStatus, HealthTarget};
+pub use health::{
+    HealthCenter, HealthProvider, HealthReport, HealthSignal, HealthStatus, HealthTarget,
+};
 pub use metrics::{
-    AverageMetric, CounterMetric, GaugeMetric, HistogramMetric, MaxMetric, Metric, MetricDescriptor,
-    MetricInstrument, MetricKind, MetricLabel, MetricScope, MetricUnit, MetricValue, MetricsProvider,
-    MinMetric, PeakMetric, RateMetric, SummaryMetric,
+    AverageMetric, CounterMetric, GaugeMetric, HistogramMetric, MaxMetric, Metric,
+    MetricDescriptor, MetricInstrument, MetricKind, MetricLabel, MetricScope, MetricUnit,
+    MetricValue, MetricsProvider, MinMetric, PeakMetric, RateMetric, SummaryMetric,
 };
 pub use monitor::{MonitorLifecycleState, MonitoringCenter};
 pub use repository::*;

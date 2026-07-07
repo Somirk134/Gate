@@ -1,4 +1,4 @@
-FROM rust:1.78-bookworm AS builder
+FROM rust:1.82-bookworm AS builder
 
 WORKDIR /workspace
 COPY . .
@@ -6,9 +6,10 @@ RUN cargo build -p gate-server --release
 
 FROM debian:bookworm-slim
 
-RUN useradd --system --create-home --home-dir /var/lib/gate gate \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
+    && useradd --system --create-home --home-dir /var/lib/gate --shell /usr/sbin/nologin gate \
+    && install -d -o gate -g gate /etc/gate /var/lib/gate /var/log/gate /var/lib/gate/certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /workspace/target/release/gate-server /usr/local/bin/gate-server
@@ -17,10 +18,16 @@ USER gate
 WORKDIR /var/lib/gate
 
 ENV GATE_ENV=production
-ENV GATE_BIND=0.0.0.0:5800
+ENV GATE_SERVER_ADDR=0.0.0.0:5800
+ENV GATE_AUTH_TOKEN=change-me
 ENV GATE_DATA_DIR=/var/lib/gate
+ENV GATE_CONFIG=/etc/gate/gate.toml
+ENV GATE_CERT_DIR=/var/lib/gate/certificates
 ENV GATE_LOG=info
 
 EXPOSE 5800
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["gate-server", "--healthcheck"]
 
 ENTRYPOINT ["gate-server"]

@@ -39,9 +39,9 @@ fn validate_id(kind: &str, value: &str) -> Result<(), ValidateError> {
         return Err(ValidateError::InvalidId(format!("{kind}:{value}")));
     }
 
-    let valid = value
-        .chars()
-        .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | ':' | '.'));
+    let valid = value.chars().all(|character| {
+        character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | ':' | '.')
+    });
 
     if valid {
         Ok(())

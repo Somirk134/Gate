@@ -131,7 +131,10 @@ impl AlertManager {
     pub fn evaluate_health(&mut self, report: &HealthReport) -> Vec<AlertEvent> {
         let mut emitted = Vec::new();
         for signal in &report.signals {
-            if matches!(signal.status, HealthStatus::Critical | HealthStatus::Offline) {
+            if matches!(
+                signal.status,
+                HealthStatus::Critical | HealthStatus::Offline
+            ) {
                 let event = AlertEvent {
                     id: format!("health-{}", Utc::now().timestamp_millis()),
                     kind: AlertKind::Custom("health.changed".to_string()),

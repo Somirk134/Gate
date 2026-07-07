@@ -39,7 +39,9 @@ impl RetryPolicy {
                     return None;
                 }
 
-                Some(Duration::from_millis((*initial_delay_ms).min(*max_delay_ms)))
+                Some(Duration::from_millis(
+                    (*initial_delay_ms).min(*max_delay_ms),
+                ))
             }
             Self::Exponential {
                 base_delay_ms,

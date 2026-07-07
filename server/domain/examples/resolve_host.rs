@@ -1,7 +1,9 @@
 #[path = "../mod.rs"]
 mod domain;
 
-pub use domain::{config, error, event, model, repository, resolver, service, storage, traits, validator};
+pub use domain::{
+    config, error, event, model, repository, resolver, service, storage, traits, validator,
+};
 
 use domain::model::{Domain, DomainId, Host, TunnelId};
 use domain::repository::{DomainRepository, MemoryRepository};
