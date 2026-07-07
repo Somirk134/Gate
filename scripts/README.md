@@ -15,20 +15,31 @@ Development, build, release, and automation scripts for the Gate project.
 
 ## Usage
 
+Most day-to-day development entry points are exposed as root npm scripts:
+
 ```bash
-# Development
-./scripts/dev/setup.sh
-./scripts/dev/start-server.sh
-./scripts/dev/start-client.sh
+npm run dev:server
+npm run dev:client
+npm run dev:desktop
+npm run build:client
+npm run check:server
+```
 
-# Build
-./scripts/build/server.sh
-./scripts/build/client.sh
+Windows local server helper:
 
-# Docker
-./scripts/docker/build.sh
-./scripts/docker/run.sh
+```powershell
+npm run dev:server:local
+npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"
+```
 
-# Release
-./scripts/release/tag.sh v0.1.0
+JetBrains IDEs can use the shared `Gate Server Local` run configuration from `.run/`.
+
+Other useful scripts:
+
+```bash
+# Linux install helper
+bash scripts/install.sh
+
+# Windows icon generation
+powershell -ExecutionPolicy Bypass -File scripts/build/icons.ps1
 ```

@@ -1,0 +1,32 @@
+services:
+  gate-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    image: gate-server:local
+    restart: unless-stopped
+    environment:
+      GATE_ENV: production
+      GATE_SERVER_ADDR: 0.0.0.0:5800
+      GATE_AUTH_TOKEN: ${GATE_AUTH_TOKEN:-change-me}
+      GATE_DATA_DIR: /var/lib/gate
+      GATE_CONFIG: /etc/gate/gate.toml
+      GATE_CERT_DIR: /var/lib/gate/certificates
+      GATE_LOG: info
+    ports:
+      - "${GATE_PORT:-5800}:5800"
+    volumes:
+      - gate-data:/var/lib/gate
+      - gate-config:/etc/gate
+      - gate-logs:/var/log/gate
+    healthcheck:
+      test: ["CMD", "gate-server", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  gate-data:
+  gate-config:
+  gate-logs:

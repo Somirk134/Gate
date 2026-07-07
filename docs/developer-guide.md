@@ -26,7 +26,8 @@ npm run typecheck
 | Check Rust | `cargo check --workspace` |
 | Test Rust | `cargo test --workspace` |
 | Build server | `cargo build -p gate-server --release` |
-| Run server | `cargo run -p gate-server` |
+| Run local server | `npm run dev:server` |
+| Run local server with Windows helper | `npm run dev:server:local` |
 | Typecheck client | `cd client && npm run typecheck` |
 | Build client | `cd client && npm run build` |
 | Run desktop | `cd client && npm run tauri dev` |

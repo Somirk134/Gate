@@ -20,6 +20,12 @@ cd gate
 cargo build --workspace --release
 ```
 
+For local source development, start the server with:
+
+```bash
+npm run dev:server
+```
+
 The server binary is created at:
 
 ```text

@@ -14,10 +14,10 @@ Older drafts mention variables such as `GATE_BIND`, `GATE_ENV`, or `GATE_DATA_DI
 ## Local Server Example
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=gate-alpha-token \
-cargo run -p gate-server
+npm run dev:server
 ```
+
+This uses the default local address `127.0.0.1:7000` and token `gate-alpha-token`.
 
 ## Public Server Example
 

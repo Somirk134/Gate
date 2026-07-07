@@ -32,26 +32,27 @@ cargo build --workspace
 
 ## Start The Server
 
-The current alpha server reads `GATE_SERVER_ADDR` and `GATE_AUTH_TOKEN`.
+For local testing, start the server from the repository root:
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=gate-alpha-token \
-cargo run -p gate-server
+npm run dev:server
 ```
 
-PowerShell:
+This uses the server defaults:
+
+- address: `127.0.0.1:7000`
+- token: `gate-alpha-token`
+
+On Windows, the helper script prints those values before starting:
 
 ```powershell
-$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
-$env:GATE_AUTH_TOKEN = "gate-alpha-token"
-cargo run -p gate-server
+npm run dev:server:local
 ```
 
-Expected bind address:
+If you prefer Cargo directly, this is equivalent for local testing:
 
-```text
-127.0.0.1:7000
+```bash
+cargo run -p gate-server
 ```
 
 ## Start The Desktop Client

@@ -10,10 +10,16 @@ Check whether the port is already in use:
 netstat -ano | findstr :7000
 ```
 
-Try a different bind address:
+For local source development, the default server starts with:
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7001 cargo run -p gate-server
+npm run dev:server
+```
+
+On Windows, try a different bind address with:
+
+```powershell
+npm run dev:server:local -- -Addr "127.0.0.1:7001"
 ```
 
 ## Client Cannot Connect
@@ -68,7 +74,7 @@ Expose the same port:
 
 ```bash
 cargo test --workspace
-cargo run -p gate-server
+npm run dev:server
 docker compose -f docker/docker-compose.yml logs -f gate-server
 ```
 

@@ -81,20 +81,16 @@ cd gate
 cargo test --workspace
 ```
 
-Start the alpha server:
+Start the local alpha server. It listens on `127.0.0.1:7000` and uses the default local token `gate-alpha-token`:
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=gate-alpha-token \
-cargo run -p gate-server
+npm run dev:server
 ```
 
-On Windows PowerShell:
+On Windows, the helper script prints the address and token before starting:
 
 ```powershell
-$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
-$env:GATE_AUTH_TOKEN = "gate-alpha-token"
-cargo run -p gate-server
+npm run dev:server:local
 ```
 
 Launch the desktop client:
@@ -112,7 +108,7 @@ Read the full guide in [docs/quick-start.md](./docs/quick-start.md).
 | Target | Command |
 | --- | --- |
 | Build workspace | `cargo build --workspace --release` |
-| Run server from source | `cargo run -p gate-server` |
+| Run local server from source | `npm run dev:server` or `cargo run -p gate-server` |
 | Install server locally | `cargo install --path server` |
 | Run desktop web shell | `cd client && npm install && npm run dev` |
 | Run desktop app | `cd client && npm install && npm run tauri dev` |
@@ -204,7 +200,7 @@ Read [docs/configuration.md](./docs/configuration.md) for the current alpha conf
 ## Create Your First Tunnel
 
 1. Start a local app on `127.0.0.1:3000`.
-2. Start `gate-server` with a token.
+2. Start the local server with `npm run dev:server`; use token `gate-alpha-token` in the desktop client.
 3. Open the desktop client and add your server.
 4. Create a TCP tunnel named `local-web`.
 5. Set local port `3000` and remote port `18080`.

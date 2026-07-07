@@ -5,17 +5,21 @@ The Gate server is the self-hosted public entrypoint. In the current alpha it ex
 ## Run Locally
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=gate-alpha-token \
-cargo run -p gate-server
+npm run dev:server
 ```
 
-PowerShell:
+This is equivalent to `cargo run -p gate-server` with the default local address `127.0.0.1:7000` and token `gate-alpha-token`.
+
+Windows PowerShell helper:
 
 ```powershell
-$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
-$env:GATE_AUTH_TOKEN = "gate-alpha-token"
-cargo run -p gate-server
+npm run dev:server:local
+```
+
+Customize address or token during local development:
+
+```powershell
+npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"
 ```
 
 ## Configuration

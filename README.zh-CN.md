@@ -73,20 +73,16 @@ cd gate
 cargo test --workspace
 ```
 
-启动 alpha 服务端：
+启动本机测试服务端。默认监听 `127.0.0.1:7000`，默认 Token 为 `gate-alpha-token`：
 
 ```bash
-GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=gate-alpha-token \
-cargo run -p gate-server
+npm run dev:server
 ```
 
-Windows PowerShell：
+Windows 下也可以运行带提示的一键脚本：
 
 ```powershell
-$env:GATE_SERVER_ADDR = "127.0.0.1:7000"
-$env:GATE_AUTH_TOKEN = "gate-alpha-token"
-cargo run -p gate-server
+npm run dev:server:local
 ```
 
 启动桌面客户端：
@@ -104,7 +100,7 @@ npm run tauri dev
 | 目标 | 命令 |
 | --- | --- |
 | 构建 workspace | `cargo build --workspace --release` |
-| 从源码运行服务端 | `cargo run -p gate-server` |
+| 从源码运行本机服务端 | `npm run dev:server` 或 `cargo run -p gate-server` |
 | 安装本地服务端二进制 | `cargo install --path server` |
 | 启动桌面 Web Shell | `cd client && npm install && npm run dev` |
 | 启动桌面应用 | `cd client && npm install && npm run tauri dev` |
@@ -181,7 +177,7 @@ remote_port = 18080
 ## 创建第一个 Tunnel
 
 1. 在本机启动一个应用，例如 `127.0.0.1:3000`。
-2. 启动 `gate-server` 并设置 token。
+2. 运行 `npm run dev:server` 启动本机服务端；客户端里使用 Token `gate-alpha-token`。
 3. 打开桌面客户端并添加 Server。
 4. 创建名为 `local-web` 的 TCP Tunnel。
 5. 设置本地端口 `3000`，远端端口 `18080`。
