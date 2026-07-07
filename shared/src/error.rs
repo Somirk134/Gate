@@ -56,8 +56,33 @@ pub enum ConfigError {
     #[error("configuration source is unavailable: {source_name}")]
     SourceUnavailable { source_name: String },
 
+    #[error("configuration source failed: {source_name}: {message}")]
+    SourceLoad {
+        source_name: String,
+        message: String,
+    },
+
+    #[error("configuration parse failed: {source_name}: {message}")]
+    Parse {
+        source_name: String,
+        message: String,
+    },
+
     #[error("configuration value is invalid: {key}")]
     InvalidValue { key: String },
+
+    #[error("configuration validation failed: {key}: {message}")]
+    Validation { key: String, message: String },
+
+    #[error("configuration migration failed from {from_version} to {to_version}: {message}")]
+    Migration {
+        from_version: u32,
+        to_version: u32,
+        message: String,
+    },
+
+    #[error("remote configuration provider is reserved: {endpoint}")]
+    RemoteReserved { endpoint: String },
 }
 
 #[derive(Debug, Error)]

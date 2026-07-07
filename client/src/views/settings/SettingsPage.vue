@@ -128,6 +128,7 @@ type SettingAction =
   | "backupConfig"
   | "resetCache"
   | "clearLogs"
+  | "openOnboarding"
 
 interface SettingItem {
   key: string
@@ -174,7 +175,8 @@ const categories: SettingCategory[] = [
         description: "保持普通开发者第一次打开时足够清晰。",
         items: [
           { key: "launchAtLogin", label: "开机启动", description: "登录系统后自动启动 Gate。", control: "switch", value: false },
-          { key: "showWelcome", label: "显示欢迎页", description: "首次启动时展示三步配置引导。", control: "switch", value: true },
+          { key: "showWelcome", label: "显示欢迎页", description: "首次启动时展示智能新手引导。", control: "switch", value: true },
+          { key: "openOnboarding", label: "重新打开新手引导", description: "从头开始聊天式配置流程，不会改动 Runtime。", control: "action", value: "", icon: "sparkles", buttonText: "打开", action: "openOnboarding" },
         ],
       },
       {
@@ -367,6 +369,9 @@ function runSettingAction(action?: SettingAction) {
   }
   if (action === "resetCache") {
     localStorage.removeItem("gate.firstLaunch.completed")
+    localStorage.removeItem("gate.smartOnboarding.completed")
+    localStorage.removeItem("gate.smartOnboarding.neverShow")
+    localStorage.removeItem("gate.smartOnboarding.draft")
     localStorage.removeItem("gate.recentServers")
     localStorage.removeItem("gate.connectionHistory")
     localStorage.removeItem("gate.welcome.dismissed")
@@ -375,6 +380,10 @@ function runSettingAction(action?: SettingAction) {
   if (action === "clearLogs") {
     localStorage.removeItem("gate.logs.cache")
     toast.success("日志缓存已清理")
+  }
+  if (action === "openOnboarding") {
+    window.dispatchEvent(new CustomEvent("gate:onboarding:open", { detail: { restart: true } }))
+    toast.success("已打开新手引导")
   }
 }
 

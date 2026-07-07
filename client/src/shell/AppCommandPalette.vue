@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { nextTick, onMounted, ref } from "vue"
 import { useCommandPalette } from "@composables/useCommandPalette"
 import GIcon from "@components/icons/GIcon.vue"
 

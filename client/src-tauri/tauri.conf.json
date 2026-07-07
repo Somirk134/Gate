@@ -13,10 +13,10 @@
         "windows": [
             {
                 "title": "Gate",
-                "width": 1200,
-                "height": 800,
-                "minWidth": 900,
-                "minHeight": 600,
+                "width": 1440,
+                "height": 900,
+                "minWidth": 1100,
+                "minHeight": 720,
                 "center": true,
                 "resizable": true,
                 "fullscreen": false
@@ -27,7 +27,7 @@
         },
         "trayIcon": {
             "iconPath": "icons/32x32.png",
-            "iconAsTemplate": true
+            "iconAsTemplate": false
         }
     },
     "bundle": {
@@ -36,7 +36,8 @@
         "icon": [
             "icons/32x32.png",
             "icons/128x128.png",
-            "icons/128x128@2x.png"
+            "icons/128x128@2x.png",
+            "icons/icon.ico"
         ],
         "windows": {
             "wix": null,

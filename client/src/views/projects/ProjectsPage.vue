@@ -582,18 +582,18 @@ function relativeTime(timestamp: number) {
 }
 
 .project-status i,
-.is-running,
-.is-partial,
-.is-stopped {
+.project-summary .is-running,
+.project-summary .is-partial,
+.project-summary .is-stopped {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
   background: var(--status-offline);
 }
 
-.is-running { background: var(--color-success); }
-.is-partial { background: var(--color-warning); }
-.is-stopped { background: var(--status-offline); }
+.project-summary .is-running { background: var(--color-success); }
+.project-summary .is-partial { background: var(--color-warning); }
+.project-summary .is-stopped { background: var(--status-offline); }
 
 .project-card footer > div {
   display: flex;

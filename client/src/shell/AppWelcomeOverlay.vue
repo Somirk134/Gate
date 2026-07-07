@@ -1,546 +1,943 @@
 <template>
-  <Transition name="welcome">
-    <div v-if="visible" class="welcome-overlay">
-      <section class="welcome-shell" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
-        <aside class="welcome-rail">
-          <div class="welcome-brand">
+  <Transition name="smart-wizard">
+    <div v-if="visible" class="smart-onboarding" @keydown.esc="closeForLater">
+      <section class="wizard-shell" role="dialog" aria-modal="true" aria-labelledby="smart-wizard-title">
+        <aside class="wizard-rail">
+          <div class="rail-brand">
             <span><GIcon name="router" :size="24" /></span>
             <div>
               <strong>Gate</strong>
-              <small>Beta Sprint 2</small>
+              <small>Smart Onboarding</small>
             </div>
           </div>
 
-          <nav class="welcome-steps" aria-label="First launch steps">
-            <button
-              v-for="(item, index) in flowSteps"
-              :key="item.key"
-              type="button"
-              :class="{ active: step === index, done: step > index }"
-              @click="step = Math.min(step, index)"
-            >
-              <span>{{ index + 1 }}</span>
+          <div class="rail-illustration" aria-hidden="true">
+            <div class="node local">Local</div>
+            <div class="node server">Server</div>
+            <div class="node public">Public</div>
+            <span class="line line-a" />
+            <span class="line line-b" />
+          </div>
+
+          <div class="path-panel">
+            <p>当前路径</p>
+            <div class="path-list">
+              <span v-for="item in pathItems" :key="item">{{ item }}</span>
+            </div>
+          </div>
+
+          <div class="knowledge-panel">
+            <p>知识卡片</p>
+            <article v-for="card in visibleKnowledgeCards" :key="card.id">
+              <GIcon :name="card.icon" :size="16" />
               <div>
-                <strong>{{ item.title }}</strong>
-                <small>{{ item.caption }}</small>
+                <strong>{{ card.title }}</strong>
+                <span>{{ card.body }}</span>
               </div>
-            </button>
-          </nav>
+            </article>
+          </div>
         </aside>
 
-        <main class="welcome-main">
-          <header class="welcome-header">
+        <main class="wizard-main">
+          <header class="wizard-header">
             <div>
-              <p>{{ currentStep.caption }}</p>
-              <h1 id="welcome-title">{{ currentStep.title }}</h1>
+              <p>{{ screenCaption }}</p>
+              <h1 id="smart-wizard-title">{{ screenTitle }}</h1>
             </div>
-            <button type="button" class="welcome-skip" @click="skipWizard">跳过</button>
+            <div class="wizard-header__actions">
+              <button v-if="screen !== 'welcome'" type="button" class="text-action" @click="restartWizard">重新开始</button>
+              <button type="button" class="text-action" @click="skipWizard">跳过</button>
+              <button type="button" class="icon-action" aria-label="稍后继续" @click="closeForLater">
+                <GIcon name="close" :size="16" />
+              </button>
+            </div>
           </header>
 
-          <div class="welcome-progress">
+          <div class="wizard-progress" aria-hidden="true">
             <span :style="{ width: `${progressPercent}%` }" />
           </div>
 
-          <section class="welcome-content">
-            <div v-if="currentStep.key === 'welcome'" class="welcome-intro">
-              <div class="intro-mark">
-                <GIcon name="rocket" :size="30" />
+          <section ref="wizardContentRef" class="wizard-content">
+            <div v-if="screen === 'welcome'" ref="activePanelRef" class="welcome-screen">
+              <div class="welcome-mark">
+                <GIcon name="sparkles" :size="32" />
               </div>
-              <h2>5 分钟内完成部署并创建第一个 Tunnel</h2>
+              <h2>像聊天一样完成 Gate 配置</h2>
               <p>
-                这个向导会检查本机环境、配置服务器、测试连接、选择常见场景模板，然后创建第一个 Tunnel。
-                你不需要先阅读文档。
+                我会问几个简单问题，然后自动推荐 Tunnel 类型、协议、端口、域名和证书策略。
+                预计 3-5 分钟完成。
               </p>
-              <div class="intro-grid">
-                <article v-for="item in introCards" :key="item.title">
-                  <GIcon :name="item.icon" :size="18" />
-                  <strong>{{ item.title }}</strong>
-                  <span>{{ item.description }}</span>
+
+              <div class="welcome-points">
+                <article>
+                  <GIcon name="message" :size="18" />
+                  <strong>不填复杂表单</strong>
+                  <span>每次只回答一个问题。</span>
+                </article>
+                <article>
+                  <GIcon name="sparkles" :size="18" />
+                  <strong>自动生成配置</strong>
+                  <span>根据场景推荐协议和端口。</span>
+                </article>
+                <article>
+                  <GIcon name="circle-help" :size="18" />
+                  <strong>随时解释概念</strong>
+                  <span>用简单语言说明为什么。</span>
                 </article>
               </div>
+
+              <label class="never-show">
+                <input v-model="neverShowChoice" type="checkbox" />
+                <span>以后不再显示</span>
+              </label>
             </div>
 
-            <div v-else-if="currentStep.key === 'environment'" class="check-panel">
-              <div class="panel-heading">
-                <div>
-                  <strong>Deployment Checker</strong>
-                  <p>{{ deploymentReport?.summary ?? "正在检查 Rust Server、配置、日志、权限和监听端口。" }}</p>
-                </div>
-                <GButton variant="secondary" icon="refresh" :loading="deploymentLoading" @click="runDeploymentCheck">
-                  重新检查
-                </GButton>
-              </div>
-
-              <div class="finding-list">
-                <article v-for="finding in deploymentFindings" :key="finding.id" :class="`is-${finding.status}`">
-                  <span><GIcon :name="findingIcon(finding.status)" :size="16" /></span>
+            <template v-else>
+              <div class="chat-log" aria-live="polite">
+                <article
+                  v-for="message in conversation"
+                  :key="message.id"
+                  class="chat-message"
+                  :class="`is-${message.role}`"
+                >
+                  <span v-if="message.role === 'gate'" class="avatar">
+                    <GIcon name="sparkles" :size="14" />
+                  </span>
                   <div>
-                    <strong>{{ finding.label }}</strong>
-                    <p>{{ finding.reason }}</p>
-                    <small>{{ finding.solution }}</small>
+                    <strong v-if="message.title">{{ message.title }}</strong>
+                    <p>{{ message.body }}</p>
                   </div>
                 </article>
               </div>
-            </div>
 
-            <div v-else-if="currentStep.key === 'server'" class="server-wizard">
-              <div class="connection-status" :class="connectionTone">
-                <span />
-                <strong>{{ connectionStatusLabel }}</strong>
-                <small>{{ connectionStatusDescription }}</small>
-              </div>
-
-              <div class="server-form">
-                <label>
-                  <span>服务器地址</span>
-                  <input v-model.trim="server.host" autocomplete="off" placeholder="gate.example.com 或 127.0.0.1" />
-                </label>
-                <label>
-                  <span>端口</span>
-                  <input v-model.number="server.port" inputmode="numeric" type="number" placeholder="7000" />
-                </label>
-                <label class="server-form__token">
-                  <span>Token</span>
-                  <input v-model.trim="server.token" autocomplete="off" type="password" placeholder="从服务端配置复制 Token" />
-                </label>
-              </div>
-
-              <div class="server-actions">
-                <GButton variant="primary" icon="plug-zap" :loading="connectionLoading" @click="testConnection">
-                  测试连接
-                </GButton>
-                <GButton variant="secondary" icon="shield-check" :loading="deploymentLoading" @click="runDeploymentCheck">
-                  部署检查
-                </GButton>
-              </div>
-
-              <section v-if="recentServers.length" class="recent-servers">
-                <header>
-                  <strong>Recent Server</strong>
-                  <span>快速重连，收藏预留</span>
-                </header>
-                <button v-for="recent in recentServers" :key="recent.serverAddr" type="button" @click="applyRecentServer(recent.serverAddr)">
-                  <GIcon name="history" :size="14" />
-                  <span>{{ recent.serverAddr }}</span>
-                  <small>{{ recent.successCount }} 次成功</small>
+              <section v-if="screen === 'server-question'" ref="activePanelRef" class="question-panel">
+                <button
+                  v-for="option in serverOwnershipOptions"
+                  :key="option.value"
+                  type="button"
+                  class="choice-card"
+                  @click="chooseServerOwnership(option.value)"
+                >
+                  <GIcon :name="option.icon" :size="20" />
+                  <strong>{{ option.label }}</strong>
+                  <span>{{ option.description }}</span>
                 </button>
               </section>
-            </div>
 
-            <div v-else-if="currentStep.key === 'test'" class="test-panel">
-              <div v-if="!connectionReport" class="test-empty">
-                <GIcon name="plug-zap" :size="34" />
-                <h2>先测试服务器连接</h2>
-                <p>测试会区分 DNS、Token、服务器未启动、端口不可达和超时。</p>
-                <GButton variant="primary" icon="plug-zap" :loading="connectionLoading" @click="testConnection">
-                  测试连接
-                </GButton>
-              </div>
-
-              <article v-else class="connection-result" :class="{ ok: connectionReport.ok }">
-                <div class="result-heading">
-                  <span><GIcon :name="connectionReport.ok ? 'check-circle' : 'alert-circle'" :size="22" /></span>
+              <section v-else-if="screen === 'server-education'" ref="activePanelRef" class="education-panel">
+                <div class="explain-card">
+                  <GIcon name="servers" :size="22" />
                   <div>
-                    <strong>{{ connectionReport.title }}</strong>
-                    <small>{{ connectionReport.code }} · {{ connectionReport.elapsedMs }}ms</small>
+                    <strong>为什么需要公网服务器？</strong>
+                    <p>
+                      你的电脑通常在家里、公司或校园网里，外面的人访问不到。
+                      公网服务器像一个门口，先接住请求，再交给 Gate 转回你的本地服务。
+                    </p>
                   </div>
                 </div>
 
-                <dl>
-                  <div>
-                    <dt>错误原因</dt>
-                    <dd>{{ connectionReport.reason }}</dd>
-                  </div>
-                  <div>
-                    <dt>可能原因</dt>
-                    <dd>{{ connectionReport.possibleCause }}</dd>
-                  </div>
-                  <div>
-                    <dt>解决方案</dt>
-                    <dd>{{ connectionReport.solution }}</dd>
-                  </div>
-                </dl>
+                <div class="provider-grid">
+                  <article v-for="provider in cloudProviders" :key="provider.id" :class="`tone-${provider.tone}`">
+                    <strong>{{ provider.name }}</strong>
+                    <span>{{ provider.note }}</span>
+                  </article>
+                </div>
 
-                <div class="result-actions">
-                  <GButton variant="secondary" icon="refresh" :loading="connectionLoading" @click="testConnection">
-                    重新测试
+                <div class="reserved-deploy">
+                  <GIcon name="rocket" :size="18" />
+                  <div>
+                    <strong>一键部署已预留</strong>
+                    <span>未来会在这里直接选择云厂商并自动部署 Gate Server。</span>
+                  </div>
+                </div>
+
+                <div class="education-actions">
+                  <GButton variant="secondary" icon="servers" @click="switchToEnvironmentFromEducation">
+                    我已经准备好服务器
                   </GButton>
-                  <GButton variant="ghost" icon="logs" @click="openLogs">查看日志</GButton>
-                  <GButton variant="ghost" icon="copy" @click="copyConnectionError">复制错误</GButton>
                 </div>
-              </article>
-
-              <section v-if="connectionHistory.length" class="history-list">
-                <header>
-                  <strong>Connection History</strong>
-                  <span>最近 10 次</span>
-                </header>
-                <article v-for="entry in connectionHistory.slice(0, 4)" :key="entry.id">
-                  <span :class="entry.result">{{ entry.result === "success" ? "成功" : "失败" }}</span>
-                  <strong>{{ entry.serverAddr }}</strong>
-                  <small>{{ entry.failureReason || `${entry.elapsedMs}ms` }}</small>
-                </article>
               </section>
-            </div>
 
-            <div v-else-if="currentStep.key === 'tunnel'" class="first-tunnel">
-              <div class="preset-strip">
-                <button
-                  v-for="scenario in quickStartScenarios"
-                  :key="scenario.id"
-                  type="button"
-                  :class="{ active: selectedScenarioId === scenario.id }"
-                  @click="applyScenario(scenario.id)"
-                >
-                  <GIcon :name="scenario.icon" :size="16" />
-                  <span>{{ scenario.title }}</span>
-                </button>
-              </div>
-
-              <div class="template-strip">
-                <button
-                  v-for="template in tunnelTemplates"
-                  :key="template.id"
-                  type="button"
-                  :class="{ active: selectedTemplateId === template.id, reserved: template.availability === 'reserved' }"
-                  :disabled="template.availability === 'reserved'"
-                  @click="applyTemplate(template.id)"
-                >
-                  <GIcon :name="template.icon" :size="15" />
-                  <span>{{ template.title }}</span>
-                </button>
-              </div>
-
-              <div class="tunnel-form">
-                <label>
-                  <span>建议名称</span>
-                  <input v-model.trim="tunnelForm.name" autocomplete="off" />
+              <section v-else-if="screen === 'environment'" ref="activePanelRef" class="environment-panel">
+                <label class="chat-input">
+                  <span>服务器地址</span>
+                  <input
+                    v-model.trim="answers.serverAddress"
+                    autocomplete="off"
+                    placeholder="例如 203.0.113.10 或 gate.example.com"
+                  />
                 </label>
-                <label>
-                  <span>本地地址</span>
-                  <input v-model.trim="tunnelForm.localHost" autocomplete="off" />
-                </label>
-                <label>
-                  <span>本地端口</span>
-                  <input v-model.number="tunnelForm.localPort" inputmode="numeric" type="number" />
-                </label>
-                <label>
-                  <span>公网端口</span>
-                  <input v-model.number="tunnelForm.remotePort" inputmode="numeric" type="number" />
-                </label>
-              </div>
 
-              <div class="template-summary">
-                <strong>{{ selectedTemplate.title }} · {{ tunnelForm.protocol.toUpperCase() }}</strong>
-                <span>{{ tunnelForm.localHost }}:{{ tunnelForm.localPort || "-" }} → gate.dev:{{ tunnelForm.remotePort || "-" }}</span>
-              </div>
-            </div>
+                <div class="environment-grid">
+                  <button
+                    v-for="environment in serverEnvironmentOptions"
+                    :key="environment.id"
+                    type="button"
+                    class="environment-card"
+                    :class="{ active: answers.serverEnvironment === environment.id, reserved: environment.reserved }"
+                    :disabled="environment.reserved"
+                    @click="chooseEnvironment(environment.id)"
+                  >
+                    <GIcon :name="environment.icon" :size="18" />
+                    <strong>{{ environment.title }}</strong>
+                    <span>{{ environment.description }}</span>
+                    <small>{{ environment.recommendedDeploy }}</small>
+                  </button>
+                </div>
+              </section>
 
-            <div v-else class="finish-panel">
-              <div class="finish-mark">
-                <GIcon name="check-circle" :size="34" />
-              </div>
-              <h2>你的第一个 Tunnel 已准备好</h2>
-              <p>{{ createdTunnelName }} 已创建。你可以进入 Tunnel 页面启动、查看日志，或继续创建更多模板化 Tunnel。</p>
-              <div class="finish-actions">
-                <GButton variant="primary" icon="router" @click="finishWizard">进入 Tunnels</GButton>
-                <GButton variant="secondary" icon="activity" @click="openDiagnostics">打开诊断中心</GButton>
-              </div>
-            </div>
+              <section v-else-if="screen === 'domain'" ref="activePanelRef" class="domain-panel">
+                <div class="choice-row">
+                  <button
+                    v-for="option in domainOptions"
+                    :key="option.value"
+                    type="button"
+                    class="choice-card"
+                    :class="{ active: answers.domainMode === option.value }"
+                    @click="chooseDomainMode(option.value)"
+                  >
+                    <GIcon :name="option.icon" :size="20" />
+                    <strong>{{ option.label }}</strong>
+                    <span>{{ option.description }}</span>
+                  </button>
+                </div>
+
+                <label v-if="answers.domainMode === 'has-domain'" class="chat-input">
+                  <span>域名</span>
+                  <input v-model.trim="answers.domainName" autocomplete="off" placeholder="api.example.com" />
+                </label>
+
+                <div v-if="answers.domainMode && answers.domainMode !== 'has-domain'" class="plain-note">
+                  <GIcon name="info-circle" :size="17" />
+                  <span>没有域名也可以正常使用，Gate 会推荐 IP + Port 的访问方式。</span>
+                </div>
+              </section>
+
+              <section v-else-if="screen === 'scenario'" ref="activePanelRef" class="scenario-panel">
+                <div class="scenario-grid">
+                  <button
+                    v-for="scenario in scenarioRecommendations"
+                    :key="scenario.id"
+                    type="button"
+                    class="scenario-card"
+                    :class="{ active: answers.scenarioId === scenario.id }"
+                    @click="chooseScenario(scenario.id)"
+                  >
+                    <GIcon :name="scenario.icon" :size="18" />
+                    <strong>{{ scenario.title }}</strong>
+                    <span>{{ scenario.description }}</span>
+                    <small>{{ scenario.protocol.toUpperCase() }} · {{ scenario.localPort }} → {{ scenario.remotePort }}</small>
+                  </button>
+                </div>
+
+                <div class="quick-adjust">
+                  <label>
+                    <span>Tunnel 名称</span>
+                    <input v-model.trim="answers.customName" autocomplete="off" :placeholder="selectedScenario.defaultName" />
+                  </label>
+                  <label>
+                    <span>本地端口</span>
+                    <input
+                      v-model.number="answers.customLocalPort"
+                      inputmode="numeric"
+                      type="number"
+                      :placeholder="String(selectedScenario.localPort)"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section v-else ref="activePanelRef" class="review-panel">
+                <div class="recommendation-card">
+                  <header>
+                    <div>
+                      <p>推荐配置</p>
+                      <h2>{{ recommendation.tunnelName }}</h2>
+                    </div>
+                    <span>{{ recommendation.protocol.toUpperCase() }}</span>
+                  </header>
+
+                  <dl class="config-list">
+                    <div>
+                      <dt>Server</dt>
+                      <dd>{{ recommendation.server }}</dd>
+                    </div>
+                    <div>
+                      <dt>Protocol</dt>
+                      <dd>{{ recommendation.protocol.toUpperCase() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Local</dt>
+                      <dd>{{ recommendation.local }}</dd>
+                    </div>
+                    <div>
+                      <dt>Remote</dt>
+                      <dd>{{ recommendation.remote }}</dd>
+                    </div>
+                    <div>
+                      <dt>Domain</dt>
+                      <dd>{{ recommendation.domain }}</dd>
+                    </div>
+                    <div>
+                      <dt>Certificate</dt>
+                      <dd>{{ recommendation.certificate }}</dd>
+                    </div>
+                  </dl>
+
+                  <div class="access-preview">
+                    <span>访问预览</span>
+                    <code>{{ recommendation.accessPreview }}</code>
+                  </div>
+                </div>
+
+                <div class="why-card">
+                  <GIcon name="circle-help" :size="18" />
+                  <div>
+                    <strong>为什么推荐这样配置？</strong>
+                    <ul>
+                      <li v-for="reason in recommendation.reasonList" :key="reason">{{ reason }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            </template>
           </section>
 
-          <footer class="welcome-footer">
-            <GButton v-if="step > 0 && currentStep.key !== 'finish'" variant="ghost" @click="step -= 1">上一步</GButton>
-            <span class="welcome-error">{{ inlineError }}</span>
+          <footer class="wizard-footer">
+            <GButton v-if="screen === 'welcome'" variant="ghost" @click="skipWizard">跳过</GButton>
+            <GButton v-else variant="ghost" @click="goBack">返回</GButton>
+
+            <span class="inline-error">{{ inlineError }}</span>
+
             <GButton
-              v-if="currentStep.key !== 'finish'"
+              v-if="screen === 'welcome'"
               variant="primary"
               trailing-icon="arrow-right"
-              :loading="primaryLoading"
-              @click="goNext"
+              @click="startWizard"
             >
-              {{ primaryLabel }}
+              开始配置
+            </GButton>
+            <GButton
+              v-else-if="screen === 'server-education'"
+              variant="primary"
+              trailing-icon="arrow-right"
+              @click="continueWithoutServer"
+            >
+              我先了解，继续
+            </GButton>
+            <GButton
+              v-else-if="screen === 'environment'"
+              variant="primary"
+              trailing-icon="arrow-right"
+              @click="continueFromEnvironment"
+            >
+              继续
+            </GButton>
+            <GButton
+              v-else-if="screen === 'domain'"
+              variant="primary"
+              trailing-icon="arrow-right"
+              @click="continueFromDomain"
+            >
+              继续
+            </GButton>
+            <GButton
+              v-else-if="screen === 'scenario'"
+              variant="primary"
+              trailing-icon="arrow-right"
+              @click="continueFromScenario"
+            >
+              生成推荐配置
+            </GButton>
+            <GButton
+              v-else-if="screen === 'review'"
+              variant="primary"
+              icon="plus"
+              :loading="creating"
+              @click="createFirstTunnel"
+            >
+              确认并创建
             </GButton>
           </footer>
         </main>
       </section>
     </div>
   </Transition>
+
+  <Transition name="tour">
+    <div v-if="tourVisible" class="tour-overlay">
+      <div class="tour-scrim" @click="finishTour" />
+      <div v-if="spotlightRect" class="tour-ring" :style="spotlightStyle" />
+      <article class="tour-card" :style="tourCardStyle">
+        <p>快速认识 Gate</p>
+        <h2>{{ currentTour.title }}</h2>
+        <span>{{ currentTour.body }}</span>
+        <footer>
+          <small>{{ tourIndex + 1 }} / {{ tourItems.length }}</small>
+          <GButton variant="primary" size="sm" @click="nextTour">
+            {{ tourIndex === tourItems.length - 1 ? "完成" : "下一处" }}
+          </GButton>
+        </footer>
+      </article>
+    </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import GButton from "@components/base/GButton.vue"
 import GIcon from "@components/icons/GIcon.vue"
-import { diagnosticsService } from "@/services"
-import type {
-  ConnectionHistoryEntry,
-  ConnectionTestReport,
-  DeploymentCheckReport,
-  DiagnosticFinding,
-  RecentServer,
-} from "@/services"
-import { findTemplate, quickStartScenarios, tunnelTemplates } from "@/onboarding/presets"
+import {
+  buildSmartRecommendation,
+  cloudProviders,
+  createDefaultAnswers,
+  findScenario,
+  knowledgeCards,
+  scenarioRecommendations,
+  serverEnvironmentOptions,
+  smartOnboardingKeys,
+  type DomainMode,
+  type ServerEnvironmentId,
+  type ServerOwnership,
+  type SmartWizardAnswers,
+} from "@/onboarding/smartWizard"
 import { useTunnelStore } from "@/views/tunnels/store/tunnel"
-import type { TunnelFormData } from "@/views/tunnels/types"
 
-const FIRST_LAUNCH_KEY = "gate.firstLaunch.completed"
+type WizardScreen =
+  | "welcome"
+  | "server-question"
+  | "server-education"
+  | "environment"
+  | "domain"
+  | "scenario"
+  | "review"
+
+interface ChatMessage {
+  id: string
+  role: "gate" | "user"
+  title?: string
+  body: string
+}
+
+interface WizardDraft {
+  screen: WizardScreen
+  answers: SmartWizardAnswers
+  conversation: ChatMessage[]
+  history: WizardScreen[]
+}
 
 const router = useRouter()
 const tunnelStore = useTunnelStore()
 
 const visible = ref(false)
-const step = ref(0)
-const deploymentLoading = ref(false)
-const connectionLoading = ref(false)
-const deploymentReport = ref<DeploymentCheckReport | null>(null)
-const connectionReport = ref<ConnectionTestReport | null>(null)
-const recentServers = ref<RecentServer[]>([])
-const connectionHistory = ref<ConnectionHistoryEntry[]>([])
+const screen = ref<WizardScreen>("welcome")
+const screenHistory = ref<WizardScreen[]>([])
+const conversation = ref<ChatMessage[]>([])
+const neverShowChoice = ref(false)
 const inlineError = ref("")
-const selectedScenarioId = ref("local-dev")
-const selectedTemplateId = ref("tcp")
+const creating = ref(false)
 const createdTunnelName = ref("")
+const wizardContentRef = ref<HTMLElement | null>(null)
+const activePanelRef = ref<HTMLElement | null>(null)
+const answers = reactive<SmartWizardAnswers>(createDefaultAnswers())
 
-const server = reactive({
-  host: "127.0.0.1",
-  port: 7000,
-  token: "",
-})
+const tourVisible = ref(false)
+const tourIndex = ref(0)
+const spotlightRect = ref<DOMRect | null>(null)
 
-const tunnelForm = reactive<TunnelFormData>({
-  name: "local-dev",
-  protocol: "tcp",
-  localHost: "127.0.0.1",
-  localPort: 3000,
-  remotePort: 18080,
-  projectId: "p1",
-  serverName: "Local Server",
-  autoStart: false,
-  remark: "",
-  tags: ["Dev"],
-})
-
-const flowSteps = [
-  { key: "welcome", title: "Welcome", caption: "准备开始" },
-  { key: "environment", title: "检查环境", caption: "部署前检查" },
-  { key: "server", title: "配置服务器", caption: "Server Connection Wizard" },
-  { key: "test", title: "测试连接", caption: "连接诊断" },
-  { key: "tunnel", title: "创建第一个 Tunnel", caption: "Quick Start" },
-  { key: "finish", title: "完成", caption: "可以开始使用" },
-] as const
-
-const introCards = [
-  { icon: "shield-check", title: "自动检查", description: "检查配置、日志、权限和端口。" },
-  { icon: "plug-zap", title: "明确错误", description: "失败时给出原因、可能原因和解决方案。" },
-  { icon: "sparkles", title: "模板生成", description: "常见场景一键生成推荐配置。" },
+const serverOwnershipOptions: Array<{
+  value: ServerOwnership
+  label: string
+  description: string
+  icon: string
+}> = [
+  {
+    value: "has-server",
+    label: "我有服务器",
+    description: "继续选择服务器环境和部署方式。",
+    icon: "servers",
+  },
+  {
+    value: "no-server",
+    label: "我没有服务器",
+    description: "先了解为什么需要，再看推荐平台。",
+    icon: "cloud",
+  },
+  {
+    value: "unknown-server",
+    label: "我不知道什么是公网服务器",
+    description: "用最简单的话解释，不讲术语。",
+    icon: "circle-help",
+  },
 ]
 
-const currentStep = computed(() => flowSteps[step.value])
-const progressPercent = computed(() => ((step.value + 1) / flowSteps.length) * 100)
-const deploymentFindings = computed<DiagnosticFinding[]>(() => deploymentReport.value?.findings ?? [])
-const selectedTemplate = computed(() => findTemplate(selectedTemplateId.value))
-const serverAddr = computed(() => diagnosticsService.formatServerAddr(server))
-const primaryLoading = computed(() => deploymentLoading.value || connectionLoading.value)
-const primaryLabel = computed(() => {
-  if (currentStep.value.key === "environment") return "继续配置服务器"
-  if (currentStep.value.key === "server") return "测试连接"
-  if (currentStep.value.key === "test") return connectionReport.value?.ok ? "继续创建 Tunnel" : "重新测试"
-  if (currentStep.value.key === "tunnel") return "创建 Tunnel"
-  return "下一步"
+const domainOptions: Array<{
+  value: DomainMode
+  label: string
+  description: string
+  icon: string
+}> = [
+  {
+    value: "has-domain",
+    label: "有",
+    description: "推荐 HTTPS 和自动证书。",
+    icon: "globe",
+  },
+  {
+    value: "no-domain",
+    label: "没有",
+    description: "仍然可以使用 IP + Port。",
+    icon: "network",
+  },
+  {
+    value: "skip-domain",
+    label: "暂时不用",
+    description: "先完成 Tunnel，之后再绑定域名。",
+    icon: "clock",
+  },
+]
+
+const tourItems = [
+  {
+    target: "dashboard",
+    title: "Dashboard",
+    body: "这里看整体状态、运行情况和最近活动。",
+  },
+  {
+    target: "tunnels",
+    title: "Tunnel",
+    body: "这里管理刚创建的 Tunnel，启动、停止和查看访问地址。",
+  },
+  {
+    target: "logs",
+    title: "Log",
+    body: "连接失败或回调异常时，先到这里看发生了什么。",
+  },
+  {
+    target: "settings",
+    title: "Settings",
+    body: "需要重新打开新手引导、调整主题或清理本地缓存时来这里。",
+  },
+]
+
+const selectedScenario = computed(() => findScenario(answers.scenarioId))
+const recommendation = computed(() => buildSmartRecommendation(answers))
+const currentTour = computed(() => tourItems[tourIndex.value])
+const visibleKnowledgeCards = computed(() => {
+  if (screen.value === "server-question" || screen.value === "server-education") {
+    return knowledgeCards.filter((card) => ["public-server", "tunnel", "domain"].includes(card.id))
+  }
+  if (screen.value === "domain" || screen.value === "review") {
+    return knowledgeCards.filter((card) => ["domain", "https", "certificate"].includes(card.id))
+  }
+  return knowledgeCards.slice(0, 3)
 })
-const connectionTone = computed(() => {
-  if (connectionLoading.value) return "testing"
-  if (connectionReport.value?.ok) return "ok"
-  if (connectionReport.value && !connectionReport.value.ok) return "error"
-  return server.host && server.port && server.token ? "ready" : "idle"
+
+const screenTitle = computed(() => {
+  const titles: Record<WizardScreen, string> = {
+    welcome: "欢迎使用 Gate",
+    "server-question": "你已经拥有公网服务器了吗？",
+    "server-education": answers.serverOwnership === "unknown-server" ? "先理解公网服务器" : "没有服务器也没关系",
+    environment: "你的服务器是什么环境？",
+    domain: "你拥有域名吗？",
+    scenario: "你想用 Gate 做什么？",
+    review: "推荐配置已生成",
+  }
+  return titles[screen.value]
 })
-const connectionStatusLabel = computed(() => {
-  if (connectionLoading.value) return "正在测试连接"
-  if (connectionReport.value?.ok) return "连接可用"
-  if (connectionReport.value && !connectionReport.value.ok) return connectionReport.value.title
-  if (server.host && server.port && server.token) return "可以测试连接"
-  return "等待服务器配置"
+
+const screenCaption = computed(() => {
+  const captions: Record<WizardScreen, string> = {
+    welcome: "约 3-5 分钟",
+    "server-question": "第一个关键判断",
+    "server-education": "基础概念",
+    environment: "部署方式推荐",
+    domain: "访问地址",
+    scenario: "使用场景",
+    review: "确认即可创建",
+  }
+  return captions[screen.value]
 })
-const connectionStatusDescription = computed(() => {
-  if (connectionReport.value) return connectionReport.value.solution
-  return "填写服务器地址、端口和 Token 后点击测试连接。"
+
+const progressPercent = computed(() => {
+  const progress: Record<WizardScreen, number> = {
+    welcome: 8,
+    "server-question": 18,
+    "server-education": 36,
+    environment: 36,
+    domain: 56,
+    scenario: 76,
+    review: 94,
+  }
+  return progress[screen.value]
+})
+
+const pathItems = computed(() => {
+  const list = ["欢迎"]
+  if (answers.serverOwnership) {
+    const option = serverOwnershipOptions.find((item) => item.value === answers.serverOwnership)
+    list.push(option?.label ?? "服务器")
+  }
+  if (answers.serverEnvironment) {
+    const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
+    list.push(environment?.title ?? "环境")
+  }
+  if (answers.domainMode) {
+    const option = domainOptions.find((item) => item.value === answers.domainMode)
+    list.push(option?.label ?? "域名")
+  }
+  if (answers.scenarioId && (screen.value === "scenario" || screen.value === "review")) {
+    list.push(selectedScenario.value.title)
+  }
+  return list
+})
+
+const spotlightStyle = computed(() => {
+  if (!spotlightRect.value) return {}
+  return {
+    left: `${spotlightRect.value.left - 6}px`,
+    top: `${spotlightRect.value.top - 6}px`,
+    width: `${spotlightRect.value.width + 12}px`,
+    height: `${spotlightRect.value.height + 12}px`,
+  }
+})
+
+const tourCardStyle = computed(() => {
+  if (!spotlightRect.value) {
+    return { left: "260px", top: "96px" }
+  }
+  const top = Math.min(window.innerHeight - 180, Math.max(24, spotlightRect.value.top - 18))
+  return {
+    left: `${spotlightRect.value.right + 22}px`,
+    top: `${top}px`,
+  }
+})
+
+watch(
+  [screen, () => ({ ...answers }), conversation, screenHistory],
+  () => {
+    if (!visible.value || screen.value === "welcome") return
+    saveDraft()
+  },
+  { deep: true },
+)
+
+watch(screen, () => {
+  void scrollActivePanelIntoView()
 })
 
 onMounted(() => {
-  visible.value = localStorage.getItem(FIRST_LAUNCH_KEY) !== "true"
-  refreshConnectionMemory()
-  applyScenario("local-dev")
-  if (visible.value) void runDeploymentCheck()
+  window.addEventListener("gate:onboarding:open", handleOpenEvent as EventListener)
+  window.addEventListener("resize", updateSpotlight)
+  openOnFirstLaunch()
 })
 
-async function runDeploymentCheck() {
-  deploymentLoading.value = true
-  inlineError.value = ""
-  try {
-    deploymentReport.value = await diagnosticsService.runDeployment(server.host ? serverAddr.value : undefined)
-  } finally {
-    deploymentLoading.value = false
+onBeforeUnmount(() => {
+  window.removeEventListener("gate:onboarding:open", handleOpenEvent as EventListener)
+  window.removeEventListener("resize", updateSpotlight)
+})
+
+function openOnFirstLaunch() {
+  const completed = localStorage.getItem(smartOnboardingKeys.completed) === "true"
+  const neverShow = localStorage.getItem(smartOnboardingKeys.neverShow) === "true"
+  if (!completed && !neverShow) {
+    openWizard(false)
   }
 }
 
-async function testConnection() {
-  if (!validateServer()) return
-  connectionLoading.value = true
+function handleOpenEvent(event: CustomEvent<{ restart?: boolean }>) {
+  openWizard(Boolean(event.detail?.restart))
+}
+
+function openWizard(restart: boolean) {
   inlineError.value = ""
-  try {
-    connectionReport.value = await diagnosticsService.testConnection(server)
-    refreshConnectionMemory()
-  } finally {
-    connectionLoading.value = false
+  visible.value = true
+  if (restart) {
+    resetWizard()
+    return
+  }
+  const draft = readDraft()
+  if (draft) {
+    Object.assign(answers, draft.answers)
+    screen.value = draft.screen
+    conversation.value = draft.conversation.length ? draft.conversation : createOpeningConversation()
+    screenHistory.value = draft.history
+  } else {
+    resetWizard()
   }
 }
 
-async function goNext() {
+function resetWizard() {
+  Object.assign(answers, createDefaultAnswers())
+  screen.value = "welcome"
+  screenHistory.value = []
+  conversation.value = []
   inlineError.value = ""
-  if (currentStep.value.key === "environment" && !deploymentReport.value) {
-    await runDeploymentCheck()
-  }
-  if (currentStep.value.key === "server") {
-    await testConnection()
-    if (!connectionReport.value?.ok) {
-      step.value = 3
-      return
-    }
-  }
-  if (currentStep.value.key === "test") {
-    if (!connectionReport.value?.ok) {
-      await testConnection()
-      if (!connectionReport.value?.ok) return
-    }
-  }
-  if (currentStep.value.key === "tunnel") {
-    if (!(await createFirstTunnel())) return
-  }
-  step.value = Math.min(step.value + 1, flowSteps.length - 1)
+  createdTunnelName.value = ""
+  localStorage.removeItem(smartOnboardingKeys.draft)
 }
 
-function validateServer() {
-  if (!server.host.trim()) inlineError.value = "请填写服务器地址。"
-  else if (!Number.isInteger(server.port) || server.port < 1 || server.port > 65535) inlineError.value = "端口必须在 1-65535 之间。"
-  else if (!server.token.trim()) inlineError.value = "请填写 Token。"
-  return !inlineError.value
+function restartWizard() {
+  resetWizard()
+  startWizard()
+}
+
+function startWizard() {
+  conversation.value = createOpeningConversation()
+  navigateTo("server-question")
+}
+
+function createOpeningConversation(): ChatMessage[] {
+  return [
+    {
+      id: makeId(),
+      role: "gate",
+      title: "我们先从最关键的问题开始",
+      body: "Gate 需要一个公网入口。你不用懂网络，我会根据你的回答继续问。",
+    },
+  ]
+}
+
+function chooseServerOwnership(value: ServerOwnership) {
+  inlineError.value = ""
+  answers.serverOwnership = value
+  const option = serverOwnershipOptions.find((item) => item.value === value)
+  pushUser(option?.label ?? value)
+  if (value === "has-server") {
+    pushGate("太好了。接下来我只需要知道服务器环境，这样能推荐最省心的部署方式。")
+    navigateTo("environment")
+    return
+  }
+  pushGate(
+    value === "unknown-server"
+      ? "没关系，我们先把公网服务器讲清楚。你可以先了解，再继续生成配置。"
+      : "没有服务器也可以先走完配置思路。拿到服务器后，可以从 Settings 重新打开引导补齐。",
+  )
+  navigateTo("server-education")
+}
+
+function continueWithoutServer() {
+  pushUser("我先了解，继续")
+  pushGate("好的。下一步看域名。即使没有域名，也可以先用 IP 加端口访问。")
+  navigateTo("domain")
+}
+
+function switchToEnvironmentFromEducation() {
+  answers.serverOwnership = "has-server"
+  pushUser("我已经准备好服务器")
+  pushGate("很好。选择服务器环境后，我会推荐部署方式。")
+  navigateTo("environment")
+}
+
+function chooseEnvironment(id: ServerEnvironmentId) {
+  const environment = serverEnvironmentOptions.find((item) => item.id === id)
+  if (!environment || environment.reserved) return
+  answers.serverEnvironment = id
+  inlineError.value = ""
+}
+
+function continueFromEnvironment() {
+  inlineError.value = ""
+  if (!answers.serverAddress.trim()) {
+    inlineError.value = "请填写服务器 IP 或域名。"
+    return
+  }
+  if (!answers.serverEnvironment) {
+    inlineError.value = "请选择服务器环境。"
+    return
+  }
+  const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
+  pushUser(`${answers.serverAddress}，${environment?.title ?? "服务器"}`)
+  pushGate(`${environment?.recommendedDeploy ?? "已记录服务器环境"} 接下来选择是否使用域名。`)
+  navigateTo("domain")
+}
+
+function chooseDomainMode(value: DomainMode) {
+  answers.domainMode = value
+  if (value !== "has-domain") answers.domainName = ""
+  inlineError.value = ""
+}
+
+function continueFromDomain() {
+  inlineError.value = ""
+  if (!answers.domainMode) {
+    inlineError.value = "请选择域名状态。"
+    return
+  }
+  if (answers.domainMode === "has-domain" && !answers.domainName.trim()) {
+    inlineError.value = "请填写域名，例如 api.example.com。"
+    return
+  }
+  const option = domainOptions.find((item) => item.value === answers.domainMode)
+  pushUser(answers.domainMode === "has-domain" ? answers.domainName : option?.label ?? "暂不使用域名")
+  pushGate("收到。现在告诉我你的使用场景，我会自动选择 Tunnel 类型和默认端口。")
+  navigateTo("scenario")
+}
+
+function chooseScenario(id: string) {
+  const scenario = findScenario(id)
+  answers.scenarioId = scenario.id
+  answers.customName = scenario.defaultName
+  answers.customLocalPort = scenario.localPort
+  inlineError.value = ""
+}
+
+function continueFromScenario() {
+  inlineError.value = ""
+  const port = answers.customLocalPort ?? selectedScenario.value.localPort
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    inlineError.value = "本地端口必须在 1-65535 之间。"
+    return
+  }
+  pushUser(`${selectedScenario.value.title}，本地端口 ${port}`)
+  pushGate("我已经生成推荐配置。你只需要确认；下面也会解释为什么这样选。")
+  navigateTo("review")
 }
 
 async function createFirstTunnel() {
-  if (!Number.isInteger(tunnelForm.localPort) || !Number.isInteger(tunnelForm.remotePort)) {
-    inlineError.value = "请确认本地端口和公网端口。"
-    return false
+  inlineError.value = ""
+  creating.value = true
+  try {
+    const created = await tunnelStore.createTunnel(recommendation.value.form)
+    createdTunnelName.value = created.name
+    markComplete()
+    visible.value = false
+    await router.push("/")
+    await nextTick()
+    startTour()
+  } catch (error) {
+    inlineError.value = error instanceof Error ? error.message : "创建 Tunnel 失败，请稍后重试。"
+  } finally {
+    creating.value = false
   }
-  const created = await tunnelStore.createTunnel({
-    ...tunnelForm,
-    name: tunnelForm.name.trim() || selectedTemplate.value.suggestedName,
-    serverName: serverAddr.value,
-    tags: [...tunnelForm.tags],
-  })
-  createdTunnelName.value = created.name
-  return true
 }
 
-function applyScenario(id: string) {
-  const scenario = quickStartScenarios.find((item) => item.id === id)
-  if (!scenario) return
-  selectedScenarioId.value = scenario.id
-  selectedTemplateId.value = scenario.templateId
-  const template = findTemplate(scenario.templateId)
-  tunnelForm.name = scenario.suggestedName
-  tunnelForm.protocol = template.protocol
-  tunnelForm.localPort = scenario.localPort
-  tunnelForm.remotePort = scenario.remotePort
-  tunnelForm.remark = scenario.description
-  tunnelForm.tags = [...new Set([...template.tags, ...scenario.tags])]
+function navigateTo(nextScreen: WizardScreen) {
+  if (screen.value !== nextScreen) {
+    screenHistory.value.push(screen.value)
+  }
+  screen.value = nextScreen
 }
 
-function applyTemplate(id: string) {
-  const template = findTemplate(id)
-  if (template.availability === "reserved") return
-  selectedTemplateId.value = template.id
-  tunnelForm.name = template.suggestedName
-  tunnelForm.protocol = template.protocol
-  tunnelForm.localPort = template.localPort
-  tunnelForm.remotePort = template.remotePort
-  tunnelForm.remark = template.description
-  tunnelForm.tags = [...template.tags]
+function goBack() {
+  inlineError.value = ""
+  const previous = screenHistory.value.pop()
+  if (previous) {
+    screen.value = previous
+    return
+  }
+  screen.value = "welcome"
 }
 
-function applyRecentServer(value: string) {
-  const [host, port] = splitServerAddr(value)
-  server.host = host
-  server.port = port
-  connectionReport.value = null
+async function scrollActivePanelIntoView() {
+  await nextTick()
+  const container = wizardContentRef.value
+  const target = activePanelRef.value
+  if (!container || !target) return
+  const containerRect = container.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  const top = container.scrollTop + targetRect.top - containerRect.top
+  container.scrollTo({ top: Math.max(0, top), behavior: "smooth" })
 }
 
-function splitServerAddr(value: string): [string, number] {
-  const [host, rawPort] = value.split(":")
-  const port = Number(rawPort)
-  return [host || "127.0.0.1", Number.isFinite(port) ? port : 7000]
-}
-
-function refreshConnectionMemory() {
-  recentServers.value = diagnosticsService.getRecentServers()
-  connectionHistory.value = diagnosticsService.getConnectionHistory()
-}
-
-function findingIcon(status: DiagnosticFinding["status"]) {
-  if (status === "ok") return "check-circle"
-  if (status === "warning") return "alert-triangle"
-  return "alert-circle"
-}
-
-function copyConnectionError() {
-  if (!connectionReport.value) return
-  void diagnosticsService.copyText(JSON.stringify(connectionReport.value, null, 2))
-}
-
-function openLogs() {
-  void router.push("/logs")
+function closeForLater() {
+  if (screen.value !== "welcome") saveDraft()
   visible.value = false
-}
-
-function openDiagnostics() {
-  markComplete()
-  visible.value = false
-  void router.push("/diagnostics")
-}
-
-function finishWizard() {
-  markComplete()
-  visible.value = false
-  void router.push("/tunnels")
 }
 
 function skipWizard() {
   markComplete()
   visible.value = false
+  void router.push("/")
 }
 
 function markComplete() {
-  localStorage.setItem(FIRST_LAUNCH_KEY, "true")
+  localStorage.setItem(smartOnboardingKeys.completed, "true")
+  localStorage.setItem(smartOnboardingKeys.oldCompleted, "true")
+  if (neverShowChoice.value) {
+    localStorage.setItem(smartOnboardingKeys.neverShow, "true")
+  }
+  localStorage.removeItem(smartOnboardingKeys.draft)
+}
+
+function saveDraft() {
+  const draft: WizardDraft = {
+    screen: screen.value,
+    answers: { ...answers },
+    conversation: conversation.value,
+    history: screenHistory.value,
+  }
+  localStorage.setItem(smartOnboardingKeys.draft, JSON.stringify(draft))
+}
+
+function readDraft(): WizardDraft | null {
+  try {
+    const raw = localStorage.getItem(smartOnboardingKeys.draft)
+    return raw ? (JSON.parse(raw) as WizardDraft) : null
+  } catch {
+    return null
+  }
+}
+
+function pushGate(body: string, title?: string) {
+  conversation.value.push({ id: makeId(), role: "gate", title, body })
+}
+
+function pushUser(body: string) {
+  conversation.value.push({ id: makeId(), role: "user", body })
+}
+
+function makeId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function startTour() {
+  tourIndex.value = 0
+  tourVisible.value = true
+  void nextTick(updateSpotlight)
+}
+
+function nextTour() {
+  if (tourIndex.value >= tourItems.length - 1) {
+    finishTour()
+    return
+  }
+  tourIndex.value += 1
+  void nextTick(updateSpotlight)
+}
+
+function finishTour() {
+  tourVisible.value = false
+  spotlightRect.value = null
+}
+
+function updateSpotlight() {
+  if (!tourVisible.value) return
+  const target = document.querySelector<HTMLElement>(`[data-onboarding-target="${currentTour.value.target}"]`)
+  spotlightRect.value = target?.getBoundingClientRect() ?? null
 }
 </script>
 
 <style scoped>
-.welcome-overlay {
+.smart-onboarding {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
   display: grid;
   place-items: center;
   padding: var(--space-5);
-  background: var(--bg-app);
+  background:
+    linear-gradient(135deg, rgba(91, 141, 239, 0.18), transparent 34%),
+    linear-gradient(315deg, rgba(47, 209, 124, 0.12), transparent 38%),
+    var(--bg-app);
 }
 
-.welcome-shell {
-  width: min(1120px, 100%);
-  height: min(760px, calc(100vh - 40px));
+.wizard-shell {
+  width: min(1160px, 100%);
+  height: min(780px, calc(100vh - 40px));
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-2xl);
@@ -548,94 +945,177 @@ function markComplete() {
   box-shadow: var(--shadow-floating);
 }
 
-.welcome-rail {
+.wizard-rail {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
   padding: var(--space-5);
   border-right: 1px solid var(--border-subtle);
-  background: var(--bg-sidebar);
+  background:
+    linear-gradient(180deg, rgba(95, 179, 255, 0.08), transparent 42%),
+    var(--bg-sidebar);
 }
 
-.welcome-brand {
+.rail-brand {
   display: flex;
   align-items: center;
   gap: var(--space-3);
 }
 
-.welcome-brand > span {
-  width: 44px;
-  height: 44px;
+.rail-brand > span,
+.welcome-mark {
   display: grid;
   place-items: center;
-  border-radius: var(--radius-md);
   background: var(--color-primary-muted);
   color: var(--color-primary);
 }
 
-.welcome-brand strong,
-.welcome-steps strong {
-  display: block;
-  color: var(--text-primary);
-}
-
-.welcome-brand small,
-.welcome-steps small {
-  color: var(--text-tertiary);
-}
-
-.welcome-steps {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.welcome-steps button {
-  min-height: 58px;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  border: 0;
+.rail-brand > span {
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-secondary);
-  padding: var(--space-2);
-  text-align: left;
-  cursor: default;
 }
 
-.welcome-steps button.active,
-.welcome-steps button.done {
-  background: var(--bg-surface-hover);
-}
-
-.welcome-steps button > span {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-full);
-  background: var(--bg-input);
-  color: var(--text-tertiary);
+.rail-brand strong,
+.path-panel p,
+.knowledge-panel p {
+  color: var(--text-primary);
   font-weight: var(--weight-semibold);
 }
 
-.welcome-steps button.active > span,
-.welcome-steps button.done > span {
-  background: var(--color-primary);
-  color: var(--color-primary-fg);
+.rail-brand small,
+.path-panel span,
+.knowledge-panel article span {
+  color: var(--text-tertiary);
 }
 
-.welcome-main {
+.rail-illustration {
+  position: relative;
+  min-height: 172px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(91, 141, 239, 0.14), transparent 48%),
+    linear-gradient(180deg, var(--bg-surface), var(--bg-input));
+  overflow: hidden;
+}
+
+.node {
+  position: absolute;
+  z-index: 1;
+  min-width: 70px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.node.local {
+  left: 18px;
+  bottom: 22px;
+}
+
+.node.server {
+  left: 50%;
+  top: 28px;
+  transform: translateX(-50%);
+}
+
+.node.public {
+  right: 18px;
+  bottom: 22px;
+}
+
+.line {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-success), transparent);
+  transform-origin: left center;
+  animation: tunnelPulse 2.4s var(--ease-out) infinite;
+}
+
+.line-a {
+  left: 76px;
+  top: 108px;
+  width: 96px;
+  transform: rotate(-31deg);
+}
+
+.line-b {
+  left: 154px;
+  top: 68px;
+  width: 112px;
+  transform: rotate(32deg);
+  animation-delay: 0.6s;
+}
+
+.path-panel,
+.knowledge-panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.path-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.path-list span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.knowledge-panel {
+  min-height: 0;
+  overflow: auto;
+}
+
+.knowledge-panel article {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.knowledge-panel article svg {
+  color: var(--color-info);
+}
+
+.knowledge-panel article strong,
+.knowledge-panel article span {
+  display: block;
+}
+
+.knowledge-panel article span {
+  margin-top: 2px;
+  line-height: var(--leading-normal);
+}
+
+.wizard-main {
   min-width: 0;
   min-height: 0;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
-.welcome-header,
-.welcome-footer {
+.wizard-header,
+.wizard-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -643,51 +1123,72 @@ function markComplete() {
   padding: var(--space-5);
 }
 
-.welcome-header p {
+.wizard-header p {
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
 }
 
-.welcome-header h1 {
+.wizard-header h1 {
   margin-top: 2px;
   font-size: var(--text-2xl);
   font-weight: var(--weight-semibold);
   letter-spacing: 0;
 }
 
-.welcome-skip {
-  height: 32px;
+.wizard-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.text-action,
+.icon-action {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--text-secondary);
-  padding: 0 var(--space-3);
   cursor: pointer;
 }
 
-.welcome-progress {
+.text-action {
+  height: 32px;
+  padding: 0 var(--space-3);
+}
+
+.icon-action {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.text-action:hover,
+.icon-action:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.wizard-progress {
   height: 3px;
   background: var(--bg-input);
 }
 
-.welcome-progress span {
+.wizard-progress span {
   display: block;
   height: 100%;
-  background: var(--color-primary);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
   transition: width var(--duration-base) var(--ease-out);
 }
 
-.welcome-content {
+.wizard-content {
   min-height: 0;
   overflow: auto;
   padding: var(--space-5);
 }
 
-.welcome-intro,
-.test-empty,
-.finish-panel {
+.welcome-screen {
   min-height: 100%;
   display: grid;
   place-content: center;
@@ -696,43 +1197,35 @@ function markComplete() {
   text-align: center;
 }
 
-.intro-mark,
-.finish-mark {
-  width: 72px;
-  height: 72px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-xl);
-  background: var(--color-primary-muted);
-  color: var(--color-primary);
+.welcome-mark {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-md);
 }
 
-.welcome-intro h2,
-.test-empty h2,
-.finish-panel h2 {
-  max-width: 620px;
+.welcome-screen h2 {
+  max-width: 640px;
+  color: var(--text-primary);
   font-size: var(--text-3xl);
   line-height: var(--leading-tight);
   letter-spacing: 0;
 }
 
-.welcome-intro p,
-.test-empty p,
-.finish-panel p {
-  max-width: 640px;
+.welcome-screen p {
+  max-width: 680px;
   color: var(--text-secondary);
   line-height: var(--leading-relaxed);
 }
 
-.intro-grid {
-  width: min(660px, 100%);
+.welcome-points {
+  width: min(720px, 100%);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
-.intro-grid article {
-  min-height: 120px;
+.welcome-points article {
+  min-height: 118px;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -743,141 +1236,233 @@ function markComplete() {
   background: var(--bg-surface);
 }
 
-.intro-grid article svg {
+.welcome-points svg {
   color: var(--color-primary);
 }
 
-.intro-grid article span {
-  color: var(--text-secondary);
-  line-height: var(--leading-normal);
-}
-
-.check-panel,
-.server-wizard,
-.test-panel,
-.first-tunnel {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.panel-heading,
-.recent-servers header,
-.history-list header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.panel-heading strong,
-.recent-servers strong,
-.history-list strong {
+.welcome-points strong {
   color: var(--text-primary);
-  font-size: var(--text-lg);
 }
 
-.panel-heading p,
-.recent-servers header span,
-.history-list header span {
-  margin-top: 2px;
+.welcome-points span,
+.never-show {
   color: var(--text-secondary);
 }
 
-.finding-list {
+.never-show {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.never-show input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+}
+
+.chat-log {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.chat-message {
   display: grid;
   gap: var(--space-2);
+  max-width: min(680px, 92%);
 }
 
-.finding-list article {
-  min-height: 76px;
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
+.chat-message.is-gate {
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.chat-message.is-user {
+  justify-self: end;
+}
+
+.chat-message > div {
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
 }
 
-.finding-list article > span {
-  width: 32px;
-  height: 32px;
+.chat-message.is-user > div {
+  border-color: rgba(91, 141, 239, 0.32);
+  background: var(--color-primary-muted);
+}
+
+.chat-message strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+}
+
+.chat-message p {
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: var(--radius-full);
-  background: var(--bg-input);
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
 }
 
-.finding-list article.is-ok > span { color: var(--color-success); }
-.finding-list article.is-warning > span { color: var(--color-warning); }
-.finding-list article.is-error > span { color: var(--color-error); }
-
-.finding-list p {
-  color: var(--text-secondary);
-}
-
-.finding-list small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-tertiary);
-}
-
-.connection-status {
-  min-height: 64px;
+.question-panel,
+.choice-row,
+.scenario-grid,
+.environment-grid,
+.provider-grid,
+.quick-adjust,
+.education-actions {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  gap: var(--space-2) var(--space-3);
-  align-items: center;
+  gap: var(--space-3);
+}
+
+.question-panel,
+.choice-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.choice-card,
+.scenario-card,
+.environment-card,
+.provider-grid article {
+  min-height: 118px;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
   padding: var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
+  color: var(--text-primary);
+  text-align: left;
 }
 
-.connection-status > span {
-  grid-row: 1 / span 2;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--status-offline);
+button.choice-card,
+button.scenario-card,
+button.environment-card {
+  cursor: pointer;
 }
 
-.connection-status.ready > span,
-.connection-status.testing > span { background: var(--color-warning); }
-.connection-status.ok > span { background: var(--color-success); }
-.connection-status.error > span { background: var(--color-error); }
+.choice-card:hover,
+.choice-card.active,
+.scenario-card:hover,
+.scenario-card.active,
+.environment-card:hover,
+.environment-card.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
 
-.connection-status small {
+.choice-card svg,
+.scenario-card svg,
+.environment-card svg {
+  color: var(--color-primary);
+}
+
+.choice-card span,
+.scenario-card span,
+.environment-card span,
+.provider-grid article span {
   color: var(--text-secondary);
+  line-height: var(--leading-normal);
 }
 
-.server-form,
-.tunnel-form {
+.scenario-card small,
+.environment-card small {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.environment-card.reserved {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.education-panel,
+.environment-panel,
+.domain-panel,
+.scenario-panel,
+.review-panel {
   display: grid;
-  grid-template-columns: 1fr 140px;
+  gap: var(--space-4);
+}
+
+.explain-card,
+.reserved-deploy,
+.plain-note,
+.why-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
   gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
 }
 
-.server-form__token {
-  grid-column: 1 / -1;
+.explain-card svg,
+.reserved-deploy svg,
+.plain-note svg,
+.why-card svg {
+  color: var(--color-info);
 }
 
-.server-form label,
-.tunnel-form label {
+.explain-card p,
+.reserved-deploy span,
+.plain-note span,
+.why-card li {
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.provider-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.provider-grid article {
+  min-height: 104px;
+}
+
+.provider-grid article.tone-mainland {
+  border-color: rgba(91, 141, 239, 0.28);
+}
+
+.provider-grid article.tone-free {
+  border-color: rgba(47, 209, 124, 0.28);
+}
+
+.provider-grid article.tone-experience {
+  border-color: rgba(245, 184, 75, 0.28);
+}
+
+.chat-input,
+.quick-adjust label {
   display: grid;
   gap: var(--space-2);
 }
 
-.server-form span,
-.tunnel-form span {
+.chat-input span,
+.quick-adjust span {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
 }
 
-.server-form input,
-.tunnel-form input {
+.chat-input input,
+.quick-adjust input {
+  width: 100%;
   height: 38px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -887,243 +1472,289 @@ function markComplete() {
   outline: 0;
 }
 
-.server-form input:focus,
-.tunnel-form input:focus {
+.chat-input input:focus,
+.quick-adjust input:focus {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
 }
 
-.server-actions,
-.result-actions,
-.finish-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.environment-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.recent-servers,
-.history-list {
-  display: grid;
-  gap: var(--space-2);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+.scenario-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.recent-servers button,
-.history-list article {
-  min-height: 38px;
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  padding: 0 var(--space-3);
-  text-align: left;
+.quick-adjust {
+  grid-template-columns: minmax(0, 1fr) 180px;
 }
 
-.recent-servers button {
-  cursor: pointer;
-}
-
-.recent-servers button:hover {
-  border-color: var(--color-primary);
-}
-
-.recent-servers small,
-.history-list small {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-}
-
-.connection-result {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid rgba(255, 92, 92, 0.3);
-  border-radius: var(--radius-md);
-  background: var(--color-error-muted);
-}
-
-.connection-result.ok {
-  border-color: rgba(47, 209, 124, 0.32);
-  background: var(--color-success-muted);
-}
-
-.result-heading {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.result-heading > span {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--color-error);
-}
-
-.connection-result.ok .result-heading > span {
-  color: var(--color-success);
-}
-
-.result-heading strong {
-  color: var(--text-primary);
-  font-size: var(--text-lg);
-}
-
-.result-heading small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-secondary);
-}
-
-.connection-result dl {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.connection-result dl div {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: var(--space-3);
-}
-
-.connection-result dt {
-  color: var(--text-tertiary);
-}
-
-.connection-result dd {
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.history-list article {
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-}
-
-.history-list article > span {
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-}
-
-.history-list article > span.success {
-  background: var(--color-success-muted);
-  color: var(--color-success);
-}
-
-.history-list article > span.failed {
-  background: var(--color-error-muted);
-  color: var(--color-error);
-}
-
-.preset-strip,
-.template-strip {
-  display: flex;
-  gap: var(--space-2);
-  overflow-x: auto;
-  padding-bottom: var(--space-1);
-}
-
-.preset-strip button,
-.template-strip button {
-  flex: 0 0 auto;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+.recommendation-card {
+  overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  background: var(--bg-input);
-  color: var(--text-secondary);
-  padding: 0 var(--space-3);
-  cursor: pointer;
+  background: var(--bg-surface);
 }
 
-.preset-strip button:hover,
-.preset-strip button.active,
-.template-strip button:hover,
-.template-strip button.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-muted);
-  color: var(--text-primary);
-}
-
-.template-strip button.reserved {
-  opacity: 0.52;
-  cursor: not-allowed;
-}
-
-.tunnel-form {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.template-summary {
+.recommendation-card header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(90deg, rgba(91, 141, 239, 0.14), transparent),
+    var(--bg-surface);
 }
 
-.template-summary span {
-  color: var(--text-secondary);
+.recommendation-card header p {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+}
+
+.recommendation-card h2 {
+  margin-top: 2px;
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  letter-spacing: 0;
+}
+
+.recommendation-card header > span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  background: var(--color-success-muted);
+  color: var(--color-success);
+  padding: 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.config-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.config-list div {
+  display: grid;
+  gap: 2px;
+  min-height: 68px;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.config-list div:nth-child(odd) {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.config-list dt,
+.access-preview span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.config-list dd,
+.access-preview code {
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   overflow-wrap: anywhere;
+}
+
+.access-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.access-preview code {
   text-align: right;
 }
 
-.welcome-footer {
+.why-card ul {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-left: var(--space-4);
+}
+
+.wizard-footer {
   min-height: 72px;
   border-top: 1px solid var(--border-subtle);
 }
 
-.welcome-error {
+.inline-error {
   flex: 1;
+  min-width: 0;
   color: var(--color-error);
+  font-size: var(--text-sm);
+  text-align: right;
 }
 
-.welcome-enter-active,
-.welcome-leave-active {
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover);
+  pointer-events: none;
+}
+
+.tour-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  pointer-events: auto;
+}
+
+.tour-ring {
+  position: absolute;
+  z-index: 1;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 4px var(--color-primary-muted), 0 0 38px rgba(91, 141, 239, 0.46);
+  pointer-events: none;
+  transition: all var(--duration-base) var(--ease-out);
+}
+
+.tour-card {
+  position: absolute;
+  z-index: 2;
+  width: min(330px, calc(100vw - 40px));
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-floating);
+  pointer-events: auto;
+}
+
+.tour-card p {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+}
+
+.tour-card h2 {
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  letter-spacing: 0;
+}
+
+.tour-card span {
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.tour-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.tour-card small {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.smart-wizard-enter-active,
+.smart-wizard-leave-active,
+.tour-enter-active,
+.tour-leave-active {
   transition: opacity var(--duration-base) var(--ease-out);
 }
 
-.welcome-enter-from,
-.welcome-leave-to {
+.smart-wizard-enter-from,
+.smart-wizard-leave-to,
+.tour-enter-from,
+.tour-leave-to {
   opacity: 0;
 }
 
-@media (max-width: 860px) {
-  .welcome-shell {
+.smart-wizard-enter-active .wizard-shell,
+.smart-wizard-leave-active .wizard-shell {
+  transition: transform var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out);
+}
+
+.smart-wizard-enter-from .wizard-shell,
+.smart-wizard-leave-to .wizard-shell {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+}
+
+@keyframes tunnelPulse {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 980px) {
+  .wizard-shell {
     grid-template-columns: 1fr;
   }
 
-  .welcome-rail {
+  .wizard-rail {
     display: none;
   }
 
-  .intro-grid,
-  .server-form,
-  .tunnel-form {
+  .provider-grid,
+  .scenario-grid,
+  .environment-grid,
+  .welcome-points,
+  .question-panel,
+  .choice-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .smart-onboarding {
+    padding: var(--space-2);
+  }
+
+  .wizard-shell {
+    height: calc(100vh - 16px);
+  }
+
+  .wizard-header,
+  .wizard-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .provider-grid,
+  .scenario-grid,
+  .environment-grid,
+  .welcome-points,
+  .question-panel,
+  .choice-row,
+  .config-list,
+  .quick-adjust {
     grid-template-columns: 1fr;
   }
 
-  .template-summary {
-    align-items: flex-start;
-    flex-direction: column;
+  .config-list div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .inline-error {
+    width: 100%;
+    text-align: left;
   }
 }
 </style>

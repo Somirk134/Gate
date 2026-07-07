@@ -26,6 +26,7 @@
                 :key="item.path"
                 class="nav-item"
                 :class="{ active: isActive(item.path) }"
+                :data-onboarding-target="item.tourTarget"
                 @click="navigate(item.path)"
             >
                 <div class="nav-icon">
@@ -38,6 +39,15 @@
 
         <!-- Footer -->
         <div class="sidebar-footer">
+            <button
+                class="onboarding-link"
+                type="button"
+                title="重新打开新手引导"
+                @click="openOnboarding"
+            >
+                <GIcon name="sparkles" :size="14" />
+                <span v-show="!isCollapsed">新手引导</span>
+            </button>
             <div class="version-info" v-show="!isCollapsed">
                 <span class="version-text">v{{ version }}</span>
             </div>
@@ -70,15 +80,15 @@ const { t } = useI18n()
 const isCollapsed = computed(() => layout.sidebarCollapsed && !layout.sidebarHovered)
 
 const navItems = computed(() => [
-    { path: "/", label: t("nav.dashboard"), icon: "dashboard", shortcut: "" },
-    { path: "/projects", label: t("nav.projects"), icon: "projects", shortcut: "" },
-    { path: "/tunnels", label: t("nav.tunnels"), icon: "router", shortcut: "" },
-    { path: "/servers", label: t("nav.servers"), icon: "servers", shortcut: "" },
-    { path: "/logs", label: t("nav.logs"), icon: "logs", shortcut: "" },
-    { path: "/diagnostics", label: t("nav.diagnostics"), icon: "activity", shortcut: "" },
-    { path: "/feedback", label: t("nav.feedback"), icon: "message", shortcut: "" },
-    { path: "/settings", label: t("nav.settings"), icon: "settings", shortcut: "" },
-    { path: "/about", label: t("nav.about"), icon: "about", shortcut: "" },
+    { path: "/", label: t("nav.dashboard"), icon: "dashboard", shortcut: "", tourTarget: "dashboard" },
+    { path: "/projects", label: t("nav.projects"), icon: "projects", shortcut: "", tourTarget: "projects" },
+    { path: "/tunnels", label: t("nav.tunnels"), icon: "router", shortcut: "", tourTarget: "tunnels" },
+    { path: "/servers", label: t("nav.servers"), icon: "servers", shortcut: "", tourTarget: "servers" },
+    { path: "/logs", label: t("nav.logs"), icon: "logs", shortcut: "", tourTarget: "logs" },
+    { path: "/diagnostics", label: t("nav.diagnostics"), icon: "activity", shortcut: "", tourTarget: "diagnostics" },
+    { path: "/feedback", label: t("nav.feedback"), icon: "message", shortcut: "", tourTarget: "feedback" },
+    { path: "/settings", label: t("nav.settings"), icon: "settings", shortcut: "", tourTarget: "settings" },
+    { path: "/about", label: t("nav.about"), icon: "about", shortcut: "", tourTarget: "about" },
 ])
 
 const version = "0.1.0"
@@ -90,6 +100,10 @@ function isActive(path: string) {
 
 function navigate(path: string) {
     router.push(path)
+}
+
+function openOnboarding() {
+    window.dispatchEvent(new CustomEvent("gate:onboarding:open", { detail: { restart: false } }))
 }
 </script>
 
@@ -213,6 +227,30 @@ function navigate(path: string) {
     flex-direction: column;
     gap: var(--space-2);
     flex-shrink: 0;
+}
+
+.onboarding-link {
+    width: 100%;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    padding: 0 var(--space-2);
+    cursor: pointer;
+}
+
+.onboarding-link:hover {
+    border-color: var(--color-primary);
+    color: var(--text-primary);
+}
+
+.app-sidebar.collapsed:not(.hovered) .onboarding-link {
+    justify-content: center;
+    padding: 0;
 }
 
 .version-info {

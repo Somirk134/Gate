@@ -36,10 +36,13 @@ const routeHasComponent = computed(() => {
 <style scoped>
 .app-content {
     flex: 1;
+    min-width: 0;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     padding: var(--space-6);
     position: relative;
+    box-sizing: border-box;
 }
 
 .content-empty {
