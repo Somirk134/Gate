@@ -7,8 +7,7 @@
         title="Log loading failed"
         :message="error || 'Unable to read runtime logs.'"
         retry
-        @retry="refresh"
-      />
+        @retry="refresh" />
     </GCard>
 
     <template v-else>
@@ -19,7 +18,7 @@
         </div>
         <div class="logs-shell-header__meta">
           <span :class="{ active: autoScroll && !paused }">Auto scroll</span>
-          <span :class="{ active: paused }">{{ paused ? "Paused" : "Live" }}</span>
+          <span :class="{ active: paused }">{{ paused ? 'Paused' : 'Live' }}</span>
           <strong>{{ filteredLogs.length }} / {{ logs.length }}</strong>
         </div>
       </header>
@@ -35,8 +34,7 @@
         @clear="clear"
         @export="exportDialogVisible = true"
         @copy-all="copyAll"
-        @refresh="refresh"
-      />
+        @refresh="refresh" />
 
       <LogStatistics :statistics="filteredStatistics" />
 
@@ -46,8 +44,7 @@
           :selected="selectedSource"
           :counts="sourceCounts"
           :total="logs.length"
-          @select="selectSource"
-        />
+          @select="selectSource" />
 
         <LogConsole
           ref="consoleRef"
@@ -57,8 +54,7 @@
           :group-by="filter.groupBy"
           :auto-scroll="autoScroll && !paused"
           @select="selectLog"
-          @contextmenu-log="openContextMenu"
-        />
+          @contextmenu-log="openContextMenu" />
 
         <LogInspector :log="selectedLog" />
       </div>
@@ -71,16 +67,14 @@
         :paused="paused"
         :auto-scroll="autoScroll"
         :dropped="droppedCount"
-        :selected="selectedLog?.id"
-      />
+        :selected="selectedLog?.id" />
     </template>
 
     <LogExportDialog
       :visible="exportDialogVisible"
       :count="filteredLogs.length"
       @close="exportDialogVisible = false"
-      @export="handleExport"
-    />
+      @export="handleExport" />
 
     <LogContextMenu
       :visible="contextMenu.visible"
@@ -92,32 +86,31 @@
       @details="focusContextLog"
       @delete="deleteContextLog"
       @clear="clear"
-      @export="exportDialogVisible = true"
-    />
+      @export="exportDialogVisible = true" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue"
-import { useFeedback } from "@composables/useFeedback"
-import GCard from "@components/base/GCard.vue"
-import GErrorState from "@components/feedback/GErrorState.vue"
-import LogConsole from "./components/LogConsole.vue"
-import LogContextMenu from "./components/LogContextMenu.vue"
-import LogEmpty from "./components/LogEmpty.vue"
-import LogExportDialog from "./components/LogExportDialog.vue"
-import LogInspector from "./components/LogInspector.vue"
-import LogLoading from "./components/LogLoading.vue"
-import LogSourceTree from "./components/LogSourceTree.vue"
-import LogStatistics from "./components/LogStatistics.vue"
-import LogStatusBar from "./components/LogStatusBar.vue"
-import LogToolbar from "./components/LogToolbar.vue"
-import { useLog, useLogExport } from "./hooks"
-import { LOG_SOURCE_LIST, LOG_SOURCES } from "./constants"
-import type { LogFilter, LogItem, LogSource } from "./types"
-import type { LogExportFormat } from "./utils"
-import { serializeLogs } from "./utils"
-import "./styles/log.css"
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useFeedback } from '@composables/useFeedback'
+import GCard from '@components/base/GCard.vue'
+import GErrorState from '@components/feedback/GErrorState.vue'
+import LogConsole from './components/LogConsole.vue'
+import LogContextMenu from './components/LogContextMenu.vue'
+import LogEmpty from './components/LogEmpty.vue'
+import LogExportDialog from './components/LogExportDialog.vue'
+import LogInspector from './components/LogInspector.vue'
+import LogLoading from './components/LogLoading.vue'
+import LogSourceTree from './components/LogSourceTree.vue'
+import LogStatistics from './components/LogStatistics.vue'
+import LogStatusBar from './components/LogStatusBar.vue'
+import LogToolbar from './components/LogToolbar.vue'
+import { useLog, useLogExport } from './hooks'
+import { LOG_SOURCE_LIST, LOG_SOURCES } from './constants'
+import type { LogFilter, LogItem, LogSource } from './types'
+import type { LogExportFormat } from './utils'
+import { serializeLogs } from './utils'
+import './styles/log.css'
 
 const { toast } = useFeedback()
 const {
@@ -159,11 +152,26 @@ const contextMenu = reactive<{
   log: null,
 })
 
-const selectedSource = computed<LogSource | "ALL">(() => filter.value.sources[0] ?? "ALL")
+const selectedSource = computed<LogSource | 'ALL'>(() => filter.value.sources[0] ?? 'ALL')
 const { exportLogs } = useLogExport(filteredLogs)
 
+function handleRuntimeLogsCleared() {
+  clear()
+}
+
+onMounted(() => {
+  window.addEventListener('gate:logs:cleared', handleRuntimeLogsCleared)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('gate:logs:cleared', handleRuntimeLogsCleared)
+})
+
 const sourceCounts = computed<Record<LogSource, number>>(() => {
-  const counts = Object.fromEntries(LOG_SOURCE_LIST.map((source) => [source, 0])) as Record<LogSource, number>
+  const counts = Object.fromEntries(LOG_SOURCE_LIST.map((source) => [source, 0])) as Record<
+    LogSource,
+    number
+  >
   for (const log of logs.value) counts[log.source] += 1
   return counts
 })
@@ -178,8 +186,8 @@ watch(
   { immediate: true },
 )
 
-function selectSource(source: LogSource | "ALL") {
-  setFilter({ sources: source === "ALL" ? [] : [source] })
+function selectSource(source: LogSource | 'ALL') {
+  setFilter({ sources: source === 'ALL' ? [] : [source] })
 }
 
 function selectLog(log: LogItem) {
@@ -205,25 +213,25 @@ async function copyText(text: string, message: string) {
 }
 
 async function copyAll() {
-  await copyText(serializeLogs(filteredLogs.value, "txt"), "Logs copied")
+  await copyText(serializeLogs(filteredLogs.value, 'txt'), 'Logs copied')
 }
 
 async function copySelectedLine() {
   const log = contextMenu.log
   if (!log) return
-  await copyText(serializeLogs([log], "txt"), "Log line copied")
+  await copyText(serializeLogs([log], 'txt'), 'Log line copied')
 }
 
 async function copySelectedMessage() {
   const log = contextMenu.log
   if (!log) return
-  await copyText(log.message, "Message copied")
+  await copyText(log.message, 'Message copied')
 }
 
 async function copySelectedJson() {
   const log = contextMenu.log
   if (!log) return
-  await copyText(log.raw, "JSON copied")
+  await copyText(log.raw, 'JSON copied')
 }
 
 function focusContextLog() {
@@ -234,14 +242,14 @@ function focusContextLog() {
 function deleteContextLog() {
   if (!contextMenu.log) return
   remove(contextMenu.log.id)
-  toast.success("Log deleted")
+  toast.success('Log deleted')
   closeContextMenu()
 }
 
 function handleExport(format: LogExportFormat) {
   exportLogs(format)
   exportDialogVisible.value = false
-  toast.success("Logs exported")
+  toast.success('Logs exported')
 }
 
 watch(

@@ -1,11 +1,11 @@
 <template>
-  <section class="dashboard-page" aria-label="Gate dashboard">
+  <section class="dashboard-page" :aria-label="t('dashboard.ariaLabel')">
     <header class="dashboard-hero">
       <div class="dashboard-hero__status">
         <span class="status-orb" :class="`is-${connectionTone}`" />
         <div>
           <p>{{ connectionLabel }}</p>
-          <h1>Gate is {{ connectionStatusText }}</h1>
+          <h1>{{ t('dashboard.heroTitle', { status: connectionStatusText }) }}</h1>
         </div>
       </div>
       <div class="dashboard-hero__actions">
@@ -22,7 +22,7 @@
       <article class="metric-card metric-card--wide">
         <span class="metric-card__icon is-success"><GIcon name="wifi" :size="18" /></span>
         <div>
-          <p>当前连接</p>
+          <p>{{ t('dashboard.currentConnections') }}</p>
           <strong>{{ dashboard.statistics.connection.currentConnection }}</strong>
           <small>{{ Math.round(dashboard.overview.averageRttMs) }}ms RTT</small>
         </div>
@@ -31,36 +31,41 @@
       <article class="metric-card">
         <span class="metric-card__icon"><GIcon name="router" :size="18" /></span>
         <div>
-          <p>Tunnel</p>
-          <strong>{{ dashboard.overview.runningTunnel }} / {{ dashboard.overview.tunnelCount }}</strong>
-          <small>运行中 / 总数</small>
+          <p>{{ t('dashboard.tunnelLabel') }}</p>
+          <strong
+            >{{ dashboard.overview.runningTunnel }} / {{ dashboard.overview.tunnelCount }}</strong
+          >
+          <small>{{ t('dashboard.runningTotal') }}</small>
         </div>
       </article>
 
       <article class="metric-card">
         <span class="metric-card__icon is-info"><GIcon name="download" :size="18" /></span>
         <div>
-          <p>今日流量</p>
+          <p>{{ t('dashboard.todayTraffic') }}</p>
           <strong>{{ formatBytes(dashboard.overview.todayTraffic) }}</strong>
-          <small>累计上下行</small>
+          <small>{{ t('dashboard.totalUploadDownload') }}</small>
         </div>
       </article>
 
       <article class="metric-card">
         <span class="metric-card__icon is-warning"><GIcon name="zap" :size="18" /></span>
         <div>
-          <p>实时速度</p>
+          <p>{{ t('dashboard.realtimeSpeed') }}</p>
           <strong>{{ formatSpeed(totalSpeed) }}</strong>
-          <small>↓ {{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }} · ↑ {{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</small>
+          <small
+            >↓ {{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }} · ↑
+            {{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</small
+          >
         </div>
       </article>
 
       <article class="metric-card">
         <span class="metric-card__icon is-purple"><GIcon name="clock" :size="18" /></span>
         <div>
-          <p>运行时间</p>
+          <p>{{ t('dashboard.uptime') }}</p>
           <strong>{{ formatDuration(dashboard.overview.runtimeUptimeSeconds) }}</strong>
-          <small>Runtime uptime</small>
+          <small>{{ t('dashboard.runtimeUptime') }}</small>
         </div>
       </article>
     </div>
@@ -69,8 +74,8 @@
       <section class="dashboard-panel dashboard-panel--servers">
         <div class="panel-heading">
           <div>
-            <p>Server Status</p>
-            <h2>服务器状态</h2>
+            <p>{{ t('dashboard.serverStatusKicker') }}</p>
+            <h2>{{ t('dashboard.serverStatus') }}</h2>
           </div>
           <GIcon name="servers" :size="18" />
         </div>
@@ -84,7 +89,7 @@
           </article>
         </div>
         <div class="health-row">
-          <span>Health score</span>
+          <span>{{ t('dashboard.healthScore') }}</span>
           <strong>{{ Math.round(dashboard.overview.healthScore) }}%</strong>
           <div class="health-meter" aria-hidden="true">
             <i :style="{ width: `${Math.round(dashboard.overview.healthScore)}%` }" />
@@ -95,33 +100,41 @@
       <section class="dashboard-panel dashboard-panel--speed">
         <div class="panel-heading">
           <div>
-            <p>Realtime Speed</p>
-            <h2>实时速度</h2>
+            <p>{{ t('dashboard.realtimeSpeedKicker') }}</p>
+            <h2>{{ t('dashboard.realtimeSpeed') }}</h2>
           </div>
           <GIcon name="chart-line" :size="18" />
         </div>
-        <div v-if="sparkline.length" class="speed-sparkline" aria-label="Realtime speed trend">
+        <div
+          v-if="sparkline.length"
+          class="speed-sparkline"
+          :aria-label="t('dashboard.realtimeSpeedTrend')">
           <span
             v-for="(point, index) in sparkline"
             :key="`${point.timestamp}-${index}`"
-            :style="{ height: `${point.height}%` }"
-          />
+            :style="{ height: `${point.height}%` }" />
         </div>
         <div v-else class="mini-empty">
           <GIcon name="chart-line" :size="22" />
-          <span>暂无数据</span>
+          <span>{{ t('dashboard.noData') }}</span>
         </div>
         <div class="speed-row">
-          <span>Download <strong>{{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }}</strong></span>
-          <span>Upload <strong>{{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</strong></span>
+          <span
+            >{{ t('dashboard.download') }}
+            <strong>{{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }}</strong></span
+          >
+          <span
+            >{{ t('dashboard.upload') }}
+            <strong>{{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</strong></span
+          >
         </div>
       </section>
 
       <section class="dashboard-panel dashboard-panel--logs">
         <div class="panel-heading">
           <div>
-            <p>Recent Logs</p>
-            <h2>最近日志</h2>
+            <p>{{ t('dashboard.recentLogsKicker') }}</p>
+            <h2>{{ t('dashboard.recentLogs') }}</h2>
           </div>
           <button class="panel-link" type="button" @click="router.push('/logs')">
             <GIcon name="arrow-right" :size="14" />
@@ -136,29 +149,29 @@
         </div>
         <div v-else class="mini-empty">
           <GIcon name="logs" :size="22" />
-          <span>暂无日志</span>
+          <span>{{ t('dashboard.noRecentLogs') }}</span>
         </div>
       </section>
 
       <section class="dashboard-panel dashboard-panel--version">
         <div class="panel-heading">
           <div>
-            <p>Version</p>
-            <h2>版本信息</h2>
+            <p>{{ t('dashboard.versionKicker') }}</p>
+            <h2>{{ t('dashboard.versionInfo') }}</h2>
           </div>
           <GIcon name="sparkles" :size="18" />
         </div>
         <dl class="version-list">
           <div>
-            <dt>Desktop</dt>
+            <dt>{{ t('dashboard.desktop') }}</dt>
             <dd>v{{ appVersion }}</dd>
           </div>
           <div>
-            <dt>Runtime</dt>
+            <dt>{{ t('dashboard.runtime') }}</dt>
             <dd>{{ connectionStatusText }}</dd>
           </div>
           <div>
-            <dt>Updated</dt>
+            <dt>{{ t('dashboard.updated') }}</dt>
             <dd>{{ formatClock(dashboard.generatedAt) }}</dd>
           </div>
         </dl>
@@ -170,51 +183,56 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { useRouter } from "vue-router"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import { useMonitoringDashboard } from "@/monitoring/composables/useMonitoringDashboard"
-import { useLog } from "@views/logs/hooks"
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+import { useLog } from '@views/logs/hooks'
 
 const router = useRouter()
+const { t, locale } = useI18n()
 const { dashboard, healthStatus, loading, error, refresh } = useMonitoringDashboard()
 const { logs } = useLog()
-const appVersion = "0.1.0"
+const appVersion = '0.1.0'
 
 const connectionTone = computed(() => {
-  if (healthStatus.value === "healthy") return "online"
-  if (healthStatus.value === "warning") return "warning"
-  if (healthStatus.value === "critical") return "error"
-  return "offline"
+  if (healthStatus.value === 'healthy') return 'online'
+  if (healthStatus.value === 'warning') return 'warning'
+  if (healthStatus.value === 'critical') return 'error'
+  return 'offline'
 })
 
 const connectionLabel = computed(() => {
-  if (healthStatus.value === "healthy") return "Connected"
-  if (healthStatus.value === "warning") return "Needs attention"
-  if (healthStatus.value === "critical") return "Connection issue"
-  return "Offline"
+  if (healthStatus.value === 'healthy') return t('dashboard.connected')
+  if (healthStatus.value === 'warning') return t('dashboard.needsAttention')
+  if (healthStatus.value === 'critical') return t('dashboard.connectionIssue')
+  return t('dashboard.offline')
 })
 
 const connectionStatusText = computed(() => {
-  if (healthStatus.value === "healthy") return "online"
-  if (healthStatus.value === "warning") return "degraded"
-  if (healthStatus.value === "critical") return "blocked"
-  return "offline"
+  if (healthStatus.value === 'healthy') return t('dashboard.statusOnline')
+  if (healthStatus.value === 'warning') return t('dashboard.statusDegraded')
+  if (healthStatus.value === 'critical') return t('dashboard.statusBlocked')
+  return t('dashboard.statusOffline')
 })
 
 const totalSpeed = computed(
-  () => dashboard.value.statistics.traffic.downloadSpeedBps + dashboard.value.statistics.traffic.uploadSpeedBps,
+  () =>
+    dashboard.value.statistics.traffic.downloadSpeedBps +
+    dashboard.value.statistics.traffic.uploadSpeedBps,
 )
 
 const serverCards = computed(() =>
   dashboard.value.serverStatus.map((server) => ({
     ...server,
-    tone: server.label.toLowerCase().includes("online")
-      ? "online"
-      : server.label.toLowerCase().includes("warning")
-        ? "warning"
-        : "offline",
+    label: translateServerStatus(server.label),
+    tone: server.label.toLowerCase().includes('online')
+      ? 'online'
+      : server.label.toLowerCase().includes('warning')
+        ? 'warning'
+        : 'offline',
   })),
 )
 
@@ -230,8 +248,8 @@ const sparkline = computed(() => {
 const recentLogs = computed(() => logs.value.slice(-5).reverse())
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B"
-  const units = ["B", "KB", "MB", "GB", "TB"]
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
   const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
   const value = bytes / 1024 ** index
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
@@ -251,11 +269,19 @@ function formatDuration(seconds: number): string {
 }
 
 function formatClock(timestamp: number): string {
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   }).format(timestamp)
+}
+
+function translateServerStatus(label: string) {
+  const normalized = label.toLowerCase()
+  if (normalized.includes('online')) return t('dashboard.online')
+  if (normalized.includes('warning')) return t('dashboard.warning')
+  if (normalized.includes('offline')) return t('dashboard.offline')
+  return label
 }
 </script>
 
@@ -298,7 +324,7 @@ function formatClock(timestamp: number): string {
 }
 
 .status-orb::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -7px;
   border-radius: inherit;
@@ -307,10 +333,24 @@ function formatClock(timestamp: number): string {
   animation: g-ping 1.8s var(--ease-out) infinite;
 }
 
-.status-orb.is-online { color: var(--status-online); background: var(--status-online); box-shadow: 0 0 0 8px var(--status-online-bg); }
-.status-orb.is-warning { color: var(--status-warning); background: var(--status-warning); box-shadow: 0 0 0 8px var(--status-warning-bg); }
-.status-orb.is-error { color: var(--status-error); background: var(--status-error); box-shadow: 0 0 0 8px var(--status-error-bg); }
-.status-orb.is-offline { color: var(--status-offline); }
+.status-orb.is-online {
+  color: var(--status-online);
+  background: var(--status-online);
+  box-shadow: 0 0 0 8px var(--status-online-bg);
+}
+.status-orb.is-warning {
+  color: var(--status-warning);
+  background: var(--status-warning);
+  box-shadow: 0 0 0 8px var(--status-warning-bg);
+}
+.status-orb.is-error {
+  color: var(--status-error);
+  background: var(--status-error);
+  box-shadow: 0 0 0 8px var(--status-error-bg);
+}
+.status-orb.is-offline {
+  color: var(--status-offline);
+}
 
 .dashboard-hero p,
 .panel-heading p,
@@ -368,10 +408,22 @@ function formatClock(timestamp: number): string {
   flex-shrink: 0;
 }
 
-.metric-card__icon.is-success { background: var(--color-success-muted); color: var(--color-success); }
-.metric-card__icon.is-info { background: var(--color-info-muted); color: var(--color-info); }
-.metric-card__icon.is-warning { background: var(--color-warning-muted); color: var(--color-warning); }
-.metric-card__icon.is-purple { background: var(--color-secondary-muted); color: var(--color-secondary); }
+.metric-card__icon.is-success {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+.metric-card__icon.is-info {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
+.metric-card__icon.is-warning {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+.metric-card__icon.is-purple {
+  background: var(--color-secondary-muted);
+  color: var(--color-secondary);
+}
 
 .metric-card strong {
   display: block;
@@ -459,9 +511,15 @@ function formatClock(timestamp: number): string {
   background: var(--status-offline);
 }
 
-.server-pill > span.is-online { background: var(--status-online); }
-.server-pill > span.is-warning { background: var(--status-warning); }
-.server-pill > span.is-offline { background: var(--status-offline); }
+.server-pill > span.is-online {
+  background: var(--status-online);
+}
+.server-pill > span.is-warning {
+  background: var(--status-warning);
+}
+.server-pill > span.is-offline {
+  background: var(--status-offline);
+}
 
 .server-pill strong {
   display: block;
@@ -558,12 +616,20 @@ function formatClock(timestamp: number): string {
   font: var(--weight-semibold) var(--text-xs) var(--font-mono);
 }
 
-.recent-log span.is-info { color: var(--color-info); }
-.recent-log span.is-warn { color: var(--color-warning); }
+.recent-log span.is-info {
+  color: var(--color-info);
+}
+.recent-log span.is-warn {
+  color: var(--color-warning);
+}
 .recent-log span.is-error,
-.recent-log span.is-fatal { color: var(--color-error); }
+.recent-log span.is-fatal {
+  color: var(--color-error);
+}
 .recent-log span.is-debug,
-.recent-log span.is-trace { color: var(--text-tertiary); }
+.recent-log span.is-trace {
+  color: var(--text-tertiary);
+}
 
 .recent-log p {
   min-width: 0;

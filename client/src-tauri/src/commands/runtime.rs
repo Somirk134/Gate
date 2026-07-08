@@ -30,6 +30,11 @@ pub async fn runtime_get_logs(state: State<'_, ClientRuntimeState>) -> Result<Va
 }
 
 #[tauri::command]
+pub async fn runtime_clear_logs(state: State<'_, ClientRuntimeState>) -> Result<(), String> {
+    state.clear_logs().await
+}
+
+#[tauri::command]
 pub async fn runtime_get_store_report(
     state: State<'_, ClientRuntimeState>,
 ) -> Result<Value, String> {

@@ -66,6 +66,7 @@ pub fn run() -> Result<()> {
             commands::runtime::runtime_get_health,
             commands::runtime::runtime_collect_metrics,
             commands::runtime::runtime_get_logs,
+            commands::runtime::runtime_clear_logs,
             commands::runtime::runtime_get_store_report,
             commands::runtime::runtime_run_startup_diagnostics,
             commands::diagnostics::diagnostics_test_connection,

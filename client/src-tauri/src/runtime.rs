@@ -1241,6 +1241,13 @@ impl ClientRuntimeState {
         json!(&inner.logs)
     }
 
+    pub async fn clear_logs(&self) -> Result<(), String> {
+        let mut inner = self.inner.lock().await;
+        inner.logs.clear();
+        persist_runtime(&self.storage_path, &inner)?;
+        Ok(())
+    }
+
     pub async fn runtime_store_report(&self) -> Value {
         let inner = self.inner.lock().await;
         json!({
