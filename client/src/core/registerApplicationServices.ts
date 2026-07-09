@@ -12,7 +12,7 @@ import { LocalStorageService } from '@/storage/StorageService'
 import { MemoryCacheManager } from '@/cache/CacheManager'
 import { TauriIpcClient } from '@/ipc'
 import { FetchRequestClient } from '@/network'
-import { StubAutoUpdateService } from '@/updates'
+import { TauriAutoUpdateService } from '@/updates'
 import { createPluginAPI } from '@/plugins/PluginAPI'
 import {
   CACHE_SERVICE,
@@ -70,7 +70,9 @@ export function registerApplicationServices(context: AppContext) {
   )
   services.register(IPC_SERVICE, () => new TauriIpcClient(), { eager: true })
   services.register(REQUEST_SERVICE, () => new FetchRequestClient(), { eager: true })
-  services.register(UPDATE_SERVICE, () => new StubAutoUpdateService(events), { eager: true })
+  services.register(UPDATE_SERVICE, () => new TauriAutoUpdateService(events, context.environment.version), {
+    eager: true,
+  })
   services.register(
     PLUGIN_MANAGER_SERVICE,
     () => new DefaultPluginManager(createPluginAPI(context), events),

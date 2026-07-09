@@ -35,7 +35,50 @@
               <GIcon :name="link.icon" :size="15" />
               <span>{{ link.label }}</span>
             </a>
+            <button
+              type="button"
+              class="about-action about-update-action"
+              :class="{ 'about-update-action--active': updateInfo?.available }"
+              :disabled="isUpdateBusy"
+              @click="handleCheckUpdate">
+              <GIcon :name="updateActionIcon" :size="15" :spin="isUpdateBusy" />
+              <span>{{ updateActionLabel }}</span>
+            </button>
+            <button
+              v-if="canDownloadUpdate"
+              type="button"
+              class="about-action about-update-action"
+              :disabled="isUpdateBusy"
+              @click="handleDownloadUpdate">
+              <GIcon name="download" :size="15" :spin="updateStatus === 'downloading'" />
+              <span>{{ t('about.update.download') }}</span>
+            </button>
+            <button
+              v-if="canInstallUpdate"
+              type="button"
+              class="about-action about-update-action about-update-action--active"
+              :disabled="isUpdateBusy"
+              @click="handleInstallUpdate">
+              <GIcon name="rocket" :size="15" :spin="updateStatus === 'installing'" />
+              <span>{{ t('about.update.installAndRestart') }}</span>
+            </button>
+            <a
+              v-if="canOpenReleasePage"
+              :href="releasePageUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="about-action about-update-action about-update-action--active">
+              <GIcon name="external-link" :size="15" />
+              <span>{{ t('about.update.openRelease') }}</span>
+            </a>
           </nav>
+
+          <p
+            class="about-update-status"
+            :class="`about-update-status--${updateStatusTone}`"
+            aria-live="polite">
+            {{ updateStatusText }}
+          </p>
         </div>
       </article>
 
@@ -154,24 +197,83 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
 import authorAvatarUrl from '@repo-assets/icon/头像.jpg'
+import { useService } from '@/composables/useService'
 import {
   GITEE_REPOSITORY_URL,
   GITHUB_LICENSE_URL,
   GITHUB_REPOSITORY_URL,
   GITHUB_ROADMAP_URL,
 } from '@/constants'
+import { UPDATE_SERVICE } from '@/services/tokens'
+import type { UpdateInfo, UpdateStatus } from '@/updates'
 
 const APP_VERSION = '0.1.0'
 const BUILD_NUMBER = '2026.0704.1'
 
 const { t } = useI18n()
+const updateService = useService(UPDATE_SERVICE)
 const currentYear = new Date().getFullYear()
 const versionBadge = computed(() => t('about.heroBadge', { version: APP_VERSION }))
+const updateStatus = ref<UpdateStatus>(updateService.getStatus())
+const updateInfo = ref<UpdateInfo | null>(null)
+const updateError = ref('')
+const isUpdateBusy = computed(() =>
+  ['checking', 'downloading', 'installing'].includes(updateStatus.value),
+)
+const canDownloadUpdate = computed(() => {
+  const info = updateInfo.value
+  return Boolean(info?.available && info.installable && updateStatus.value === 'available')
+})
+const canInstallUpdate = computed(() => {
+  const info = updateInfo.value
+  return Boolean(info?.available && info.installable && updateStatus.value === 'ready')
+})
+const canOpenReleasePage = computed(() => {
+  const info = updateInfo.value
+  return Boolean(info?.available && !info.installable && info.url)
+})
+const releasePageUrl = computed(() => updateInfo.value?.url ?? `${GITHUB_REPOSITORY_URL}/releases`)
+const updateActionIcon = computed(() => {
+  if (isUpdateBusy.value) return 'loader'
+  if (updateInfo.value?.available) return 'check-circle'
+  return 'refresh'
+})
+const updateActionLabel = computed(() => {
+  if (updateStatus.value === 'checking') return t('about.update.checking')
+  if (updateStatus.value === 'downloading') return t('about.update.downloading')
+  if (updateStatus.value === 'installing') return t('about.update.installing')
+  return t('about.update.check')
+})
+const updateStatusTone = computed(() => {
+  if (updateStatus.value === 'error') return 'error'
+  if (updateInfo.value?.available) return 'success'
+  if (updateInfo.value && !updateInfo.value.available) return 'muted'
+  return 'info'
+})
+const updateStatusText = computed(() => {
+  if (updateError.value) return updateError.value
+  if (updateStatus.value === 'checking') return t('about.update.statusChecking')
+  if (updateStatus.value === 'downloading') return t('about.update.statusDownloading')
+  if (updateStatus.value === 'ready') return t('about.update.statusReady')
+  if (updateStatus.value === 'installing') return t('about.update.statusInstalling')
+
+  if (updateInfo.value?.available) {
+    return t('about.update.statusAvailable', {
+      version: updateInfo.value.version ?? t('about.update.unknownVersion'),
+    })
+  }
+
+  if (updateInfo.value && !updateInfo.value.available) {
+    return t('about.update.statusLatest')
+  }
+
+  return t('about.update.statusIdle')
+})
 
 const productLinks = computed(() => [
   {
@@ -268,6 +370,51 @@ const releaseNotes = computed(() => [
   t('about.releaseNote.monitoring'),
   t('about.releaseNote.docs'),
 ])
+
+async function handleCheckUpdate() {
+  updateError.value = ''
+
+  try {
+    updateInfo.value = await updateService.check()
+  } catch (error) {
+    updateInfo.value = null
+    updateError.value = getUpdateErrorMessage(error)
+  } finally {
+    updateStatus.value = updateService.getStatus()
+  }
+}
+
+async function handleDownloadUpdate() {
+  updateError.value = ''
+  updateStatus.value = 'downloading'
+
+  try {
+    await updateService.download()
+  } catch (error) {
+    updateError.value = getUpdateErrorMessage(error)
+  } finally {
+    updateStatus.value = updateService.getStatus()
+  }
+}
+
+async function handleInstallUpdate() {
+  updateError.value = ''
+  updateStatus.value = 'installing'
+
+  try {
+    await updateService.install()
+    await updateService.restart()
+  } catch (error) {
+    updateError.value = getUpdateErrorMessage(error)
+    updateStatus.value = updateService.getStatus()
+  }
+}
+
+function getUpdateErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  return t('about.update.statusFailed')
+}
 </script>
 
 <style scoped>
@@ -421,6 +568,11 @@ const releaseNotes = computed(() => [
     transform var(--transition-fast);
 }
 
+button.about-action {
+  font: inherit;
+  cursor: pointer;
+}
+
 .about-action:hover,
 .about-author__links a:hover,
 .about-stage a:hover {
@@ -441,6 +593,38 @@ const releaseNotes = computed(() => [
   border-color: transparent;
   background: var(--color-primary-hover);
   color: var(--color-primary-fg);
+}
+
+.about-update-action--active {
+  border-color: rgba(47, 209, 124, 0.3);
+  background: rgba(47, 209, 124, 0.12);
+  color: var(--color-success);
+}
+
+.about-action:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
+.about-update-status {
+  min-height: 20px;
+  margin-top: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
+.about-update-status--success {
+  color: var(--color-success);
+}
+
+.about-update-status--error {
+  color: var(--color-error);
+}
+
+.about-update-status--muted {
+  color: var(--text-tertiary);
 }
 
 .about-author {
