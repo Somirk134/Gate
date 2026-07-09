@@ -8,8 +8,13 @@
 <template>
   <div class="tunnel-settings">
     <!-- 名称 -->
-    <GFormField :error="errors.name" required>
-      <template #label>Tunnel Name</template>
+    <GFormField
+      :error="errors.name"
+      required
+    >
+      <template #label>
+        Tunnel Name
+      </template>
       <GInput
         v-model="form.name"
         placeholder="例如：api-gateway"
@@ -22,13 +27,17 @@
 
     <!-- 协议 -->
     <GFormField>
-      <template #label>Protocol</template>
+      <template #label>
+        Protocol
+      </template>
       <TunnelProtocolSelect v-model="form.protocol" />
     </GFormField>
 
     <!-- 本地主机 -->
     <GFormField :error="errors.localHost">
-      <template #label>Local Host</template>
+      <template #label>
+        Local Host
+      </template>
       <GInput
         v-model="form.localHost"
         placeholder="127.0.0.1"
@@ -40,19 +49,31 @@
 
     <!-- 本地端口 / 公网端口 -->
     <div class="tunnel-port-row">
-      <GFormField :error="errors.localPort" required>
-        <template #label>Local Port</template>
+      <GFormField
+        :error="errors.localPort"
+        required
+      >
+        <template #label>
+          Local Port
+        </template>
         <TunnelPortInput v-model="form.localPort" />
       </GFormField>
-      <GFormField :error="errors.remotePort" required>
-        <template #label>Remote Port</template>
+      <GFormField
+        :error="errors.remotePort"
+        required
+      >
+        <template #label>
+          Remote Port
+        </template>
         <TunnelPortInput v-model="form.remotePort" />
       </GFormField>
     </div>
 
     <!-- 备注 -->
     <GFormField>
-      <template #label>Remark</template>
+      <template #label>
+        Remark
+      </template>
       <GTextarea
         v-model="form.remark"
         placeholder="内部备注，仅自己可见…"
@@ -83,7 +104,11 @@
       <div class="tunnel-settings__row-text">
         <span class="tunnel-settings__row-label">
           Compression
-          <GBadge variant="neutral" type="soft" size="sm">预留</GBadge>
+          <GBadge
+            variant="neutral"
+            type="soft"
+            size="sm"
+          >预留</GBadge>
         </span>
         <span class="tunnel-settings__row-hint">启用数据压缩，降低带宽占用（即将支持）</span>
       </div>
@@ -102,7 +127,11 @@
       <div class="tunnel-settings__row-text">
         <span class="tunnel-settings__row-label">
           Encryption
-          <GBadge variant="neutral" type="soft" size="sm">预留</GBadge>
+          <GBadge
+            variant="neutral"
+            type="soft"
+            size="sm"
+          >预留</GBadge>
         </span>
         <span class="tunnel-settings__row-hint">端到端加密传输（即将支持）</span>
       </div>
@@ -118,7 +147,13 @@
 
     <!-- 保存按钮 -->
     <div class="tunnel-settings__actions">
-      <GButton variant="ghost" icon="refresh" @click="reset">重置</GButton>
+      <GButton
+        variant="ghost"
+        icon="refresh"
+        @click="reset"
+      >
+        重置
+      </GButton>
       <GButton
         variant="primary"
         icon="save"

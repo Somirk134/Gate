@@ -6,7 +6,14 @@
         <h1>反馈与调试信息</h1>
         <span>把版本、系统、连接、部署检查和路径信息一次性整理好，方便提交 Bug。</span>
       </div>
-      <GButton variant="primary" icon="copy" :loading="loading" @click="copyDebugInfo">复制调试信息</GButton>
+      <GButton
+        variant="primary"
+        icon="copy"
+        :loading="loading"
+        @click="copyDebugInfo"
+      >
+        复制调试信息
+      </GButton>
     </header>
 
     <div class="feedback-grid">
@@ -17,23 +24,47 @@
             <p>包含 System Info、Deployment Checker、Connection History 和最近服务器。</p>
           </header>
           <div class="action-grid">
-            <button type="button" @click="copyDebugInfo">
-              <GIcon name="clipboard" :size="20" />
+            <button
+              type="button"
+              @click="copyDebugInfo"
+            >
+              <GIcon
+                name="clipboard"
+                :size="20"
+              />
               <strong>复制调试信息</strong>
               <span>适合粘贴到 Issue 或聊天里。</span>
             </button>
-            <button type="button" @click="openIssue">
-              <GIcon name="github" :size="20" />
+            <button
+              type="button"
+              @click="openIssue"
+            >
+              <GIcon
+                name="github"
+                :size="20"
+              />
               <strong>打开 GitHub Issue</strong>
               <span>带着诊断信息提交问题。</span>
             </button>
-            <button type="button" @click="copyLogDir">
-              <GIcon name="logs" :size="20" />
+            <button
+              type="button"
+              @click="copyLogDir"
+            >
+              <GIcon
+                name="logs"
+                :size="20"
+              />
               <strong>查看日志目录</strong>
               <span>{{ systemInfo?.logDir ?? "正在读取..." }}</span>
             </button>
-            <button type="button" @click="copyConfigDir">
-              <GIcon name="settings" :size="20" />
+            <button
+              type="button"
+              @click="copyConfigDir"
+            >
+              <GIcon
+                name="settings"
+                :size="20"
+              />
               <strong>查看配置目录</strong>
               <span>{{ systemInfo?.configDir ?? "正在读取..." }}</span>
             </button>
@@ -59,8 +90,20 @@
               <strong>运行诊断中心，按结构化建议逐项修复。</strong>
             </div>
             <div class="error-actions">
-              <GButton variant="secondary" icon="logs" @click="openLogs">查看日志</GButton>
-              <GButton variant="secondary" icon="copy" @click="copyDebugInfo">复制错误</GButton>
+              <GButton
+                variant="secondary"
+                icon="logs"
+                @click="openLogs"
+              >
+                查看日志
+              </GButton>
+              <GButton
+                variant="secondary"
+                icon="copy"
+                @click="copyDebugInfo"
+              >
+                复制错误
+              </GButton>
             </div>
           </div>
         </section>
@@ -70,10 +113,21 @@
         <section class="feedback-card">
           <header>
             <strong>System Info</strong>
-            <button type="button" @click="copySystemInfo"><GIcon name="copy" :size="14" /></button>
+            <button
+              type="button"
+              @click="copySystemInfo"
+            >
+              <GIcon
+                name="copy"
+                :size="14"
+              />
+            </button>
           </header>
           <dl>
-            <div v-for="item in systemRows" :key="item.label">
+            <div
+              v-for="item in systemRows"
+              :key="item.label"
+            >
               <dt>{{ item.label }}</dt>
               <dd>{{ item.value }}</dd>
             </div>
@@ -83,10 +137,22 @@
         <section class="feedback-card">
           <header>
             <strong>Deployment Checker</strong>
-            <button type="button" @click="refresh"><GIcon name="refresh" :size="14" /></button>
+            <button
+              type="button"
+              @click="refresh"
+            >
+              <GIcon
+                name="refresh"
+                :size="14"
+              />
+            </button>
           </header>
           <div class="mini-findings">
-            <article v-for="finding in deploymentReport?.findings ?? []" :key="finding.id" :class="`is-${finding.status}`">
+            <article
+              v-for="finding in deploymentReport?.findings ?? []"
+              :key="finding.id"
+              :class="`is-${finding.status}`"
+            >
               <span />
               <div>
                 <strong>{{ finding.label }}</strong>

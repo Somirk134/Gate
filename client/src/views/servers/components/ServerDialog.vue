@@ -7,14 +7,31 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="server-dialog__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="server-dialog" @click.stop>
+    <div
+      v-if="visible"
+      class="server-dialog__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="server-dialog"
+          @click.stop
+        >
           <!-- 头部 -->
           <header class="server-dialog__header">
             <div class="server-dialog__title-wrap">
-              <span class="server-dialog__icon" :style="previewStyle">
-                <GIcon :name="kindPreset.icon" :size="20" />
+              <span
+                class="server-dialog__icon"
+                :style="previewStyle"
+              >
+                <GIcon
+                  :name="kindPreset.icon"
+                  :size="20"
+                />
               </span>
               <div>
                 <h3 class="server-dialog__title">
@@ -25,14 +42,24 @@
                 </p>
               </div>
             </div>
-            <GIconButton name="close" variant="ghost" size="sm" @click="handleClose" />
+            <GIconButton
+              name="close"
+              variant="ghost"
+              size="sm"
+              @click="handleClose"
+            />
           </header>
 
           <!-- 主体表单 -->
           <div class="server-dialog__body">
             <!-- 名称 -->
-            <GFormField :error="errors.name" required>
-              <template #label>名称</template>
+            <GFormField
+              :error="errors.name"
+              required
+            >
+              <template #label>
+                名称
+              </template>
               <GInput
                 v-model="form.name"
                 placeholder="例如：Tokyo Edge"
@@ -45,14 +72,21 @@
 
             <!-- 类型 -->
             <GFormField>
-              <template #label>类型</template>
+              <template #label>
+                类型
+              </template>
               <ServerKindSelect v-model="form.kind" />
             </GFormField>
 
             <!-- 主机 / 端口 -->
             <div class="server-port-row">
-              <GFormField :error="errors.host" required>
-                <template #label>主机</template>
+              <GFormField
+                :error="errors.host"
+                required
+              >
+                <template #label>
+                  主机
+                </template>
                 <GInput
                   v-model="form.host"
                   placeholder="IP 或域名"
@@ -61,8 +95,13 @@
                   @update:model-value="validateField('host')"
                 />
               </GFormField>
-              <GFormField :error="errors.port" required>
-                <template #label>端口</template>
+              <GFormField
+                :error="errors.port"
+                required
+              >
+                <template #label>
+                  端口
+                </template>
                 <GPortInput
                   :model-value="form.port"
                   @update:model-value="(v) => { form.port = v; validateField('port') }"
@@ -71,8 +110,13 @@
             </div>
 
             <!-- Token -->
-            <GFormField :error="errors.token" required>
-              <template #label>Token</template>
+            <GFormField
+              :error="errors.token"
+              required
+            >
+              <template #label>
+                Token
+              </template>
               <GInput
                 v-model="form.token"
                 placeholder="服务器访问令牌"
@@ -96,7 +140,9 @@
 
             <!-- 地区 -->
             <GFormField>
-              <template #label>地区</template>
+              <template #label>
+                地区
+              </template>
               <GInput
                 v-model="form.region"
                 placeholder="例如：Tokyo, JP"
@@ -107,7 +153,9 @@
             <!-- 心跳 / 重连间隔 -->
             <div class="server-port-row">
               <GFormField :error="errors.heartbeatInterval">
-                <template #label>心跳间隔 (秒)</template>
+                <template #label>
+                  心跳间隔 (秒)
+                </template>
                 <GInput
                   v-model.number="form.heartbeatInterval"
                   type="number"
@@ -117,7 +165,9 @@
                 />
               </GFormField>
               <GFormField :error="errors.reconnectInterval">
-                <template #label>重连间隔 (秒)</template>
+                <template #label>
+                  重连间隔 (秒)
+                </template>
                 <GInput
                   v-model.number="form.reconnectInterval"
                   type="number"
@@ -146,7 +196,9 @@
 
             <!-- 标签 -->
             <GFormField>
-              <template #label>标签</template>
+              <template #label>
+                标签
+              </template>
               <div
                 class="server-tag-input"
                 :class="{ 'server-tag-input--focused': tagFocused }"
@@ -166,7 +218,7 @@
                   @blur="onTagBlur"
                   @keydown.enter.prevent="addTag"
                   @keydown.backspace="onBackspace"
-                />
+                >
               </div>
               <div class="server-tag-suggest">
                 <button
@@ -177,7 +229,10 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)"
                 >
-                  <GIcon name="plus" :size="10" />
+                  <GIcon
+                    name="plus"
+                    :size="10"
+                  />
                   {{ tag.name }}
                 </button>
               </div>
@@ -185,7 +240,9 @@
 
             <!-- 备注 -->
             <GFormField>
-              <template #label>备注</template>
+              <template #label>
+                备注
+              </template>
               <GTextarea
                 v-model="form.remark"
                 placeholder="内部备注，仅自己可见…"
@@ -198,7 +255,12 @@
 
           <!-- 底部 -->
           <footer class="server-dialog__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="primary"
               :icon="isEdit ? 'save' : 'plus'"

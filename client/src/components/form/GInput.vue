@@ -28,10 +28,19 @@
       { 'g-input--disabled': disabled, 'g-input--focused': focused, 'g-input--readonly': readonly },
     ]"
   >
-    <span v-if="prefix" class="g-input__prefix-icon">
-      <GIcon :name="prefix" :size="iconSize" />
+    <span
+      v-if="prefix"
+      class="g-input__prefix-icon"
+    >
+      <GIcon
+        :name="prefix"
+        :size="iconSize"
+      />
     </span>
-    <span v-else-if="$slots.prefix" class="g-input__prefix-slot"><slot name="prefix" /></span>
+    <span
+      v-else-if="$slots.prefix"
+      class="g-input__prefix-slot"
+    ><slot name="prefix" /></span>
 
     <input
       class="g-input__field"
@@ -47,16 +56,32 @@
       @keydown.enter="emit('enter', $event)"
       @focus="onFocus"
       @blur="onBlur"
-    />
+    >
 
-    <span v-if="clearable && modelValue && !disabled" class="g-input__clear" @click="clear">
-      <GIcon name="close" :size="iconSize - 2" />
+    <span
+      v-if="clearable && modelValue && !disabled"
+      class="g-input__clear"
+      @click="clear"
+    >
+      <GIcon
+        name="close"
+        :size="iconSize - 2"
+      />
     </span>
 
-    <span v-if="suffix" class="g-input__suffix-icon">
-      <GIcon :name="suffix" :size="iconSize" />
+    <span
+      v-if="suffix"
+      class="g-input__suffix-icon"
+    >
+      <GIcon
+        :name="suffix"
+        :size="iconSize"
+      />
     </span>
-    <span v-else-if="$slots.suffix" class="g-input__suffix-slot"><slot name="suffix" /></span>
+    <span
+      v-else-if="$slots.suffix"
+      class="g-input__suffix-slot"
+    ><slot name="suffix" /></span>
   </div>
 </template>
 

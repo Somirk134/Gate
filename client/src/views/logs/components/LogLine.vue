@@ -8,12 +8,18 @@
   >
     <span class="log-line__time">{{ formatLogTime(log.timestamp) }}</span>
     <span class="log-line__level">
-      <GIcon :name="level.icon" :size="13" />
+      <GIcon
+        :name="level.icon"
+        :size="13"
+      />
       {{ log.level }}
     </span>
     <span class="log-line__source">{{ log.source }}</span>
     <span class="log-line__module">{{ log.module }}</span>
-    <span class="log-line__message" v-html="highlightText(log.message, keyword)" />
+    <span
+      class="log-line__message"
+      v-html="highlightText(log.message, keyword)"
+    />
     <span class="log-line__trace">{{ log.traceId ?? "-" }}</span>
     <span class="log-line__request">{{ log.requestId ?? "-" }}</span>
   </button>

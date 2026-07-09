@@ -1,12 +1,17 @@
 <template>
-  <div v-if="context" class="setting-description">
+  <div
+    v-if="context"
+    class="setting-description"
+  >
     <div class="setting-description__heading">
       <span>{{ context.category.label }} / {{ context.group.label }}</span>
       <h2>{{ context.item.label }}</h2>
       <code>{{ context.item.key }}</code>
     </div>
 
-    <p class="setting-description__text">{{ context.item.description }}</p>
+    <p class="setting-description__text">
+      {{ context.item.description }}
+    </p>
 
     <dl class="setting-description__meta">
       <dt>当前值</dt>
@@ -21,18 +26,29 @@
       <dd>{{ modified ? "已修改" : "默认" }}</dd>
     </dl>
 
-    <div v-if="context.item.validation" class="setting-description__section">
+    <div
+      v-if="context.item.validation"
+      class="setting-description__section"
+    >
       <h3>校验规则</h3>
       <p>{{ validationText }}</p>
     </div>
 
-    <div v-if="error" class="setting-description__section setting-description__section--error">
+    <div
+      v-if="error"
+      class="setting-description__section setting-description__section--error"
+    >
       <h3>校验错误</h3>
       <p>{{ error }}</p>
     </div>
 
     <div class="setting-description__links">
-      <GButton size="sm" variant="secondary" icon="external-link" :disabled="!context.item.helpUrl">
+      <GButton
+        size="sm"
+        variant="secondary"
+        icon="external-link"
+        :disabled="!context.item.helpUrl"
+      >
         帮助
       </GButton>
     </div>

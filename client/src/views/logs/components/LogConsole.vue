@@ -1,5 +1,9 @@
 <template>
-  <main class="log-console" @scroll="onScroll" ref="containerRef">
+  <main
+    ref="containerRef"
+    class="log-console"
+    @scroll="onScroll"
+  >
     <div class="log-console__head">
       <span>Time</span>
       <span>Level</span>
@@ -10,11 +14,27 @@
       <span>RequestId</span>
     </div>
 
-    <div v-if="rows.length" class="log-console__viewport" :style="{ height: `${totalHeight}px` }">
-      <div class="log-console__window" :style="{ transform: `translateY(${offsetY}px)` }">
-        <template v-for="row in visibleRows" :key="row.key">
-          <div v-if="row.kind === 'header'" class="log-console__group">
-            <GIcon :name="row.icon" :size="13" />
+    <div
+      v-if="rows.length"
+      class="log-console__viewport"
+      :style="{ height: `${totalHeight}px` }"
+    >
+      <div
+        class="log-console__window"
+        :style="{ transform: `translateY(${offsetY}px)` }"
+      >
+        <template
+          v-for="row in visibleRows"
+          :key="row.key"
+        >
+          <div
+            v-if="row.kind === 'header'"
+            class="log-console__group"
+          >
+            <GIcon
+              :name="row.icon"
+              :size="13"
+            />
             <span>{{ row.label }}</span>
             <strong>{{ row.count }}</strong>
           </div>
@@ -30,8 +50,14 @@
       </div>
     </div>
 
-    <div v-else class="log-console__empty-inline">
-      <GIcon name="search" :size="18" />
+    <div
+      v-else
+      class="log-console__empty-inline"
+    >
+      <GIcon
+        name="search"
+        :size="18"
+      />
       <span>No matching logs</span>
     </div>
   </main>

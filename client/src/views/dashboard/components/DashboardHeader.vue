@@ -7,14 +7,26 @@
   <div class="dashboard-header">
     <div class="dashboard-header__main">
       <h1 class="dashboard-header__title">
-        <GIcon name="layout-grid" :size="22" class="dashboard-header__icon" />
+        <GIcon
+          name="layout-grid"
+          :size="22"
+          class="dashboard-header__icon"
+        />
         {{ title }}
       </h1>
-      <p class="dashboard-header__desc">{{ description }}</p>
+      <p class="dashboard-header__desc">
+        {{ description }}
+      </p>
     </div>
     <div class="dashboard-header__actions">
-      <span v-if="lastUpdated" class="dashboard-header__updated">
-        <GIcon name="clock" :size="12" />
+      <span
+        v-if="lastUpdated"
+        class="dashboard-header__updated"
+      >
+        <GIcon
+          name="clock"
+          :size="12"
+        />
         {{ updatedText }}
       </span>
       <GIconButton

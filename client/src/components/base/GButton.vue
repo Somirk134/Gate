@@ -30,8 +30,15 @@
     @click="handleClick"
   >
     <!-- Loading spinner -->
-    <span v-if="loading" class="g-btn__spinner">
-      <GIcon name="loader" :size="iconSize" spin />
+    <span
+      v-if="loading"
+      class="g-btn__spinner"
+    >
+      <GIcon
+        name="loader"
+        :size="iconSize"
+        spin
+      />
     </span>
 
     <!-- Leading icon -->
@@ -42,7 +49,10 @@
       class="g-btn__icon"
     />
 
-    <span v-if="!iconOnly" class="g-btn__label">
+    <span
+      v-if="!iconOnly"
+      class="g-btn__label"
+    >
       <slot />
     </span>
 

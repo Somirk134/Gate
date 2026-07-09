@@ -14,7 +14,11 @@
       :class="{ 'projects-segment__item--active': modelValue === item.key }"
       @click="$emit('update:modelValue', item.key)"
     >
-      <GIcon v-if="item.icon" :name="item.icon" :size="13" />
+      <GIcon
+        v-if="item.icon"
+        :name="item.icon"
+        :size="13"
+      />
       <span>{{ item.label }}</span>
       <span class="projects-segment__count">{{ counts[item.key] ?? 0 }}</span>
     </button>

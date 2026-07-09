@@ -1,20 +1,41 @@
 <template>
   <Transition name="smart-wizard">
-    <div v-if="visible" class="smart-onboarding" @keydown.esc="closeForLater">
-      <section class="wizard-shell" role="dialog" aria-modal="true" aria-labelledby="smart-wizard-title">
+    <div
+      v-if="visible"
+      class="smart-onboarding"
+      @keydown.esc="closeForLater"
+    >
+      <section
+        class="wizard-shell"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="smart-wizard-title"
+      >
         <aside class="wizard-rail">
           <div class="rail-brand">
-            <span><GIcon name="router" :size="24" /></span>
+            <span><GIcon
+              name="router"
+              :size="24"
+            /></span>
             <div>
               <strong>Gate</strong>
               <small>Smart Onboarding</small>
             </div>
           </div>
 
-          <div class="rail-illustration" aria-hidden="true">
-            <div class="node local">Local</div>
-            <div class="node server">Server</div>
-            <div class="node public">Public</div>
+          <div
+            class="rail-illustration"
+            aria-hidden="true"
+          >
+            <div class="node local">
+              Local
+            </div>
+            <div class="node server">
+              Server
+            </div>
+            <div class="node public">
+              Public
+            </div>
             <span class="line line-a" />
             <span class="line line-b" />
           </div>
@@ -22,14 +43,23 @@
           <div class="path-panel">
             <p>当前路径</p>
             <div class="path-list">
-              <span v-for="item in pathItems" :key="item">{{ item }}</span>
+              <span
+                v-for="item in pathItems"
+                :key="item"
+              >{{ item }}</span>
             </div>
           </div>
 
           <div class="knowledge-panel">
             <p>知识卡片</p>
-            <article v-for="card in visibleKnowledgeCards" :key="card.id">
-              <GIcon :name="card.icon" :size="16" />
+            <article
+              v-for="card in visibleKnowledgeCards"
+              :key="card.id"
+            >
+              <GIcon
+                :name="card.icon"
+                :size="16"
+              />
               <div>
                 <strong>{{ card.title }}</strong>
                 <span>{{ card.body }}</span>
@@ -42,25 +72,61 @@
           <header class="wizard-header">
             <div>
               <p>{{ screenCaption }}</p>
-              <h1 id="smart-wizard-title">{{ screenTitle }}</h1>
+              <h1 id="smart-wizard-title">
+                {{ screenTitle }}
+              </h1>
             </div>
             <div class="wizard-header__actions">
-              <button v-if="screen !== 'welcome'" type="button" class="text-action" @click="restartWizard">重新开始</button>
-              <button type="button" class="text-action" @click="skipWizard">跳过</button>
-              <button type="button" class="icon-action" aria-label="稍后继续" @click="closeForLater">
-                <GIcon name="close" :size="16" />
+              <button
+                v-if="screen !== 'welcome'"
+                type="button"
+                class="text-action"
+                @click="restartWizard"
+              >
+                重新开始
+              </button>
+              <button
+                type="button"
+                class="text-action"
+                @click="skipWizard"
+              >
+                跳过
+              </button>
+              <button
+                type="button"
+                class="icon-action"
+                aria-label="稍后继续"
+                @click="closeForLater"
+              >
+                <GIcon
+                  name="close"
+                  :size="16"
+                />
               </button>
             </div>
           </header>
 
-          <div class="wizard-progress" aria-hidden="true">
+          <div
+            class="wizard-progress"
+            aria-hidden="true"
+          >
             <span :style="{ width: `${progressPercent}%` }" />
           </div>
 
-          <section ref="wizardContentRef" class="wizard-content">
-            <div v-if="screen === 'welcome'" ref="activePanelRef" class="welcome-screen">
+          <section
+            ref="wizardContentRef"
+            class="wizard-content"
+          >
+            <div
+              v-if="screen === 'welcome'"
+              ref="activePanelRef"
+              class="welcome-screen"
+            >
               <div class="welcome-mark">
-                <GIcon name="sparkles" :size="32" />
+                <GIcon
+                  name="sparkles"
+                  :size="32"
+                />
               </div>
               <h2>像聊天一样完成 Gate 配置</h2>
               <p>
@@ -70,38 +136,59 @@
 
               <div class="welcome-points">
                 <article>
-                  <GIcon name="message" :size="18" />
+                  <GIcon
+                    name="message"
+                    :size="18"
+                  />
                   <strong>不填复杂表单</strong>
                   <span>每次只回答一个问题。</span>
                 </article>
                 <article>
-                  <GIcon name="sparkles" :size="18" />
+                  <GIcon
+                    name="sparkles"
+                    :size="18"
+                  />
                   <strong>自动生成配置</strong>
                   <span>根据场景推荐协议和端口。</span>
                 </article>
                 <article>
-                  <GIcon name="circle-help" :size="18" />
+                  <GIcon
+                    name="circle-help"
+                    :size="18"
+                  />
                   <strong>随时解释概念</strong>
                   <span>用简单语言说明为什么。</span>
                 </article>
               </div>
 
               <label class="never-show">
-                <input v-model="neverShowChoice" type="checkbox" />
+                <input
+                  v-model="neverShowChoice"
+                  type="checkbox"
+                >
                 <span>以后不再显示</span>
               </label>
             </div>
 
             <template v-else>
-              <div class="chat-log" aria-live="polite">
+              <div
+                class="chat-log"
+                aria-live="polite"
+              >
                 <article
                   v-for="message in conversation"
                   :key="message.id"
                   class="chat-message"
                   :class="`is-${message.role}`"
                 >
-                  <span v-if="message.role === 'gate'" class="avatar">
-                    <GIcon name="sparkles" :size="14" />
+                  <span
+                    v-if="message.role === 'gate'"
+                    class="avatar"
+                  >
+                    <GIcon
+                      name="sparkles"
+                      :size="14"
+                    />
                   </span>
                   <div>
                     <strong v-if="message.title">{{ message.title }}</strong>
@@ -110,7 +197,11 @@
                 </article>
               </div>
 
-              <section v-if="screen === 'server-question'" ref="activePanelRef" class="question-panel">
+              <section
+                v-if="screen === 'server-question'"
+                ref="activePanelRef"
+                class="question-panel"
+              >
                 <button
                   v-for="option in serverOwnershipOptions"
                   :key="option.value"
@@ -118,15 +209,25 @@
                   class="choice-card"
                   @click="chooseServerOwnership(option.value)"
                 >
-                  <GIcon :name="option.icon" :size="20" />
+                  <GIcon
+                    :name="option.icon"
+                    :size="20"
+                  />
                   <strong>{{ option.label }}</strong>
                   <span>{{ option.description }}</span>
                 </button>
               </section>
 
-              <section v-else-if="screen === 'server-education'" ref="activePanelRef" class="education-panel">
+              <section
+                v-else-if="screen === 'server-education'"
+                ref="activePanelRef"
+                class="education-panel"
+              >
                 <div class="explain-card">
-                  <GIcon name="servers" :size="22" />
+                  <GIcon
+                    name="servers"
+                    :size="22"
+                  />
                   <div>
                     <strong>为什么需要公网服务器？</strong>
                     <p>
@@ -137,14 +238,21 @@
                 </div>
 
                 <div class="provider-grid">
-                  <article v-for="provider in cloudProviders" :key="provider.id" :class="`tone-${provider.tone}`">
+                  <article
+                    v-for="provider in cloudProviders"
+                    :key="provider.id"
+                    :class="`tone-${provider.tone}`"
+                  >
                     <strong>{{ provider.name }}</strong>
                     <span>{{ provider.note }}</span>
                   </article>
                 </div>
 
                 <div class="reserved-deploy">
-                  <GIcon name="rocket" :size="18" />
+                  <GIcon
+                    name="rocket"
+                    :size="18"
+                  />
                   <div>
                     <strong>一键部署已预留</strong>
                     <span>未来会在这里直接选择云厂商并自动部署 Gate Server。</span>
@@ -152,20 +260,28 @@
                 </div>
 
                 <div class="education-actions">
-                  <GButton variant="secondary" icon="servers" @click="switchToEnvironmentFromEducation">
+                  <GButton
+                    variant="secondary"
+                    icon="servers"
+                    @click="switchToEnvironmentFromEducation"
+                  >
                     我已经准备好服务器
                   </GButton>
                 </div>
               </section>
 
-              <section v-else-if="screen === 'environment'" ref="activePanelRef" class="environment-panel">
+              <section
+                v-else-if="screen === 'environment'"
+                ref="activePanelRef"
+                class="environment-panel"
+              >
                 <label class="chat-input">
                   <span>服务器地址</span>
                   <input
                     v-model.trim="answers.serverAddress"
                     autocomplete="off"
                     placeholder="例如 203.0.113.10 或 gate.example.com"
-                  />
+                  >
                 </label>
 
                 <div class="environment-grid">
@@ -178,7 +294,10 @@
                     :disabled="environment.reserved"
                     @click="chooseEnvironment(environment.id)"
                   >
-                    <GIcon :name="environment.icon" :size="18" />
+                    <GIcon
+                      :name="environment.icon"
+                      :size="18"
+                    />
                     <strong>{{ environment.title }}</strong>
                     <span>{{ environment.description }}</span>
                     <small>{{ environment.recommendedDeploy }}</small>
@@ -186,7 +305,11 @@
                 </div>
               </section>
 
-              <section v-else-if="screen === 'domain'" ref="activePanelRef" class="domain-panel">
+              <section
+                v-else-if="screen === 'domain'"
+                ref="activePanelRef"
+                class="domain-panel"
+              >
                 <div class="choice-row">
                   <button
                     v-for="option in domainOptions"
@@ -196,24 +319,44 @@
                     :class="{ active: answers.domainMode === option.value }"
                     @click="chooseDomainMode(option.value)"
                   >
-                    <GIcon :name="option.icon" :size="20" />
+                    <GIcon
+                      :name="option.icon"
+                      :size="20"
+                    />
                     <strong>{{ option.label }}</strong>
                     <span>{{ option.description }}</span>
                   </button>
                 </div>
 
-                <label v-if="answers.domainMode === 'has-domain'" class="chat-input">
+                <label
+                  v-if="answers.domainMode === 'has-domain'"
+                  class="chat-input"
+                >
                   <span>域名</span>
-                  <input v-model.trim="answers.domainName" autocomplete="off" placeholder="api.example.com" />
+                  <input
+                    v-model.trim="answers.domainName"
+                    autocomplete="off"
+                    placeholder="api.example.com"
+                  >
                 </label>
 
-                <div v-if="answers.domainMode && answers.domainMode !== 'has-domain'" class="plain-note">
-                  <GIcon name="info-circle" :size="17" />
+                <div
+                  v-if="answers.domainMode && answers.domainMode !== 'has-domain'"
+                  class="plain-note"
+                >
+                  <GIcon
+                    name="info-circle"
+                    :size="17"
+                  />
                   <span>没有域名也可以正常使用，Gate 会推荐 IP + Port 的访问方式。</span>
                 </div>
               </section>
 
-              <section v-else-if="screen === 'scenario'" ref="activePanelRef" class="scenario-panel">
+              <section
+                v-else-if="screen === 'scenario'"
+                ref="activePanelRef"
+                class="scenario-panel"
+              >
                 <div class="scenario-grid">
                   <button
                     v-for="scenario in scenarioRecommendations"
@@ -223,7 +366,10 @@
                     :class="{ active: answers.scenarioId === scenario.id }"
                     @click="chooseScenario(scenario.id)"
                   >
-                    <GIcon :name="scenario.icon" :size="18" />
+                    <GIcon
+                      :name="scenario.icon"
+                      :size="18"
+                    />
                     <strong>{{ scenario.title }}</strong>
                     <span>{{ scenario.description }}</span>
                     <small>{{ scenario.protocol.toUpperCase() }} · {{ scenario.localPort }} → {{ scenario.remotePort }}</small>
@@ -233,7 +379,11 @@
                 <div class="quick-adjust">
                   <label>
                     <span>Tunnel 名称</span>
-                    <input v-model.trim="answers.customName" autocomplete="off" :placeholder="selectedScenario.defaultName" />
+                    <input
+                      v-model.trim="answers.customName"
+                      autocomplete="off"
+                      :placeholder="selectedScenario.defaultName"
+                    >
                   </label>
                   <label>
                     <span>本地端口</span>
@@ -242,12 +392,16 @@
                       inputmode="numeric"
                       type="number"
                       :placeholder="String(selectedScenario.localPort)"
-                    />
+                    >
                   </label>
                 </div>
               </section>
 
-              <section v-else ref="activePanelRef" class="review-panel">
+              <section
+                v-else
+                ref="activePanelRef"
+                class="review-panel"
+              >
                 <div class="recommendation-card">
                   <header>
                     <div>
@@ -291,11 +445,19 @@
                 </div>
 
                 <div class="why-card">
-                  <GIcon name="circle-help" :size="18" />
+                  <GIcon
+                    name="circle-help"
+                    :size="18"
+                  />
                   <div>
                     <strong>为什么推荐这样配置？</strong>
                     <ul>
-                      <li v-for="reason in recommendation.reasonList" :key="reason">{{ reason }}</li>
+                      <li
+                        v-for="reason in recommendation.reasonList"
+                        :key="reason"
+                      >
+                        {{ reason }}
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -304,8 +466,20 @@
           </section>
 
           <footer class="wizard-footer">
-            <GButton v-if="screen === 'welcome'" variant="ghost" @click="skipWizard">跳过</GButton>
-            <GButton v-else variant="ghost" @click="goBack">返回</GButton>
+            <GButton
+              v-if="screen === 'welcome'"
+              variant="ghost"
+              @click="skipWizard"
+            >
+              跳过
+            </GButton>
+            <GButton
+              v-else
+              variant="ghost"
+              @click="goBack"
+            >
+              返回
+            </GButton>
 
             <span class="inline-error">{{ inlineError }}</span>
 
@@ -365,16 +539,33 @@
   </Transition>
 
   <Transition name="tour">
-    <div v-if="tourVisible" class="tour-overlay">
-      <div class="tour-scrim" @click="finishTour" />
-      <div v-if="spotlightRect" class="tour-ring" :style="spotlightStyle" />
-      <article class="tour-card" :style="tourCardStyle">
+    <div
+      v-if="tourVisible"
+      class="tour-overlay"
+    >
+      <div
+        class="tour-scrim"
+        @click="finishTour"
+      />
+      <div
+        v-if="spotlightRect"
+        class="tour-ring"
+        :style="spotlightStyle"
+      />
+      <article
+        class="tour-card"
+        :style="tourCardStyle"
+      >
         <p>快速认识 Gate</p>
         <h2>{{ currentTour.title }}</h2>
         <span>{{ currentTour.body }}</span>
         <footer>
           <small>{{ tourIndex + 1 }} / {{ tourItems.length }}</small>
-          <GButton variant="primary" size="sm" @click="nextTour">
+          <GButton
+            variant="primary"
+            size="sm"
+            @click="nextTour"
+          >
             {{ tourIndex === tourItems.length - 1 ? "完成" : "下一处" }}
           </GButton>
         </footer>

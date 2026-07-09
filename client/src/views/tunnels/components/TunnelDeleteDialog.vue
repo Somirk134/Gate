@@ -5,14 +5,30 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="tunnel-dialog__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="tunnel-delete" @click.stop>
+    <div
+      v-if="visible"
+      class="tunnel-dialog__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="tunnel-delete"
+          @click.stop
+        >
           <header class="tunnel-delete__header">
             <span class="tunnel-delete__icon">
-              <GIcon name="alert-triangle" :size="22" />
+              <GIcon
+                name="alert-triangle"
+                :size="22"
+              />
             </span>
-            <h3 class="tunnel-delete__title">删除隧道</h3>
+            <h3 class="tunnel-delete__title">
+              删除隧道
+            </h3>
           </header>
 
           <div class="tunnel-delete__body">
@@ -41,7 +57,12 @@
           </div>
 
           <footer class="tunnel-delete__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="danger"
               icon="trash"

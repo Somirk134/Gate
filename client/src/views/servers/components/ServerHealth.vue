@@ -9,8 +9,19 @@
     <!-- 健康概要 -->
     <div class="server-health-summary">
       <div class="server-health-summary__score">
-        <svg width="84" height="84" viewBox="0 0 84 84">
-          <circle cx="42" cy="42" :r="ringRadius" stroke="var(--bg-surface-hover)" :stroke-width="ringStroke" fill="none" />
+        <svg
+          width="84"
+          height="84"
+          viewBox="0 0 84 84"
+        >
+          <circle
+            cx="42"
+            cy="42"
+            :r="ringRadius"
+            stroke="var(--bg-surface-hover)"
+            :stroke-width="ringStroke"
+            fill="none"
+          />
           <circle
             cx="42"
             cy="42"
@@ -28,7 +39,10 @@
         <span class="server-health-summary__score-value">{{ server.health.score }}</span>
       </div>
       <div class="server-health-summary__text">
-        <span class="server-health-summary__label" :style="{ color: scoreColor }">
+        <span
+          class="server-health-summary__label"
+          :style="{ color: scoreColor }"
+        >
           {{ overallLabel }}
         </span>
         <span class="server-health-summary__desc">
@@ -58,16 +72,29 @@
         class="server-health-item"
         :class="`server-health-item--${item.status}`"
       >
-        <span class="server-health-item__icon" :style="iconStyle(item.status)">
-          <GIcon :name="statusIcon(item.status)" :size="16" />
+        <span
+          class="server-health-item__icon"
+          :style="iconStyle(item.status)"
+        >
+          <GIcon
+            :name="statusIcon(item.status)"
+            :size="16"
+          />
         </span>
         <div class="server-health-item__body">
           <span class="server-health-item__label">{{ item.label }}</span>
           <span class="server-health-item__message">{{ item.message }}</span>
         </div>
         <div class="server-health-item__meta">
-          <span v-if="item.latency > 0" class="server-health-item__latency">{{ item.latency }}ms</span>
-          <GBadge :variant="badgeVariant(item.status)" type="soft" size="sm">
+          <span
+            v-if="item.latency > 0"
+            class="server-health-item__latency"
+          >{{ item.latency }}ms</span>
+          <GBadge
+            :variant="badgeVariant(item.status)"
+            type="soft"
+            size="sm"
+          >
             {{ statusLabel(item.status) }}
           </GBadge>
         </div>
@@ -75,7 +102,10 @@
     </div>
 
     <p class="server-connection__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       当前为 Mock 健康检查。未来将接入真实 Rust Server 健康检查 API。
     </p>
   </div>

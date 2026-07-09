@@ -14,7 +14,10 @@
       :title="icon.label"
       @click="$emit('update:modelValue', icon.key)"
     >
-      <GIcon :name="icon.key" :size="16" />
+      <GIcon
+        :name="icon.key"
+        :size="16"
+      />
     </button>
   </div>
 </template>

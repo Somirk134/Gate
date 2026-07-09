@@ -1,8 +1,14 @@
 <template>
-  <section :id="`settings-category-${category.id}`" class="settings-category">
+  <section
+    :id="`settings-category-${category.id}`"
+    class="settings-category"
+  >
     <header class="settings-category__header">
       <div class="settings-category__icon">
-        <GIcon :name="category.icon" :size="18" />
+        <GIcon
+          :name="category.icon"
+          :size="18"
+        />
       </div>
       <div>
         <h2>{{ category.label }}</h2>

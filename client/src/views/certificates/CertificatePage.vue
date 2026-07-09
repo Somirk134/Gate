@@ -5,8 +5,16 @@
         <span class="certificate-page__eyebrow">TLS Store</span>
         <h1>Certificates</h1>
       </div>
-      <button class="certificate-page__icon-button" type="button" title="Refresh" @click="refresh">
-        <GIcon name="refresh" :size="16" />
+      <button
+        class="certificate-page__icon-button"
+        type="button"
+        title="Refresh"
+        @click="refresh"
+      >
+        <GIcon
+          name="refresh"
+          :size="16"
+        />
       </button>
     </header>
 
@@ -16,17 +24,31 @@
       :description="`Store: ${storeRoot || 'not created yet'}`"
     >
       <template #icon>
-        <GIcon name="shield-check" :size="32" />
+        <GIcon
+          name="shield-check"
+          :size="32"
+        />
       </template>
       <template #action>
-        <button class="certificate-page__button" type="button" @click="refresh">
-          <GIcon name="refresh" :size="14" />
+        <button
+          class="certificate-page__button"
+          type="button"
+          @click="refresh"
+        >
+          <GIcon
+            name="refresh"
+            :size="14"
+          />
           Refresh
         </button>
       </template>
     </GEmptyState>
 
-    <section v-else class="certificate-page__table" aria-label="Certificate list">
+    <section
+      v-else
+      class="certificate-page__table"
+      aria-label="Certificate list"
+    >
       <div class="certificate-page__table-head">
         <span>Domain</span>
         <span>Issuer</span>
@@ -35,7 +57,7 @@
         <span>Days</span>
         <span>Status</span>
         <span>Renewal</span>
-        <span></span>
+        <span />
       </div>
       <article
         v-for="certificate in certificates"
@@ -47,32 +69,67 @@
         <span>{{ formatDate(certificate.createTime) }}</span>
         <span>{{ formatDate(certificate.expireTime) }}</span>
         <span>{{ certificate.daysRemaining }}</span>
-        <span class="certificate-page__status" :class="`is-${certificate.status}`">
+        <span
+          class="certificate-page__status"
+          :class="`is-${certificate.status}`"
+        >
           {{ statusLabel(certificate.status) }}
         </span>
         <span class="certificate-page__renewal">{{ renewalLabel(certificate.autoRenewalStatus) }}</span>
         <div class="certificate-page__actions">
-          <button type="button" title="View details" @click="select(certificate.domain)">
-            <GIcon name="eye" :size="15" />
+          <button
+            type="button"
+            title="View details"
+            @click="select(certificate.domain)"
+          >
+            <GIcon
+              name="eye"
+              :size="15"
+            />
           </button>
-          <button type="button" title="Export PEM" @click="exportPem(certificate.domain)">
-            <GIcon name="download" :size="15" />
+          <button
+            type="button"
+            title="Export PEM"
+            @click="exportPem(certificate.domain)"
+          >
+            <GIcon
+              name="download"
+              :size="15"
+            />
           </button>
-          <button type="button" title="Copy certificate information" @click="copyInfo(certificate)">
-            <GIcon name="copy" :size="15" />
+          <button
+            type="button"
+            title="Copy certificate information"
+            @click="copyInfo(certificate)"
+          >
+            <GIcon
+              name="copy"
+              :size="15"
+            />
           </button>
         </div>
       </article>
     </section>
 
-    <aside v-if="selected" class="certificate-page__detail" aria-label="Certificate detail">
+    <aside
+      v-if="selected"
+      class="certificate-page__detail"
+      aria-label="Certificate detail"
+    >
       <header>
         <div>
           <span>Certificate Detail</span>
           <h2>{{ selected.summary.domain }}</h2>
         </div>
-        <button type="button" title="Close" @click="selected = null">
-          <GIcon name="close" :size="16" />
+        <button
+          type="button"
+          title="Close"
+          @click="selected = null"
+        >
+          <GIcon
+            name="close"
+            :size="16"
+          />
         </button>
       </header>
       <dl>
@@ -83,17 +140,31 @@
         <dt>Algorithm</dt>
         <dd>{{ selected.summary.algorithm }}</dd>
         <dt>Fingerprint</dt>
-        <dd class="mono">{{ selected.summary.fingerprintSha256 }}</dd>
+        <dd class="mono">
+          {{ selected.summary.fingerprintSha256 }}
+        </dd>
         <dt>SAN</dt>
         <dd>{{ selected.summary.san.join(", ") || "-" }}</dd>
         <dt>Certificate Path</dt>
-        <dd class="mono">{{ selected.summary.certificatePath }}</dd>
+        <dd class="mono">
+          {{ selected.summary.certificatePath }}
+        </dd>
       </dl>
       <pre>{{ selected.certificatePem }}</pre>
     </aside>
 
-    <p v-if="loading" class="certificate-page__loading">Loading certificates...</p>
-    <p v-if="error" class="certificate-page__error">{{ error }}</p>
+    <p
+      v-if="loading"
+      class="certificate-page__loading"
+    >
+      Loading certificates...
+    </p>
+    <p
+      v-if="error"
+      class="certificate-page__error"
+    >
+      {{ error }}
+    </p>
   </main>
 </template>
 

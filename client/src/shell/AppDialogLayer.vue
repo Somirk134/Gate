@@ -1,56 +1,88 @@
 <template>
-    <div class="dialog-layer" @keydown.esc="dialogStore.closeAll">
-        <transition-group name="dialog">
+  <div
+    class="dialog-layer"
+    @keydown.esc="dialogStore.closeAll"
+  >
+    <transition-group name="dialog">
+      <div
+        v-for="dialog in dialogStore.activeDialogs"
+        :key="dialog.id"
+        class="dialog-overlay"
+        @click.self="dialogStore.dismissDialog(dialog.id)"
+      >
+        <div
+          class="dialog-container"
+          :class="`type-${dialog.type}`"
+          role="dialog"
+          aria-modal="true"
+          tabindex="-1"
+        >
+          <div class="dialog-header">
             <div
-                v-for="dialog in dialogStore.activeDialogs"
-                :key="dialog.id"
-                class="dialog-overlay"
-                @click.self="dialogStore.dismissDialog(dialog.id)"
+              v-if="dialog.type === 'delete'"
+              class="dialog-icon"
             >
-                <div
-                    class="dialog-container"
-                    :class="`type-${dialog.type}`"
-                    role="dialog"
-                    aria-modal="true"
-                    tabindex="-1"
-                >
-                    <div class="dialog-header">
-                        <div class="dialog-icon" v-if="dialog.type === 'delete'">
-                            <GIcon name="alert-triangle" :size="20" />
-                        </div>
-                        <div class="dialog-icon" v-else-if="dialog.type === 'alert'">
-                            <GIcon name="alert-circle" :size="20" />
-                        </div>
-                        <div class="dialog-icon" v-else-if="dialog.type === 'confirm'">
-                            <GIcon name="help-circle" :size="20" />
-                        </div>
-                        <div class="dialog-title">{{ dialog.title }}</div>
-                        <button class="dialog-close" @click="dialogStore.dismissDialog(dialog.id)">
-                            <GIcon name="close" :size="16" />
-                        </button>
-                    </div>
-                    <div class="dialog-body" v-if="dialog.content">
-                        <p>{{ dialog.content }}</p>
-                    </div>
-                    <div class="dialog-footer">
-                        <button
-                            class="dialog-btn dialog-btn-secondary"
-                            @click="dialogStore.dismissDialog(dialog.id)"
-                        >
-                            {{ cancelLabel(dialog) }}
-                        </button>
-                        <button
-                            class="dialog-btn dialog-btn-primary"
-                            :class="{ danger: dialog.type === 'delete' }"
-                            @click="dialogStore.closeDialog(dialog.id, true)"
-                        >
-                            {{ confirmLabel(dialog) }}
-                        </button>
-                    </div>
-                </div>
+              <GIcon
+                name="alert-triangle"
+                :size="20"
+              />
             </div>
-        </transition-group>
-    </div>
+            <div
+              v-else-if="dialog.type === 'alert'"
+              class="dialog-icon"
+            >
+              <GIcon
+                name="alert-circle"
+                :size="20"
+              />
+            </div>
+            <div
+              v-else-if="dialog.type === 'confirm'"
+              class="dialog-icon"
+            >
+              <GIcon
+                name="help-circle"
+                :size="20"
+              />
+            </div>
+            <div class="dialog-title">
+              {{ dialog.title }}
+            </div>
+            <button
+              class="dialog-close"
+              @click="dialogStore.dismissDialog(dialog.id)"
+            >
+              <GIcon
+                name="close"
+                :size="16"
+              />
+            </button>
+          </div>
+          <div
+            v-if="dialog.content"
+            class="dialog-body"
+          >
+            <p>{{ dialog.content }}</p>
+          </div>
+          <div class="dialog-footer">
+            <button
+              class="dialog-btn dialog-btn-secondary"
+              @click="dialogStore.dismissDialog(dialog.id)"
+            >
+              {{ cancelLabel(dialog) }}
+            </button>
+            <button
+              class="dialog-btn dialog-btn-primary"
+              :class="{ danger: dialog.type === 'delete' }"
+              @click="dialogStore.closeDialog(dialog.id, true)"
+            >
+              {{ confirmLabel(dialog) }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition-group>
+  </div>
 </template>
 
 <script setup lang="ts">

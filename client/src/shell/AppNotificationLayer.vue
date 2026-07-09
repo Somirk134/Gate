@@ -1,26 +1,46 @@
 <template>
-    <div class="notification-layer">
-        <transition-group name="notification" tag="div" class="notification-list">
-            <div
-                v-for="notif in notificationStore.activeNotifications"
-                :key="notif.id"
-                class="notification-item"
-                :class="`type-${notif.type}`"
-                @click="notificationStore.dismiss(notif.id)"
-            >
-                <div class="notification-icon">
-                    <GIcon :name="iconForType(notif.type)" :size="16" />
-                </div>
-                <div class="notification-content">
-                    <div class="notification-title">{{ notif.title }}</div>
-                    <div v-if="notif.content" class="notification-body">{{ notif.content }}</div>
-                </div>
-                <button class="notification-close" @click.stop="notificationStore.dismiss(notif.id)">
-                    <GIcon name="close" :size="12" />
-                </button>
-            </div>
-        </transition-group>
-    </div>
+  <div class="notification-layer">
+    <transition-group
+      name="notification"
+      tag="div"
+      class="notification-list"
+    >
+      <div
+        v-for="notif in notificationStore.activeNotifications"
+        :key="notif.id"
+        class="notification-item"
+        :class="`type-${notif.type}`"
+        @click="notificationStore.dismiss(notif.id)"
+      >
+        <div class="notification-icon">
+          <GIcon
+            :name="iconForType(notif.type)"
+            :size="16"
+          />
+        </div>
+        <div class="notification-content">
+          <div class="notification-title">
+            {{ notif.title }}
+          </div>
+          <div
+            v-if="notif.content"
+            class="notification-body"
+          >
+            {{ notif.content }}
+          </div>
+        </div>
+        <button
+          class="notification-close"
+          @click.stop="notificationStore.dismiss(notif.id)"
+        >
+          <GIcon
+            name="close"
+            :size="12"
+          />
+        </button>
+      </div>
+    </transition-group>
+  </div>
 </template>
 
 <script setup lang="ts">

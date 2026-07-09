@@ -4,20 +4,39 @@
   无项目时的引导插画与操作入口。
 -->
 <template>
-  <GCard variant="plain" padding="lg" class="dash-empty">
+  <GCard
+    variant="plain"
+    padding="lg"
+    class="dash-empty"
+  >
     <div class="dash-empty__inner">
       <div class="dash-empty__art">
-        <GIcon name="rocket" :size="40" />
+        <GIcon
+          name="rocket"
+          :size="40"
+        />
         <span class="dash-empty__art-ring" />
         <span class="dash-empty__art-ring dash-empty__art-ring--2" />
       </div>
-      <h3 class="dash-empty__title">{{ title }}</h3>
-      <p class="dash-empty__desc">{{ description }}</p>
+      <h3 class="dash-empty__title">
+        {{ title }}
+      </h3>
+      <p class="dash-empty__desc">
+        {{ description }}
+      </p>
       <div class="dash-empty__actions">
-        <GButton variant="primary" icon="plus" @click="$emit('create')">
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="$emit('create')"
+        >
           {{ createText }}
         </GButton>
-        <GButton variant="secondary" icon="plug" @click="$emit('connect')">
+        <GButton
+          variant="secondary"
+          icon="plug"
+          @click="$emit('connect')"
+        >
           {{ connectText }}
         </GButton>
       </div>

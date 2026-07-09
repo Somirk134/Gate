@@ -1,7 +1,10 @@
 <template>
   <aside class="settings-inspector">
     <header class="settings-inspector__header">
-      <GIcon name="circle-help" :size="16" />
+      <GIcon
+        name="circle-help"
+        :size="16"
+      />
       <span>说明</span>
     </header>
 
@@ -13,8 +16,14 @@
       :error="error"
     />
 
-    <div v-else class="settings-inspector__empty">
-      <GIcon name="settings" :size="28" />
+    <div
+      v-else
+      class="settings-inspector__empty"
+    >
+      <GIcon
+        name="settings"
+        :size="28"
+      />
       <p>选择一个设置项</p>
     </div>
   </aside>

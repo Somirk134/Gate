@@ -6,9 +6,19 @@
 <template>
   <div class="server-statistics">
     <div class="server-stat-grid">
-      <div v-for="item in stats" :key="item.label" class="server-stat-card">
-        <div class="server-stat-card__icon" :style="{ color: item.color, background: item.color + '1f' }">
-          <GIcon :name="item.icon" :size="18" />
+      <div
+        v-for="item in stats"
+        :key="item.label"
+        class="server-stat-card"
+      >
+        <div
+          class="server-stat-card__icon"
+          :style="{ color: item.color, background: item.color + '1f' }"
+        >
+          <GIcon
+            :name="item.icon"
+            :size="18"
+          />
         </div>
         <div class="server-stat-card__body">
           <span class="server-stat-card__value">{{ item.value }}</span>
@@ -18,15 +28,36 @@
     </div>
 
     <!-- 进度环：流量占比 -->
-    <div class="server-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="server-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="server-info-card__title">
-        <GIcon name="chart-pie" :size="12" />
+        <GIcon
+          name="chart-pie"
+          :size="12"
+        />
         流量占比
       </div>
       <div class="server-statistics__rings">
-        <div v-for="ring in rings" :key="ring.label" class="server-statistics__ring">
-          <svg width="84" height="84" viewBox="0 0 84 84">
-            <circle cx="42" cy="42" :r="ringRadius" stroke="var(--bg-surface-hover)" :stroke-width="ringStroke" fill="none" />
+        <div
+          v-for="ring in rings"
+          :key="ring.label"
+          class="server-statistics__ring"
+        >
+          <svg
+            width="84"
+            height="84"
+            viewBox="0 0 84 84"
+          >
+            <circle
+              cx="42"
+              cy="42"
+              :r="ringRadius"
+              stroke="var(--bg-surface-hover)"
+              :stroke-width="ringStroke"
+              fill="none"
+            />
             <circle
               cx="42"
               cy="42"
@@ -50,9 +81,15 @@
     </div>
 
     <!-- 详细统计表 -->
-    <div class="server-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="server-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="server-info-card__title">
-        <GIcon name="chart-bar" :size="12" />
+        <GIcon
+          name="chart-bar"
+          :size="12"
+        />
         详细统计
       </div>
       <div class="server-info-row">

@@ -1,60 +1,110 @@
 <template>
-    <aside class="app-inspector" :style="{ minWidth: '240px', maxWidth: layout.inspectorWidth + 'px' }">
-        <div class="inspector-header">
-            <span class="inspector-title">{{ activeTabLabel }}</span>
-            <div class="inspector-actions">
-                <button class="inspector-btn" @click="cycleTab">
-                    <GIcon name="layers" :size="14" />
-                </button>
-                <button class="inspector-btn" @click="layout.closeInspector">
-                    <GIcon name="x" :size="14" />
-                </button>
-            </div>
-        </div>
+  <aside
+    class="app-inspector"
+    :style="{ minWidth: '240px', maxWidth: layout.inspectorWidth + 'px' }"
+  >
+    <div class="inspector-header">
+      <span class="inspector-title">{{ activeTabLabel }}</span>
+      <div class="inspector-actions">
+        <button
+          class="inspector-btn"
+          @click="cycleTab"
+        >
+          <GIcon
+            name="layers"
+            :size="14"
+          />
+        </button>
+        <button
+          class="inspector-btn"
+          @click="layout.closeInspector"
+        >
+          <GIcon
+            name="x"
+            :size="14"
+          />
+        </button>
+      </div>
+    </div>
 
-        <div class="inspector-tabs">
-            <div
-                v-for="tab in tabs"
-                :key="tab.id"
-                class="inspector-tab"
-                :class="{ active: activeTab === tab.id }"
-                @click="activeTab = tab.id"
-            >
-                <GIcon v-if="tab.icon" :name="tab.icon" :size="14" />
-                <span>{{ tab.label }}</span>
-            </div>
-        </div>
+    <div class="inspector-tabs">
+      <div
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="inspector-tab"
+        :class="{ active: activeTab === tab.id }"
+        @click="activeTab = tab.id"
+      >
+        <GIcon
+          v-if="tab.icon"
+          :name="tab.icon"
+          :size="14"
+        />
+        <span>{{ tab.label }}</span>
+      </div>
+    </div>
 
-        <div class="inspector-content">
-            <div class="inspector-panel" v-show="activeTab === 'details'">
-                <div class="inspector-placeholder">
-                    <p class="placeholder-text">暂无数据</p>
-                    <p class="placeholder-subtext">当前页面未提供详情数据。</p>
-                </div>
-            </div>
-            <div class="inspector-panel" v-show="activeTab === 'logs'">
-                <div class="inspector-placeholder">
-                    <p class="placeholder-text">暂无日志</p>
-                    <p class="placeholder-subtext">当前上下文没有可显示的实时日志。</p>
-                </div>
-            </div>
-            <div class="inspector-panel" v-show="activeTab === 'stats'">
-                <div class="inspector-placeholder">
-                    <p class="placeholder-text">暂无数据</p>
-                    <p class="placeholder-subtext">该统计面板暂未接入真实 Runtime 指标。</p>
-                </div>
-            </div>
-            <div class="inspector-panel" v-show="activeTab === 'properties'">
-                <div class="inspector-placeholder">
-                    <p class="placeholder-text">暂无属性</p>
-                    <p class="placeholder-subtext">请选择已接入的数据对象后查看属性。</p>
-                </div>
-            </div>
+    <div class="inspector-content">
+      <div
+        v-show="activeTab === 'details'"
+        class="inspector-panel"
+      >
+        <div class="inspector-placeholder">
+          <p class="placeholder-text">
+            暂无数据
+          </p>
+          <p class="placeholder-subtext">
+            当前页面未提供详情数据。
+          </p>
         </div>
+      </div>
+      <div
+        v-show="activeTab === 'logs'"
+        class="inspector-panel"
+      >
+        <div class="inspector-placeholder">
+          <p class="placeholder-text">
+            暂无日志
+          </p>
+          <p class="placeholder-subtext">
+            当前上下文没有可显示的实时日志。
+          </p>
+        </div>
+      </div>
+      <div
+        v-show="activeTab === 'stats'"
+        class="inspector-panel"
+      >
+        <div class="inspector-placeholder">
+          <p class="placeholder-text">
+            暂无数据
+          </p>
+          <p class="placeholder-subtext">
+            该统计面板暂未接入真实 Runtime 指标。
+          </p>
+        </div>
+      </div>
+      <div
+        v-show="activeTab === 'properties'"
+        class="inspector-panel"
+      >
+        <div class="inspector-placeholder">
+          <p class="placeholder-text">
+            暂无属性
+          </p>
+          <p class="placeholder-subtext">
+            请选择已接入的数据对象后查看属性。
+          </p>
+        </div>
+      </div>
+    </div>
 
-        <!-- Resize Handle (预留) -->
-        <div class="inspector-resize-handle" @mousedown="startResize"></div>
-    </aside>
+    <!-- Resize Handle (预留) -->
+    <div
+      class="inspector-resize-handle"
+      @mousedown="startResize"
+    />
+  </aside>
 </template>
 
 <script setup lang="ts">

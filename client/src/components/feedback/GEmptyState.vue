@@ -11,14 +11,28 @@
   <div class="g-empty-state">
     <div class="g-empty-state__icon">
       <slot name="icon">
-        <GIcon name="inbox" :size="32" />
+        <GIcon
+          name="inbox"
+          :size="32"
+        />
       </slot>
     </div>
-    <div v-if="title" class="g-empty-state__title">{{ title }}</div>
-    <div v-if="$slots.default || description" class="g-empty-state__desc">
+    <div
+      v-if="title"
+      class="g-empty-state__title"
+    >
+      {{ title }}
+    </div>
+    <div
+      v-if="$slots.default || description"
+      class="g-empty-state__desc"
+    >
       <slot>{{ description }}</slot>
     </div>
-    <div v-if="$slots.action" class="g-empty-state__action">
+    <div
+      v-if="$slots.action"
+      class="g-empty-state__action"
+    >
       <slot name="action" />
     </div>
   </div>

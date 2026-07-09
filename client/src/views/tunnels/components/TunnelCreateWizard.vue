@@ -1,18 +1,43 @@
 <template>
   <Transition name="wizard">
-    <div v-if="visible" class="wizard-backdrop" @click.self="close" @keydown.esc="close">
-      <section class="wizard" role="dialog" aria-modal="true" aria-labelledby="wizard-title" tabindex="-1">
+    <div
+      v-if="visible"
+      class="wizard-backdrop"
+      @click.self="close"
+      @keydown.esc="close"
+    >
+      <section
+        class="wizard"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wizard-title"
+        tabindex="-1"
+      >
         <header class="wizard__header">
           <div>
             <p>Create Tunnel Wizard</p>
-            <h2 id="wizard-title">{{ stepTitle }}</h2>
+            <h2 id="wizard-title">
+              {{ stepTitle }}
+            </h2>
           </div>
-          <button type="button" class="wizard__close" aria-label="关闭" @click="close">
-            <GIcon name="close" :size="16" />
+          <button
+            type="button"
+            class="wizard__close"
+            aria-label="关闭"
+            @click="close"
+          >
+            <GIcon
+              name="close"
+              :size="16"
+            />
           </button>
         </header>
 
-        <div v-if="step < 5" class="wizard__steps" aria-label="创建步骤">
+        <div
+          v-if="step < 5"
+          class="wizard__steps"
+          aria-label="创建步骤"
+        >
           <span
             v-for="item in steps"
             :key="item.index"
@@ -23,7 +48,10 @@
         </div>
 
         <main class="wizard__body">
-          <section v-if="step === 1" class="wizard-step">
+          <section
+            v-if="step === 1"
+            class="wizard-step"
+          >
             <div class="wizard-copy">
               <strong>选择一个场景</strong>
               <p>Gate 会自动填入建议名称、端口、标签和模板。你仍然可以在下一步调整。</p>
@@ -37,14 +65,20 @@
                 :class="{ active: selectedScenarioId === scenario.id }"
                 @click="applyScenario(scenario.id)"
               >
-                <span><GIcon :name="scenario.icon" :size="18" /></span>
+                <span><GIcon
+                  :name="scenario.icon"
+                  :size="18"
+                /></span>
                 <strong>{{ scenario.title }}</strong>
                 <small>{{ scenario.description }}</small>
               </button>
             </div>
           </section>
 
-          <section v-else-if="step === 2" class="wizard-step">
+          <section
+            v-else-if="step === 2"
+            class="wizard-step"
+          >
             <div class="wizard-copy">
               <strong>选择 Tunnel 模板</strong>
               <p>Templates generate recommended TCP or HTTP tunnel settings.</p>
@@ -62,7 +96,10 @@
                 :disabled="template.availability === 'reserved'"
                 @click="applyTemplate(template.id)"
               >
-                <span><GIcon :name="template.icon" :size="18" /></span>
+                <span><GIcon
+                  :name="template.icon"
+                  :size="18"
+                /></span>
                 <div>
                   <strong>{{ template.title }}</strong>
                   <small>{{ template.description }}</small>
@@ -72,16 +109,27 @@
             </div>
           </section>
 
-          <section v-else-if="step === 3" class="wizard-step wizard-step--form">
+          <section
+            v-else-if="step === 3"
+            class="wizard-step wizard-step--form"
+          >
             <label>
               <span>Tunnel 名称</span>
-              <input v-model.trim="form.name" autocomplete="off" :placeholder="suggestedName" />
+              <input
+                v-model.trim="form.name"
+                autocomplete="off"
+                :placeholder="suggestedName"
+              >
             </label>
 
             <div class="form-grid">
               <label>
                 <span>本地地址</span>
-                <input v-model.trim="form.localHost" autocomplete="off" placeholder="127.0.0.1" />
+                <input
+                  v-model.trim="form.localHost"
+                  autocomplete="off"
+                  placeholder="127.0.0.1"
+                >
               </label>
               <label>
                 <span>协议</span>
@@ -95,11 +143,19 @@
             <div class="form-grid">
               <label>
                 <span>本地端口</span>
-                <input v-model.number="form.localPort" inputmode="numeric" type="number" />
+                <input
+                  v-model.number="form.localPort"
+                  inputmode="numeric"
+                  type="number"
+                >
               </label>
               <label>
                 <span>公网端口</span>
-                <input v-model.number="form.remotePort" inputmode="numeric" type="number" />
+                <input
+                  v-model.number="form.remotePort"
+                  inputmode="numeric"
+                  type="number"
+                >
               </label>
             </div>
 
@@ -107,26 +163,46 @@
               <label>
                 <span>项目</span>
                 <select v-model="form.projectId">
-                  <option v-if="!projects.length" value="">未分组</option>
-                  <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+                  <option
+                    v-if="!projects.length"
+                    value=""
+                  >未分组</option>
+                  <option
+                    v-for="project in projects"
+                    :key="project.id"
+                    :value="project.id"
+                  >{{ project.name }}</option>
                 </select>
               </label>
               <label>
                 <span>服务器</span>
                 <select v-model="form.serverName">
-                  <option v-if="!serverNames.length" value="">未连接服务器</option>
-                  <option v-for="serverName in serverNames" :key="serverName" :value="serverName">{{ serverName }}</option>
+                  <option
+                    v-if="!serverNames.length"
+                    value=""
+                  >未连接服务器</option>
+                  <option
+                    v-for="serverName in serverNames"
+                    :key="serverName"
+                    :value="serverName"
+                  >{{ serverName }}</option>
                 </select>
               </label>
             </div>
 
             <label class="wizard-check">
-              <input v-model="form.autoStart" type="checkbox" />
+              <input
+                v-model="form.autoStart"
+                type="checkbox"
+              >
               <span>创建后自动启动 Tunnel</span>
             </label>
           </section>
 
-          <section v-else-if="step === 4" class="wizard-step wizard-step--confirm">
+          <section
+            v-else-if="step === 4"
+            class="wizard-step wizard-step--confirm"
+          >
             <div class="confirm-list">
               <div><span>场景</span><strong>{{ selectedScenario?.title ?? "自定义" }}</strong></div>
               <div><span>模板</span><strong>{{ selectedTemplate.title }}</strong></div>
@@ -138,8 +214,14 @@
               <div><span>标签</span><strong>{{ form.tags.join(", ") || "-" }}</strong></div>
             </div>
 
-            <div v-if="errorMessage" class="wizard-error-card">
-              <GIcon name="alert-circle" :size="18" />
+            <div
+              v-if="errorMessage"
+              class="wizard-error-card"
+            >
+              <GIcon
+                name="alert-circle"
+                :size="18"
+              />
               <div>
                 <strong>配置还不完整</strong>
                 <p>{{ errorMessage }}</p>
@@ -147,19 +229,51 @@
             </div>
           </section>
 
-          <section v-else class="wizard-success">
-            <span><GIcon name="check-circle" :size="28" /></span>
+          <section
+            v-else
+            class="wizard-success"
+          >
+            <span><GIcon
+              name="check-circle"
+              :size="28"
+            /></span>
             <h2>创建成功</h2>
             <p>{{ createdName }} 已加入 Tunnel 列表，可以立即启动或继续调整设置。</p>
           </section>
         </main>
 
         <footer class="wizard__footer">
-          <GButton v-if="step > 1 && step < 5" variant="ghost" @click="step -= 1">上一步</GButton>
+          <GButton
+            v-if="step > 1 && step < 5"
+            variant="ghost"
+            @click="step -= 1"
+          >
+            上一步
+          </GButton>
           <span class="wizard__error">{{ step < 4 ? errorMessage : "" }}</span>
-          <GButton v-if="step < 4" variant="primary" trailing-icon="arrow-right" @click="next">下一步</GButton>
-          <GButton v-else-if="step === 4" variant="primary" icon="plus" @click="createTunnel">创建</GButton>
-          <GButton v-else variant="primary" @click="finish">完成</GButton>
+          <GButton
+            v-if="step < 4"
+            variant="primary"
+            trailing-icon="arrow-right"
+            @click="next"
+          >
+            下一步
+          </GButton>
+          <GButton
+            v-else-if="step === 4"
+            variant="primary"
+            icon="plus"
+            @click="createTunnel"
+          >
+            创建
+          </GButton>
+          <GButton
+            v-else
+            variant="primary"
+            @click="finish"
+          >
+            完成
+          </GButton>
         </footer>
       </section>
     </div>

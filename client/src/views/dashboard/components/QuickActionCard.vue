@@ -12,11 +12,20 @@
     @click="$emit('click')"
   >
     <div class="quick-action__inner">
-      <span class="quick-action__icon" :class="`quick-action__icon--${variant}`">
-        <GIcon :name="icon" :size="22" />
+      <span
+        class="quick-action__icon"
+        :class="`quick-action__icon--${variant}`"
+      >
+        <GIcon
+          :name="icon"
+          :size="22"
+        />
       </span>
       <span class="quick-action__label">{{ label }}</span>
-      <span v-if="shortcut" class="quick-action__shortcut">{{ shortcut }}</span>
+      <span
+        v-if="shortcut"
+        class="quick-action__shortcut"
+      >{{ shortcut }}</span>
     </div>
   </GCard>
 </template>

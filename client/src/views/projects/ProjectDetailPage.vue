@@ -5,10 +5,17 @@
       description="Project 详情需要真实 Project 存储与 Tunnel 关联数据。当前版本不使用示例数据填充详情页。"
     >
       <template #icon>
-        <GIcon name="projects" :size="34" />
+        <GIcon
+          name="projects"
+          :size="34"
+        />
       </template>
       <template #action>
-        <GButton variant="primary" icon="arrow-left" @click="router.push('/projects')">
+        <GButton
+          variant="primary"
+          icon="arrow-left"
+          @click="router.push('/projects')"
+        >
           返回 Projects
         </GButton>
       </template>

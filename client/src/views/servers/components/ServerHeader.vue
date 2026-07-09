@@ -6,22 +6,39 @@
   按钮：Connect / Disconnect / Restart / Check Health / Edit / Delete
 -->
 <template>
-  <div class="server-detail-header" :style="colorVars">
+  <div
+    class="server-detail-header"
+    :style="colorVars"
+  >
     <div class="server-detail-header__left">
       <span class="server-detail-header__icon">
-        <GIcon :name="kindPreset.icon" :size="20" />
+        <GIcon
+          :name="kindPreset.icon"
+          :size="20"
+        />
       </span>
       <div class="server-detail-header__info">
         <div class="server-detail-header__title-row">
-          <h2 class="server-detail-header__name" :title="server.name">{{ server.name }}</h2>
-          <ServerStatus :status="server.status" size="md" />
+          <h2
+            class="server-detail-header__name"
+            :title="server.name"
+          >
+            {{ server.name }}
+          </h2>
+          <ServerStatus
+            :status="server.status"
+            size="md"
+          />
           <button
             class="server-header__quick"
             :class="{ 'server-header__quick--active': server.favorite }"
             title="收藏"
             @click="$emit('toggle-favorite', server.id)"
           >
-            <GIcon :name="server.favorite ? 'star' : 'star-off'" :size="15" />
+            <GIcon
+              :name="server.favorite ? 'star' : 'star-off'"
+              :size="15"
+            />
           </button>
         </div>
         <div class="server-detail-header__addr">
@@ -59,46 +76,82 @@
       >
         Restart
       </GButton>
-      <GIconButton name="activity" size="sm" variant="ghost" tooltip="健康检查" @click="$emit('check-health')" />
-      <GIconButton name="edit" size="sm" variant="ghost" tooltip="编辑" @click="$emit('edit')" />
-      <GIconButton name="trash" size="sm" variant="ghost" tooltip="删除" @click="$emit('delete')" />
+      <GIconButton
+        name="activity"
+        size="sm"
+        variant="ghost"
+        tooltip="健康检查"
+        @click="$emit('check-health')"
+      />
+      <GIconButton
+        name="edit"
+        size="sm"
+        variant="ghost"
+        tooltip="编辑"
+        @click="$emit('edit')"
+      />
+      <GIconButton
+        name="trash"
+        size="sm"
+        variant="ghost"
+        tooltip="删除"
+        @click="$emit('delete')"
+      />
     </div>
   </div>
 
   <!-- 指标条 -->
   <div class="server-metric-bar">
     <div class="server-metric-bar__item">
-      <GIcon name="router" :size="13" />
+      <GIcon
+        name="router"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Tunnel</span>
       <span class="server-metric-bar__value">{{ server.statistics.tunnelCount }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
-      <GIcon name="package" :size="13" />
+      <GIcon
+        name="package"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Project</span>
       <span class="server-metric-bar__value">{{ server.statistics.projectCount }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
-      <GIcon name="cloud" :size="13" />
+      <GIcon
+        name="cloud"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Traffic</span>
       <span class="server-metric-bar__value">{{ trafficLabel }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
-      <GIcon name="link" :size="13" />
+      <GIcon
+        name="link"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Connection</span>
       <span class="server-metric-bar__value">{{ server.monitor.connections.active }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
-      <GIcon name="gauge" :size="13" />
+      <GIcon
+        name="gauge"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Ping</span>
       <span class="server-metric-bar__value">{{ isOnline ? `${server.ping}ms` : "—" }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
-      <GIcon name="clock" :size="13" />
+      <GIcon
+        name="clock"
+        :size="13"
+      />
       <span class="server-metric-bar__label">Uptime</span>
       <span class="server-metric-bar__value">{{ uptimeLabel }}</span>
     </div>

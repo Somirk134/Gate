@@ -1,8 +1,12 @@
 <template>
-    <n-space vertical>
-        <n-h1>{{ t('connections.title') }}</n-h1>
-        <n-data-table :columns="columns" :data="connections" :loading="loading" />
-    </n-space>
+  <n-space vertical>
+    <n-h1>{{ t('connections.title') }}</n-h1>
+    <n-data-table
+      :columns="columns"
+      :data="connections"
+      :loading="loading"
+    />
+  </n-space>
 </template>
 
 <script setup lang="ts">

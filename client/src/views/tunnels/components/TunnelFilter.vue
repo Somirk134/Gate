@@ -14,7 +14,11 @@
       :class="{ 'tunnel-segment__item--active': modelValue === item.key }"
       @click="$emit('update:modelValue', item.key)"
     >
-      <GIcon v-if="item.icon" :name="item.icon" :size="12" />
+      <GIcon
+        v-if="item.icon"
+        :name="item.icon"
+        :size="12"
+      />
       <span>{{ item.label }}</span>
       <span class="tunnel-segment__count">{{ counts[item.key] ?? 0 }}</span>
     </button>

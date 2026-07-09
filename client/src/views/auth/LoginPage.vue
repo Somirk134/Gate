@@ -1,17 +1,29 @@
 <template>
-    <n-card :title="t('auth.login')" style="max-width: 400px; margin: 100px auto">
-        <n-form>
-            <n-form-item :label="t('auth.username')">
-                <n-input v-model:value="form.username" />
-            </n-form-item>
-            <n-form-item :label="t('auth.password')">
-                <n-input v-model:value="form.password" type="password" />
-            </n-form-item>
-            <n-form-item>
-                <n-button type="primary" block @click="handleLogin">{{ t('auth.login') }}</n-button>
-            </n-form-item>
-        </n-form>
-    </n-card>
+  <n-card
+    :title="t('auth.login')"
+    style="max-width: 400px; margin: 100px auto"
+  >
+    <n-form>
+      <n-form-item :label="t('auth.username')">
+        <n-input v-model:value="form.username" />
+      </n-form-item>
+      <n-form-item :label="t('auth.password')">
+        <n-input
+          v-model:value="form.password"
+          type="password"
+        />
+      </n-form-item>
+      <n-form-item>
+        <n-button
+          type="primary"
+          block
+          @click="handleLogin"
+        >
+          {{ t('auth.login') }}
+        </n-button>
+      </n-form-item>
+    </n-form>
+  </n-card>
 </template>
 
 <script setup lang="ts">

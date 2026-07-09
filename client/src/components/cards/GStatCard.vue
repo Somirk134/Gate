@@ -14,21 +14,40 @@
   属业务卡片基类，可被 StatisticsCard 等复用。
 -->
 <template>
-  <GCard variant="plain" padding="md">
+  <GCard
+    variant="plain"
+    padding="md"
+  >
     <div class="g-stat-card">
       <div class="g-stat-card__head">
-        <span class="g-stat-card__icon" :class="`g-stat-card__icon--${variant}`">
-          <GIcon v-if="icon" :name="icon" :size="18" />
+        <span
+          class="g-stat-card__icon"
+          :class="`g-stat-card__icon--${variant}`"
+        >
+          <GIcon
+            v-if="icon"
+            :name="icon"
+            :size="18"
+          />
         </span>
-        <span v-if="trend" class="g-stat-card__trend" :class="`g-stat-card__trend--${trendDir}`">
-          <GIcon :name="trendDir === 'up' ? 'trending-up' : 'trending-down'" :size="12" />
+        <span
+          v-if="trend"
+          class="g-stat-card__trend"
+          :class="`g-stat-card__trend--${trendDir}`"
+        >
+          <GIcon
+            :name="trendDir === 'up' ? 'trending-up' : 'trending-down'"
+            :size="12"
+          />
           {{ trend }}
         </span>
       </div>
       <div class="g-stat-card__value">
         <slot>{{ value }}</slot>
       </div>
-      <div class="g-stat-card__label">{{ label }}</div>
+      <div class="g-stat-card__label">
+        {{ label }}
+      </div>
     </div>
   </GCard>
 </template>

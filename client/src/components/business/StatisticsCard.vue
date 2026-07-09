@@ -6,7 +6,10 @@
   复用：GCard / GStatCard / GSectionHeader
 -->
 <template>
-  <GCard variant="plain" padding="none">
+  <GCard
+    variant="plain"
+    padding="none"
+  >
     <template #header>
       <GSectionHeader :icon="icon">
         {{ title }}

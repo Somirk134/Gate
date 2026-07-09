@@ -1,18 +1,35 @@
 <template>
-  <section class="about-page" aria-labelledby="about-title">
+  <section
+    class="about-page"
+    aria-labelledby="about-title"
+  >
     <header class="about-hero">
       <div class="about-hero__identity">
-        <div class="about-logo" aria-hidden="true">
-          <GIcon name="home" :size="34" :stroke-width="1.9" />
+        <div
+          class="about-logo"
+          aria-hidden="true"
+        >
+          <GIcon
+            name="home"
+            :size="34"
+            :stroke-width="1.9"
+          />
         </div>
         <div class="about-hero__copy">
-          <p class="about-eyebrow">{{ t("about.eyebrow") }}</p>
-          <h1 id="about-title">{{ t("common.appName") }}</h1>
+          <p class="about-eyebrow">
+            {{ t("about.eyebrow") }}
+          </p>
+          <h1 id="about-title">
+            {{ t("common.appName") }}
+          </h1>
           <p>{{ t("about.tagline") }}</p>
         </div>
       </div>
 
-      <nav class="about-actions" :aria-label="t('about.linksLabel')">
+      <nav
+        class="about-actions"
+        :aria-label="t('about.linksLabel')"
+      >
         <a
           v-for="link in productLinks"
           :key="link.href"
@@ -21,16 +38,32 @@
           rel="noopener noreferrer"
           class="about-action"
         >
-          <GIcon :name="link.icon" :size="15" />
+          <GIcon
+            :name="link.icon"
+            :size="15"
+          />
           <span>{{ link.label }}</span>
-          <GIcon name="external-link" :size="13" />
+          <GIcon
+            name="external-link"
+            :size="13"
+          />
         </a>
       </nav>
     </header>
 
-    <div class="about-meta" :aria-label="t('about.versionSummary')">
-      <div v-for="item in versionItems" :key="item.label" class="about-meta__item">
-        <span class="about-meta__icon"><GIcon :name="item.icon" :size="16" /></span>
+    <div
+      class="about-meta"
+      :aria-label="t('about.versionSummary')"
+    >
+      <div
+        v-for="item in versionItems"
+        :key="item.label"
+        class="about-meta__item"
+      >
+        <span class="about-meta__icon"><GIcon
+          :name="item.icon"
+          :size="16"
+        /></span>
         <span class="about-meta__label">{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
       </div>
@@ -39,7 +72,9 @@
     <main class="about-content">
       <section class="about-section about-section--intro">
         <div>
-          <p class="about-section__kicker">{{ t("about.summaryKicker") }}</p>
+          <p class="about-section__kicker">
+            {{ t("about.summaryKicker") }}
+          </p>
           <h2>{{ t("about.summaryTitle") }}</h2>
         </div>
         <p>{{ t("about.summaryBody") }}</p>
@@ -48,15 +83,24 @@
       <section class="about-section">
         <div class="about-section__heading">
           <div>
-            <p class="about-section__kicker">{{ t("about.capabilitiesKicker") }}</p>
+            <p class="about-section__kicker">
+              {{ t("about.capabilitiesKicker") }}
+            </p>
             <h2>{{ t("about.capabilitiesTitle") }}</h2>
           </div>
           <span>{{ t("about.alphaBadge") }}</span>
         </div>
 
         <div class="about-capabilities">
-          <article v-for="item in capabilities" :key="item.title" class="about-card">
-            <span class="about-card__icon"><GIcon :name="item.icon" :size="18" /></span>
+          <article
+            v-for="item in capabilities"
+            :key="item.title"
+            class="about-card"
+          >
+            <span class="about-card__icon"><GIcon
+              :name="item.icon"
+              :size="18"
+            /></span>
             <h3>{{ item.title }}</h3>
             <p>{{ item.description }}</p>
           </article>
@@ -67,22 +111,33 @@
         <div>
           <div class="about-section__heading">
             <div>
-              <p class="about-section__kicker">{{ t("about.releaseKicker") }}</p>
+              <p class="about-section__kicker">
+                {{ t("about.releaseKicker") }}
+              </p>
               <h2>{{ t("about.changelog") }}</h2>
             </div>
             <time datetime="2026-07">{{ t("about.releaseDate") }}</time>
           </div>
 
           <ol class="about-release">
-            <li v-for="item in releaseNotes" :key="item">
-              <span aria-hidden="true"></span>
+            <li
+              v-for="item in releaseNotes"
+              :key="item"
+            >
+              <span aria-hidden="true" />
               <p>{{ item }}</p>
             </li>
           </ol>
         </div>
 
-        <aside class="about-status" :aria-label="t('about.stageLabel')">
-          <span class="about-status__icon"><GIcon name="rocket" :size="18" /></span>
+        <aside
+          class="about-status"
+          :aria-label="t('about.stageLabel')"
+        >
+          <span class="about-status__icon"><GIcon
+            name="rocket"
+            :size="18"
+          /></span>
           <p>{{ t("about.stageLabel") }}</p>
           <strong>{{ t("about.stageValue") }}</strong>
           <small>{{ t("about.stageDescription") }}</small>
@@ -91,17 +146,26 @@
 
       <section class="about-section about-section--credits">
         <div>
-          <p class="about-section__kicker">{{ t("about.creditsKicker") }}</p>
+          <p class="about-section__kicker">
+            {{ t("about.creditsKicker") }}
+          </p>
           <h2>{{ t("about.acknowledgements") }}</h2>
         </div>
 
         <div class="about-stack">
-          <span v-for="item in techStack" :key="item">{{ item }}</span>
+          <span
+            v-for="item in techStack"
+            :key="item"
+          >{{ item }}</span>
         </div>
 
         <div>
-          <p class="about-credit-text">{{ t("about.creditLine") }}</p>
-          <p class="about-copyright">{{ t("about.copyright") }}</p>
+          <p class="about-credit-text">
+            {{ t("about.creditLine") }}
+          </p>
+          <p class="about-copyright">
+            {{ t("about.copyright") }}
+          </p>
         </div>
       </section>
     </main>

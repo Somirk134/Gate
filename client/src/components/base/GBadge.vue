@@ -20,7 +20,11 @@
     class="g-badge"
     :class="[`g-badge--${variant}`, `g-badge--${type}`, `g-badge--${size}`]"
   >
-    <span v-if="showDot" class="g-badge__dot" :class="{ 'g-badge__dot--pulse': pulse }" />
+    <span
+      v-if="showDot"
+      class="g-badge__dot"
+      :class="{ 'g-badge__dot--pulse': pulse }"
+    />
     <slot />
   </span>
 

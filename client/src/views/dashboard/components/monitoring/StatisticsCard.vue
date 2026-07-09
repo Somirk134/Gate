@@ -1,12 +1,24 @@
 <template>
-  <article class="statistics-card" :class="`statistics-card--${tone}`">
-    <div class="statistics-card__icon" :title="label">
-      <GIcon :name="icon" :size="18" />
+  <article
+    class="statistics-card"
+    :class="`statistics-card--${tone}`"
+  >
+    <div
+      class="statistics-card__icon"
+      :title="label"
+    >
+      <GIcon
+        :name="icon"
+        :size="18"
+      />
     </div>
     <div class="statistics-card__content">
       <span class="statistics-card__label">{{ label }}</span>
       <strong class="statistics-card__value">{{ value }}</strong>
-      <span v-if="meta" class="statistics-card__meta">{{ meta }}</span>
+      <span
+        v-if="meta"
+        class="statistics-card__meta"
+      >{{ meta }}</span>
     </div>
   </article>
 </template>

@@ -10,16 +10,25 @@
       <!-- 服务器信息 -->
       <div class="server-info-card">
         <div class="server-info-card__title">
-          <GIcon name="servers" :size="12" />
+          <GIcon
+            name="servers"
+            :size="12"
+          />
           服务器信息
         </div>
         <div class="server-info-row">
           <span class="server-info-row__label">状态</span>
-          <ServerStatus :status="server.status" size="sm" />
+          <ServerStatus
+            :status="server.status"
+            size="sm"
+          />
         </div>
         <div class="server-info-row">
           <span class="server-info-row__label">类型</span>
-          <ServerBadge :kind="server.kind" size="sm" />
+          <ServerBadge
+            :kind="server.kind"
+            size="sm"
+          />
         </div>
         <div class="server-info-row">
           <span class="server-info-row__label">公网 IP</span>
@@ -48,7 +57,10 @@
       <!-- 系统信息 -->
       <div class="server-info-card">
         <div class="server-info-card__title">
-          <GIcon name="cpu" :size="12" />
+          <GIcon
+            name="cpu"
+            :size="12"
+          />
           系统信息
         </div>
         <div class="server-info-row">
@@ -76,7 +88,10 @@
       <!-- 时间信息 -->
       <div class="server-info-card">
         <div class="server-info-card__title">
-          <GIcon name="clock" :size="12" />
+          <GIcon
+            name="clock"
+            :size="12"
+          />
           时间信息
         </div>
         <div class="server-info-row">
@@ -102,12 +117,20 @@
       </div>
 
       <!-- 备注 -->
-      <div v-if="server.settings.remark" class="server-info-card">
+      <div
+        v-if="server.settings.remark"
+        class="server-info-card"
+      >
         <div class="server-info-card__title">
-          <GIcon name="file-text" :size="12" />
+          <GIcon
+            name="file-text"
+            :size="12"
+          />
           备注
         </div>
-        <p class="server-overview__remark">{{ server.settings.remark }}</p>
+        <p class="server-overview__remark">
+          {{ server.settings.remark }}
+        </p>
       </div>
     </div>
   </div>

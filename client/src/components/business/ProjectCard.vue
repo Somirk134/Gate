@@ -21,32 +21,62 @@
   复用：GCard / GIcon / GStatusBadge / GButton
 -->
 <template>
-  <GCard variant="interactive" padding="md" clickable @click="emit('click')">
+  <GCard
+    variant="interactive"
+    padding="md"
+    clickable
+    @click="emit('click')"
+  >
     <div class="project-card">
       <div class="project-card__head">
         <span class="project-card__icon">
-          <GIcon :name="icon" :size="18" />
+          <GIcon
+            :name="icon"
+            :size="18"
+          />
         </span>
         <div class="project-card__title-wrap">
           <span class="project-card__name">{{ name }}</span>
-          <GStatusBadge v-if="status" :status="status" size="sm" />
+          <GStatusBadge
+            v-if="status"
+            :status="status"
+            size="sm"
+          />
         </div>
-        <GIconButton name="more-horizontal" size="sm" @click.stop="emit('action', 'menu')" />
+        <GIconButton
+          name="more-horizontal"
+          size="sm"
+          @click.stop="emit('action', 'menu')"
+        />
       </div>
 
-      <p v-if="description" class="project-card__desc">{{ description }}</p>
+      <p
+        v-if="description"
+        class="project-card__desc"
+      >
+        {{ description }}
+      </p>
 
       <div class="project-card__meta">
         <span class="project-card__meta-item">
-          <GIcon name="link" :size="12" />
+          <GIcon
+            name="link"
+            :size="12"
+          />
           {{ tunnelCount }} 隧道
         </span>
         <span class="project-card__meta-item project-card__meta-item--online">
-          <GStatusDot status="online" size="xs" />
+          <GStatusDot
+            status="online"
+            size="xs"
+          />
           {{ onlineCount }} 在线
         </span>
         <span class="project-card__meta-item project-card__meta-item--time">
-          <GIcon name="clock" :size="12" />
+          <GIcon
+            name="clock"
+            :size="12"
+          />
           {{ lastActive }}
         </span>
       </div>

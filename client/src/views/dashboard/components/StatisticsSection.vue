@@ -8,7 +8,11 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon name="chart-bar" :size="16" class="dashboard-section__title-icon" />
+        <GIcon
+          name="chart-bar"
+          :size="16"
+          class="dashboard-section__title-icon"
+        />
         <span>{{ title }}</span>
       </div>
     </div>
@@ -23,16 +27,32 @@
         :class="`stagger-${(i % 6) + 1}`"
       >
         <div class="statistics__head">
-          <span class="statistics__icon" :class="`statistics__icon--${stat.variant}`">
-            <GIcon :name="stat.icon" :size="18" />
+          <span
+            class="statistics__icon"
+            :class="`statistics__icon--${stat.variant}`"
+          >
+            <GIcon
+              :name="stat.icon"
+              :size="18"
+            />
           </span>
-          <span v-if="stat.trend" class="statistics__trend">
-            <GIcon :name="stat.trendDir" :size="12" />
+          <span
+            v-if="stat.trend"
+            class="statistics__trend"
+          >
+            <GIcon
+              :name="stat.trendDir"
+              :size="12"
+            />
             {{ stat.trend }}
           </span>
         </div>
-        <div class="statistics__value">{{ stat.display }}</div>
-        <div class="statistics__label">{{ stat.label }}</div>
+        <div class="statistics__value">
+          {{ stat.display }}
+        </div>
+        <div class="statistics__label">
+          {{ stat.label }}
+        </div>
       </GCard>
     </div>
   </section>

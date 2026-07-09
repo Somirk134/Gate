@@ -17,28 +17,49 @@
   复用：GCard / GIcon / GStatusBadge / GIconButton / GCircleProgress
 -->
 <template>
-  <GCard variant="plain" padding="md">
+  <GCard
+    variant="plain"
+    padding="md"
+  >
     <div class="server-card">
       <div class="server-card__head">
         <span class="server-card__icon">
-          <GIcon name="server" :size="18" />
+          <GIcon
+            name="server"
+            :size="18"
+          />
         </span>
         <div class="server-card__title-wrap">
           <span class="server-card__name">{{ name }}</span>
           <span class="server-card__host">{{ host }}</span>
         </div>
-        <GStatusBadge :status="status" size="sm" />
-        <GIconButton name="more-horizontal" size="sm" @click="emit('action', 'menu')" />
+        <GStatusBadge
+          :status="status"
+          size="sm"
+        />
+        <GIconButton
+          name="more-horizontal"
+          size="sm"
+          @click="emit('action', 'menu')"
+        />
       </div>
 
       <div class="server-card__metrics">
         <div class="server-card__metric">
           <span class="server-card__metric-label">延迟</span>
-          <span class="server-card__metric-value" :class="latencyClass">{{ latency }}ms</span>
+          <span
+            class="server-card__metric-value"
+            :class="latencyClass"
+          >{{ latency }}ms</span>
         </div>
         <div class="server-card__metric">
           <span class="server-card__metric-label">负载</span>
-          <GCircleProgress :value="load" :size="36" :stroke="3" :variant="loadVariant" />
+          <GCircleProgress
+            :value="load"
+            :size="36"
+            :stroke="3"
+            :variant="loadVariant"
+          />
         </div>
         <div class="server-card__metric">
           <span class="server-card__metric-label">隧道</span>

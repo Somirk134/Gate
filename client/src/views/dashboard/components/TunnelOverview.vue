@@ -7,17 +7,36 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon name="link" :size="16" class="dashboard-section__title-icon" />
+        <GIcon
+          name="link"
+          :size="16"
+          class="dashboard-section__title-icon"
+        />
         <span>{{ title }}</span>
-        <GBadge variant="success" type="soft" size="sm">{{ tunnels.length }}</GBadge>
+        <GBadge
+          variant="success"
+          type="soft"
+          size="sm"
+        >
+          {{ tunnels.length }}
+        </GBadge>
       </div>
-      <button class="dashboard-section__more" @click="$emit('viewAll')">
+      <button
+        class="dashboard-section__more"
+        @click="$emit('viewAll')"
+      >
         查看全部
-        <GIcon name="chevron-right" :size="12" />
+        <GIcon
+          name="chevron-right"
+          :size="12"
+        />
       </button>
     </div>
 
-    <div v-if="tunnels.length" class="dashboard-grid--tunnels">
+    <div
+      v-if="tunnels.length"
+      class="dashboard-grid--tunnels"
+    >
       <GCard
         v-for="(tunnel, i) in tunnels"
         :key="tunnel.id"
@@ -27,12 +46,24 @@
         :class="`stagger-${(i % 6) + 1}`"
       >
         <div class="tunnel-overview__head">
-          <GIcon name="link" :size="15" class="tunnel-overview__lead" />
+          <GIcon
+            name="link"
+            :size="15"
+            class="tunnel-overview__lead"
+          />
           <span class="tunnel-overview__name">{{ tunnel.name }}</span>
-          <GBadge :variant="protocolVariant(tunnel.protocol)" type="solid" size="sm">
+          <GBadge
+            :variant="protocolVariant(tunnel.protocol)"
+            type="solid"
+            size="sm"
+          >
             {{ tunnel.protocol.toUpperCase() }}
           </GBadge>
-          <GStatusBadge :status="tunnel.status" size="sm" class="tunnel-overview__status" />
+          <GStatusBadge
+            :status="tunnel.status"
+            size="sm"
+            class="tunnel-overview__status"
+          />
         </div>
 
         <div class="tunnel-overview__route">
@@ -40,7 +71,11 @@
             <span class="tunnel-overview__label">本地</span>
             <span class="tunnel-overview__addr">127.0.0.1:{{ tunnel.localPort }}</span>
           </span>
-          <GIcon name="arrow-right" :size="13" class="tunnel-overview__arrow" />
+          <GIcon
+            name="arrow-right"
+            :size="13"
+            class="tunnel-overview__arrow"
+          />
           <span class="tunnel-overview__endpoint">
             <span class="tunnel-overview__label">公网</span>
             <span class="tunnel-overview__addr">{{ tunnel.publicHost }}:{{ tunnel.publicPort }}</span>
@@ -49,37 +84,71 @@
 
         <div class="tunnel-overview__metrics">
           <div class="tunnel-overview__metric">
-            <GIcon name="arrow-up" :size="11" class="tunnel-overview__metric-icon tunnel-overview__metric-icon--up" />
+            <GIcon
+              name="arrow-up"
+              :size="11"
+              class="tunnel-overview__metric-icon tunnel-overview__metric-icon--up"
+            />
             <span class="tunnel-overview__metric-value">{{ formatSpeed(tunnel.uploadSpeed) }}</span>
           </div>
           <div class="tunnel-overview__metric">
-            <GIcon name="arrow-down" :size="11" class="tunnel-overview__metric-icon tunnel-overview__metric-icon--down" />
+            <GIcon
+              name="arrow-down"
+              :size="11"
+              class="tunnel-overview__metric-icon tunnel-overview__metric-icon--down"
+            />
             <span class="tunnel-overview__metric-value">{{ formatSpeed(tunnel.downloadSpeed) }}</span>
           </div>
           <div class="tunnel-overview__metric">
-            <GIcon name="users" :size="11" class="tunnel-overview__metric-icon" />
+            <GIcon
+              name="users"
+              :size="11"
+              class="tunnel-overview__metric-icon"
+            />
             <span class="tunnel-overview__metric-value">{{ tunnel.connections }}</span>
           </div>
         </div>
 
-        <div v-if="tunnel.protocol === 'https' && tunnel.https" class="tunnel-overview__tls">
+        <div
+          v-if="tunnel.protocol === 'https' && tunnel.https"
+          class="tunnel-overview__tls"
+        >
           <div class="tunnel-overview__tls-item">
-            <GIcon name="shield-check" :size="12" />
+            <GIcon
+              name="shield-check"
+              :size="12"
+            />
             <span>{{ tunnel.https.tlsVersion }}</span>
           </div>
-          <GBadge :variant="certificateVariant(tunnel.https.certificateStatus)" type="soft" size="sm">
+          <GBadge
+            :variant="certificateVariant(tunnel.https.certificateStatus)"
+            type="soft"
+            size="sm"
+          >
             {{ tunnel.https.expireDays }}d
           </GBadge>
           <div class="tunnel-overview__tls-item">
-            <GIcon name="timer" :size="12" />
+            <GIcon
+              name="timer"
+              :size="12"
+            />
             <span>{{ tunnel.https.handshakeCount }}</span>
           </div>
           <div class="tunnel-overview__tls-item">
-            <GIcon name="activity" :size="12" />
+            <GIcon
+              name="activity"
+              :size="12"
+            />
             <span>{{ formatBytes(tunnel.https.httpsTraffic) }}</span>
           </div>
-          <div v-if="tunnel.https.errorCount > 0" class="tunnel-overview__tls-item tunnel-overview__tls-item--error">
-            <GIcon name="alert-circle" :size="12" />
+          <div
+            v-if="tunnel.https.errorCount > 0"
+            class="tunnel-overview__tls-item tunnel-overview__tls-item--error"
+          >
+            <GIcon
+              name="alert-circle"
+              :size="12"
+            />
             <span>{{ tunnel.https.errorCount }}</span>
           </div>
         </div>
@@ -115,7 +184,11 @@
       </GCard>
     </div>
 
-    <GCard v-else variant="plain" padding="lg">
+    <GCard
+      v-else
+      variant="plain"
+      padding="lg"
+    >
       <GEmptyState
         title="暂无运行中的隧道"
         description="启动项目中的隧道后，将在此处实时展示。"

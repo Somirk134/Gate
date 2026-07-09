@@ -6,7 +6,11 @@
 <template>
   <div class="dash-loading">
     <!-- Welcome skeleton -->
-    <GSkeleton variant="rect" height="120px" rounded="var(--radius-xl)" />
+    <GSkeleton
+      variant="rect"
+      height="120px"
+      rounded="var(--radius-xl)"
+    />
 
     <!-- Quick actions skeleton -->
     <div class="dash-loading__row">
@@ -43,8 +47,16 @@
 
     <!-- Bottom row skeleton -->
     <div class="dash-loading__bottom">
-      <GSkeleton variant="rect" height="280px" rounded="var(--radius-xl)" />
-      <GSkeleton variant="rect" height="280px" rounded="var(--radius-xl)" />
+      <GSkeleton
+        variant="rect"
+        height="280px"
+        rounded="var(--radius-xl)"
+      />
+      <GSkeleton
+        variant="rect"
+        height="280px"
+        rounded="var(--radius-xl)"
+      />
     </div>
   </div>
 </template>

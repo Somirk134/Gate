@@ -7,24 +7,48 @@
   <div class="server-tunnels">
     <div class="server-section__head">
       <div class="server-section__title">
-        <GIcon name="router" :size="16" class="server-section__title-icon" />
+        <GIcon
+          name="router"
+          :size="16"
+          class="server-section__title-icon"
+        />
         <span>Tunnel 列表</span>
-        <GBadge variant="neutral" type="soft" size="sm">{{ tunnels.length }}</GBadge>
+        <GBadge
+          variant="neutral"
+          type="soft"
+          size="sm"
+        >
+          {{ tunnels.length }}
+        </GBadge>
       </div>
-      <GButton size="sm" variant="ghost" icon="plus" @click="$emit('create-tunnel')">
+      <GButton
+        size="sm"
+        variant="ghost"
+        icon="plus"
+        @click="$emit('create-tunnel')"
+      >
         New Tunnel
       </GButton>
     </div>
 
-    <div v-if="tunnels.length" class="server-sublist">
+    <div
+      v-if="tunnels.length"
+      class="server-sublist"
+    >
       <div
         v-for="tunnel in tunnels"
         :key="tunnel.id"
         class="server-sublist__item"
         @click="$emit('view-tunnel', tunnel)"
       >
-        <span class="server-sublist__icon" :style="{ color: tunnel.color, background: tunnel.color + '1f' }">
-          <GIcon :name="tunnel.icon" :size="14" />
+        <span
+          class="server-sublist__icon"
+          :style="{ color: tunnel.color, background: tunnel.color + '1f' }"
+        >
+          <GIcon
+            :name="tunnel.icon"
+            :size="14"
+          />
         </span>
         <div class="server-sublist__main">
           <span class="server-sublist__name">{{ tunnel.name }}</span>
@@ -62,16 +86,30 @@
       </div>
     </div>
 
-    <div v-else class="server-logs__empty">
-      <GIcon name="router" :size="20" />
+    <div
+      v-else
+      class="server-logs__empty"
+    >
+      <GIcon
+        name="router"
+        :size="20"
+      />
       <span>该服务器暂无 Tunnel</span>
-      <GButton size="sm" variant="ghost" icon="plus" @click="$emit('create-tunnel')">
+      <GButton
+        size="sm"
+        variant="ghost"
+        icon="plus"
+        @click="$emit('create-tunnel')"
+      >
         创建第一个 Tunnel
       </GButton>
     </div>
 
     <p class="server-connection__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       展示绑定到当前服务器的 Tunnel。全部 Mock 数据，未来从 Tunnel 模块联动。
     </p>
   </div>

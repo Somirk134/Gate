@@ -5,9 +5,15 @@
   未来扩展：CPU / Memory / Network。
 -->
 <template>
-  <div class="tunnel-inspector" :style="colorVars">
+  <div
+    class="tunnel-inspector"
+    :style="colorVars"
+  >
     <header class="tunnel-inspector__header">
-      <GIcon name="activity" :size="14" />
+      <GIcon
+        name="activity"
+        :size="14"
+      />
       <span>实时检查器</span>
       <span class="tunnel-inspector__live">
         <span class="tunnel-inspector__live-dot" />
@@ -19,35 +25,58 @@
       <!-- Hero -->
       <div class="tunnel-inspector__hero">
         <span class="tunnel-inspector__hero-icon">
-          <GIcon :name="protocolPreset.icon" :size="24" />
+          <GIcon
+            :name="protocolPreset.icon"
+            :size="24"
+          />
         </span>
         <div class="tunnel-inspector__hero-text">
-          <span class="tunnel-inspector__hero-name" :title="tunnel.name">{{ tunnel.name }}</span>
-          <TunnelStatus :status="tunnel.status" size="sm" />
+          <span
+            class="tunnel-inspector__hero-name"
+            :title="tunnel.name"
+          >{{ tunnel.name }}</span>
+          <TunnelStatus
+            :status="tunnel.status"
+            size="sm"
+          />
         </div>
       </div>
 
       <!-- 实时统计 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">实时统计</div>
+        <div class="tunnel-inspector__group-title">
+          实时统计
+        </div>
         <div class="tunnel-inspector__stat">
           <div class="tunnel-inspector__stat-item">
-            <GIcon name="arrow-up" :size="12" />
+            <GIcon
+              name="arrow-up"
+              :size="12"
+            />
             <span class="tunnel-inspector__stat-label">上传</span>
             <span class="tunnel-inspector__stat-value">{{ formatSpeed(tunnel.traffic.uploadSpeed) }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
-            <GIcon name="arrow-down" :size="12" />
+            <GIcon
+              name="arrow-down"
+              :size="12"
+            />
             <span class="tunnel-inspector__stat-label">下载</span>
             <span class="tunnel-inspector__stat-value">{{ formatSpeed(tunnel.traffic.downloadSpeed) }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
-            <GIcon name="link" :size="12" />
+            <GIcon
+              name="link"
+              :size="12"
+            />
             <span class="tunnel-inspector__stat-label">连接</span>
             <span class="tunnel-inspector__stat-value">{{ tunnel.statistics.connections }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
-            <GIcon name="gauge" :size="12" />
+            <GIcon
+              name="gauge"
+              :size="12"
+            />
             <span class="tunnel-inspector__stat-label">延迟</span>
             <span class="tunnel-inspector__stat-value">{{ tunnel.statistics.avgLatency }}ms</span>
           </div>
@@ -56,25 +85,58 @@
 
       <!-- Mini Chart -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">流量趋势</div>
-        <svg class="tunnel-mini-chart" viewBox="0 0 200 80" preserveAspectRatio="none">
+        <div class="tunnel-inspector__group-title">
+          流量趋势
+        </div>
+        <svg
+          class="tunnel-mini-chart"
+          viewBox="0 0 200 80"
+          preserveAspectRatio="none"
+        >
           <defs>
-            <linearGradient :id="`grad-${tunnel.id}`" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" :stop-color="protocolPreset.color" stop-opacity="0.35" />
-              <stop offset="100%" :stop-color="protocolPreset.color" stop-opacity="0" />
+            <linearGradient
+              :id="`grad-${tunnel.id}`"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                :stop-color="protocolPreset.color"
+                stop-opacity="0.35"
+              />
+              <stop
+                offset="100%"
+                :stop-color="protocolPreset.color"
+                stop-opacity="0"
+              />
             </linearGradient>
           </defs>
-          <path :d="downloadPath" fill="none" :stroke="protocolPreset.color" stroke-width="1.5" />
-          <path :d="downloadArea" :fill="`url(#grad-${tunnel.id})`" />
+          <path
+            :d="downloadPath"
+            fill="none"
+            :stroke="protocolPreset.color"
+            stroke-width="1.5"
+          />
+          <path
+            :d="downloadArea"
+            :fill="`url(#grad-${tunnel.id})`"
+          />
         </svg>
       </div>
 
       <!-- 基础信息 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">基础信息</div>
+        <div class="tunnel-inspector__group-title">
+          基础信息
+        </div>
         <div class="tunnel-inspector__row">
           <span class="tunnel-inspector__label">协议</span>
-          <TunnelBadge :protocol="tunnel.protocol" size="sm" />
+          <TunnelBadge
+            :protocol="tunnel.protocol"
+            size="sm"
+          />
         </div>
         <div class="tunnel-inspector__row">
           <span class="tunnel-inspector__label">本地地址</span>
@@ -95,7 +157,11 @@
         <div class="tunnel-inspector__row">
           <span class="tunnel-inspector__label">自动启动</span>
           <span class="tunnel-inspector__value">
-            <GIcon :name="tunnel.autoStart ? 'check' : 'close'" :size="12" :class="tunnel.autoStart ? 'on' : 'off'" />
+            <GIcon
+              :name="tunnel.autoStart ? 'check' : 'close'"
+              :size="12"
+              :class="tunnel.autoStart ? 'on' : 'off'"
+            />
             {{ tunnel.autoStart ? "已启用" : "未启用" }}
           </span>
         </div>
@@ -103,7 +169,9 @@
 
       <!-- 累计 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">累计</div>
+        <div class="tunnel-inspector__group-title">
+          累计
+        </div>
         <div class="tunnel-inspector__row">
           <span class="tunnel-inspector__label">累计上传</span>
           <span class="tunnel-inspector__value mono">{{ formatBytes(tunnel.traffic.totalUpload) }}</span>
@@ -123,23 +191,37 @@
       </div>
 
       <!-- 标签 -->
-      <div v-if="tunnel.tags.length" class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">标签</div>
+      <div
+        v-if="tunnel.tags.length"
+        class="tunnel-inspector__group"
+      >
+        <div class="tunnel-inspector__group-title">
+          标签
+        </div>
         <div class="tunnel-inspector__tags">
-          <TunnelTag v-for="tag in tunnel.tags" :key="tag" :name="tag" />
+          <TunnelTag
+            v-for="tag in tunnel.tags"
+            :key="tag"
+            :name="tag"
+          />
         </div>
       </div>
 
       <!-- 最近日志 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">最近日志</div>
+        <div class="tunnel-inspector__group-title">
+          最近日志
+        </div>
         <div class="tunnel-inspector__logs">
           <div
             v-for="log in recentLogs"
             :key="log.id"
             class="tunnel-inspector__log"
           >
-            <span class="tunnel-inspector__log-level" :class="`tunnel-log-line__level--${log.level}`">
+            <span
+              class="tunnel-inspector__log-level"
+              :class="`tunnel-log-line__level--${log.level}`"
+            >
               {{ log.level }}
             </span>
             <span class="tunnel-inspector__log-msg">{{ log.message }}</span>

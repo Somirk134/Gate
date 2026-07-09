@@ -6,14 +6,21 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard variant="plain" padding="none" class="monitor-card">
+    <GCard
+      variant="plain"
+      padding="none"
+      class="monitor-card"
+    >
       <template #header>
         <GSectionHeader icon="activity">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div v-if="resource" class="monitor__grid">
+      <div
+        v-if="resource"
+        class="monitor__grid"
+      >
         <div
           v-for="(item, i) in monitors"
           :key="item.key"
@@ -29,7 +36,10 @@
           />
           <div class="monitor__info">
             <span class="monitor__label">
-              <GIcon :name="item.icon" :size="12" />
+              <GIcon
+                :name="item.icon"
+                :size="12"
+              />
               {{ item.label }}
             </span>
             <span class="monitor__value">{{ item.value }}%</span>
@@ -37,7 +47,10 @@
         </div>
       </div>
 
-      <GEmptyState v-else title="暂无资源数据" />
+      <GEmptyState
+        v-else
+        title="暂无资源数据"
+      />
     </GCard>
   </section>
 </template>

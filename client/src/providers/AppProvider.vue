@@ -1,22 +1,28 @@
 <template>
-    <n-config-provider
-        :theme="naiveTheme"
-        :theme-overrides="themeOverrides"
-        :locale="localeStore.naiveLocale"
-        :date-locale="localeStore.naiveDateLocale"
+  <n-config-provider
+    :theme="naiveTheme"
+    :theme-overrides="themeOverrides"
+    :locale="localeStore.naiveLocale"
+    :date-locale="localeStore.naiveDateLocale"
+  >
+    <n-message-provider
+      placement="top"
+      :max="5"
     >
-        <n-message-provider placement="top" :max="5">
-            <n-dialog-provider>
-                <n-notification-provider placement="top-right" :max="8">
-                    <n-loading-bar-provider>
-                        <ThemeProvider>
-                            <slot />
-                        </ThemeProvider>
-                    </n-loading-bar-provider>
-                </n-notification-provider>
-            </n-dialog-provider>
-        </n-message-provider>
-    </n-config-provider>
+      <n-dialog-provider>
+        <n-notification-provider
+          placement="top-right"
+          :max="8"
+        >
+          <n-loading-bar-provider>
+            <ThemeProvider>
+              <slot />
+            </ThemeProvider>
+          </n-loading-bar-provider>
+        </n-notification-provider>
+      </n-dialog-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <script setup lang="ts">

@@ -1,22 +1,31 @@
 <template>
-    <main class="app-content">
-        <router-view v-slot="{ Component, route }">
-            <transition
-                name="page"
-                mode="out-in"
-                appear
-            >
-                <keep-alive :include="cachedViews">
-                    <component :is="Component" :key="route.path" />
-                </keep-alive>
-            </transition>
-        </router-view>
+  <main class="app-content">
+    <router-view v-slot="{ Component, route }">
+      <transition
+        name="page"
+        mode="out-in"
+        appear
+      >
+        <keep-alive :include="cachedViews">
+          <component
+            :is="Component"
+            :key="route.path"
+          />
+        </keep-alive>
+      </transition>
+    </router-view>
 
-        <!-- Empty State (fallback) -->
-        <div v-if="!routeHasComponent" class="content-empty">
-            <GEmptyState title="No Content" description="This page is not available yet." />
-        </div>
-    </main>
+    <!-- Empty State (fallback) -->
+    <div
+      v-if="!routeHasComponent"
+      class="content-empty"
+    >
+      <GEmptyState
+        title="No Content"
+        description="This page is not available yet."
+      />
+    </div>
+  </main>
 </template>
 
 <script setup lang="ts">

@@ -7,33 +7,82 @@
         <span>{{ onlineServers.length }} 台已连接 / {{ servers.length }} 台已保存</span>
       </div>
       <div class="server-page-header__actions">
-        <GButton variant="secondary" icon="refresh" :loading="isLoading" @click="refresh">刷新</GButton>
-        <GButton variant="primary" icon="plus" @click="openCreate">添加服务器</GButton>
+        <GButton
+          variant="secondary"
+          icon="refresh"
+          :loading="isLoading"
+          @click="refresh"
+        >
+          刷新
+        </GButton>
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="openCreate"
+        >
+          添加服务器
+        </GButton>
       </div>
     </header>
 
-    <GCard v-if="isError" variant="plain" padding="lg">
-      <GErrorState title="服务器加载失败" :message="error" retry @retry="retry" />
+    <GCard
+      v-if="isError"
+      variant="plain"
+      padding="lg"
+    >
+      <GErrorState
+        title="服务器加载失败"
+        :message="error"
+        retry
+        @retry="retry"
+      />
     </GCard>
 
-    <div v-else-if="!hasServers && !isLoading" class="server-empty">
+    <div
+      v-else-if="!hasServers && !isLoading"
+      class="server-empty"
+    >
       <div class="server-empty__icon">
-        <GIcon name="servers" :size="34" />
+        <GIcon
+          name="servers"
+          :size="34"
+        />
       </div>
       <h2>先连接服务器，再创建隧道</h2>
       <p>Gate Tunnel 需要一个已认证的服务端连接。添加服务器地址和 Token 后，点击连接即可开始测试 TCP/HTTP/HTTPS Tunnel。</p>
       <div class="server-empty__actions">
-        <GButton variant="primary" icon="plus" @click="openCreate">添加第一台服务器</GButton>
-        <GButton variant="secondary" icon="activity" @click="router.push('/diagnostics')">打开诊断</GButton>
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="openCreate"
+        >
+          添加第一台服务器
+        </GButton>
+        <GButton
+          variant="secondary"
+          icon="activity"
+          @click="router.push('/diagnostics')"
+        >
+          打开诊断
+        </GButton>
       </div>
     </div>
 
-    <div v-else class="server-shell">
+    <div
+      v-else
+      class="server-shell"
+    >
       <aside class="server-list-panel">
         <div class="server-list-panel__toolbar">
           <label class="server-search">
-            <GIcon name="search" :size="15" />
-            <input v-model.trim="query" placeholder="搜索名称、地址或标签" />
+            <GIcon
+              name="search"
+              :size="15"
+            />
+            <input
+              v-model.trim="query"
+              placeholder="搜索名称、地址或标签"
+            >
           </label>
         </div>
 
@@ -46,9 +95,15 @@
             :class="{ active: selectedId === server.id }"
             @click="selectedId = server.id"
           >
-            <span class="server-list-row__status" :class="`is-${statusTone(server.status)}`" />
+            <span
+              class="server-list-row__status"
+              :class="`is-${statusTone(server.status)}`"
+            />
             <span class="server-list-row__icon">
-              <GIcon name="servers" :size="16" />
+              <GIcon
+                name="servers"
+                :size="16"
+              />
             </span>
             <span class="server-list-row__main">
               <strong>{{ server.name }}</strong>
@@ -60,8 +115,14 @@
             </span>
           </button>
 
-          <div v-if="!filteredServers.length" class="server-list-empty">
-            <GIcon name="search" :size="24" />
+          <div
+            v-if="!filteredServers.length"
+            class="server-list-empty"
+          >
+            <GIcon
+              name="search"
+              :size="24"
+            />
             <span>没有匹配的服务器</span>
           </div>
         </div>
@@ -87,12 +148,36 @@
               >
                 连接
               </GButton>
-              <GButton v-else variant="secondary" icon="power" @click="disconnectSelected">断开</GButton>
-              <GButton variant="secondary" icon="activity" :loading="testingId === selectedServer.id" @click="testSelected">
+              <GButton
+                v-else
+                variant="secondary"
+                icon="power"
+                @click="disconnectSelected"
+              >
+                断开
+              </GButton>
+              <GButton
+                variant="secondary"
+                icon="activity"
+                :loading="testingId === selectedServer.id"
+                @click="testSelected"
+              >
                 测试
               </GButton>
-              <GButton variant="ghost" icon="settings" @click="openEdit(selectedServer)">编辑</GButton>
-              <GButton variant="danger" icon="trash" @click="removeSelected">删除</GButton>
+              <GButton
+                variant="ghost"
+                icon="settings"
+                @click="openEdit(selectedServer)"
+              >
+                编辑
+              </GButton>
+              <GButton
+                variant="danger"
+                icon="trash"
+                @click="removeSelected"
+              >
+                删除
+              </GButton>
             </div>
           </div>
 
@@ -118,8 +203,14 @@
           <section class="server-info-section">
             <div class="server-info-section__head">
               <h3>连接配置</h3>
-              <button type="button" @click="copyServerInfo(selectedServer)">
-                <GIcon name="copy" :size="15" />
+              <button
+                type="button"
+                @click="copyServerInfo(selectedServer)"
+              >
+                <GIcon
+                  name="copy"
+                  :size="15"
+                />
               </button>
             </div>
             <dl class="server-info-list">
@@ -138,8 +229,14 @@
               <span>{{ selectedServer.health.score }}/100</span>
             </div>
             <div class="server-health-list">
-              <article v-for="item in selectedServer.health.items" :key="item.key">
-                <GIcon :name="item.icon" :size="16" />
+              <article
+                v-for="item in selectedServer.health.items"
+                :key="item.key"
+              >
+                <GIcon
+                  :name="item.icon"
+                  :size="16"
+                />
                 <div>
                   <strong>{{ item.label }}</strong>
                   <p>{{ item.message }}</p>
@@ -149,7 +246,10 @@
             </div>
           </section>
 
-          <section v-if="selectedServer.logs.length" class="server-info-section">
+          <section
+            v-if="selectedServer.logs.length"
+            class="server-info-section"
+          >
             <div class="server-info-section__head">
               <h3>最近错误</h3>
             </div>
@@ -159,30 +259,53 @@
           </section>
         </template>
 
-        <div v-else class="server-detail-placeholder">
-          <GIcon name="servers" :size="34" />
+        <div
+          v-else
+          class="server-detail-placeholder"
+        >
+          <GIcon
+            name="servers"
+            :size="34"
+          />
           <span>选择一台服务器查看连接状态</span>
         </div>
       </main>
     </div>
 
     <Transition name="server-dialog">
-      <div v-if="dialogVisible" class="server-dialog-backdrop" @click.self="closeDialog">
-        <form class="server-dialog" @submit.prevent="submitForm">
+      <div
+        v-if="dialogVisible"
+        class="server-dialog-backdrop"
+        @click.self="closeDialog"
+      >
+        <form
+          class="server-dialog"
+          @submit.prevent="submitForm"
+        >
           <header>
             <div>
               <p>{{ editingId ? "Edit Server" : "Add Server" }}</p>
               <h2>{{ editingId ? "编辑服务器" : "添加服务器" }}</h2>
             </div>
-            <button type="button" aria-label="关闭" @click="closeDialog">
-              <GIcon name="close" :size="16" />
+            <button
+              type="button"
+              aria-label="关闭"
+              @click="closeDialog"
+            >
+              <GIcon
+                name="close"
+                :size="16"
+              />
             </button>
           </header>
 
           <main class="server-dialog__main">
             <section class="server-form-section">
               <div class="server-helper-banner">
-                <GIcon name="plug-zap" :size="20" />
+                <GIcon
+                  name="plug-zap"
+                  :size="20"
+                />
                 <div>
                   <strong>服务器就是 Gate 服务端所在的机器</strong>
                   <p>先把服务端程序跑起来，再把它的地址和 Token 填到这里，客户端才能创建隧道。</p>
@@ -197,34 +320,58 @@
                   class="server-preset"
                   @click="applyPreset(preset.id)"
                 >
-                  <GIcon :name="preset.icon" :size="16" />
+                  <GIcon
+                    :name="preset.icon"
+                    :size="16"
+                  />
                   <span>{{ preset.label }}</span>
                 </button>
               </div>
               <p class="server-local-note">
-                <GIcon name="info-circle" :size="14" />
+                <GIcon
+                  name="info-circle"
+                  :size="14"
+                />
                 本机测试会自动使用默认 Token：<code>{{ localServerToken }}</code>。正式部署请改成你自己的 Token。
               </p>
               <p class="server-mode-hint">
-                <GIcon :name="serverModeHint.icon" :size="15" />
+                <GIcon
+                  :name="serverModeHint.icon"
+                  :size="15"
+                />
                 <span>{{ serverModeHint.text }}</span>
               </p>
 
               <label>
                 <span>名称</span>
-                <input v-model.trim="form.name" autocomplete="off" placeholder="例如：我的 VPS / 本机测试服务器" />
+                <input
+                  v-model.trim="form.name"
+                  autocomplete="off"
+                  placeholder="例如：我的 VPS / 本机测试服务器"
+                >
                 <small>只是给你自己看的名字，不影响连接。</small>
               </label>
 
               <div class="server-form-grid">
                 <label>
                   <span>服务器地址</span>
-                  <input v-model.trim="form.host" autocomplete="off" placeholder="公网 IP、域名或 127.0.0.1" required />
+                  <input
+                    v-model.trim="form.host"
+                    autocomplete="off"
+                    placeholder="公网 IP、域名或 127.0.0.1"
+                    required
+                  >
                   <small>服务端部署在哪台机器，就填那台机器的 IP 或域名。</small>
                 </label>
                 <label>
                   <span>端口</span>
-                  <input v-model.number="form.port" type="number" min="1" max="65535" required />
+                  <input
+                    v-model.number="form.port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    required
+                  >
                   <small>默认是服务端监听端口，通常为 7000。</small>
                 </label>
               </div>
@@ -241,9 +388,16 @@
                     :type="tokenVisible ? 'text' : 'password'"
                     placeholder="填服务端配置里的 GATE_AUTH_TOKEN"
                     required
-                  />
-                  <button type="button" :title="tokenVisible ? '隐藏 Token' : '显示 Token'" @click="tokenVisible = !tokenVisible">
-                    <GIcon :name="tokenVisible ? 'eye-off' : 'eye'" :size="15" />
+                  >
+                  <button
+                    type="button"
+                    :title="tokenVisible ? '隐藏 Token' : '显示 Token'"
+                    @click="tokenVisible = !tokenVisible"
+                  >
+                    <GIcon
+                      :name="tokenVisible ? 'eye-off' : 'eye'"
+                      :size="15"
+                    />
                   </button>
                 </div>
                 <small>本机测试直接用默认 Token：<code>{{ localServerToken }}</code>。正式部署时再通过 <code>GATE_AUTH_TOKEN</code> 换成你自己的长随机值。</small>
@@ -263,7 +417,10 @@
                     :class="{ active: form.kind === option.value }"
                     @click="selectKind(option.value)"
                   >
-                    <GIcon :name="option.icon" :size="16" />
+                    <GIcon
+                      :name="option.icon"
+                      :size="16"
+                    />
                     <span>
                       <strong>{{ option.label }}</strong>
                       <small>{{ option.description }}</small>
@@ -275,25 +432,41 @@
               <div class="server-form-grid">
                 <label>
                   <span>区域</span>
-                  <input v-model.trim="form.region" autocomplete="off" placeholder="可选，例如 cn-shanghai / home" />
+                  <input
+                    v-model.trim="form.region"
+                    autocomplete="off"
+                    placeholder="可选，例如 cn-shanghai / home"
+                  >
                   <small>方便以后区分多台服务器，可不填。</small>
                 </label>
                 <label>
                   <span>备注</span>
-                  <input v-model.trim="form.remark" autocomplete="off" placeholder="可选，例如 Docker 部署 / 家里 NAS" />
+                  <input
+                    v-model.trim="form.remark"
+                    autocomplete="off"
+                    placeholder="可选，例如 Docker 部署 / 家里 NAS"
+                  >
                   <small>记录部署位置或维护说明。</small>
                 </label>
               </div>
 
               <label class="server-check server-check--with-hint">
-                <input v-model="form.autoConnect" type="checkbox" />
+                <input
+                  v-model="form.autoConnect"
+                  type="checkbox"
+                >
                 <span>
                   启动后自动连接
                   <small>适合长期固定使用的服务器；临时测试可以先不勾。</small>
                 </span>
               </label>
 
-              <p v-if="formError" class="server-form-error">{{ formError }}</p>
+              <p
+                v-if="formError"
+                class="server-form-error"
+              >
+                {{ formError }}
+              </p>
             </section>
 
             <aside class="server-guide-panel">
@@ -302,13 +475,28 @@
                 <strong>先启动服务端，再添加这里的连接。</strong>
               </header>
 
-              <details class="server-guide-panel__block" open>
-                <summary><GIcon name="monitor" :size="16" /> 本机测试</summary>
+              <details
+                class="server-guide-panel__block"
+                open
+              >
+                <summary>
+                  <GIcon
+                    name="monitor"
+                    :size="16"
+                  /> 本机测试
+                </summary>
                 <p>在项目根目录运行，选择“本机测试”后保存并测试连接。</p>
                 <div class="server-guide-command">
                   <code>{{ localServerCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyLocalServerCommand">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyLocalServerCommand"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
@@ -321,38 +509,74 @@
                   <summary>自定义端口或 Token</summary>
                   <div class="server-guide-command">
                     <code>{{ customLocalServerCommand }}</code>
-                    <button type="button" class="server-guide-copy" @click="copyGuideCommand(customLocalServerCommand, '自定义本机启动命令')">
-                      <GIcon name="copy" :size="14" />
+                    <button
+                      type="button"
+                      class="server-guide-copy"
+                      @click="copyGuideCommand(customLocalServerCommand, '自定义本机启动命令')"
+                    >
+                      <GIcon
+                        name="copy"
+                        :size="14"
+                      />
                       复制
                     </button>
                   </div>
                 </details>
               </details>
 
-              <details class="server-guide-panel__block" open>
-                <summary><GIcon name="cloud" :size="16" /> 云服务器部署</summary>
+              <details
+                class="server-guide-panel__block"
+                open
+              >
+                <summary>
+                  <GIcon
+                    name="cloud"
+                    :size="16"
+                  /> 云服务器部署
+                </summary>
                 <p>Token 是 Gate 自己的服务端口令：<span class="server-inline-code">GATE_AUTH_TOKEN</span>，客户端必须填同一个值。</p>
                 <div class="server-guide-command">
                   <span>源码启动（Linux）</span>
                   <code>{{ remoteServerCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyGuideCommand(remoteServerCommand, '源码启动命令')">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyGuideCommand(remoteServerCommand, '源码启动命令')"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
                 <div class="server-guide-command">
                   <span>Release 二进制启动</span>
                   <code>{{ remoteBinaryCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyGuideCommand(remoteBinaryCommand, '二进制启动命令')">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyGuideCommand(remoteBinaryCommand, '二进制启动命令')"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
                 <div class="server-guide-command">
                   <span>Docker Compose</span>
                   <code>{{ dockerComposeCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyGuideCommand(dockerComposeCommand, 'Docker Compose 命令')">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyGuideCommand(dockerComposeCommand, 'Docker Compose 命令')"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
@@ -360,7 +584,12 @@
               </details>
 
               <details class="server-guide-panel__block">
-                <summary><GIcon name="shield" :size="16" /> 端口和防火墙</summary>
+                <summary>
+                  <GIcon
+                    name="shield"
+                    :size="16"
+                  /> 端口和防火墙
+                </summary>
                 <ul>
                   <li><b>7000/tcp</b>：Gate 客户端连接服务端的控制端口，源码/二进制默认用它。</li>
                   <li><b>5800/tcp</b>：当前 docker-compose.yml 默认映射的服务端端口。</li>
@@ -370,16 +599,30 @@
                 <div class="server-guide-command">
                   <span>Ubuntu / Debian 防火墙示例</span>
                   <code>{{ ufwCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyGuideCommand(ufwCommand, 'UFW 防火墙命令')">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyGuideCommand(ufwCommand, 'UFW 防火墙命令')"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
                 <div class="server-guide-command">
                   <span>CentOS / Rocky 防火墙示例</span>
                   <code>{{ firewalldCommand }}</code>
-                  <button type="button" class="server-guide-copy" @click="copyGuideCommand(firewalldCommand, 'firewalld 防火墙命令')">
-                    <GIcon name="copy" :size="14" />
+                  <button
+                    type="button"
+                    class="server-guide-copy"
+                    @click="copyGuideCommand(firewalldCommand, 'firewalld 防火墙命令')"
+                  >
+                    <GIcon
+                      name="copy"
+                      :size="14"
+                    />
                     复制
                   </button>
                 </div>
@@ -387,7 +630,12 @@
               </details>
 
               <details class="server-guide-panel__block">
-                <summary><GIcon name="clipboard-list" :size="16" /> 表单怎么填</summary>
+                <summary>
+                  <GIcon
+                    name="clipboard-list"
+                    :size="16"
+                  /> 表单怎么填
+                </summary>
                 <ul>
                   <li><b>Host</b>：你的服务器公网 IP 或域名。</li>
                   <li><b>Port</b>：源码/二进制填 7000；Docker Compose 默认填 5800。</li>
@@ -397,7 +645,12 @@
               </details>
 
               <details class="server-guide-panel__block">
-                <summary><GIcon name="circle-help" :size="16" /> 类型怎么选</summary>
+                <summary>
+                  <GIcon
+                    name="circle-help"
+                    :size="16"
+                  /> 类型怎么选
+                </summary>
                 <ul>
                   <li><b>Personal</b>：自己的电脑或普通 VPS。</li>
                   <li><b>Cloud</b>：阿里云、腾讯云、AWS 等云服务器。</li>
@@ -410,8 +663,19 @@
           </main>
 
           <footer>
-            <GButton variant="ghost" @click="closeDialog">取消</GButton>
-            <GButton variant="primary" type="submit" :loading="saving">保存</GButton>
+            <GButton
+              variant="ghost"
+              @click="closeDialog"
+            >
+              取消
+            </GButton>
+            <GButton
+              variant="primary"
+              type="submit"
+              :loading="saving"
+            >
+              保存
+            </GButton>
           </footer>
         </form>
       </div>

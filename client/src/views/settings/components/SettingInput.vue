@@ -6,7 +6,7 @@
     :placeholder="placeholder"
     :disabled="disabled"
     @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-  />
+  >
 </template>
 
 <script setup lang="ts">

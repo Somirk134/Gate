@@ -5,9 +5,15 @@
   非 Tunnel 详情，而是项目级别的 Inspector。
 -->
 <template>
-  <div class="project-inspector" :style="colorVars">
+  <div
+    class="project-inspector"
+    :style="colorVars"
+  >
     <header class="project-inspector__header">
-      <GIcon name="info-circle" :size="14" />
+      <GIcon
+        name="info-circle"
+        :size="14"
+      />
       <span>项目信息</span>
     </header>
 
@@ -15,17 +21,26 @@
       <!-- 项目图标预览 -->
       <div class="project-inspector__hero">
         <span class="project-inspector__hero-icon">
-          <GIcon :name="project.icon" :size="28" />
+          <GIcon
+            :name="project.icon"
+            :size="28"
+          />
         </span>
         <div class="project-inspector__hero-text">
           <span class="project-inspector__hero-name">{{ project.name }}</span>
-          <GStatusBadge :status="statusDotType" :label="statusLabel" size="sm" />
+          <GStatusBadge
+            :status="statusDotType"
+            :label="statusLabel"
+            size="sm"
+          />
         </div>
       </div>
 
       <!-- 基础信息 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">基础信息</div>
+        <div class="project-inspector__group-title">
+          基础信息
+        </div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">项目 ID</span>
           <span class="project-inspector__value mono">{{ project.id }}</span>
@@ -56,16 +71,27 @@
       </div>
 
       <!-- 标签 -->
-      <div v-if="project.tags.length" class="project-inspector__group">
-        <div class="project-inspector__group-title">标签</div>
+      <div
+        v-if="project.tags.length"
+        class="project-inspector__group"
+      >
+        <div class="project-inspector__group-title">
+          标签
+        </div>
         <div class="project-inspector__tags">
-          <ProjectTag v-for="tag in project.tags" :key="tag" :name="tag" />
+          <ProjectTag
+            v-for="tag in project.tags"
+            :key="tag"
+            :name="tag"
+          />
         </div>
       </div>
 
       <!-- 统计 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">运行统计</div>
+        <div class="project-inspector__group-title">
+          运行统计
+        </div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">今日流量</span>
           <span class="project-inspector__value mono">{{ formatBytes(project.statistics.todayTraffic) }}</span>
@@ -85,9 +111,16 @@
       </div>
 
       <!-- 备注 -->
-      <div v-if="project.remark" class="project-inspector__group">
-        <div class="project-inspector__group-title">备注</div>
-        <p class="project-inspector__remark">{{ project.remark }}</p>
+      <div
+        v-if="project.remark"
+        class="project-inspector__group"
+      >
+        <div class="project-inspector__group-title">
+          备注
+        </div>
+        <p class="project-inspector__remark">
+          {{ project.remark }}
+        </p>
       </div>
 
       <!-- 操作 -->
@@ -110,10 +143,20 @@
         >
           停止项目
         </GButton>
-        <GButton variant="ghost" icon="edit" block @click="$emit('edit')">
+        <GButton
+          variant="ghost"
+          icon="edit"
+          block
+          @click="$emit('edit')"
+        >
           编辑项目
         </GButton>
-        <GButton variant="ghost" icon="trash" block @click="$emit('delete')">
+        <GButton
+          variant="ghost"
+          icon="trash"
+          block
+          @click="$emit('delete')"
+        >
           删除项目
         </GButton>
       </div>

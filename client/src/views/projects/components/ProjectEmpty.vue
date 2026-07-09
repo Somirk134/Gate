@@ -6,18 +6,30 @@
 <template>
   <div class="project-empty">
     <div class="project-empty__illustration">
-      <GIcon name="projects" :size="48" />
+      <GIcon
+        name="projects"
+        :size="48"
+      />
     </div>
-    <h2 class="project-empty__title">欢迎使用 Gate</h2>
+    <h2 class="project-empty__title">
+      欢迎使用 Gate
+    </h2>
     <p class="project-empty__desc">
       还没有项目。创建第一个项目，开始管理你的隧道集合。
     </p>
     <p class="project-empty__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       所有 Tunnel 必须属于某个 Project
     </p>
     <div class="project-empty__action">
-      <GButton variant="primary" icon="plus" @click="$emit('create')">
+      <GButton
+        variant="primary"
+        icon="plus"
+        @click="$emit('create')"
+      >
         创建第一个项目
       </GButton>
     </div>

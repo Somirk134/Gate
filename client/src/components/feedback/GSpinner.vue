@@ -5,8 +5,15 @@
   Props: size(sm|md|lg|数字) / variant(颜色)
 -->
 <template>
-  <span class="g-spinner" :class="[`g-spinner--${variant}`]">
-    <GIcon name="loader" :size="numericSize" spin />
+  <span
+    class="g-spinner"
+    :class="[`g-spinner--${variant}`]"
+  >
+    <GIcon
+      name="loader"
+      :size="numericSize"
+      spin
+    />
   </span>
 </template>
 

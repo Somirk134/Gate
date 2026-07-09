@@ -7,14 +7,31 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="tunnel-dialog__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="tunnel-dialog" @click.stop>
+    <div
+      v-if="visible"
+      class="tunnel-dialog__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="tunnel-dialog"
+          @click.stop
+        >
           <!-- 头部 -->
           <header class="tunnel-dialog__header">
             <div class="tunnel-dialog__title-wrap">
-              <span class="tunnel-dialog__icon" :style="previewStyle">
-                <GIcon :name="protocolPreset.icon" :size="20" />
+              <span
+                class="tunnel-dialog__icon"
+                :style="previewStyle"
+              >
+                <GIcon
+                  :name="protocolPreset.icon"
+                  :size="20"
+                />
               </span>
               <div>
                 <h3 class="tunnel-dialog__title">
@@ -25,14 +42,24 @@
                 </p>
               </div>
             </div>
-            <GIconButton name="close" variant="ghost" size="sm" @click="handleClose" />
+            <GIconButton
+              name="close"
+              variant="ghost"
+              size="sm"
+              @click="handleClose"
+            />
           </header>
 
           <!-- 主体表单 -->
           <div class="tunnel-dialog__body">
             <!-- 名称 -->
-            <GFormField :error="errors.name" required>
-              <template #label>名称</template>
+            <GFormField
+              :error="errors.name"
+              required
+            >
+              <template #label>
+                名称
+              </template>
               <GInput
                 v-model="form.name"
                 placeholder="例如：api-gateway"
@@ -45,13 +72,20 @@
 
             <!-- 协议 -->
             <GFormField>
-              <template #label>协议</template>
+              <template #label>
+                协议
+              </template>
               <TunnelProtocolSelect v-model="form.protocol" />
             </GFormField>
 
             <!-- 本地地址 -->
-            <GFormField :error="errors.localHost" required>
-              <template #label>本地地址</template>
+            <GFormField
+              :error="errors.localHost"
+              required
+            >
+              <template #label>
+                本地地址
+              </template>
               <GInput
                 v-model="form.localHost"
                 placeholder="127.0.0.1"
@@ -63,12 +97,22 @@
 
             <!-- 本地端口 / 公网端口 -->
             <div class="tunnel-port-row">
-              <GFormField :error="errors.localPort" required>
-                <template #label>本地端口</template>
+              <GFormField
+                :error="errors.localPort"
+                required
+              >
+                <template #label>
+                  本地端口
+                </template>
                 <TunnelPortInput v-model="form.localPort" />
               </GFormField>
-              <GFormField :error="errors.remotePort" required>
-                <template #label>公网端口</template>
+              <GFormField
+                :error="errors.remotePort"
+                required
+              >
+                <template #label>
+                  公网端口
+                </template>
                 <TunnelPortInput v-model="form.remotePort" />
               </GFormField>
             </div>
@@ -76,21 +120,51 @@
             <!-- 所属 Project / Server -->
             <div class="tunnel-port-row">
               <GFormField>
-                <template #label>所属 Project</template>
+                <template #label>
+                  所属 Project
+                </template>
                 <div class="tunnel-dialog__select-wrap">
-                  <select v-model="form.projectId" class="tunnel-dialog__select">
-                    <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+                  <select
+                    v-model="form.projectId"
+                    class="tunnel-dialog__select"
+                  >
+                    <option
+                      v-for="p in projects"
+                      :key="p.id"
+                      :value="p.id"
+                    >
+                      {{ p.name }}
+                    </option>
                   </select>
-                  <GIcon name="chevron-down" :size="14" class="tunnel-dialog__select-chevron" />
+                  <GIcon
+                    name="chevron-down"
+                    :size="14"
+                    class="tunnel-dialog__select-chevron"
+                  />
                 </div>
               </GFormField>
               <GFormField>
-                <template #label>所属 Server</template>
+                <template #label>
+                  所属 Server
+                </template>
                 <div class="tunnel-dialog__select-wrap">
-                  <select v-model="form.serverName" class="tunnel-dialog__select">
-                    <option v-for="s in serverNames" :key="s" :value="s">{{ s }}</option>
+                  <select
+                    v-model="form.serverName"
+                    class="tunnel-dialog__select"
+                  >
+                    <option
+                      v-for="s in serverNames"
+                      :key="s"
+                      :value="s"
+                    >
+                      {{ s }}
+                    </option>
                   </select>
-                  <GIcon name="chevron-down" :size="14" class="tunnel-dialog__select-chevron" />
+                  <GIcon
+                    name="chevron-down"
+                    :size="14"
+                    class="tunnel-dialog__select-chevron"
+                  />
                 </div>
               </GFormField>
             </div>
@@ -113,7 +187,9 @@
 
             <!-- 标签 -->
             <GFormField>
-              <template #label>标签</template>
+              <template #label>
+                标签
+              </template>
               <div
                 class="tunnel-tag-input"
                 :class="{ 'tunnel-tag-input--focused': tagFocused }"
@@ -133,7 +209,7 @@
                   @blur="onTagBlur"
                   @keydown.enter.prevent="addTag"
                   @keydown.backspace="onBackspace"
-                />
+                >
               </div>
               <div class="tunnel-tag-suggest">
                 <button
@@ -144,7 +220,10 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)"
                 >
-                  <GIcon name="plus" :size="10" />
+                  <GIcon
+                    name="plus"
+                    :size="10"
+                  />
                   {{ tag.name }}
                 </button>
               </div>
@@ -152,7 +231,9 @@
 
             <!-- 备注 -->
             <GFormField>
-              <template #label>备注</template>
+              <template #label>
+                备注
+              </template>
               <GTextarea
                 v-model="form.remark"
                 placeholder="内部备注，仅自己可见…"
@@ -165,7 +246,12 @@
 
           <!-- 底部 -->
           <footer class="tunnel-dialog__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="primary"
               :icon="isEdit ? 'save' : 'plus'"

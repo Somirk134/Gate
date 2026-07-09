@@ -22,7 +22,10 @@
         :title="visible ? '隐藏' : '显示'"
         @click="visible = !visible"
       >
-        <GIcon :name="visible ? 'eye-off' : 'eye'" :size="14" />
+        <GIcon
+          :name="visible ? 'eye-off' : 'eye'"
+          :size="14"
+        />
       </button>
       <button
         type="button"
@@ -30,7 +33,10 @@
         :title="copied ? '已复制' : '复制'"
         @click="copy"
       >
-        <GIcon :name="copied ? 'check' : 'copy'" :size="14" />
+        <GIcon
+          :name="copied ? 'check' : 'copy'"
+          :size="14"
+        />
       </button>
     </template>
   </GInput>

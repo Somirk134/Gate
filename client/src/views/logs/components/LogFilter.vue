@@ -14,29 +14,70 @@
       </button>
     </div>
 
-    <select class="log-select" :value="primarySource" @change="setSource(($event.target as HTMLSelectElement).value)">
-      <option value="">All Sources</option>
-      <option v-for="source in sources" :key="source" :value="source">
+    <select
+      class="log-select"
+      :value="primarySource"
+      @change="setSource(($event.target as HTMLSelectElement).value)"
+    >
+      <option value="">
+        All Sources
+      </option>
+      <option
+        v-for="source in sources"
+        :key="source"
+        :value="source"
+      >
         {{ sourceLabels[source] }}
       </option>
     </select>
 
-    <select class="log-select" :value="filter.timeRange" @change="patch({ timeRange: ($event.target as HTMLSelectElement).value as LogTimeRange })">
-      <option value="all">Any Time</option>
-      <option value="15m">Last 15 min</option>
-      <option value="1h">Last hour</option>
-      <option value="24h">Last 24 hours</option>
-      <option value="today">Today</option>
+    <select
+      class="log-select"
+      :value="filter.timeRange"
+      @change="patch({ timeRange: ($event.target as HTMLSelectElement).value as LogTimeRange })"
+    >
+      <option value="all">
+        Any Time
+      </option>
+      <option value="15m">
+        Last 15 min
+      </option>
+      <option value="1h">
+        Last hour
+      </option>
+      <option value="24h">
+        Last 24 hours
+      </option>
+      <option value="today">
+        Today
+      </option>
     </select>
 
-    <select class="log-select" :value="filter.groupBy" @change="patch({ groupBy: ($event.target as HTMLSelectElement).value as LogGroupBy })">
-      <option value="none">No Group</option>
-      <option value="time">Group by Time</option>
-      <option value="source">Group by Source</option>
-      <option value="level">Group by Level</option>
+    <select
+      class="log-select"
+      :value="filter.groupBy"
+      @change="patch({ groupBy: ($event.target as HTMLSelectElement).value as LogGroupBy })"
+    >
+      <option value="none">
+        No Group
+      </option>
+      <option value="time">
+        Group by Time
+      </option>
+      <option value="source">
+        Group by Source
+      </option>
+      <option value="level">
+        Group by Level
+      </option>
     </select>
 
-    <button type="button" class="log-filter__toggle" :class="{ 'log-filter__toggle--active': filter.fuzzy }" @click="patch({ fuzzy: !filter.fuzzy })">
+    <button
+      type="button"
+      class="log-filter__toggle"
+      :class="{ 'log-filter__toggle--active': filter.fuzzy }"
+      @click="patch({ fuzzy: !filter.fuzzy })"
+    >
       Fuzzy
     </button>
   </div>

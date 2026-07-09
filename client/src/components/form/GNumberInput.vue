@@ -15,11 +15,27 @@
   >
     <template #suffix>
       <div class="g-number__stepper">
-        <button type="button" class="g-number__btn" :disabled="disabled || atMax" @click="step(1)">
-          <GIcon name="chevron-up" :size="12" />
+        <button
+          type="button"
+          class="g-number__btn"
+          :disabled="disabled || atMax"
+          @click="step(1)"
+        >
+          <GIcon
+            name="chevron-up"
+            :size="12"
+          />
         </button>
-        <button type="button" class="g-number__btn" :disabled="disabled || atMin" @click="step(-1)">
-          <GIcon name="chevron-down" :size="12" />
+        <button
+          type="button"
+          class="g-number__btn"
+          :disabled="disabled || atMin"
+          @click="step(-1)"
+        >
+          <GIcon
+            name="chevron-down"
+            :size="12"
+          />
         </button>
       </div>
     </template>

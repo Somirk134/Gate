@@ -24,7 +24,10 @@
           class="server-kind-option__icon"
           :style="{ background: preset.color + '1f', color: preset.color }"
         >
-          <GIcon :name="preset.icon" :size="14" />
+          <GIcon
+            :name="preset.icon"
+            :size="14"
+          />
         </span>
         <span class="server-kind-option__name">{{ preset.label }}</span>
       </div>

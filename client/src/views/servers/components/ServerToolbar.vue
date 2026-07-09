@@ -24,7 +24,13 @@
       />
     </div>
 
-    <GButton variant="primary" size="sm" icon="plus" block @click="$emit('create')">
+    <GButton
+      variant="primary"
+      size="sm"
+      icon="plus"
+      block
+      @click="$emit('create')"
+    >
       Add Server
     </GButton>
   </div>

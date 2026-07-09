@@ -1,7 +1,10 @@
 <template>
-    <div class="theme-provider" :class="themeClass">
-        <slot />
-    </div>
+  <div
+    class="theme-provider"
+    :class="themeClass"
+  >
+    <slot />
+  </div>
 </template>
 
 <script setup lang="ts">

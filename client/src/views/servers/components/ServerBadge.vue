@@ -9,7 +9,10 @@
     :class="[`server-badge--${kind}`, `server-badge--${size}`]"
     :style="{ '--badge-color': color }"
   >
-    <GIcon :name="icon" :size="size === 'sm' ? 11 : 13" />
+    <GIcon
+      :name="icon"
+      :size="size === 'sm' ? 11 : 13"
+    />
     <span class="server-badge__label">{{ label }}</span>
   </span>
 </template>

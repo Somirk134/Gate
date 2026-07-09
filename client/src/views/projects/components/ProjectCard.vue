@@ -32,11 +32,21 @@
       <!-- 头部：图标 + 名称 + 状态 + 操作 -->
       <div class="project-card__head">
         <span class="project-card__icon">
-          <GIcon :name="project.icon" :size="20" />
+          <GIcon
+            :name="project.icon"
+            :size="20"
+          />
         </span>
         <div class="project-card__title-wrap">
-          <span class="project-card__name" :title="project.name">{{ project.name }}</span>
-          <GStatusBadge :status="statusDotType" :label="statusLabel" size="sm" />
+          <span
+            class="project-card__name"
+            :title="project.name"
+          >{{ project.name }}</span>
+          <GStatusBadge
+            :status="statusDotType"
+            :label="statusLabel"
+            size="sm"
+          />
         </div>
         <div class="project-card__quick-actions">
           <button
@@ -45,7 +55,10 @@
             title="收藏"
             @click.stop="$emit('toggle-favorite', project.id)"
           >
-            <GIcon :name="project.favorite ? 'star' : 'star-off'" :size="14" />
+            <GIcon
+              :name="project.favorite ? 'star' : 'star-off'"
+              :size="14"
+            />
           </button>
           <button
             class="project-card__quick-btn"
@@ -53,18 +66,33 @@
             title="固定"
             @click.stop="$emit('toggle-pin', project.id)"
           >
-            <GIcon name="pin" :size="14" />
+            <GIcon
+              name="pin"
+              :size="14"
+            />
           </button>
         </div>
       </div>
 
       <!-- 描述 -->
-      <p class="project-card__desc">{{ project.description }}</p>
+      <p class="project-card__desc">
+        {{ project.description }}
+      </p>
 
       <!-- 标签 -->
-      <div v-if="project.tags.length" class="project-card__tags">
-        <ProjectTag v-for="tag in project.tags.slice(0, 3)" :key="tag" :name="tag" />
-        <span v-if="project.tags.length > 3" class="project-card__tag-more">
+      <div
+        v-if="project.tags.length"
+        class="project-card__tags"
+      >
+        <ProjectTag
+          v-for="tag in project.tags.slice(0, 3)"
+          :key="tag"
+          :name="tag"
+        />
+        <span
+          v-if="project.tags.length > 3"
+          class="project-card__tag-more"
+        >
           +{{ project.tags.length - 3 }}
         </span>
       </div>
@@ -72,7 +100,10 @@
       <!-- 指标 -->
       <div class="project-card__metrics">
         <div class="project-card__metric">
-          <GIcon name="link" :size="12" />
+          <GIcon
+            name="link"
+            :size="12"
+          />
           <span class="project-card__metric-value">{{ project.tunnelCount }}</span>
           <span class="project-card__metric-label">Tunnel</span>
         </div>
@@ -82,8 +113,14 @@
           <span class="project-card__metric-label">运行</span>
         </div>
         <div class="project-card__metric">
-          <GIcon name="servers" :size="12" />
-          <span class="project-card__metric-label" :title="project.serverName">
+          <GIcon
+            name="servers"
+            :size="12"
+          />
+          <span
+            class="project-card__metric-label"
+            :title="project.serverName"
+          >
             {{ project.serverName }}
           </span>
         </div>
@@ -92,11 +129,17 @@
       <!-- 时间信息 -->
       <div class="project-card__time">
         <span class="project-card__time-item">
-          <GIcon name="play" :size="11" />
+          <GIcon
+            name="play"
+            :size="11"
+          />
           {{ project.lastStartedAt }}
         </span>
         <span class="project-card__time-item">
-          <GIcon name="calendar" :size="11" />
+          <GIcon
+            name="calendar"
+            :size="11"
+          />
           {{ createdLabel }}
         </span>
       </div>
@@ -104,7 +147,10 @@
 
     <!-- Hover 操作栏 -->
     <Transition name="card-actions">
-      <div v-if="hovered" class="project-card__actions">
+      <div
+        v-if="hovered"
+        class="project-card__actions"
+      >
         <GButton
           v-if="!isRunning"
           size="sm"
@@ -123,10 +169,20 @@
         >
           停止
         </GButton>
-        <GButton size="sm" variant="ghost" icon="edit" @click.stop="$emit('edit', project)">
+        <GButton
+          size="sm"
+          variant="ghost"
+          icon="edit"
+          @click.stop="$emit('edit', project)"
+        >
           编辑
         </GButton>
-        <GIconButton name="more-horizontal" size="sm" variant="ghost" @click.stop="$emit('more', project)" />
+        <GIconButton
+          name="more-horizontal"
+          size="sm"
+          variant="ghost"
+          @click.stop="$emit('more', project)"
+        />
       </div>
     </Transition>
   </div>

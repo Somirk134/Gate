@@ -7,21 +7,40 @@
   <div class="server-projects">
     <div class="server-section__head">
       <div class="server-section__title">
-        <GIcon name="package" :size="16" class="server-section__title-icon" />
+        <GIcon
+          name="package"
+          :size="16"
+          class="server-section__title-icon"
+        />
         <span>Project 列表</span>
-        <GBadge variant="neutral" type="soft" size="sm">{{ projects.length }}</GBadge>
+        <GBadge
+          variant="neutral"
+          type="soft"
+          size="sm"
+        >
+          {{ projects.length }}
+        </GBadge>
       </div>
     </div>
 
-    <div v-if="projects.length" class="server-sublist">
+    <div
+      v-if="projects.length"
+      class="server-sublist"
+    >
       <div
         v-for="project in projects"
         :key="project.id"
         class="server-sublist__item"
         @click="$emit('view-project', project)"
       >
-        <span class="server-sublist__icon" :style="{ color: project.color, background: project.color + '1f' }">
-          <GIcon name="package" :size="14" />
+        <span
+          class="server-sublist__icon"
+          :style="{ color: project.color, background: project.color + '1f' }"
+        >
+          <GIcon
+            name="package"
+            :size="14"
+          />
         </span>
         <div class="server-sublist__main">
           <span class="server-sublist__name">{{ project.name }}</span>
@@ -39,13 +58,22 @@
       </div>
     </div>
 
-    <div v-else class="server-logs__empty">
-      <GIcon name="package" :size="20" />
+    <div
+      v-else
+      class="server-logs__empty"
+    >
+      <GIcon
+        name="package"
+        :size="20"
+      />
       <span>该服务器暂无 Project</span>
     </div>
 
     <p class="server-connection__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       展示关联到当前服务器的 Project。全部 Mock 数据，未来从 Project 模块联动。
     </p>
   </div>

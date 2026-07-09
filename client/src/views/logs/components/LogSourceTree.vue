@@ -6,22 +6,43 @@
     </div>
 
     <div class="log-source-tree__nodes">
-      <div v-for="root in sources" :key="root.id" class="log-source-tree__group">
-        <button
-          type="button"
+      <div
+        v-for="root in sources"
+        :key="root.id"
+        class="log-source-tree__group"
+      >
+        <div
           class="log-source-node"
           :class="{ 'log-source-node--active': selected === root.id }"
-          @click="$emit('select', root.id)"
         >
-          <button type="button" class="log-source-node__toggle" @click.stop="expanded = !expanded">
-            <GIcon :name="expanded ? 'chevron-down' : 'chevron-right'" :size="13" />
+          <button
+            type="button"
+            class="log-source-node__toggle"
+            @click.stop="expanded = !expanded"
+          >
+            <GIcon
+              :name="expanded ? 'chevron-down' : 'chevron-right'"
+              :size="13"
+            />
           </button>
-          <GIcon :name="root.icon" :size="15" />
-          <span>{{ root.label }}</span>
-          <strong>{{ total }}</strong>
-        </button>
+          <button
+            type="button"
+            class="log-source-node__label"
+            @click="$emit('select', root.id)"
+          >
+            <GIcon
+              :name="root.icon"
+              :size="15"
+            />
+            <span>{{ root.label }}</span>
+            <strong>{{ total }}</strong>
+          </button>
+        </div>
 
-        <div v-if="expanded" class="log-source-tree__children">
+        <div
+          v-if="expanded"
+          class="log-source-tree__children"
+        >
           <button
             v-for="child in root.children"
             :key="child.id"
@@ -31,7 +52,10 @@
             @click="$emit('select', child.id)"
           >
             <span class="log-source-node__toggle" />
-            <GIcon :name="child.icon" :size="14" />
+            <GIcon
+              :name="child.icon"
+              :size="14"
+            />
             <span>{{ child.label }}</span>
             <em v-if="child.reserved">soon</em>
             <strong>{{ getCount(child.id) }}</strong>

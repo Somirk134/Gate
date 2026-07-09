@@ -9,7 +9,10 @@
     :class="[`tunnel-badge--${protocol}`, `tunnel-badge--${size}`]"
     :style="{ '--badge-color': color }"
   >
-    <GIcon :name="icon" :size="size === 'sm' ? 11 : 13" />
+    <GIcon
+      :name="icon"
+      :size="size === 'sm' ? 11 : 13"
+    />
     <span class="tunnel-badge__label">{{ label }}</span>
   </span>
 </template>

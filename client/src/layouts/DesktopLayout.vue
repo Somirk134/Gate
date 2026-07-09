@@ -1,7 +1,7 @@
 <template>
-    <div class="desktop-layout">
-        <AppShell />
-    </div>
+  <div class="desktop-layout">
+    <AppShell />
+  </div>
 </template>
 
 <script setup lang="ts">

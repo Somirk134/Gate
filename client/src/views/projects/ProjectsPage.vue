@@ -5,10 +5,17 @@
       description="Project 后端持久化与 Runtime 关联尚未接入。为避免展示示例项目，本页暂不显示任何业务数据。"
     >
       <template #icon>
-        <GIcon name="projects" :size="34" />
+        <GIcon
+          name="projects"
+          :size="34"
+        />
       </template>
       <template #action>
-        <GButton variant="primary" icon="router" @click="router.push('/tunnels')">
+        <GButton
+          variant="primary"
+          icon="router"
+          @click="router.push('/tunnels')"
+        >
           查看 Tunnel
         </GButton>
       </template>

@@ -5,14 +5,30 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="project-delete__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="project-delete" @click.stop>
+    <div
+      v-if="visible"
+      class="project-delete__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="project-delete"
+          @click.stop
+        >
           <header class="project-delete__header">
             <span class="project-delete__icon">
-              <GIcon name="alert-triangle" :size="22" />
+              <GIcon
+                name="alert-triangle"
+                :size="22"
+              />
             </span>
-            <h3 class="project-delete__title">删除项目</h3>
+            <h3 class="project-delete__title">
+              删除项目
+            </h3>
           </header>
 
           <div class="project-delete__body">
@@ -40,7 +56,12 @@
           </div>
 
           <footer class="project-delete__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="danger"
               icon="trash"

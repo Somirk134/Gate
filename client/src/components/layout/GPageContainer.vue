@@ -7,7 +7,10 @@
     padded 是否内边距
 -->
 <template>
-  <div class="g-page-container" :class="[`g-page-container--${width}`, { 'g-page-container--padded': padded }]">
+  <div
+    class="g-page-container"
+    :class="[`g-page-container--${width}`, { 'g-page-container--padded': padded }]"
+  >
     <slot />
   </div>
 </template>

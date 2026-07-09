@@ -21,15 +21,27 @@
     @dblclick="$emit('open', tunnel)"
     @contextmenu.prevent="$emit('contextmenu', tunnel, $event)"
   >
-    <span class="tunnel-row__bar" :class="`tunnel-row__bar--${tunnel.status}`" />
+    <span
+      class="tunnel-row__bar"
+      :class="`tunnel-row__bar--${tunnel.status}`"
+    />
 
     <span class="tunnel-row__icon">
-      <GIcon :name="protocolPreset.icon" :size="14" />
+      <GIcon
+        :name="protocolPreset.icon"
+        :size="14"
+      />
     </span>
 
     <div class="tunnel-row__main">
-      <span class="tunnel-row__name" :title="tunnel.name">{{ tunnel.name }}</span>
-      <span class="tunnel-row__addr" :title="tunnel.publicAddr">{{ tunnel.publicAddr }}</span>
+      <span
+        class="tunnel-row__name"
+        :title="tunnel.name"
+      >{{ tunnel.name }}</span>
+      <span
+        class="tunnel-row__addr"
+        :title="tunnel.publicAddr"
+      >{{ tunnel.publicAddr }}</span>
     </div>
 
     <div class="tunnel-row__meta">

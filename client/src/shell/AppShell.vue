@@ -1,31 +1,31 @@
 <template>
-    <div
-        class="app-shell"
-        :class="{
-            'sidebar-collapsed': layout.sidebarCollapsed,
-            'inspector-open': layout.inspectorOpen,
-        }"
-    >
-        <!-- Sidebar -->
-        <AppSidebar />
+  <div
+    class="app-shell"
+    :class="{
+      'sidebar-collapsed': layout.sidebarCollapsed,
+      'inspector-open': layout.inspectorOpen,
+    }"
+  >
+    <!-- Sidebar -->
+    <AppSidebar />
 
-        <!-- Main Area -->
-        <div class="main-area">
-            <AppHeader />
-            <AppContent />
-            <AppStatusBar />
-        </div>
-
-        <!-- Inspector -->
-        <AppInspector v-if="layout.inspectorOpen" />
-
-        <!-- Layers -->
-        <AppCommandPalette v-if="layout.commandPaletteOpen" />
-        <AppNotificationLayer />
-        <AppDialogLayer />
-        <AppLoadingLayer v-if="loading.isLoading" />
-        <AppWelcomeOverlay />
+    <!-- Main Area -->
+    <div class="main-area">
+      <AppHeader />
+      <AppContent />
+      <AppStatusBar />
     </div>
+
+    <!-- Inspector -->
+    <AppInspector v-if="layout.inspectorOpen" />
+
+    <!-- Layers -->
+    <AppCommandPalette v-if="layout.commandPaletteOpen" />
+    <AppNotificationLayer />
+    <AppDialogLayer />
+    <AppLoadingLayer v-if="loading.isLoading" />
+    <AppWelcomeOverlay />
+  </div>
 </template>
 
 <script setup lang="ts">

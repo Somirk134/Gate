@@ -22,7 +22,10 @@
         :title="visible ? '隐藏' : '显示'"
         @click="visible = !visible"
       >
-        <GIcon :name="visible ? 'eye-off' : 'eye'" :size="iconSize" />
+        <GIcon
+          :name="visible ? 'eye-off' : 'eye'"
+          :size="iconSize"
+        />
       </button>
     </template>
   </GInput>

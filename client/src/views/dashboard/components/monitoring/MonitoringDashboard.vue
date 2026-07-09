@@ -5,8 +5,15 @@
         <h1>Monitoring Center</h1>
         <p>Live observability for tunnels, runtime, connections, health, and traffic.</p>
       </div>
-      <button type="button" class="monitoring-dashboard__refresh" @click="refresh">
-        <GIcon name="refresh" :size="14" />
+      <button
+        type="button"
+        class="monitoring-dashboard__refresh"
+        @click="refresh"
+      >
+        <GIcon
+          name="refresh"
+          :size="14"
+        />
         <span>{{ loading ? "Refreshing" : "Refresh" }}</span>
       </button>
     </header>
@@ -19,7 +26,10 @@
     </div>
 
     <div class="monitoring-dashboard__grid monitoring-dashboard__grid--main">
-      <TunnelStatistics :status="dashboard.tunnelStatus" :tunnels="dashboard.tunnels" />
+      <TunnelStatistics
+        :status="dashboard.tunnelStatus"
+        :tunnels="dashboard.tunnels"
+      />
       <ConnectionStatistics
         :connection="dashboard.statistics.connection"
         :trend="dashboard.connectionTrend"
@@ -27,7 +37,10 @@
     </div>
 
     <div class="monitoring-dashboard__grid monitoring-dashboard__grid--side">
-      <DashboardWidget title="System Health" icon="shield-check">
+      <DashboardWidget
+        title="System Health"
+        icon="shield-check"
+      >
         <div class="monitoring-dashboard__health">
           <HealthIndicator
             v-for="signal in dashboard.systemHealth.signals"
@@ -43,9 +56,15 @@
       <SystemStatistics :system="dashboard.statistics.system" />
     </div>
 
-    <DashboardWidget title="Recent Activity" icon="history">
+    <DashboardWidget
+      title="Recent Activity"
+      icon="history"
+    >
       <div class="monitoring-dashboard__activity">
-        <article v-for="activity in dashboard.recentActivity" :key="activity.id">
+        <article
+          v-for="activity in dashboard.recentActivity"
+          :key="activity.id"
+        >
           <span>{{ activity.category }}</span>
           <strong>{{ activity.title }}</strong>
           <small>{{ formatTime(activity.timestamp) }}</small>
@@ -53,7 +72,12 @@
       </div>
     </DashboardWidget>
 
-    <p v-if="error" class="monitoring-dashboard__error">{{ error }}</p>
+    <p
+      v-if="error"
+      class="monitoring-dashboard__error"
+    >
+      {{ error }}
+    </p>
   </div>
 </template>
 

@@ -8,8 +8,14 @@
     size    xs(6) | sm(8) | md(10)
 -->
 <template>
-  <span class="g-status-dot" :class="[`g-status-dot--${status}`, `g-status-dot--${size}`, { 'g-status-dot--pulse': pulse }]">
-    <span v-if="ping" class="g-status-dot__ping" />
+  <span
+    class="g-status-dot"
+    :class="[`g-status-dot--${status}`, `g-status-dot--${size}`, { 'g-status-dot--pulse': pulse }]"
+  >
+    <span
+      v-if="ping"
+      class="g-status-dot__ping"
+    />
   </span>
 </template>
 

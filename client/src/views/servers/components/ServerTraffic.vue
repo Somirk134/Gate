@@ -10,8 +10,14 @@
     <div class="server-traffic-grid">
       <div class="server-traffic-card">
         <div class="server-traffic-card__head">
-          <span class="server-traffic-card__icon" style="background:#22C55E22;color:#22C55E">
-            <GIcon name="arrow-up" :size="16" />
+          <span
+            class="server-traffic-card__icon"
+            style="background:#22C55E22;color:#22C55E"
+          >
+            <GIcon
+              name="arrow-up"
+              :size="16"
+            />
           </span>
           <span class="server-traffic-card__label">上传速度</span>
         </div>
@@ -21,8 +27,14 @@
 
       <div class="server-traffic-card">
         <div class="server-traffic-card__head">
-          <span class="server-traffic-card__icon" style="background:#5B8DEF22;color:#5B8DEF">
-            <GIcon name="arrow-down" :size="16" />
+          <span
+            class="server-traffic-card__icon"
+            style="background:#5B8DEF22;color:#5B8DEF"
+          >
+            <GIcon
+              name="arrow-down"
+              :size="16"
+            />
           </span>
           <span class="server-traffic-card__label">下载速度</span>
         </div>
@@ -32,8 +44,14 @@
 
       <div class="server-traffic-card">
         <div class="server-traffic-card__head">
-          <span class="server-traffic-card__icon" style="background:#7C6FF222;color:#7C6FF2">
-            <GIcon name="cloud-upload" :size="16" />
+          <span
+            class="server-traffic-card__icon"
+            style="background:#7C6FF222;color:#7C6FF2"
+          >
+            <GIcon
+              name="cloud-upload"
+              :size="16"
+            />
           </span>
           <span class="server-traffic-card__label">累计上传</span>
         </div>
@@ -43,8 +61,14 @@
 
       <div class="server-traffic-card">
         <div class="server-traffic-card__head">
-          <span class="server-traffic-card__icon" style="background:#06B6D422;color:#06B6D4">
-            <GIcon name="cloud-download" :size="16" />
+          <span
+            class="server-traffic-card__icon"
+            style="background:#06B6D422;color:#06B6D4"
+          >
+            <GIcon
+              name="cloud-download"
+              :size="16"
+            />
           </span>
           <span class="server-traffic-card__label">累计下载</span>
         </div>
@@ -54,36 +78,105 @@
     </div>
 
     <!-- 历史趋势 -->
-    <div class="server-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="server-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="server-info-card__title">
-        <GIcon name="chart-line" :size="12" />
+        <GIcon
+          name="chart-line"
+          :size="12"
+        />
         流量趋势（最近 12 个采样点）
       </div>
       <div class="server-traffic__chart-wrap">
-        <svg class="server-traffic__chart" viewBox="0 0 600 180" preserveAspectRatio="none">
+        <svg
+          class="server-traffic__chart"
+          viewBox="0 0 600 180"
+          preserveAspectRatio="none"
+        >
           <defs>
-            <linearGradient id="server-traffic-up" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#22C55E" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#22C55E" stop-opacity="0" />
+            <linearGradient
+              id="server-traffic-up"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#22C55E"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#22C55E"
+                stop-opacity="0"
+              />
             </linearGradient>
-            <linearGradient id="server-traffic-down" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#5B8DEF" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#5B8DEF" stop-opacity="0" />
+            <linearGradient
+              id="server-traffic-down"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#5B8DEF"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#5B8DEF"
+                stop-opacity="0"
+              />
             </linearGradient>
           </defs>
-          <line v-for="i in 3" :key="`g-${i}`" x1="0" :x2="600" :y1="i * 45" :y2="i * 45" stroke="var(--color-border-subtle)" stroke-width="1" />
-          <path :d="downArea" fill="url(#server-traffic-down)" />
-          <path :d="downPath" fill="none" stroke="#5B8DEF" stroke-width="2" />
-          <path :d="upArea" fill="url(#server-traffic-up)" />
-          <path :d="upPath" fill="none" stroke="#22C55E" stroke-width="2" />
+          <line
+            v-for="i in 3"
+            :key="`g-${i}`"
+            x1="0"
+            :x2="600"
+            :y1="i * 45"
+            :y2="i * 45"
+            stroke="var(--color-border-subtle)"
+            stroke-width="1"
+          />
+          <path
+            :d="downArea"
+            fill="url(#server-traffic-down)"
+          />
+          <path
+            :d="downPath"
+            fill="none"
+            stroke="#5B8DEF"
+            stroke-width="2"
+          />
+          <path
+            :d="upArea"
+            fill="url(#server-traffic-up)"
+          />
+          <path
+            :d="upPath"
+            fill="none"
+            stroke="#22C55E"
+            stroke-width="2"
+          />
         </svg>
         <div class="server-traffic__legend">
           <span class="server-traffic__legend-item">
-            <span class="server-traffic__legend-dot" style="background:#5B8DEF" />
+            <span
+              class="server-traffic__legend-dot"
+              style="background:#5B8DEF"
+            />
             下载
           </span>
           <span class="server-traffic__legend-item">
-            <span class="server-traffic__legend-dot" style="background:#22C55E" />
+            <span
+              class="server-traffic__legend-dot"
+              style="background:#22C55E"
+            />
             上传
           </span>
         </div>
@@ -91,9 +184,15 @@
     </div>
 
     <!-- 周期统计 -->
-    <div class="server-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="server-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="server-info-card__title">
-        <GIcon name="calendar" :size="12" />
+        <GIcon
+          name="calendar"
+          :size="12"
+        />
         周期统计
       </div>
       <div class="server-conn-table">
@@ -104,7 +203,11 @@
           <span class="server-conn-row__cell">合计</span>
           <span class="server-conn-row__cell">占比</span>
         </div>
-        <div v-for="row in periodRows" :key="row.label" class="server-conn-row">
+        <div
+          v-for="row in periodRows"
+          :key="row.label"
+          class="server-conn-row"
+        >
           <span class="server-conn-row__cell">{{ row.label }}</span>
           <span class="server-conn-row__cell mono">{{ formatBytes(row.upload) }}</span>
           <span class="server-conn-row__cell mono">{{ formatBytes(row.download) }}</span>

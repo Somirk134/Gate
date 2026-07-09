@@ -1,7 +1,7 @@
 ﻿<template>
-    <AppProvider>
-        <router-view />
-    </AppProvider>
+  <AppProvider>
+    <router-view />
+  </AppProvider>
 </template>
 
 <script setup lang="ts">

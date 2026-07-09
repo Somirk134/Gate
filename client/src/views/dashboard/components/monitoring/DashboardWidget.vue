@@ -2,10 +2,17 @@
   <section class="dashboard-widget">
     <header class="dashboard-widget__header">
       <div class="dashboard-widget__title">
-        <GIcon v-if="icon" :name="icon" :size="16" />
+        <GIcon
+          v-if="icon"
+          :name="icon"
+          :size="16"
+        />
         <span>{{ title }}</span>
       </div>
-      <div v-if="$slots.action" class="dashboard-widget__action">
+      <div
+        v-if="$slots.action"
+        class="dashboard-widget__action"
+      >
         <slot name="action" />
       </div>
     </header>

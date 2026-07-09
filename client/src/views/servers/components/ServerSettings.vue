@@ -8,8 +8,13 @@
 <template>
   <div class="server-settings">
     <!-- 名称 -->
-    <GFormField :error="errors.name" required>
-      <template #label>Server Name</template>
+    <GFormField
+      :error="errors.name"
+      required
+    >
+      <template #label>
+        Server Name
+      </template>
       <GInput
         v-model="form.name"
         placeholder="例如：Tokyo Edge"
@@ -22,8 +27,13 @@
 
     <!-- Host / Port -->
     <div class="server-port-row">
-      <GFormField :error="errors.host" required>
-        <template #label>Host</template>
+      <GFormField
+        :error="errors.host"
+        required
+      >
+        <template #label>
+          Host
+        </template>
         <GInput
           v-model="form.host"
           placeholder="IP 或域名"
@@ -32,8 +42,13 @@
           @update:model-value="validateField('host')"
         />
       </GFormField>
-      <GFormField :error="errors.port" required>
-        <template #label>Port</template>
+      <GFormField
+        :error="errors.port"
+        required
+      >
+        <template #label>
+          Port
+        </template>
         <GPortInput
           :model-value="form.port"
           @update:model-value="(v) => { form.port = v; validateField('port') }"
@@ -42,8 +57,13 @@
     </div>
 
     <!-- Token -->
-    <GFormField :error="errors.token" required>
-      <template #label>Token</template>
+    <GFormField
+      :error="errors.token"
+      required
+    >
+      <template #label>
+        Token
+      </template>
       <GInput
         v-model="form.token"
         placeholder="服务器访问令牌"
@@ -67,7 +87,9 @@
 
     <!-- 备注 -->
     <GFormField>
-      <template #label>Remark</template>
+      <template #label>
+        Remark
+      </template>
       <GTextarea
         v-model="form.remark"
         placeholder="内部备注，仅自己可见…"
@@ -80,7 +102,9 @@
     <!-- 心跳间隔 / 重连间隔 -->
     <div class="server-port-row">
       <GFormField :error="errors.heartbeatInterval">
-        <template #label>Heartbeat Interval (秒)</template>
+        <template #label>
+          Heartbeat Interval (秒)
+        </template>
         <GInput
           v-model.number="form.heartbeatInterval"
           type="number"
@@ -90,7 +114,9 @@
         />
       </GFormField>
       <GFormField :error="errors.reconnectInterval">
-        <template #label>Reconnect Interval (秒)</template>
+        <template #label>
+          Reconnect Interval (秒)
+        </template>
         <GInput
           v-model.number="form.reconnectInterval"
           type="number"
@@ -119,7 +145,13 @@
 
     <!-- 保存按钮 -->
     <div class="server-settings__actions">
-      <GButton variant="ghost" icon="refresh" @click="reset">重置</GButton>
+      <GButton
+        variant="ghost"
+        icon="refresh"
+        @click="reset"
+      >
+        重置
+      </GButton>
       <GButton
         variant="primary"
         icon="save"

@@ -15,7 +15,10 @@
       :title="color.label"
       @click="$emit('update:modelValue', color.key)"
     >
-      <span class="project-color-swatch__dot" :style="{ background: color.value }" />
+      <span
+        class="project-color-swatch__dot"
+        :style="{ background: color.value }"
+      />
     </button>
   </div>
 </template>

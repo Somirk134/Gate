@@ -1,5 +1,10 @@
 <template>
-  <select class="setting-control setting-select" :value="String(modelValue)" :disabled="disabled" @change="handleChange">
+  <select
+    class="setting-control setting-select"
+    :value="String(modelValue)"
+    :disabled="disabled"
+    @change="handleChange"
+  >
     <option
       v-for="option in options"
       :key="String(option.value)"

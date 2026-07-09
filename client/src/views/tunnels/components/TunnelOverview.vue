@@ -10,16 +10,25 @@
       <!-- 连接信息 -->
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
-          <GIcon name="link" :size="12" />
+          <GIcon
+            name="link"
+            :size="12"
+          />
           连接信息
         </div>
         <div class="tunnel-info-row">
           <span class="tunnel-info-row__label">状态</span>
-          <TunnelStatus :status="tunnel.status" size="sm" />
+          <TunnelStatus
+            :status="tunnel.status"
+            size="sm"
+          />
         </div>
         <div class="tunnel-info-row">
           <span class="tunnel-info-row__label">协议</span>
-          <TunnelBadge :protocol="tunnel.protocol" size="sm" />
+          <TunnelBadge
+            :protocol="tunnel.protocol"
+            size="sm"
+          />
         </div>
         <div class="tunnel-info-row">
           <span class="tunnel-info-row__label">公网地址</span>
@@ -44,7 +53,10 @@
       <!-- 归属信息 -->
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
-          <GIcon name="package" :size="12" />
+          <GIcon
+            name="package"
+            :size="12"
+          />
           归属信息
         </div>
         <div class="tunnel-info-row">
@@ -58,23 +70,40 @@
         <div class="tunnel-info-row">
           <span class="tunnel-info-row__label">自动启动</span>
           <span class="tunnel-info-row__value">
-            <GIcon :name="tunnel.autoStart ? 'check' : 'close'" :size="12" :class="tunnel.autoStart ? 'on' : 'off'" />
+            <GIcon
+              :name="tunnel.autoStart ? 'check' : 'close'"
+              :size="12"
+              :class="tunnel.autoStart ? 'on' : 'off'"
+            />
             {{ tunnel.autoStart ? "已启用" : "未启用" }}
           </span>
         </div>
         <div class="tunnel-info-row">
           <span class="tunnel-info-row__label">标签</span>
-          <span v-if="tunnel.tags.length" class="tunnel-info-row__value">
-            <TunnelTag v-for="tag in tunnel.tags" :key="tag" :name="tag" />
+          <span
+            v-if="tunnel.tags.length"
+            class="tunnel-info-row__value"
+          >
+            <TunnelTag
+              v-for="tag in tunnel.tags"
+              :key="tag"
+              :name="tag"
+            />
           </span>
-          <span v-else class="tunnel-info-row__value">—</span>
+          <span
+            v-else
+            class="tunnel-info-row__value"
+          >—</span>
         </div>
       </div>
 
       <!-- 时间信息 -->
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
-          <GIcon name="clock" :size="12" />
+          <GIcon
+            name="clock"
+            :size="12"
+          />
           时间信息
         </div>
         <div class="tunnel-info-row">
@@ -96,12 +125,20 @@
       </div>
 
       <!-- 备注 -->
-      <div v-if="tunnel.remark" class="tunnel-info-card">
+      <div
+        v-if="tunnel.remark"
+        class="tunnel-info-card"
+      >
         <div class="tunnel-info-card__title">
-          <GIcon name="file-text" :size="12" />
+          <GIcon
+            name="file-text"
+            :size="12"
+          />
           备注
         </div>
-        <p class="tunnel-overview__remark">{{ tunnel.remark }}</p>
+        <p class="tunnel-overview__remark">
+          {{ tunnel.remark }}
+        </p>
       </div>
     </div>
   </div>

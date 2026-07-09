@@ -50,14 +50,36 @@
         :tooltip="paused ? '已暂停滚动' : '点击暂停滚动'"
         @click="paused = !paused"
       />
-      <GIconButton name="download" size="sm" variant="ghost" tooltip="导出日志（预留）" @click="$emit('export')" />
-      <GIconButton name="trash" size="sm" variant="ghost" tooltip="清空" @click="$emit('clear')" />
+      <GIconButton
+        name="download"
+        size="sm"
+        variant="ghost"
+        tooltip="导出日志（预留）"
+        @click="$emit('export')"
+      />
+      <GIconButton
+        name="trash"
+        size="sm"
+        variant="ghost"
+        tooltip="清空"
+        @click="$emit('clear')"
+      />
     </div>
 
     <!-- 日志体 -->
-    <div ref="bodyRef" class="tunnel-logs__body" @scroll="onScroll">
-      <div v-if="filteredLogs.length === 0" class="tunnel-logs__empty">
-        <GIcon name="file-text" :size="20" />
+    <div
+      ref="bodyRef"
+      class="tunnel-logs__body"
+      @scroll="onScroll"
+    >
+      <div
+        v-if="filteredLogs.length === 0"
+        class="tunnel-logs__empty"
+      >
+        <GIcon
+          name="file-text"
+          :size="20"
+        />
         <span>无匹配日志</span>
       </div>
       <div
@@ -66,7 +88,10 @@
         class="tunnel-log-line"
       >
         <span class="tunnel-log-line__time">{{ formatLogTime(log.timestamp) }}</span>
-        <span class="tunnel-log-line__level" :class="`tunnel-log-line__level--${log.level}`">
+        <span
+          class="tunnel-log-line__level"
+          :class="`tunnel-log-line__level--${log.level}`"
+        >
           {{ log.level }}
         </span>
         <span class="tunnel-log-line__source">[{{ log.source }}]</span>
@@ -77,12 +102,24 @@
     <!-- 状态栏 -->
     <div class="tunnel-logs__statusbar">
       <span>{{ filteredLogs.length }} / {{ tunnel.logs.length }} 条</span>
-      <span v-if="paused" class="tunnel-logs__paused">
-        <GIcon name="pause" :size="10" />
+      <span
+        v-if="paused"
+        class="tunnel-logs__paused"
+      >
+        <GIcon
+          name="pause"
+          :size="10"
+        />
         已暂停
       </span>
-      <span v-else class="tunnel-logs__live">
-        <GIcon name="circle" :size="8" />
+      <span
+        v-else
+        class="tunnel-logs__live"
+      >
+        <GIcon
+          name="circle"
+          :size="8"
+        />
         实时
       </span>
     </div>

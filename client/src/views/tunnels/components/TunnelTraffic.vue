@@ -8,8 +8,14 @@
     <div class="tunnel-traffic-grid">
       <div class="tunnel-traffic-card">
         <div class="tunnel-traffic-card__head">
-          <span class="tunnel-traffic-card__icon" style="background:#22C55E22;color:#22C55E">
-            <GIcon name="arrow-up" :size="16" />
+          <span
+            class="tunnel-traffic-card__icon"
+            style="background:#22C55E22;color:#22C55E"
+          >
+            <GIcon
+              name="arrow-up"
+              :size="16"
+            />
           </span>
           <span class="tunnel-traffic-card__label">上传速度</span>
         </div>
@@ -19,8 +25,14 @@
 
       <div class="tunnel-traffic-card">
         <div class="tunnel-traffic-card__head">
-          <span class="tunnel-traffic-card__icon" style="background:#5B8DEF22;color:#5B8DEF">
-            <GIcon name="arrow-down" :size="16" />
+          <span
+            class="tunnel-traffic-card__icon"
+            style="background:#5B8DEF22;color:#5B8DEF"
+          >
+            <GIcon
+              name="arrow-down"
+              :size="16"
+            />
           </span>
           <span class="tunnel-traffic-card__label">下载速度</span>
         </div>
@@ -30,8 +42,14 @@
 
       <div class="tunnel-traffic-card">
         <div class="tunnel-traffic-card__head">
-          <span class="tunnel-traffic-card__icon" style="background:#7C6FF222;color:#7C6FF2">
-            <GIcon name="cloud-upload" :size="16" />
+          <span
+            class="tunnel-traffic-card__icon"
+            style="background:#7C6FF222;color:#7C6FF2"
+          >
+            <GIcon
+              name="cloud-upload"
+              :size="16"
+            />
           </span>
           <span class="tunnel-traffic-card__label">累计上传</span>
         </div>
@@ -41,8 +59,14 @@
 
       <div class="tunnel-traffic-card">
         <div class="tunnel-traffic-card__head">
-          <span class="tunnel-traffic-card__icon" style="background:#06B6D422;color:#06B6D4">
-            <GIcon name="cloud-download" :size="16" />
+          <span
+            class="tunnel-traffic-card__icon"
+            style="background:#06B6D422;color:#06B6D4"
+          >
+            <GIcon
+              name="cloud-download"
+              :size="16"
+            />
           </span>
           <span class="tunnel-traffic-card__label">累计下载</span>
         </div>
@@ -52,39 +76,108 @@
     </div>
 
     <!-- 历史趋势 -->
-    <div class="tunnel-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="tunnel-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="tunnel-info-card__title">
-        <GIcon name="chart-line" :size="12" />
+        <GIcon
+          name="chart-line"
+          :size="12"
+        />
         流量趋势（最近 12 个采样点）
       </div>
       <div class="tunnel-traffic__chart-wrap">
-        <svg class="tunnel-traffic__chart" viewBox="0 0 600 180" preserveAspectRatio="none">
+        <svg
+          class="tunnel-traffic__chart"
+          viewBox="0 0 600 180"
+          preserveAspectRatio="none"
+        >
           <defs>
-            <linearGradient id="tunnel-traffic-up" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#22C55E" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#22C55E" stop-opacity="0" />
+            <linearGradient
+              id="tunnel-traffic-up"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#22C55E"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#22C55E"
+                stop-opacity="0"
+              />
             </linearGradient>
-            <linearGradient id="tunnel-traffic-down" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#5B8DEF" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#5B8DEF" stop-opacity="0" />
+            <linearGradient
+              id="tunnel-traffic-down"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#5B8DEF"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#5B8DEF"
+                stop-opacity="0"
+              />
             </linearGradient>
           </defs>
 
           <!-- 网格线 -->
-          <line v-for="i in 3" :key="`g-${i}`" x1="0" :x2="600" :y1="i * 45" :y2="i * 45" stroke="var(--color-border-subtle)" stroke-width="1" />
+          <line
+            v-for="i in 3"
+            :key="`g-${i}`"
+            x1="0"
+            :x2="600"
+            :y1="i * 45"
+            :y2="i * 45"
+            stroke="var(--color-border-subtle)"
+            stroke-width="1"
+          />
 
-          <path :d="downArea" fill="url(#tunnel-traffic-down)" />
-          <path :d="downPath" fill="none" stroke="#5B8DEF" stroke-width="2" />
-          <path :d="upArea" fill="url(#tunnel-traffic-up)" />
-          <path :d="upPath" fill="none" stroke="#22C55E" stroke-width="2" />
+          <path
+            :d="downArea"
+            fill="url(#tunnel-traffic-down)"
+          />
+          <path
+            :d="downPath"
+            fill="none"
+            stroke="#5B8DEF"
+            stroke-width="2"
+          />
+          <path
+            :d="upArea"
+            fill="url(#tunnel-traffic-up)"
+          />
+          <path
+            :d="upPath"
+            fill="none"
+            stroke="#22C55E"
+            stroke-width="2"
+          />
         </svg>
         <div class="tunnel-traffic__legend">
           <span class="tunnel-traffic__legend-item">
-            <span class="tunnel-traffic__legend-dot" style="background:#5B8DEF" />
+            <span
+              class="tunnel-traffic__legend-dot"
+              style="background:#5B8DEF"
+            />
             下载
           </span>
           <span class="tunnel-traffic__legend-item">
-            <span class="tunnel-traffic__legend-dot" style="background:#22C55E" />
+            <span
+              class="tunnel-traffic__legend-dot"
+              style="background:#22C55E"
+            />
             上传
           </span>
         </div>
@@ -92,9 +185,15 @@
     </div>
 
     <!-- History 表 -->
-    <div class="tunnel-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="tunnel-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="tunnel-info-card__title">
-        <GIcon name="history" :size="12" />
+        <GIcon
+          name="history"
+          :size="12"
+        />
         历史采样（Mock）
       </div>
       <div class="tunnel-conn-table">
@@ -105,7 +204,11 @@
           <span class="tunnel-conn-row__cell">合计</span>
           <span class="tunnel-conn-row__cell">趋势</span>
         </div>
-        <div v-for="(p, i) in tunnel.traffic.history" :key="i" class="tunnel-conn-row">
+        <div
+          v-for="(p, i) in tunnel.traffic.history"
+          :key="i"
+          class="tunnel-conn-row"
+        >
           <span class="tunnel-conn-row__cell mono">{{ p.time }}</span>
           <span class="tunnel-conn-row__cell mono">{{ formatSpeed(p.upload) }}</span>
           <span class="tunnel-conn-row__cell mono">{{ formatSpeed(p.download) }}</span>

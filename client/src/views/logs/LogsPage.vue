@@ -1,13 +1,22 @@
 <template>
-  <div class="logs-page" @click="closeContextMenu">
+  <div
+    class="logs-page"
+    @click="closeContextMenu"
+  >
     <LogLoading v-if="isLoading" />
 
-    <GCard v-else-if="isError" variant="plain" padding="lg" class="logs-page__error">
+    <GCard
+      v-else-if="isError"
+      variant="plain"
+      padding="lg"
+      class="logs-page__error"
+    >
       <GErrorState
         title="Log loading failed"
         :message="error || 'Unable to read runtime logs.'"
         retry
-        @retry="refresh" />
+        @retry="refresh"
+      />
     </GCard>
 
     <template v-else>
@@ -34,17 +43,22 @@
         @clear="clear"
         @export="exportDialogVisible = true"
         @copy-all="copyAll"
-        @refresh="refresh" />
+        @refresh="refresh"
+      />
 
       <LogStatistics :statistics="filteredStatistics" />
 
-      <div v-if="hasLogs" class="logs-workspace">
+      <div
+        v-if="hasLogs"
+        class="logs-workspace"
+      >
         <LogSourceTree
           :sources="sourceTree"
           :selected="selectedSource"
           :counts="sourceCounts"
           :total="logs.length"
-          @select="selectSource" />
+          @select="selectSource"
+        />
 
         <LogConsole
           ref="consoleRef"
@@ -54,7 +68,8 @@
           :group-by="filter.groupBy"
           :auto-scroll="autoScroll && !paused"
           @select="selectLog"
-          @contextmenu-log="openContextMenu" />
+          @contextmenu-log="openContextMenu"
+        />
 
         <LogInspector :log="selectedLog" />
       </div>
@@ -67,14 +82,16 @@
         :paused="paused"
         :auto-scroll="autoScroll"
         :dropped="droppedCount"
-        :selected="selectedLog?.id" />
+        :selected="selectedLog?.id"
+      />
     </template>
 
     <LogExportDialog
       :visible="exportDialogVisible"
       :count="filteredLogs.length"
       @close="exportDialogVisible = false"
-      @export="handleExport" />
+      @export="handleExport"
+    />
 
     <LogContextMenu
       :visible="contextMenu.visible"
@@ -86,7 +103,8 @@
       @details="focusContextLog"
       @delete="deleteContextLog"
       @clear="clear"
-      @export="exportDialogVisible = true" />
+      @export="exportDialogVisible = true"
+    />
   </div>
 </template>
 

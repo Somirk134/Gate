@@ -12,27 +12,54 @@
     <div class="tunnel-card__bar" />
     <div class="tunnel-card__body">
       <div class="tunnel-card__top">
-        <span class="tunnel-card__status" :class="`tunnel-card__status--${tunnel.status}`">
+        <span
+          class="tunnel-card__status"
+          :class="`tunnel-card__status--${tunnel.status}`"
+        >
           <span class="tunnel-card__dot" />
           {{ statusLabel }}
         </span>
-        <GIconButton name="more-horizontal" size="sm" variant="ghost" @click.stop />
+        <GIconButton
+          name="more-horizontal"
+          size="sm"
+          variant="ghost"
+          @click.stop
+        />
       </div>
-      <h3 class="tunnel-card__name">{{ tunnel.name }}</h3>
+      <h3 class="tunnel-card__name">
+        {{ tunnel.name }}
+      </h3>
       <div class="tunnel-card__protocol">
-        <GBadge variant="primary" type="soft" size="sm">{{ tunnel.protocol.toUpperCase() }}</GBadge>
+        <GBadge
+          variant="primary"
+          type="soft"
+          size="sm"
+        >
+          {{ tunnel.protocol.toUpperCase() }}
+        </GBadge>
         <span class="tunnel-card__addr">{{ tunnel.localAddr }} → {{ tunnel.remoteAddr }}</span>
       </div>
-      <div class="tunnel-card__public">{{ tunnel.publicAddr }}</div>
+      <div class="tunnel-card__public">
+        {{ tunnel.publicAddr }}
+      </div>
       <div class="tunnel-card__metrics">
         <span class="tunnel-card__metric">
-          <GIcon name="arrow-down" :size="11" /> {{ tunnel.downSpeed }}
+          <GIcon
+            name="arrow-down"
+            :size="11"
+          /> {{ tunnel.downSpeed }}
         </span>
         <span class="tunnel-card__metric">
-          <GIcon name="arrow-up" :size="11" /> {{ tunnel.upSpeed }}
+          <GIcon
+            name="arrow-up"
+            :size="11"
+          /> {{ tunnel.upSpeed }}
         </span>
         <span class="tunnel-card__metric">
-          <GIcon name="link" :size="11" /> {{ tunnel.connections }}
+          <GIcon
+            name="link"
+            :size="11"
+          /> {{ tunnel.connections }}
         </span>
       </div>
     </div>

@@ -15,7 +15,10 @@
     />
 
     <div class="settings-header__actions">
-      <span v-if="modifiedCount" class="settings-header__modified">{{ modifiedCount }} 项已修改</span>
+      <span
+        v-if="modifiedCount"
+        class="settings-header__modified"
+      >{{ modifiedCount }} 项已修改</span>
       <GButton
         size="sm"
         variant="ghost"

@@ -14,27 +14,53 @@
     <div class="setting-item__body">
       <div class="setting-item__title">
         <span>
-          <template v-for="(part, index) in labelParts" :key="`${index}-${part.text}-${part.highlighted}`">
+          <template
+            v-for="(part, index) in labelParts"
+            :key="`${index}-${part.text}-${part.highlighted}`"
+          >
             <mark v-if="part.highlighted">{{ part.text }}</mark>
             <template v-else>{{ part.text }}</template>
           </template>
         </span>
-        <span v-if="modified" class="setting-item__dot" aria-label="已修改" />
-        <span v-if="item.restartRequired" class="setting-badge setting-badge--warning">需重启</span>
-        <span v-if="item.status === 'reserved'" class="setting-badge">预留</span>
+        <span
+          v-if="modified"
+          class="setting-item__dot"
+          aria-label="已修改"
+        />
+        <span
+          v-if="item.restartRequired"
+          class="setting-badge setting-badge--warning"
+        >需重启</span>
+        <span
+          v-if="item.status === 'reserved'"
+          class="setting-badge"
+        >预留</span>
       </div>
 
       <p class="setting-item__description">
-        <template v-for="(part, index) in descriptionParts" :key="`${index}-${part.text}-${part.highlighted}`">
+        <template
+          v-for="(part, index) in descriptionParts"
+          :key="`${index}-${part.text}-${part.highlighted}`"
+        >
           <mark v-if="part.highlighted">{{ part.text }}</mark>
-          <template v-else>{{ part.text }}</template>
+          <template v-else>
+            {{ part.text }}
+          </template>
         </template>
       </p>
 
-      <p v-if="error" class="setting-item__error">{{ error }}</p>
+      <p
+        v-if="error"
+        class="setting-item__error"
+      >
+        {{ error }}
+      </p>
     </div>
 
-    <div class="setting-item__control" @click.stop>
+    <div
+      class="setting-item__control"
+      @click.stop
+    >
       <SettingSwitch
         v-if="control.type === 'switch'"
         :model-value="booleanValue"
@@ -59,7 +85,10 @@
         @update:model-value="emitValue"
       />
 
-      <label v-else-if="control.type === 'number'" class="setting-number">
+      <label
+        v-else-if="control.type === 'number'"
+        class="setting-number"
+      >
         <input
           class="setting-control setting-number__input"
           type="number"
@@ -69,11 +98,17 @@
           :step="numberStep"
           :disabled="disabled"
           @input="handleNumberInput"
-        />
-        <span v-if="controlUnit" class="setting-number__unit">{{ controlUnit }}</span>
+        >
+        <span
+          v-if="controlUnit"
+          class="setting-number__unit"
+        >{{ controlUnit }}</span>
       </label>
 
-      <div v-else-if="control.type === 'slider'" class="setting-slider">
+      <div
+        v-else-if="control.type === 'slider'"
+        class="setting-slider"
+      >
         <input
           type="range"
           :value="numberValue"
@@ -82,16 +117,27 @@
           :step="numberStep"
           :disabled="disabled"
           @input="handleNumberInput"
-        />
+        >
         <span>{{ numberValue }}{{ controlUnit }}</span>
       </div>
 
-      <label v-else-if="control.type === 'checkbox'" class="setting-checkbox">
-        <input type="checkbox" :checked="booleanValue" :disabled="disabled" @change="handleCheckboxChange" />
+      <label
+        v-else-if="control.type === 'checkbox'"
+        class="setting-checkbox"
+      >
+        <input
+          type="checkbox"
+          :checked="booleanValue"
+          :disabled="disabled"
+          @change="handleCheckboxChange"
+        >
         <span />
       </label>
 
-      <div v-else-if="control.type === 'radio'" class="setting-radio">
+      <div
+        v-else-if="control.type === 'radio'"
+        class="setting-radio"
+      >
         <button
           v-for="option in radioOptions"
           :key="String(option.value)"
@@ -104,7 +150,10 @@
         </button>
       </div>
 
-      <div v-else-if="control.type === 'color'" class="setting-color">
+      <div
+        v-else-if="control.type === 'color'"
+        class="setting-color"
+      >
         <button
           v-for="swatch in colorSwatches"
           :key="swatch"
@@ -116,14 +165,36 @@
         />
       </div>
 
-      <div v-else-if="control.type === 'folder'" class="setting-folder">
+      <div
+        v-else-if="control.type === 'folder'"
+        class="setting-folder"
+      >
         <span>{{ stringValue || folderPlaceholder }}</span>
-        <GButton size="sm" icon="projects" :disabled="folderDisabled">浏览</GButton>
+        <GButton
+          size="sm"
+          icon="projects"
+          :disabled="folderDisabled"
+        >
+          浏览
+        </GButton>
       </div>
 
-      <div v-else-if="control.type === 'shortcut'" class="setting-shortcut">
-        <kbd v-for="segment in shortcutSegments" :key="segment">{{ segment }}</kbd>
-        <GButton size="sm" variant="ghost" icon="edit" disabled>编辑</GButton>
+      <div
+        v-else-if="control.type === 'shortcut'"
+        class="setting-shortcut"
+      >
+        <kbd
+          v-for="segment in shortcutSegments"
+          :key="segment"
+        >{{ segment }}</kbd>
+        <GButton
+          size="sm"
+          variant="ghost"
+          icon="edit"
+          disabled
+        >
+          编辑
+        </GButton>
       </div>
 
       <div
@@ -134,7 +205,10 @@
         {{ valueLabel }}
       </div>
 
-      <div v-else-if="control.type === 'action'" class="setting-actions">
+      <div
+        v-else-if="control.type === 'action'"
+        class="setting-actions"
+      >
         <GButton
           v-for="action in actions"
           :key="action.id"

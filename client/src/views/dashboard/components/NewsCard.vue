@@ -5,14 +5,21 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard variant="plain" padding="none" class="news-card">
+    <GCard
+      variant="plain"
+      padding="none"
+      class="news-card"
+    >
       <template #header>
         <GSectionHeader icon="sparkles">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div v-if="news.length" class="news__list">
+      <div
+        v-if="news.length"
+        class="news__list"
+      >
         <button
           v-for="(item, i) in news"
           :key="item.id"
@@ -20,24 +27,44 @@
           :class="`stagger-${(i % 6) + 1}`"
           @click="$emit('open', item)"
         >
-          <span class="news__icon" :class="`news__icon--${item.type}`">
-            <GIcon :name="newsIcon(item.type)" :size="14" />
+          <span
+            class="news__icon"
+            :class="`news__icon--${item.type}`"
+          >
+            <GIcon
+              :name="newsIcon(item.type)"
+              :size="14"
+            />
           </span>
           <div class="news__body">
             <div class="news__title-row">
               <span class="news__title">{{ item.title }}</span>
-              <GBadge v-if="item.version" variant="primary" type="soft" size="sm">
+              <GBadge
+                v-if="item.version"
+                variant="primary"
+                type="soft"
+                size="sm"
+              >
                 {{ item.version }}
               </GBadge>
             </div>
-            <p class="news__summary">{{ item.summary }}</p>
+            <p class="news__summary">
+              {{ item.summary }}
+            </p>
             <span class="news__date">{{ item.date }}</span>
           </div>
-          <GIcon name="chevron-right" :size="14" class="news__arrow" />
+          <GIcon
+            name="chevron-right"
+            :size="14"
+            class="news__arrow"
+          />
         </button>
       </div>
 
-      <GEmptyState v-else title="暂无资讯" />
+      <GEmptyState
+        v-else
+        title="暂无资讯"
+      />
     </GCard>
   </section>
 </template>

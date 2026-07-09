@@ -1,7 +1,14 @@
 <template>
-  <DashboardWidget title="System Statistics" icon="cpu">
+  <DashboardWidget
+    title="System Statistics"
+    icon="cpu"
+  >
     <div class="system-statistics">
-      <div v-for="item in items" :key="item.label" class="system-statistics__meter">
+      <div
+        v-for="item in items"
+        :key="item.label"
+        class="system-statistics__meter"
+      >
         <div class="system-statistics__meter-head">
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}</strong>

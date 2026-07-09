@@ -1,9 +1,14 @@
 <template>
-  <section :id="`settings-group-${group.id}`" class="setting-group">
+  <section
+    :id="`settings-group-${group.id}`"
+    class="setting-group"
+  >
     <header class="setting-group__header">
       <div>
         <h3>{{ group.label }}</h3>
-        <p v-if="group.description">{{ group.description }}</p>
+        <p v-if="group.description">
+          {{ group.description }}
+        </p>
       </div>
       <span>{{ group.items.length }}</span>
     </header>

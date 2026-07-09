@@ -8,21 +8,45 @@
   <div class="tunnel-connection">
     <div class="tunnel-section__head">
       <div class="tunnel-section__title">
-        <GIcon name="link" :size="16" class="tunnel-section__title-icon" />
+        <GIcon
+          name="link"
+          :size="16"
+          class="tunnel-section__title-icon"
+        />
         <span>当前连接</span>
-        <GBadge variant="primary" type="soft" size="sm">{{ tunnel.connections.length }}</GBadge>
+        <GBadge
+          variant="primary"
+          type="soft"
+          size="sm"
+        >
+          {{ tunnel.connections.length }}
+        </GBadge>
       </div>
-      <GButton size="sm" variant="ghost" icon="refresh" @click="$emit('refresh')">
+      <GButton
+        size="sm"
+        variant="ghost"
+        icon="refresh"
+        @click="$emit('refresh')"
+      >
         刷新
       </GButton>
     </div>
 
-    <div v-if="tunnel.connections.length === 0" class="tunnel-connection__empty">
-      <GIcon name="wifi-off" :size="28" />
+    <div
+      v-if="tunnel.connections.length === 0"
+      class="tunnel-connection__empty"
+    >
+      <GIcon
+        name="wifi-off"
+        :size="28"
+      />
       <span>暂无活动连接</span>
     </div>
 
-    <div v-else class="tunnel-conn-table">
+    <div
+      v-else
+      class="tunnel-conn-table"
+    >
       <div class="tunnel-conn-row tunnel-conn-row--head">
         <span class="tunnel-conn-row__cell">Client IP</span>
         <span class="tunnel-conn-row__cell">Region</span>
@@ -30,25 +54,41 @@
         <span class="tunnel-conn-row__cell">Protocol</span>
         <span class="tunnel-conn-row__cell">Status</span>
       </div>
-      <div v-for="conn in tunnel.connections" :key="conn.id" class="tunnel-conn-row">
+      <div
+        v-for="conn in tunnel.connections"
+        :key="conn.id"
+        class="tunnel-conn-row"
+      >
         <span class="tunnel-conn-row__cell mono">{{ conn.clientIp }}</span>
         <span class="tunnel-conn-row__cell">
-          <GIcon name="globe" :size="11" />
+          <GIcon
+            name="globe"
+            :size="11"
+          />
           {{ conn.region }}
         </span>
         <span class="tunnel-conn-row__cell mono">{{ formatDuration(conn.duration) }}</span>
         <span class="tunnel-conn-row__cell">
-          <TunnelBadge :protocol="conn.protocol" size="sm" />
+          <TunnelBadge
+            :protocol="conn.protocol"
+            size="sm"
+          />
         </span>
         <span class="tunnel-conn-row__cell">
-          <GStatusDot :status="connStatus(conn.status)" size="xs" />
+          <GStatusDot
+            :status="connStatus(conn.status)"
+            size="xs"
+          />
           <span :style="{ color: connColor(conn.status) }">{{ connLabel(conn.status) }}</span>
         </span>
       </div>
     </div>
 
     <p class="tunnel-connection__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       当前为 Mock 数据。未来将支持实时连接监控。
     </p>
   </div>

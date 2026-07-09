@@ -7,19 +7,36 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon name="servers" :size="16" class="dashboard-section__title-icon" />
+        <GIcon
+          name="servers"
+          :size="16"
+          class="dashboard-section__title-icon"
+        />
         <span>{{ title }}</span>
-        <GBadge variant="info" type="soft" size="sm">
+        <GBadge
+          variant="info"
+          type="soft"
+          size="sm"
+        >
           {{ connectedCount }} / {{ servers.length }}
         </GBadge>
       </div>
-      <button class="dashboard-section__more" @click="$emit('viewAll')">
+      <button
+        class="dashboard-section__more"
+        @click="$emit('viewAll')"
+      >
         管理
-        <GIcon name="chevron-right" :size="12" />
+        <GIcon
+          name="chevron-right"
+          :size="12"
+        />
       </button>
     </div>
 
-    <div v-if="servers.length" class="dashboard-grid--servers">
+    <div
+      v-if="servers.length"
+      class="dashboard-grid--servers"
+    >
       <GCard
         v-for="(server, i) in servers"
         :key="server.id"
@@ -29,17 +46,29 @@
         :class="`stagger-${(i % 6) + 1}`"
       >
         <div class="server-status__head">
-          <span class="server-status__icon" :class="`server-status__icon--${server.status}`">
-            <GIcon name="server" :size="18" />
+          <span
+            class="server-status__icon"
+            :class="`server-status__icon--${server.status}`"
+          >
+            <GIcon
+              name="server"
+              :size="18"
+            />
           </span>
           <div class="server-status__title-wrap">
             <span class="server-status__name">{{ server.name }}</span>
             <span class="server-status__region">
-              <GIcon name="globe" :size="11" />
+              <GIcon
+                name="globe"
+                :size="11"
+              />
               {{ server.region }}
             </span>
           </div>
-          <GStatusBadge :status="server.status" size="sm" />
+          <GStatusBadge
+            :status="server.status"
+            size="sm"
+          />
         </div>
 
         <div class="server-status__info">
@@ -53,65 +82,113 @@
           </div>
           <div class="server-status__info-item">
             <span class="server-status__info-label">Ping</span>
-            <span class="server-status__info-value" :class="pingClass(server.ping)">
+            <span
+              class="server-status__info-value"
+              :class="pingClass(server.ping)"
+            >
               {{ server.status === "online" ? `${server.ping}ms` : "—" }}
             </span>
           </div>
         </div>
 
-        <div v-if="server.status === 'online'" class="server-status__resources">
+        <div
+          v-if="server.status === 'online'"
+          class="server-status__resources"
+        >
           <div class="server-status__resource">
             <div class="server-status__resource-head">
               <span class="server-status__resource-label">
-                <GIcon name="cpu" :size="11" /> CPU
+                <GIcon
+                  name="cpu"
+                  :size="11"
+                /> CPU
               </span>
               <span class="server-status__resource-value">{{ server.cpu }}%</span>
             </div>
-            <GProgress :value="server.cpu" :variant="resourceVariant(server.cpu)" size="sm" />
+            <GProgress
+              :value="server.cpu"
+              :variant="resourceVariant(server.cpu)"
+              size="sm"
+            />
           </div>
           <div class="server-status__resource">
             <div class="server-status__resource-head">
               <span class="server-status__resource-label">
-                <GIcon name="memory-stick" :size="11" /> 内存
+                <GIcon
+                  name="memory-stick"
+                  :size="11"
+                /> 内存
               </span>
               <span class="server-status__resource-value">{{ server.memory }}%</span>
             </div>
-            <GProgress :value="server.memory" :variant="resourceVariant(server.memory)" size="sm" />
+            <GProgress
+              :value="server.memory"
+              :variant="resourceVariant(server.memory)"
+              size="sm"
+            />
           </div>
           <div class="server-status__resource">
             <div class="server-status__resource-head">
               <span class="server-status__resource-label">
-                <GIcon name="hard-drive" :size="11" /> 磁盘
+                <GIcon
+                  name="hard-drive"
+                  :size="11"
+                /> 磁盘
               </span>
               <span class="server-status__resource-value">{{ server.disk }}%</span>
             </div>
-            <GProgress :value="server.disk" :variant="resourceVariant(server.disk)" size="sm" />
+            <GProgress
+              :value="server.disk"
+              :variant="resourceVariant(server.disk)"
+              size="sm"
+            />
           </div>
           <div class="server-status__resource">
             <div class="server-status__resource-head">
               <span class="server-status__resource-label">
-                <GIcon name="network" :size="11" /> 网络
+                <GIcon
+                  name="network"
+                  :size="11"
+                /> 网络
               </span>
               <span class="server-status__resource-value">{{ server.network }}%</span>
             </div>
-            <GProgress :value="server.network" :variant="resourceVariant(server.network)" size="sm" />
+            <GProgress
+              :value="server.network"
+              :variant="resourceVariant(server.network)"
+              size="sm"
+            />
           </div>
         </div>
 
-        <div v-else class="server-status__offline-resources">
-          <GIcon name="wifi-off" :size="14" />
+        <div
+          v-else
+          class="server-status__offline-resources"
+        >
+          <GIcon
+            name="wifi-off"
+            :size="14"
+          />
           <span>服务器未连接，资源数据不可用</span>
         </div>
       </GCard>
     </div>
 
-    <GCard v-else variant="plain" padding="lg">
+    <GCard
+      v-else
+      variant="plain"
+      padding="lg"
+    >
       <GEmptyState
         title="尚未连接服务器"
         description="添加 Gate 服务器以开始创建隧道。"
       >
         <template #action>
-          <GButton variant="primary" icon="plus" @click="$emit('addServer')">
+          <GButton
+            variant="primary"
+            icon="plus"
+            @click="$emit('addServer')"
+          >
             添加服务器
           </GButton>
         </template>

@@ -12,8 +12,15 @@
   内置 status → {label, pulse} 映射，业务可直接传 status。
 -->
 <template>
-  <span class="g-status-badge" :class="[`g-status-badge--${size}`]">
-    <GStatusDot :status="dotStatus" :pulse="needsPulse" :size="size === 'sm' ? 'xs' : 'sm'" />
+  <span
+    class="g-status-badge"
+    :class="[`g-status-badge--${size}`]"
+  >
+    <GStatusDot
+      :status="dotStatus"
+      :pulse="needsPulse"
+      :size="size === 'sm' ? 'xs' : 'sm'"
+    />
     <span class="g-status-badge__text">{{ displayLabel }}</span>
   </span>
 </template>

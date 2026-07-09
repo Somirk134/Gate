@@ -1,7 +1,10 @@
 <template>
   <div class="log-empty">
     <div class="log-empty__icon">
-      <GIcon name="terminal" :size="44" />
+      <GIcon
+        name="terminal"
+        :size="44"
+      />
     </div>
     <h2>Log Center</h2>
     <p>

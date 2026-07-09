@@ -8,14 +8,30 @@
   <section class="project-stat-section">
     <div class="project-section__head">
       <div class="project-section__title">
-        <GIcon name="chart-bar" :size="16" class="project-section__title-icon" />
+        <GIcon
+          name="chart-bar"
+          :size="16"
+          class="project-section__title-icon"
+        />
         <span>统计概览</span>
       </div>
     </div>
     <div class="project-stat-grid">
-      <GCard v-for="item in stats" :key="item.label" variant="plain" padding="md" class="stat-card">
-        <div class="stat-card__icon" :style="{ color: item.color, background: item.color + '1f' }">
-          <GIcon :name="item.icon" :size="18" />
+      <GCard
+        v-for="item in stats"
+        :key="item.label"
+        variant="plain"
+        padding="md"
+        class="stat-card"
+      >
+        <div
+          class="stat-card__icon"
+          :style="{ color: item.color, background: item.color + '1f' }"
+        >
+          <GIcon
+            :name="item.icon"
+            :size="18"
+          />
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">{{ item.value }}</span>

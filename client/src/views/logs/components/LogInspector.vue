@@ -6,43 +6,76 @@
           <span class="log-inspector__eyebrow">{{ log.source }} / {{ log.module }}</span>
           <h2>{{ log.level }}</h2>
         </div>
-        <button type="button" class="log-inspector__level" :class="`is-${log.level.toLowerCase()}`">
+        <button
+          type="button"
+          class="log-inspector__level"
+          :class="`is-${log.level.toLowerCase()}`"
+        >
           {{ log.level }}
         </button>
       </header>
 
-      <div class="log-inspector__message">{{ log.message }}</div>
+      <div class="log-inspector__message">
+        {{ log.message }}
+      </div>
 
       <div class="log-inspector__tabs">
-        <button v-for="tab in tabs" :key="tab" type="button" :class="{ active: activeTab === tab }" @click="activeTab = tab">
+        <button
+          v-for="tab in tabs"
+          :key="tab"
+          type="button"
+          :class="{ active: activeTab === tab }"
+          @click="activeTab = tab"
+        >
           {{ tab }}
         </button>
       </div>
 
-      <section v-if="activeTab === 'Context'" class="log-inspector__section">
+      <section
+        v-if="activeTab === 'Context'"
+        class="log-inspector__section"
+      >
         <dl>
-          <template v-for="item in contextItems" :key="item.label">
+          <template
+            v-for="item in contextItems"
+            :key="item.label"
+          >
             <dt>{{ item.label }}</dt>
             <dd>{{ item.value }}</dd>
           </template>
         </dl>
       </section>
 
-      <section v-else-if="activeTab === 'Metadata'" class="log-inspector__section">
+      <section
+        v-else-if="activeTab === 'Metadata'"
+        class="log-inspector__section"
+      >
         <pre>{{ JSON.stringify(log.metadata, null, 2) }}</pre>
       </section>
 
-      <section v-else-if="activeTab === 'Stack'" class="log-inspector__section">
+      <section
+        v-else-if="activeTab === 'Stack'"
+        class="log-inspector__section"
+      >
         <pre>{{ stackText }}</pre>
       </section>
 
-      <section v-else class="log-inspector__section">
+      <section
+        v-else
+        class="log-inspector__section"
+      >
         <pre>{{ log.raw }}</pre>
       </section>
     </template>
 
-    <div v-else class="log-inspector__empty">
-      <GIcon name="panel-right-open" :size="28" />
+    <div
+      v-else
+      class="log-inspector__empty"
+    >
+      <GIcon
+        name="panel-right-open"
+        :size="28"
+      />
       <span>Select a log line to inspect details</span>
     </div>
   </aside>

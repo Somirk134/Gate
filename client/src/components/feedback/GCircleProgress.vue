@@ -5,8 +5,15 @@
   Props: value(0-100) / size(像素) / stroke / variant / showLabel
 -->
 <template>
-  <div class="g-circle-progress" :style="{ width: `${size}px`, height: `${size}px` }">
-    <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
+  <div
+    class="g-circle-progress"
+    :style="{ width: `${size}px`, height: `${size}px` }"
+  >
+    <svg
+      :width="size"
+      :height="size"
+      :viewBox="`0 0 ${size} ${size}`"
+    >
       <circle
         class="g-circle-progress__track"
         :cx="size / 2"
@@ -29,7 +36,10 @@
         :transform="`rotate(-90 ${size / 2} ${size / 2})`"
       />
     </svg>
-    <span v-if="showLabel" class="g-circle-progress__label">
+    <span
+      v-if="showLabel"
+      class="g-circle-progress__label"
+    >
       {{ Math.round(clamp(value)) }}%
     </span>
   </div>

@@ -1,19 +1,32 @@
 <template>
-  <DashboardWidget title="Tunnel List" icon="router">
+  <DashboardWidget
+    title="Tunnel List"
+    icon="router"
+  >
     <div class="tunnel-statistics">
       <div class="tunnel-statistics__summary">
-        <span v-for="bucket in status" :key="bucket.label">
+        <span
+          v-for="bucket in status"
+          :key="bucket.label"
+        >
           <strong>{{ bucket.count }}</strong>
           {{ bucket.label }}
         </span>
       </div>
       <div class="tunnel-statistics__list">
-        <article v-for="tunnel in tunnels" :key="tunnel.id" class="tunnel-statistics__item">
+        <article
+          v-for="tunnel in tunnels"
+          :key="tunnel.id"
+          class="tunnel-statistics__item"
+        >
           <div>
             <strong>{{ tunnel.name }}</strong>
             <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.connections }} conn</small>
           </div>
-          <span class="tunnel-statistics__status" :class="`is-${tunnel.status}`">
+          <span
+            class="tunnel-statistics__status"
+            :class="`is-${tunnel.status}`"
+          >
             {{ tunnel.status }}
           </span>
           <div class="tunnel-statistics__speed">

@@ -6,18 +6,31 @@
 -->
 <template>
   <div class="project-sort">
-    <GIconButton name="arrow-up-down" size="sm" tooltip="切换排序方向" @click="toggleDirection" />
+    <GIconButton
+      name="arrow-up-down"
+      size="sm"
+      tooltip="切换排序方向"
+      @click="toggleDirection"
+    />
     <div class="project-sort__select-wrap">
       <select
         :value="modelValue"
         class="project-sort__select"
         @change="onChange"
       >
-        <option v-for="item in items" :key="item.key" :value="item.key">
+        <option
+          v-for="item in items"
+          :key="item.key"
+          :value="item.key"
+        >
           {{ item.label }}
         </option>
       </select>
-      <GIcon name="chevron-down" :size="12" class="project-sort__chevron" />
+      <GIcon
+        name="chevron-down"
+        :size="12"
+        class="project-sort__chevron"
+      />
     </div>
   </div>
 </template>

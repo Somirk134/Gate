@@ -10,8 +10,14 @@
     showLabel 是否显示百分比文字
 -->
 <template>
-  <div class="g-progress" :class="[`g-progress--${size}`]">
-    <div v-if="showLabel" class="g-progress__label">
+  <div
+    class="g-progress"
+    :class="[`g-progress--${size}`]"
+  >
+    <div
+      v-if="showLabel"
+      class="g-progress__label"
+    >
       <span>{{ label ?? `${Math.round(value)}%` }}</span>
     </div>
     <div class="g-progress__track">

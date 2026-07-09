@@ -1,50 +1,72 @@
 <template>
-    <div class="command-palette-overlay" @click.self="close">
-        <div class="command-palette">
-            <div class="command-palette-input">
-                <GIcon name="search" :size="16" />
-                <input
-                    ref="inputRef"
-                    v-model="query"
-                    type="text"
-                    placeholder="Type a command or search..."
-                    @keydown.down.prevent="selectNext"
-                    @keydown.up.prevent="selectPrev"
-                    @keydown.enter.prevent="executeSelected"
-                    @keydown.esc.prevent="close"
-                />
-                <span class="shortcut-hint">ESC</span>
-            </div>
+  <div
+    class="command-palette-overlay"
+    @click.self="close"
+  >
+    <div class="command-palette">
+      <div class="command-palette-input">
+        <GIcon
+          name="search"
+          :size="16"
+        />
+        <input
+          ref="inputRef"
+          v-model="query"
+          type="text"
+          placeholder="Type a command or search..."
+          @keydown.down.prevent="selectNext"
+          @keydown.up.prevent="selectPrev"
+          @keydown.enter.prevent="executeSelected"
+          @keydown.esc.prevent="close"
+        >
+        <span class="shortcut-hint">ESC</span>
+      </div>
 
-            <div class="command-palette-results">
-                <div v-if="filteredCommands.length === 0" class="no-results">
-                    <GIcon name="search" size="lg" />
-                    <p>No commands found</p>
-                </div>
-
-                <div
-                    v-for="(cmd, i) in filteredCommands"
-                    :key="cmd.id"
-                    class="command-item"
-                    :class="{ selected: i === selectedIndex }"
-                    @click="executeCommand(cmd.id)"
-                    @mouseenter="selectedIndex = i"
-                >
-                    <div class="command-icon">
-                        <GIcon :name="cmd.icon || 'circle'" :size="16" />
-                    </div>
-                    <div class="command-info">
-                        <div class="command-title">{{ cmd.title }}</div>
-                        <div class="command-subtitle">{{ cmd.subtitle }}</div>
-                    </div>
-                    <div class="command-meta">
-                        <span v-if="cmd.shortcut" class="command-shortcut">{{ cmd.shortcut }}</span>
-                        <span class="command-category">{{ cmd.category }}</span>
-                    </div>
-                </div>
-            </div>
+      <div class="command-palette-results">
+        <div
+          v-if="filteredCommands.length === 0"
+          class="no-results"
+        >
+          <GIcon
+            name="search"
+            size="lg"
+          />
+          <p>No commands found</p>
         </div>
+
+        <div
+          v-for="(cmd, i) in filteredCommands"
+          :key="cmd.id"
+          class="command-item"
+          :class="{ selected: i === selectedIndex }"
+          @click="executeCommand(cmd.id)"
+          @mouseenter="selectedIndex = i"
+        >
+          <div class="command-icon">
+            <GIcon
+              :name="cmd.icon || 'circle'"
+              :size="16"
+            />
+          </div>
+          <div class="command-info">
+            <div class="command-title">
+              {{ cmd.title }}
+            </div>
+            <div class="command-subtitle">
+              {{ cmd.subtitle }}
+            </div>
+          </div>
+          <div class="command-meta">
+            <span
+              v-if="cmd.shortcut"
+              class="command-shortcut"
+            >{{ cmd.shortcut }}</span>
+            <span class="command-category">{{ cmd.category }}</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">

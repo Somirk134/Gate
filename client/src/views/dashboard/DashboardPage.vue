@@ -1,18 +1,33 @@
 <template>
-  <section class="dashboard-page" :aria-label="t('dashboard.ariaLabel')">
+  <section
+    class="dashboard-page"
+    :aria-label="t('dashboard.ariaLabel')"
+  >
     <header class="dashboard-hero">
       <div class="dashboard-hero__status">
-        <span class="status-orb" :class="`is-${connectionTone}`" />
+        <span
+          class="status-orb"
+          :class="`is-${connectionTone}`"
+        />
         <div>
           <p>{{ connectionLabel }}</p>
           <h1>{{ t('dashboard.heroTitle', { status: connectionStatusText }) }}</h1>
         </div>
       </div>
       <div class="dashboard-hero__actions">
-        <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
+        <GButton
+          variant="secondary"
+          icon="refresh"
+          :loading="loading"
+          @click="refresh"
+        >
           刷新
         </GButton>
-        <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="router.push('/tunnels?create=1')"
+        >
           创建 Tunnel
         </GButton>
       </div>
@@ -20,7 +35,10 @@
 
     <div class="dashboard-overview">
       <article class="metric-card metric-card--wide">
-        <span class="metric-card__icon is-success"><GIcon name="wifi" :size="18" /></span>
+        <span class="metric-card__icon is-success"><GIcon
+          name="wifi"
+          :size="18"
+        /></span>
         <div>
           <p>{{ t('dashboard.currentConnections') }}</p>
           <strong>{{ dashboard.statistics.connection.currentConnection }}</strong>
@@ -29,18 +47,22 @@
       </article>
 
       <article class="metric-card">
-        <span class="metric-card__icon"><GIcon name="router" :size="18" /></span>
+        <span class="metric-card__icon"><GIcon
+          name="router"
+          :size="18"
+        /></span>
         <div>
           <p>{{ t('dashboard.tunnelLabel') }}</p>
-          <strong
-            >{{ dashboard.overview.runningTunnel }} / {{ dashboard.overview.tunnelCount }}</strong
-          >
+          <strong>{{ dashboard.overview.runningTunnel }} / {{ dashboard.overview.tunnelCount }}</strong>
           <small>{{ t('dashboard.runningTotal') }}</small>
         </div>
       </article>
 
       <article class="metric-card">
-        <span class="metric-card__icon is-info"><GIcon name="download" :size="18" /></span>
+        <span class="metric-card__icon is-info"><GIcon
+          name="download"
+          :size="18"
+        /></span>
         <div>
           <p>{{ t('dashboard.todayTraffic') }}</p>
           <strong>{{ formatBytes(dashboard.overview.todayTraffic) }}</strong>
@@ -49,19 +71,23 @@
       </article>
 
       <article class="metric-card">
-        <span class="metric-card__icon is-warning"><GIcon name="zap" :size="18" /></span>
+        <span class="metric-card__icon is-warning"><GIcon
+          name="zap"
+          :size="18"
+        /></span>
         <div>
           <p>{{ t('dashboard.realtimeSpeed') }}</p>
           <strong>{{ formatSpeed(totalSpeed) }}</strong>
-          <small
-            >↓ {{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }} · ↑
-            {{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</small
-          >
+          <small>↓ {{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }} · ↑
+            {{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</small>
         </div>
       </article>
 
       <article class="metric-card">
-        <span class="metric-card__icon is-purple"><GIcon name="clock" :size="18" /></span>
+        <span class="metric-card__icon is-purple"><GIcon
+          name="clock"
+          :size="18"
+        /></span>
         <div>
           <p>{{ t('dashboard.uptime') }}</p>
           <strong>{{ formatDuration(dashboard.overview.runtimeUptimeSeconds) }}</strong>
@@ -77,10 +103,17 @@
             <p>{{ t('dashboard.serverStatusKicker') }}</p>
             <h2>{{ t('dashboard.serverStatus') }}</h2>
           </div>
-          <GIcon name="servers" :size="18" />
+          <GIcon
+            name="servers"
+            :size="18"
+          />
         </div>
         <div class="server-strip">
-          <article v-for="server in serverCards" :key="server.label" class="server-pill">
+          <article
+            v-for="server in serverCards"
+            :key="server.label"
+            class="server-pill"
+          >
             <span :class="`is-${server.tone}`" />
             <div>
               <strong>{{ server.count }}</strong>
@@ -91,7 +124,10 @@
         <div class="health-row">
           <span>{{ t('dashboard.healthScore') }}</span>
           <strong>{{ Math.round(dashboard.overview.healthScore) }}%</strong>
-          <div class="health-meter" aria-hidden="true">
+          <div
+            class="health-meter"
+            aria-hidden="true"
+          >
             <i :style="{ width: `${Math.round(dashboard.overview.healthScore)}%` }" />
           </div>
         </div>
@@ -103,30 +139,37 @@
             <p>{{ t('dashboard.realtimeSpeedKicker') }}</p>
             <h2>{{ t('dashboard.realtimeSpeed') }}</h2>
           </div>
-          <GIcon name="chart-line" :size="18" />
+          <GIcon
+            name="chart-line"
+            :size="18"
+          />
         </div>
         <div
           v-if="sparkline.length"
           class="speed-sparkline"
-          :aria-label="t('dashboard.realtimeSpeedTrend')">
+          :aria-label="t('dashboard.realtimeSpeedTrend')"
+        >
           <span
             v-for="(point, index) in sparkline"
             :key="`${point.timestamp}-${index}`"
-            :style="{ height: `${point.height}%` }" />
+            :style="{ height: `${point.height}%` }"
+          />
         </div>
-        <div v-else class="mini-empty">
-          <GIcon name="chart-line" :size="22" />
+        <div
+          v-else
+          class="mini-empty"
+        >
+          <GIcon
+            name="chart-line"
+            :size="22"
+          />
           <span>{{ t('dashboard.noData') }}</span>
         </div>
         <div class="speed-row">
-          <span
-            >{{ t('dashboard.download') }}
-            <strong>{{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }}</strong></span
-          >
-          <span
-            >{{ t('dashboard.upload') }}
-            <strong>{{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</strong></span
-          >
+          <span>{{ t('dashboard.download') }}
+            <strong>{{ formatSpeed(dashboard.statistics.traffic.downloadSpeedBps) }}</strong></span>
+          <span>{{ t('dashboard.upload') }}
+            <strong>{{ formatSpeed(dashboard.statistics.traffic.uploadSpeedBps) }}</strong></span>
         </div>
       </section>
 
@@ -136,19 +179,39 @@
             <p>{{ t('dashboard.recentLogsKicker') }}</p>
             <h2>{{ t('dashboard.recentLogs') }}</h2>
           </div>
-          <button class="panel-link" type="button" @click="router.push('/logs')">
-            <GIcon name="arrow-right" :size="14" />
+          <button
+            class="panel-link"
+            type="button"
+            @click="router.push('/logs')"
+          >
+            <GIcon
+              name="arrow-right"
+              :size="14"
+            />
           </button>
         </div>
-        <div v-if="recentLogs.length" class="recent-log-list">
-          <article v-for="log in recentLogs" :key="log.id" class="recent-log">
+        <div
+          v-if="recentLogs.length"
+          class="recent-log-list"
+        >
+          <article
+            v-for="log in recentLogs"
+            :key="log.id"
+            class="recent-log"
+          >
             <span :class="`is-${log.level.toLowerCase()}`">{{ log.level }}</span>
             <p>{{ log.message }}</p>
             <small>{{ formatClock(log.timestamp) }}</small>
           </article>
         </div>
-        <div v-else class="mini-empty">
-          <GIcon name="logs" :size="22" />
+        <div
+          v-else
+          class="mini-empty"
+        >
+          <GIcon
+            name="logs"
+            :size="22"
+          />
           <span>{{ t('dashboard.noRecentLogs') }}</span>
         </div>
       </section>
@@ -159,7 +222,10 @@
             <p>{{ t('dashboard.versionKicker') }}</p>
             <h2>{{ t('dashboard.versionInfo') }}</h2>
           </div>
-          <GIcon name="sparkles" :size="18" />
+          <GIcon
+            name="sparkles"
+            :size="18"
+          />
         </div>
         <dl class="version-list">
           <div>
@@ -178,7 +244,12 @@
       </section>
     </div>
 
-    <p v-if="error" class="dashboard-error">{{ error }}</p>
+    <p
+      v-if="error"
+      class="dashboard-error"
+    >
+      {{ error }}
+    </p>
   </section>
 </template>
 

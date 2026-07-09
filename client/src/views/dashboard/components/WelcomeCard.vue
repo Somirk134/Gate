@@ -5,7 +5,11 @@
   未来可根据用户名动态显示。
 -->
 <template>
-  <GCard variant="plain" padding="lg" class="welcome-card">
+  <GCard
+    variant="plain"
+    padding="lg"
+    class="welcome-card"
+  >
     <div class="welcome-card__inner">
       <div class="welcome-card__left">
         <div class="welcome-card__greeting">
@@ -14,18 +18,28 @@
           <span class="welcome-card__user">{{ username }}</span>
         </div>
         <div class="welcome-card__time">
-          <GIcon name="clock" :size="14" />
+          <GIcon
+            name="clock"
+            :size="14"
+          />
           <span class="welcome-card__time-text">{{ timeText }}</span>
           <span class="welcome-card__time-date">{{ dateText }}</span>
         </div>
         <div class="welcome-card__quote">
-          <GIcon name="sparkles" :size="14" class="welcome-card__quote-icon" />
+          <GIcon
+            name="sparkles"
+            :size="14"
+            class="welcome-card__quote-icon"
+          />
           <span class="welcome-card__quote-text">{{ quote }}</span>
         </div>
       </div>
       <div class="welcome-card__right">
         <div class="welcome-card__version">
-          <GIcon name="rocket" :size="16" />
+          <GIcon
+            name="rocket"
+            :size="16"
+          />
           <span class="welcome-card__version-label">Gate</span>
           <span class="welcome-card__version-num">{{ version }}</span>
         </div>

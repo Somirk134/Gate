@@ -1,7 +1,16 @@
 <template>
-  <div class="health-indicator" :class="`health-indicator--${status}`">
-    <span class="health-indicator__icon" :title="statusLabel">
-      <GIcon :name="icon" :size="16" />
+  <div
+    class="health-indicator"
+    :class="`health-indicator--${status}`"
+  >
+    <span
+      class="health-indicator__icon"
+      :title="statusLabel"
+    >
+      <GIcon
+        :name="icon"
+        :size="16"
+      />
     </span>
     <span class="health-indicator__main">
       <strong>{{ label }}</strong>

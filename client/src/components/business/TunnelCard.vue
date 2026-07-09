@@ -19,16 +19,36 @@
   复用：GCard / GBadge / GStatusBadge / GIconButton / GIcon
 -->
 <template>
-  <GCard variant="plain" padding="md">
+  <GCard
+    variant="plain"
+    padding="md"
+  >
     <div class="tunnel-card">
       <div class="tunnel-card__head">
-        <GIcon name="link" :size="16" class="tunnel-card__lead" />
+        <GIcon
+          name="link"
+          :size="16"
+          class="tunnel-card__lead"
+        />
         <span class="tunnel-card__name">{{ name }}</span>
-        <GBadge :variant="protocolVariant" type="solid" size="sm" class="tunnel-card__proto">
+        <GBadge
+          :variant="protocolVariant"
+          type="solid"
+          size="sm"
+          class="tunnel-card__proto"
+        >
           {{ protocol.toUpperCase() }}
         </GBadge>
-        <GStatusBadge :status="status" size="sm" class="tunnel-card__status" />
-        <GIconButton name="more-horizontal" size="sm" @click="emit('action', 'menu')" />
+        <GStatusBadge
+          :status="status"
+          size="sm"
+          class="tunnel-card__status"
+        />
+        <GIconButton
+          name="more-horizontal"
+          size="sm"
+          @click="emit('action', 'menu')"
+        />
       </div>
 
       <div class="tunnel-card__route">
@@ -36,19 +56,32 @@
           <span class="tunnel-card__label">本地</span>
           <span class="tunnel-card__addr">127.0.0.1:{{ localPort }}</span>
         </span>
-        <GIcon name="arrow-right" :size="14" class="tunnel-card__arrow" />
+        <GIcon
+          name="arrow-right"
+          :size="14"
+          class="tunnel-card__arrow"
+        />
         <span class="tunnel-card__endpoint">
           <span class="tunnel-card__label">远程</span>
           <span class="tunnel-card__addr">{{ remoteHost }}:{{ remotePort }}</span>
         </span>
       </div>
 
-      <div v-if="traffic" class="tunnel-card__foot">
+      <div
+        v-if="traffic"
+        class="tunnel-card__foot"
+      >
         <span class="tunnel-card__traffic">
-          <GIcon name="arrow-up" :size="11" /> {{ traffic.up }}
+          <GIcon
+            name="arrow-up"
+            :size="11"
+          /> {{ traffic.up }}
         </span>
         <span class="tunnel-card__traffic">
-          <GIcon name="arrow-down" :size="11" /> {{ traffic.down }}
+          <GIcon
+            name="arrow-down"
+            :size="11"
+          /> {{ traffic.down }}
         </span>
       </div>
     </div>

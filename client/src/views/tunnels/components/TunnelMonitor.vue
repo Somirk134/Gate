@@ -10,8 +10,14 @@
     <!-- 顶部实时指标 -->
     <div class="tunnel-stat-grid">
       <div class="tunnel-stat-card">
-        <div class="tunnel-stat-card__icon" style="color:#22C55E;background:#22C55E1f">
-          <GIcon name="arrow-up" :size="18" />
+        <div
+          class="tunnel-stat-card__icon"
+          style="color:#22C55E;background:#22C55E1f"
+        >
+          <GIcon
+            name="arrow-up"
+            :size="18"
+          />
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ formatSpeed(tunnel.traffic.uploadSpeed) }}</span>
@@ -19,8 +25,14 @@
         </div>
       </div>
       <div class="tunnel-stat-card">
-        <div class="tunnel-stat-card__icon" style="color:#5B8DEF;background:#5B8DEF1f">
-          <GIcon name="arrow-down" :size="18" />
+        <div
+          class="tunnel-stat-card__icon"
+          style="color:#5B8DEF;background:#5B8DEF1f"
+        >
+          <GIcon
+            name="arrow-down"
+            :size="18"
+          />
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ formatSpeed(tunnel.traffic.downloadSpeed) }}</span>
@@ -28,8 +40,14 @@
         </div>
       </div>
       <div class="tunnel-stat-card">
-        <div class="tunnel-stat-card__icon" style="color:#F59E0B;background:#F59E0B1f">
-          <GIcon name="link" :size="18" />
+        <div
+          class="tunnel-stat-card__icon"
+          style="color:#F59E0B;background:#F59E0B1f"
+        >
+          <GIcon
+            name="link"
+            :size="18"
+          />
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ tunnel.statistics.connections }}</span>
@@ -37,8 +55,14 @@
         </div>
       </div>
       <div class="tunnel-stat-card">
-        <div class="tunnel-stat-card__icon" style="color:#06B6D4;background:#06B6D41f">
-          <GIcon name="gauge" :size="18" />
+        <div
+          class="tunnel-stat-card__icon"
+          style="color:#06B6D4;background:#06B6D41f"
+        >
+          <GIcon
+            name="gauge"
+            :size="18"
+          />
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ tunnel.statistics.avgLatency }}<span class="tunnel-monitor__unit">ms</span></span>
@@ -48,9 +72,15 @@
     </div>
 
     <!-- 实时速度曲线 -->
-    <div class="tunnel-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="tunnel-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="tunnel-info-card__title">
-        <GIcon name="chart-line" :size="12" />
+        <GIcon
+          name="chart-line"
+          :size="12"
+        />
         实时速度（最近 12 个采样点）
         <span class="tunnel-monitor__live">
           <span class="tunnel-monitor__live-dot" />
@@ -58,30 +88,93 @@
         </span>
       </div>
       <div class="tunnel-monitor__chart-wrap">
-        <svg class="tunnel-traffic__chart" viewBox="0 0 600 180" preserveAspectRatio="none">
+        <svg
+          class="tunnel-traffic__chart"
+          viewBox="0 0 600 180"
+          preserveAspectRatio="none"
+        >
           <defs>
-            <linearGradient id="tunnel-monitor-up" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#22C55E" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#22C55E" stop-opacity="0" />
+            <linearGradient
+              id="tunnel-monitor-up"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#22C55E"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#22C55E"
+                stop-opacity="0"
+              />
             </linearGradient>
-            <linearGradient id="tunnel-monitor-down" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#5B8DEF" stop-opacity="0.30" />
-              <stop offset="100%" stop-color="#5B8DEF" stop-opacity="0" />
+            <linearGradient
+              id="tunnel-monitor-down"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0%"
+                stop-color="#5B8DEF"
+                stop-opacity="0.30"
+              />
+              <stop
+                offset="100%"
+                stop-color="#5B8DEF"
+                stop-opacity="0"
+              />
             </linearGradient>
           </defs>
-          <line v-for="i in 3" :key="`mg-${i}`" x1="0" :x2="600" :y1="i * 45" :y2="i * 45" stroke="var(--color-border-subtle)" stroke-width="1" />
-          <path :d="downArea" fill="url(#tunnel-monitor-down)" />
-          <path :d="downPath" fill="none" stroke="#5B8DEF" stroke-width="2" />
-          <path :d="upArea" fill="url(#tunnel-monitor-up)" />
-          <path :d="upPath" fill="none" stroke="#22C55E" stroke-width="2" />
+          <line
+            v-for="i in 3"
+            :key="`mg-${i}`"
+            x1="0"
+            :x2="600"
+            :y1="i * 45"
+            :y2="i * 45"
+            stroke="var(--color-border-subtle)"
+            stroke-width="1"
+          />
+          <path
+            :d="downArea"
+            fill="url(#tunnel-monitor-down)"
+          />
+          <path
+            :d="downPath"
+            fill="none"
+            stroke="#5B8DEF"
+            stroke-width="2"
+          />
+          <path
+            :d="upArea"
+            fill="url(#tunnel-monitor-up)"
+          />
+          <path
+            :d="upPath"
+            fill="none"
+            stroke="#22C55E"
+            stroke-width="2"
+          />
         </svg>
         <div class="tunnel-traffic__legend">
           <span class="tunnel-traffic__legend-item">
-            <span class="tunnel-traffic__legend-dot" style="background:#5B8DEF" />
+            <span
+              class="tunnel-traffic__legend-dot"
+              style="background:#5B8DEF"
+            />
             下载
           </span>
           <span class="tunnel-traffic__legend-item">
-            <span class="tunnel-traffic__legend-dot" style="background:#22C55E" />
+            <span
+              class="tunnel-traffic__legend-dot"
+              style="background:#22C55E"
+            />
             上传
           </span>
         </div>
@@ -89,16 +182,35 @@
     </div>
 
     <!-- 资源占用（预留） -->
-    <div class="tunnel-info-card" style="margin-top: var(--space-4)">
+    <div
+      class="tunnel-info-card"
+      style="margin-top: var(--space-4)"
+    >
       <div class="tunnel-info-card__title">
-        <GIcon name="cpu" :size="12" />
+        <GIcon
+          name="cpu"
+          :size="12"
+        />
         资源占用
-        <GBadge variant="neutral" type="soft" size="sm">预留</GBadge>
+        <GBadge
+          variant="neutral"
+          type="soft"
+          size="sm"
+        >
+          预留
+        </GBadge>
       </div>
       <div class="tunnel-monitor__resource">
-        <div v-for="r in resources" :key="r.label" class="tunnel-monitor__resource-item">
+        <div
+          v-for="r in resources"
+          :key="r.label"
+          class="tunnel-monitor__resource-item"
+        >
           <div class="tunnel-monitor__resource-head">
-            <GIcon :name="r.icon" :size="13" />
+            <GIcon
+              :name="r.icon"
+              :size="13"
+            />
             <span class="tunnel-monitor__resource-label">{{ r.label }}</span>
             <span class="tunnel-monitor__resource-value">{{ r.value }}</span>
           </div>
@@ -113,7 +225,10 @@
     </div>
 
     <p class="tunnel-connection__hint">
-      <GIcon name="info-circle" :size="12" />
+      <GIcon
+        name="info-circle"
+        :size="12"
+      />
       当前为 Mock 实时数据，每秒刷新。未来将接入真实 Tunnel Engine 指标。
     </p>
   </div>

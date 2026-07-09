@@ -1,7 +1,17 @@
 <template>
-  <DashboardWidget title="Realtime Speed" icon="activity">
-    <GEmptyState v-if="!points.length" title="暂无数据" description="暂无实时速度样本。真实流量产生后将在这里显示。" />
-    <div v-else class="realtime-chart">
+  <DashboardWidget
+    title="Realtime Speed"
+    icon="activity"
+  >
+    <GEmptyState
+      v-if="!points.length"
+      title="暂无数据"
+      description="暂无实时速度样本。真实流量产生后将在这里显示。"
+    />
+    <div
+      v-else
+      class="realtime-chart"
+    >
       <div class="realtime-chart__speed">
         <div>
           <span>Upload</span>
@@ -12,10 +22,24 @@
           <strong>{{ formatSpeed(latestDownload) }}</strong>
         </div>
       </div>
-      <svg class="realtime-chart__svg" viewBox="0 0 420 180" role="img" aria-label="Realtime speed">
-        <path class="realtime-chart__grid" d="M24 28H400M24 72H400M24 116H400M24 160H400" />
-        <polyline class="realtime-chart__line realtime-chart__line--upload" :points="uploadPoints" />
-        <polyline class="realtime-chart__line realtime-chart__line--download" :points="downloadPoints" />
+      <svg
+        class="realtime-chart__svg"
+        viewBox="0 0 420 180"
+        role="img"
+        aria-label="Realtime speed"
+      >
+        <path
+          class="realtime-chart__grid"
+          d="M24 28H400M24 72H400M24 116H400M24 160H400"
+        />
+        <polyline
+          class="realtime-chart__line realtime-chart__line--upload"
+          :points="uploadPoints"
+        />
+        <polyline
+          class="realtime-chart__line realtime-chart__line--download"
+          :points="downloadPoints"
+        />
       </svg>
     </div>
   </DashboardWidget>

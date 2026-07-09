@@ -6,14 +6,31 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="project-dialog__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="project-dialog" @click.stop>
+    <div
+      v-if="visible"
+      class="project-dialog__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="project-dialog"
+          @click.stop
+        >
           <!-- 头部 -->
           <header class="project-dialog__header">
             <div class="project-dialog__title-wrap">
-              <span class="project-dialog__icon" :style="previewStyle">
-                <GIcon :name="form.icon" :size="20" />
+              <span
+                class="project-dialog__icon"
+                :style="previewStyle"
+              >
+                <GIcon
+                  :name="form.icon"
+                  :size="20"
+                />
               </span>
               <div>
                 <h3 class="project-dialog__title">
@@ -24,14 +41,24 @@
                 </p>
               </div>
             </div>
-            <GIconButton name="close" variant="ghost" size="sm" @click="handleClose" />
+            <GIconButton
+              name="close"
+              variant="ghost"
+              size="sm"
+              @click="handleClose"
+            />
           </header>
 
           <!-- 主体表单 -->
           <div class="project-dialog__body">
             <!-- 名称 -->
-            <GFormField :error="errors.name" required>
-              <template #label>项目名称</template>
+            <GFormField
+              :error="errors.name"
+              required
+            >
+              <template #label>
+                项目名称
+              </template>
               <GInput
                 v-model="form.name"
                 placeholder="例如：My API Service"
@@ -44,19 +71,25 @@
 
             <!-- 颜色 -->
             <GFormField>
-              <template #label>项目颜色</template>
+              <template #label>
+                项目颜色
+              </template>
               <ProjectColorPicker v-model="form.color" />
             </GFormField>
 
             <!-- 图标 -->
             <GFormField>
-              <template #label>项目图标</template>
+              <template #label>
+                项目图标
+              </template>
               <ProjectIconPicker v-model="form.icon" />
             </GFormField>
 
             <!-- 描述 -->
             <GFormField :error="errors.description">
-              <template #label>描述</template>
+              <template #label>
+                描述
+              </template>
               <GTextarea
                 v-model="form.description"
                 placeholder="简要描述项目用途…"
@@ -69,12 +102,27 @@
 
             <!-- 默认服务器 -->
             <GFormField>
-              <template #label>默认服务器</template>
+              <template #label>
+                默认服务器
+              </template>
               <div class="project-dialog__select-wrap">
-                <select v-model="form.serverName" class="project-dialog__select">
-                  <option v-for="s in serverNames" :key="s" :value="s">{{ s }}</option>
+                <select
+                  v-model="form.serverName"
+                  class="project-dialog__select"
+                >
+                  <option
+                    v-for="s in serverNames"
+                    :key="s"
+                    :value="s"
+                  >
+                    {{ s }}
+                  </option>
                 </select>
-                <GIcon name="chevron-down" :size="14" class="project-dialog__select-chevron" />
+                <GIcon
+                  name="chevron-down"
+                  :size="14"
+                  class="project-dialog__select-chevron"
+                />
               </div>
             </GFormField>
 
@@ -96,7 +144,9 @@
 
             <!-- 标签 -->
             <GFormField>
-              <template #label>标签</template>
+              <template #label>
+                标签
+              </template>
               <div
                 class="project-tag-input"
                 :class="{ 'project-tag-input--focused': tagFocused }"
@@ -116,7 +166,7 @@
                   @blur="onTagBlur"
                   @keydown.enter.prevent="addTag"
                   @keydown.backspace="onBackspace"
-                />
+                >
               </div>
               <div class="project-tag-suggest">
                 <button
@@ -127,7 +177,10 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)"
                 >
-                  <GIcon name="plus" :size="10" />
+                  <GIcon
+                    name="plus"
+                    :size="10"
+                  />
                   {{ tag.name }}
                 </button>
               </div>
@@ -135,7 +188,9 @@
 
             <!-- 备注 -->
             <GFormField>
-              <template #label>备注</template>
+              <template #label>
+                备注
+              </template>
               <GTextarea
                 v-model="form.remark"
                 placeholder="内部备注，仅自己可见…"
@@ -148,7 +203,12 @@
 
           <!-- 底部 -->
           <footer class="project-dialog__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="primary"
               :icon="isEdit ? 'save' : 'plus'"

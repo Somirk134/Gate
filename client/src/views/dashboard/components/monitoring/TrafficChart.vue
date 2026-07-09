@@ -1,15 +1,39 @@
 <template>
-  <DashboardWidget title="Traffic Trend" icon="chart-line">
-    <GEmptyState v-if="!points.length" title="暂无数据" description="暂无流量趋势样本。真实流量产生后将在这里显示。" />
-    <div v-else class="traffic-chart">
+  <DashboardWidget
+    title="Traffic Trend"
+    icon="chart-line"
+  >
+    <GEmptyState
+      v-if="!points.length"
+      title="暂无数据"
+      description="暂无流量趋势样本。真实流量产生后将在这里显示。"
+    />
+    <div
+      v-else
+      class="traffic-chart"
+    >
       <div class="traffic-chart__legend">
         <span><i class="traffic-chart__dot traffic-chart__dot--upload" />Upload</span>
         <span><i class="traffic-chart__dot traffic-chart__dot--download" />Download</span>
       </div>
-      <svg class="traffic-chart__svg" viewBox="0 0 420 180" role="img" aria-label="Traffic trend">
-        <path class="traffic-chart__grid" d="M24 28H400M24 72H400M24 116H400M24 160H400" />
-        <polyline class="traffic-chart__line traffic-chart__line--upload" :points="uploadPoints" />
-        <polyline class="traffic-chart__line traffic-chart__line--download" :points="downloadPoints" />
+      <svg
+        class="traffic-chart__svg"
+        viewBox="0 0 420 180"
+        role="img"
+        aria-label="Traffic trend"
+      >
+        <path
+          class="traffic-chart__grid"
+          d="M24 28H400M24 72H400M24 116H400M24 160H400"
+        />
+        <polyline
+          class="traffic-chart__line traffic-chart__line--upload"
+          :points="uploadPoints"
+        />
+        <polyline
+          class="traffic-chart__line traffic-chart__line--download"
+          :points="downloadPoints"
+        />
       </svg>
       <div class="traffic-chart__summary">
         <span>Today {{ formatBytes(todayUpload + todayDownload) }}</span>

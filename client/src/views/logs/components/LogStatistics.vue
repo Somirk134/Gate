@@ -1,8 +1,21 @@
 <template>
-  <section class="log-statistics" aria-label="Log statistics">
-    <div v-for="item in items" :key="item.label" class="log-stat">
-      <div class="log-stat__icon" :class="item.tone">
-        <GIcon :name="item.icon" :size="15" />
+  <section
+    class="log-statistics"
+    aria-label="Log statistics"
+  >
+    <div
+      v-for="item in items"
+      :key="item.label"
+      class="log-stat"
+    >
+      <div
+        class="log-stat__icon"
+        :class="item.tone"
+      >
+        <GIcon
+          :name="item.icon"
+          :size="15"
+        />
       </div>
       <div class="log-stat__body">
         <span class="log-stat__label">{{ item.label }}</span>

@@ -24,7 +24,10 @@
           class="tunnel-protocol-option__icon"
           :style="{ background: `${p.color}22`, color: p.color }"
         >
-          <GIcon :name="p.icon" :size="14" />
+          <GIcon
+            :name="p.icon"
+            :size="14"
+          />
         </span>
         <span class="tunnel-protocol-option__name">{{ p.label }}</span>
       </span>

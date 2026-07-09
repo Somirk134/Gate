@@ -5,14 +5,21 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard variant="plain" padding="none" class="timeline-card">
+    <GCard
+      variant="plain"
+      padding="none"
+      class="timeline-card"
+    >
       <template #header>
         <GSectionHeader icon="history">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div v-if="activities.length" class="timeline">
+      <div
+        v-if="activities.length"
+        class="timeline"
+      >
         <div
           v-for="(item, i) in groupedActivities"
           :key="item.id"
@@ -20,22 +27,40 @@
           :class="`stagger-${(i % 6) + 1}`"
         >
           <div class="timeline__indicator">
-            <span class="timeline__dot" :class="`timeline__dot--${item.type}`">
-              <GIcon :name="activityIcon(item.type)" :size="11" />
+            <span
+              class="timeline__dot"
+              :class="`timeline__dot--${item.type}`"
+            >
+              <GIcon
+                :name="activityIcon(item.type)"
+                :size="11"
+              />
             </span>
-            <span v-if="i < groupedActivities.length - 1" class="timeline__line" />
+            <span
+              v-if="i < groupedActivities.length - 1"
+              class="timeline__line"
+            />
           </div>
           <div class="timeline__content">
             <div class="timeline__title-row">
               <span class="timeline__title">{{ item.title }}</span>
               <span class="timeline__time">{{ relativeTime(item.timestamp) }}</span>
             </div>
-            <p v-if="item.description" class="timeline__desc">{{ item.description }}</p>
+            <p
+              v-if="item.description"
+              class="timeline__desc"
+            >
+              {{ item.description }}
+            </p>
           </div>
         </div>
       </div>
 
-      <GEmptyState v-else title="暂无活动记录" description="你的操作将在此处显示。" />
+      <GEmptyState
+        v-else
+        title="暂无活动记录"
+        description="你的操作将在此处显示。"
+      />
     </GCard>
   </section>
 </template>

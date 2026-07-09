@@ -1,5 +1,8 @@
 <template>
-  <DashboardWidget title="Connection Statistics" icon="network">
+  <DashboardWidget
+    title="Connection Statistics"
+    icon="network"
+  >
     <div class="connection-statistics">
       <div class="connection-statistics__numbers">
         <span>
@@ -19,9 +22,20 @@
           Reconnect
         </span>
       </div>
-      <svg class="connection-statistics__chart" viewBox="0 0 420 140" role="img" aria-label="Connection trend">
-        <path class="connection-statistics__grid" d="M20 24H400M20 68H400M20 112H400" />
-        <polyline class="connection-statistics__line" :points="trendPoints" />
+      <svg
+        class="connection-statistics__chart"
+        viewBox="0 0 420 140"
+        role="img"
+        aria-label="Connection trend"
+      >
+        <path
+          class="connection-statistics__grid"
+          d="M20 24H400M20 68H400M20 112H400"
+        />
+        <polyline
+          class="connection-statistics__line"
+          :points="trendPoints"
+        />
       </svg>
       <div class="connection-statistics__footer">
         <span>Total {{ connection.totalConnection }}</span>

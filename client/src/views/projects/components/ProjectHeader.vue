@@ -5,24 +5,45 @@
   按钮：启动全部 / 停止全部 / 创建 Tunnel / 编辑 / 更多
 -->
 <template>
-  <div class="project-header" :style="colorVars">
+  <div
+    class="project-header"
+    :style="colorVars"
+  >
     <div class="project-header__top">
       <div class="project-header__left">
-        <GIconButton name="arrow-left" variant="soft" size="md" tooltip="返回项目列表" @click="$emit('back')" />
+        <GIconButton
+          name="arrow-left"
+          variant="soft"
+          size="md"
+          tooltip="返回项目列表"
+          @click="$emit('back')"
+        />
         <span class="project-header__icon">
-          <GIcon :name="project.icon" :size="24" />
+          <GIcon
+            :name="project.icon"
+            :size="24"
+          />
         </span>
         <div class="project-header__info">
           <div class="project-header__title-row">
-            <h1 class="project-header__name">{{ project.name }}</h1>
-            <GStatusBadge :status="statusDotType" :label="statusLabel" size="md" />
+            <h1 class="project-header__name">
+              {{ project.name }}
+            </h1>
+            <GStatusBadge
+              :status="statusDotType"
+              :label="statusLabel"
+              size="md"
+            />
             <button
               class="project-header__quick"
               :class="{ 'project-header__quick--active': project.favorite }"
               title="收藏"
               @click="$emit('toggle-favorite', project.id)"
             >
-              <GIcon :name="project.favorite ? 'star' : 'star-off'" :size="15" />
+              <GIcon
+                :name="project.favorite ? 'star' : 'star-off'"
+                :size="15"
+              />
             </button>
             <button
               class="project-header__quick"
@@ -30,10 +51,15 @@
               title="固定"
               @click="$emit('toggle-pin', project.id)"
             >
-              <GIcon name="pin" :size="15" />
+              <GIcon
+                name="pin"
+                :size="15"
+              />
             </button>
           </div>
-          <p class="project-header__desc">{{ project.description }}</p>
+          <p class="project-header__desc">
+            {{ project.description }}
+          </p>
         </div>
       </div>
 
@@ -54,24 +80,44 @@
         >
           停止全部
         </GButton>
-        <GButton variant="secondary" icon="plus" @click="$emit('create-tunnel')">
+        <GButton
+          variant="secondary"
+          icon="plus"
+          @click="$emit('create-tunnel')"
+        >
           创建 Tunnel
         </GButton>
-        <GButton variant="ghost" icon="edit" @click="$emit('edit')">编辑</GButton>
-        <GIconButton name="more-vertical" variant="soft" @click="$emit('more')" />
+        <GButton
+          variant="ghost"
+          icon="edit"
+          @click="$emit('edit')"
+        >
+          编辑
+        </GButton>
+        <GIconButton
+          name="more-vertical"
+          variant="soft"
+          @click="$emit('more')"
+        />
       </div>
     </div>
 
     <!-- 指标条 -->
     <div class="project-header__metrics">
       <div class="project-header__metric">
-        <GIcon name="servers" :size="13" />
+        <GIcon
+          name="servers"
+          :size="13"
+        />
         <span class="project-header__metric-label">服务器</span>
         <span class="project-header__metric-value">{{ project.serverName }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon name="link" :size="13" />
+        <GIcon
+          name="link"
+          :size="13"
+        />
         <span class="project-header__metric-label">Tunnel</span>
         <span class="project-header__metric-value">{{ project.tunnelCount }}</span>
       </div>
@@ -83,13 +129,19 @@
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon name="cloud" :size="13" />
+        <GIcon
+          name="cloud"
+          :size="13"
+        />
         <span class="project-header__metric-label">今日流量</span>
         <span class="project-header__metric-value">{{ trafficLabel }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon name="clock" :size="13" />
+        <GIcon
+          name="clock"
+          :size="13"
+        />
         <span class="project-header__metric-label">最后启动</span>
         <span class="project-header__metric-value">{{ project.lastStartedAt }}</span>
       </div>

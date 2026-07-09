@@ -25,7 +25,11 @@
         @update:direction="$emit('update:direction', $event)"
       />
 
-      <GButton variant="primary" icon="plus" @click="$emit('create')">
+      <GButton
+        variant="primary"
+        icon="plus"
+        @click="$emit('create')"
+      >
         新建项目
       </GButton>
     </div>

@@ -7,12 +7,22 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon name="projects" :size="16" class="dashboard-section__title-icon" />
+        <GIcon
+          name="projects"
+          :size="16"
+          class="dashboard-section__title-icon"
+        />
         <span>{{ title }}</span>
       </div>
-      <button class="dashboard-section__more" @click="$emit('viewAll')">
+      <button
+        class="dashboard-section__more"
+        @click="$emit('viewAll')"
+      >
         查看全部
-        <GIcon name="chevron-right" :size="12" />
+        <GIcon
+          name="chevron-right"
+          :size="12"
+        />
       </button>
     </div>
 
@@ -29,11 +39,17 @@
       >
         <div class="project-overview__head">
           <span class="project-overview__icon">
-            <GIcon :name="project.icon" :size="18" />
+            <GIcon
+              :name="project.icon"
+              :size="18"
+            />
           </span>
           <div class="project-overview__title-wrap">
             <span class="project-overview__name">{{ project.name }}</span>
-            <GStatusBadge :status="project.status" size="sm" />
+            <GStatusBadge
+              :status="project.status"
+              size="sm"
+            />
           </div>
           <div class="project-overview__actions">
             <button
@@ -42,7 +58,10 @@
               title="收藏"
               @click.stop="$emit('toggleFavorite', project.id)"
             >
-              <GIcon :name="project.favorite ? 'star' : 'star-off'" :size="14" />
+              <GIcon
+                :name="project.favorite ? 'star' : 'star-off'"
+                :size="14"
+              />
             </button>
             <button
               class="project-overview__pin"
@@ -50,24 +69,38 @@
               title="固定"
               @click.stop="$emit('togglePin', project.id)"
             >
-              <GIcon name="pin" :size="14" />
+              <GIcon
+                name="pin"
+                :size="14"
+              />
             </button>
           </div>
         </div>
 
-        <p class="project-overview__desc">{{ project.description }}</p>
+        <p class="project-overview__desc">
+          {{ project.description }}
+        </p>
 
         <div class="project-overview__meta">
           <span class="project-overview__meta-item">
-            <GIcon name="link" :size="12" />
+            <GIcon
+              name="link"
+              :size="12"
+            />
             {{ project.tunnelCount }} 隧道
           </span>
           <span class="project-overview__meta-item project-overview__meta-item--online">
-            <GStatusDot status="online" size="xs" />
+            <GStatusDot
+              status="online"
+              size="xs"
+            />
             {{ project.runningCount }} 运行
           </span>
           <span class="project-overview__meta-item">
-            <GIcon name="clock" :size="12" />
+            <GIcon
+              name="clock"
+              :size="12"
+            />
             {{ project.lastStartedAt }}
           </span>
         </div>

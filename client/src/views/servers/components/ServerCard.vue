@@ -21,15 +21,27 @@
     @dblclick="$emit('open', server)"
     @contextmenu.prevent="$emit('contextmenu', server, $event)"
   >
-    <span class="server-row__bar" :class="`server-row__bar--${server.status}`" />
+    <span
+      class="server-row__bar"
+      :class="`server-row__bar--${server.status}`"
+    />
 
     <span class="server-row__icon">
-      <GIcon :name="kindPreset.icon" :size="14" />
+      <GIcon
+        :name="kindPreset.icon"
+        :size="14"
+      />
     </span>
 
     <div class="server-row__main">
-      <span class="server-row__name" :title="server.name">{{ server.name }}</span>
-      <span class="server-row__addr" :title="server.publicIp">{{ server.publicIp }}</span>
+      <span
+        class="server-row__name"
+        :title="server.name"
+      >{{ server.name }}</span>
+      <span
+        class="server-row__addr"
+        :title="server.publicIp"
+      >{{ server.publicIp }}</span>
     </div>
 
     <div class="server-row__meta">

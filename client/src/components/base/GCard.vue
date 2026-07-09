@@ -26,7 +26,10 @@
     ]"
     :type="clickable ? 'button' : undefined"
   >
-    <header v-if="$slots.header" class="g-card__header">
+    <header
+      v-if="$slots.header"
+      class="g-card__header"
+    >
       <slot name="header" />
     </header>
 
@@ -34,7 +37,10 @@
       <slot />
     </div>
 
-    <footer v-if="$slots.footer" class="g-card__footer">
+    <footer
+      v-if="$slots.footer"
+      class="g-card__footer"
+    >
       <slot name="footer" />
     </footer>
   </component>

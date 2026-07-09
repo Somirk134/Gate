@@ -5,9 +5,18 @@
     :title="collapsed ? item.label : undefined"
     @click="$emit('click')"
   >
-    <span class="nav-icon" v-html="getIcon(item.icon)"></span>
-    <span v-show="!collapsed" class="nav-label">{{ item.label }}</span>
-    <span v-if="item.badge && !collapsed" class="nav-badge">{{ item.badge }}</span>
+    <span
+      class="nav-icon"
+      v-html="getIcon(item.icon)"
+    />
+    <span
+      v-show="!collapsed"
+      class="nav-label"
+    >{{ item.label }}</span>
+    <span
+      v-if="item.badge && !collapsed"
+      class="nav-badge"
+    >{{ item.badge }}</span>
   </button>
 </template>
 

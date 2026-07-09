@@ -7,10 +7,19 @@
         <span>{{ httpTunnels.length }} route(s) · {{ totalRequests }} request(s)</span>
       </div>
       <div class="http-page__actions">
-        <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
+        <GButton
+          variant="secondary"
+          icon="refresh"
+          :loading="loading"
+          @click="refresh"
+        >
           Refresh
         </GButton>
-        <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="router.push('/tunnels?create=1')"
+        >
           Create
         </GButton>
       </div>
@@ -35,15 +44,31 @@
       </article>
     </div>
 
-    <div v-if="!httpTunnels.length" class="http-empty">
-      <GIcon name="globe" :size="32" />
+    <div
+      v-if="!httpTunnels.length"
+      class="http-empty"
+    >
+      <GIcon
+        name="globe"
+        :size="32"
+      />
       <strong>No HTTP tunnels</strong>
       <span>Create a tunnel with protocol HTTP to start routing by Host and Path.</span>
     </div>
 
-    <div v-else class="http-layout">
-      <section class="http-route-list" aria-label="HTTP tunnel routes">
-        <article v-for="tunnel in httpTunnels" :key="tunnel.id" class="http-route">
+    <div
+      v-else
+      class="http-layout"
+    >
+      <section
+        class="http-route-list"
+        aria-label="HTTP tunnel routes"
+      >
+        <article
+          v-for="tunnel in httpTunnels"
+          :key="tunnel.id"
+          class="http-route"
+        >
           <div class="http-route__title">
             <span :class="`is-${statusTone(tunnel.status)}`" />
             <div>
@@ -77,17 +102,30 @@
         </article>
       </section>
 
-      <section class="http-recent" aria-label="Recent HTTP requests">
+      <section
+        class="http-recent"
+        aria-label="Recent HTTP requests"
+      >
         <div class="http-recent__heading">
           <div>
             <p>Recent requests</p>
             <h2>Live log</h2>
           </div>
-          <GIcon name="logs" :size="18" />
+          <GIcon
+            name="logs"
+            :size="18"
+          />
         </div>
 
-        <div v-if="recentRequests.length" class="request-table">
-          <article v-for="request in recentRequests" :key="request.key" class="request-row">
+        <div
+          v-if="recentRequests.length"
+          class="request-table"
+        >
+          <article
+            v-for="request in recentRequests"
+            :key="request.key"
+            class="request-row"
+          >
             <span>{{ request.method }}</span>
             <p>{{ request.host }}{{ request.url }}</p>
             <strong :class="{ failed: request.status >= 400 }">{{ request.status }}</strong>
@@ -95,14 +133,25 @@
           </article>
         </div>
 
-        <div v-else class="http-empty http-empty--compact">
-          <GIcon name="activity" :size="24" />
+        <div
+          v-else
+          class="http-empty http-empty--compact"
+        >
+          <GIcon
+            name="activity"
+            :size="24"
+          />
           <span>Waiting for HTTP traffic</span>
         </div>
       </section>
     </div>
 
-    <p v-if="error" class="http-error">{{ error }}</p>
+    <p
+      v-if="error"
+      class="http-error"
+    >
+      {{ error }}
+    </p>
   </section>
 </template>
 

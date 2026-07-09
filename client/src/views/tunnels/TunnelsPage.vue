@@ -7,56 +7,132 @@
         <span>{{ runningCount }} 个运行中 · {{ tunnels.length }} 个配置 · {{ formatSpeed(totalSpeed) }}</span>
       </div>
       <div class="tunnels-hero__actions">
-        <GButton variant="secondary" icon="globe" @click="router.push('/tunnels/http')">HTTP</GButton>
-        <GButton variant="primary" icon="plus" @click="openCreate">创建 Tunnel</GButton>
+        <GButton
+          variant="secondary"
+          icon="globe"
+          @click="router.push('/tunnels/http')"
+        >
+          HTTP
+        </GButton>
+        <GButton
+          variant="primary"
+          icon="plus"
+          @click="openCreate"
+        >
+          创建 Tunnel
+        </GButton>
       </div>
     </header>
 
-    <TunnelLoading v-if="isLoading" :count="8" />
+    <TunnelLoading
+      v-if="isLoading"
+      :count="8"
+    />
 
-    <GCard v-else-if="isError" variant="plain" padding="lg">
-      <GErrorState title="加载失败" :message="error || '无法加载 Tunnel 列表。'" retry @retry="retry" />
+    <GCard
+      v-else-if="isError"
+      variant="plain"
+      padding="lg"
+    >
+      <GErrorState
+        title="加载失败"
+        :message="error || '无法加载 Tunnel 列表。'"
+        retry
+        @retry="retry"
+      />
     </GCard>
 
-    <div v-else-if="!hasTunnels" class="tunnel-empty-state">
+    <div
+      v-else-if="!hasTunnels"
+      class="tunnel-empty-state"
+    >
       <div class="empty-illustration">
-        <GIcon name="router" :size="34" />
+        <GIcon
+          name="router"
+          :size="34"
+        />
       </div>
       <h2>暂无 Tunnel</h2>
       <p>创建第一个 Tunnel 后，本地服务就能通过公网地址访问。</p>
-      <GButton variant="primary" icon="plus" @click="openCreate">创建第一个 Tunnel</GButton>
+      <GButton
+        variant="primary"
+        icon="plus"
+        @click="openCreate"
+      >
+        创建第一个 Tunnel
+      </GButton>
     </div>
 
     <template v-else>
       <div class="tunnel-toolbar">
         <label class="toolbar-search">
-          <GIcon name="search" :size="15" />
-          <input v-model.trim="query" placeholder="搜索名称、端口、项目或标签" />
+          <GIcon
+            name="search"
+            :size="15"
+          />
+          <input
+            v-model.trim="query"
+            placeholder="搜索名称、端口、项目或标签"
+          >
         </label>
         <select v-model="filter">
-          <option value="all">全部</option>
-          <option value="running">运行中</option>
-          <option value="stopped">已停止</option>
-          <option value="http">HTTP</option>
-          <option value="tcp">TCP</option>
-          <option value="favorite">收藏</option>
-          <option value="recent">最近更新</option>
+          <option value="all">
+            全部
+          </option>
+          <option value="running">
+            运行中
+          </option>
+          <option value="stopped">
+            已停止
+          </option>
+          <option value="http">
+            HTTP
+          </option>
+          <option value="tcp">
+            TCP
+          </option>
+          <option value="favorite">
+            收藏
+          </option>
+          <option value="recent">
+            最近更新
+          </option>
         </select>
         <select v-model="sortBy">
-          <option value="updatedAt">最近更新</option>
-          <option value="name">名称</option>
-          <option value="status">状态</option>
-          <option value="traffic">流量</option>
-          <option value="connections">连接数</option>
+          <option value="updatedAt">
+            最近更新
+          </option>
+          <option value="name">
+            名称
+          </option>
+          <option value="status">
+            状态
+          </option>
+          <option value="traffic">
+            流量
+          </option>
+          <option value="connections">
+            连接数
+          </option>
         </select>
-        <button type="button" class="sort-direction" @click="direction = direction === 'asc' ? 'desc' : 'asc'">
-          <GIcon name="arrow-up-down" :size="15" />
+        <button
+          type="button"
+          class="sort-direction"
+          @click="direction = direction === 'asc' ? 'desc' : 'asc'"
+        >
+          <GIcon
+            name="arrow-up-down"
+            :size="15"
+          />
           {{ direction === "asc" ? "升序" : "降序" }}
         </button>
       </div>
 
       <div class="tunnel-workspace">
-        <aside class="tunnel-list" aria-label="Tunnel list">
+        <aside
+          class="tunnel-list"
+          aria-label="Tunnel list"
+        >
           <div class="tunnel-list__header">
             <strong>{{ finalTunnels.length }} results</strong>
             <span>{{ query ? `for ${query}` : "ready" }}</span>
@@ -70,7 +146,10 @@
             :class="{ active: selectedId === tunnel.id }"
             @click="selectTunnel(tunnel.id)"
           >
-            <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
+            <span
+              class="tunnel-row__status"
+              :class="`is-${statusTone(tunnel.status)}`"
+            />
             <div class="tunnel-row__main">
               <strong>{{ tunnel.name }}</strong>
               <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.localHost }}:{{ tunnel.localPort }}</small>
@@ -81,13 +160,22 @@
             </div>
           </button>
 
-          <div v-if="!finalTunnels.length" class="tunnel-list__empty">
-            <GIcon name="search" :size="24" />
+          <div
+            v-if="!finalTunnels.length"
+            class="tunnel-list__empty"
+          >
+            <GIcon
+              name="search"
+              :size="24"
+            />
             <span>没有匹配的 Tunnel</span>
           </div>
         </aside>
 
-        <main class="tunnel-detail" aria-live="polite">
+        <main
+          class="tunnel-detail"
+          aria-live="polite"
+        >
           <template v-if="selectedTunnel">
             <div class="detail-header">
               <div>
@@ -106,12 +194,34 @@
                 >
                   启动
                 </GButton>
-                <GButton v-else variant="secondary" icon="pause" @click="stopSelected">停止</GButton>
-                <button type="button" class="icon-action" :class="{ active: selectedTunnel.favorite }" @click="toggleFavorite(selectedTunnel.id)">
-                  <GIcon name="star" :size="16" />
+                <GButton
+                  v-else
+                  variant="secondary"
+                  icon="pause"
+                  @click="stopSelected"
+                >
+                  停止
+                </GButton>
+                <button
+                  type="button"
+                  class="icon-action"
+                  :class="{ active: selectedTunnel.favorite }"
+                  @click="toggleFavorite(selectedTunnel.id)"
+                >
+                  <GIcon
+                    name="star"
+                    :size="16"
+                  />
                 </button>
-                <button type="button" class="icon-action" @click="deleteSelected">
-                  <GIcon name="trash" :size="16" />
+                <button
+                  type="button"
+                  class="icon-action"
+                  @click="deleteSelected"
+                >
+                  <GIcon
+                    name="trash"
+                    :size="16"
+                  />
                 </button>
               </div>
             </div>
@@ -141,7 +251,13 @@
                 <strong>{{ testUrl(selectedTunnel) }}</strong>
               </div>
               <div class="test-url-panel__actions">
-                <GButton variant="secondary" icon="copy" @click="copyTestUrl(selectedTunnel)">复制</GButton>
+                <GButton
+                  variant="secondary"
+                  icon="copy"
+                  @click="copyTestUrl(selectedTunnel)"
+                >
+                  复制
+                </GButton>
                 <GButton
                   v-if="canOpenTestUrl(selectedTunnel)"
                   variant="primary"
@@ -157,7 +273,10 @@
               <section class="detail-card">
                 <div class="detail-card__heading">
                   <h3>路径</h3>
-                  <GIcon name="link" :size="16" />
+                  <GIcon
+                    name="link"
+                    :size="16"
+                  />
                 </div>
                 <dl class="path-list">
                   <div><dt>Local</dt><dd>{{ selectedTunnel.localHost }}:{{ selectedTunnel.localPort }}</dd></div>
@@ -170,10 +289,16 @@
               <section class="detail-card">
                 <div class="detail-card__heading">
                   <h3>标签</h3>
-                  <GIcon name="tag" :size="16" />
+                  <GIcon
+                    name="tag"
+                    :size="16"
+                  />
                 </div>
                 <div class="tag-list">
-                  <span v-for="tag in selectedTunnel.tags" :key="tag">{{ tag }}</span>
+                  <span
+                    v-for="tag in selectedTunnel.tags"
+                    :key="tag"
+                  >{{ tag }}</span>
                   <span v-if="!selectedTunnel.tags.length">No tags</span>
                 </div>
               </section>
@@ -182,26 +307,47 @@
             <section class="detail-card detail-card--logs">
               <div class="detail-card__heading">
                 <h3>最近日志</h3>
-                <button type="button" @click="activeLogTunnel = selectedTunnel.id">
-                  <GIcon name="refresh" :size="14" />
+                <button
+                  type="button"
+                  @click="activeLogTunnel = selectedTunnel.id"
+                >
+                  <GIcon
+                    name="refresh"
+                    :size="14"
+                  />
                 </button>
               </div>
               <div class="mini-log-list">
-                <article v-for="log in selectedTunnel.logs.slice(-6).reverse()" :key="log.id">
+                <article
+                  v-for="log in selectedTunnel.logs.slice(-6).reverse()"
+                  :key="log.id"
+                >
                   <span :class="`is-${log.level}`">{{ log.level }}</span>
                   <p>{{ log.message }}</p>
                   <small>{{ formatLogTime(log.timestamp) }}</small>
                 </article>
-                <div v-if="!selectedTunnel.logs.length" class="mini-empty">
-                  <GIcon name="logs" :size="22" />
+                <div
+                  v-if="!selectedTunnel.logs.length"
+                  class="mini-empty"
+                >
+                  <GIcon
+                    name="logs"
+                    :size="22"
+                  />
                   <span>暂无数据</span>
                 </div>
               </div>
             </section>
           </template>
 
-          <div v-else class="tunnel-detail__placeholder">
-            <GIcon name="router" :size="34" />
+          <div
+            v-else
+            class="tunnel-detail__placeholder"
+          >
+            <GIcon
+              name="router"
+              :size="34"
+            />
             <span>选择一个 Tunnel 查看状态和最近日志</span>
           </div>
         </main>

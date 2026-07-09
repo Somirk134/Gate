@@ -5,14 +5,30 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="server-dialog__overlay" @click.self="handleClose">
-      <Transition name="dialog-pop" appear>
-        <div v-if="visible" class="server-delete" @click.stop>
+    <div
+      v-if="visible"
+      class="server-dialog__overlay"
+      @click.self="handleClose"
+    >
+      <Transition
+        name="dialog-pop"
+        appear
+      >
+        <div
+          v-if="visible"
+          class="server-delete"
+          @click.stop
+        >
           <header class="server-delete__header">
             <span class="server-delete__icon">
-              <GIcon name="alert-triangle" :size="22" />
+              <GIcon
+                name="alert-triangle"
+                :size="22"
+              />
             </span>
-            <h3 class="server-delete__title">删除服务器</h3>
+            <h3 class="server-delete__title">
+              删除服务器
+            </h3>
           </header>
 
           <div class="server-delete__body">
@@ -41,7 +57,12 @@
           </div>
 
           <footer class="server-delete__footer">
-            <GButton variant="ghost" @click="handleClose">取消</GButton>
+            <GButton
+              variant="ghost"
+              @click="handleClose"
+            >
+              取消
+            </GButton>
             <GButton
               variant="danger"
               icon="trash"

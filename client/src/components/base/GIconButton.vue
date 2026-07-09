@@ -19,7 +19,11 @@
     type="button"
     @click="handleClick"
   >
-    <GIcon :name="name" :size="iconSize" :disabled="disabled" />
+    <GIcon
+      :name="name"
+      :size="iconSize"
+      :disabled="disabled"
+    />
   </button>
 </template>
 

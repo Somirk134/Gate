@@ -4,10 +4,14 @@
     data-sidebar="active-shell-sidebar"
     :class="{ collapsed: layout.sidebarCollapsed, hovered: layout.sidebarHovered }"
     @mouseenter="layout.hoverSidebar(true)"
-    @mouseleave="layout.hoverSidebar(false)">
+    @mouseleave="layout.hoverSidebar(false)"
+  >
     <!-- Header: Logo -->
     <div class="sidebar-header">
-      <div class="sidebar-logo" @click="layout.toggleSidebar">
+      <div
+        class="sidebar-logo"
+        @click="layout.toggleSidebar"
+      >
         <div class="logo-icon">
           <svg
             viewBox="0 0 24 24"
@@ -15,12 +19,16 @@
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-            stroke-linejoin="round">
+            stroke-linejoin="round"
+          >
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
         </div>
-        <span v-show="!isCollapsed" class="logo-text">Gate</span>
+        <span
+          v-show="!isCollapsed"
+          class="logo-text"
+        >Gate</span>
       </div>
     </div>
 
@@ -32,12 +40,22 @@
         class="nav-item"
         :class="{ active: isActive(item.path) }"
         :data-onboarding-target="item.tourTarget"
-        @click="navigate(item.path)">
+        @click="navigate(item.path)"
+      >
         <div class="nav-icon">
-          <GIcon :name="item.icon" :size="18" />
+          <GIcon
+            :name="item.icon"
+            :size="18"
+          />
         </div>
-        <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
-        <span v-show="!isCollapsed && item.shortcut" class="nav-shortcut">{{ item.shortcut }}</span>
+        <span
+          v-show="!isCollapsed"
+          class="nav-label"
+        >{{ item.label }}</span>
+        <span
+          v-show="!isCollapsed && item.shortcut"
+          class="nav-shortcut"
+        >{{ item.shortcut }}</span>
       </div>
     </nav>
 
@@ -47,20 +65,31 @@
         class="onboarding-link"
         type="button"
         :title="t('common.reopenOnboarding')"
-        @click="openOnboarding">
-        <GIcon name="sparkles" :size="14" />
+        @click="openOnboarding"
+      >
+        <GIcon
+          name="sparkles"
+          :size="14"
+        />
         <span v-show="!isCollapsed">{{ t('common.onboarding') }}</span>
       </button>
-      <div class="version-info" v-show="!isCollapsed">
+      <div
+        v-show="!isCollapsed"
+        class="version-info"
+      >
         <span class="version-text">v{{ version }}</span>
       </div>
       <a
+        v-show="!isCollapsed"
         class="github-link"
         href="https://github.com"
         target="_blank"
         rel="noopener noreferrer"
-        v-show="!isCollapsed">
-        <GIcon name="external-link" :size="14" />
+      >
+        <GIcon
+          name="external-link"
+          :size="14"
+        />
         <span>GitHub</span>
       </a>
     </div>

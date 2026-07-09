@@ -1,10 +1,20 @@
 <template>
-  <DashboardWidget title="Runtime Status" icon="circuit-board">
+  <DashboardWidget
+    title="Runtime Status"
+    icon="circuit-board"
+  >
     <div class="runtime-panel">
-      <div v-for="item in items" :key="item.label" class="runtime-panel__row">
+      <div
+        v-for="item in items"
+        :key="item.label"
+        class="runtime-panel__row"
+      >
         <span>{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
-        <div class="runtime-panel__bar" :aria-label="item.label">
+        <div
+          class="runtime-panel__bar"
+          :aria-label="item.label"
+        >
           <i :style="{ width: `${item.percent}%` }" />
         </div>
       </div>

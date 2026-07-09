@@ -6,10 +6,22 @@
     </div>
 
     <nav class="settings-tree">
-      <div v-for="category in categories" :key="category.id" class="settings-tree__section">
+      <div
+        v-for="category in categories"
+        :key="category.id"
+        class="settings-tree__section"
+      >
         <div class="settings-tree__category">
-          <button class="settings-tree__toggle" type="button" @click="toggle(category.id)">
-            <GIcon name="chevron-right" :size="14" :class="{ expanded: expanded[category.id] }" />
+          <button
+            class="settings-tree__toggle"
+            type="button"
+            @click="toggle(category.id)"
+          >
+            <GIcon
+              name="chevron-right"
+              :size="14"
+              :class="{ expanded: expanded[category.id] }"
+            />
           </button>
           <button
             class="settings-tree__node"
@@ -17,14 +29,20 @@
             :class="{ active: activeCategoryId === category.id && !activeGroupId }"
             @click="emit('select-category', category.id)"
           >
-            <GIcon :name="category.icon" :size="15" />
+            <GIcon
+              :name="category.icon"
+              :size="15"
+            />
             <span>{{ category.label }}</span>
             <strong>{{ countCategoryItems(category) }}</strong>
           </button>
         </div>
 
         <transition name="settings-collapse">
-          <div v-if="expanded[category.id]" class="settings-tree__children">
+          <div
+            v-if="expanded[category.id]"
+            class="settings-tree__children"
+          >
             <button
               v-for="group in category.groups"
               :key="group.id"

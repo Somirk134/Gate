@@ -16,7 +16,10 @@
       type="button"
       @click.stop="$emit('remove', name)"
     >
-      <GIcon name="close" :size="10" />
+      <GIcon
+        name="close"
+        :size="10"
+      />
     </button>
   </span>
 </template>

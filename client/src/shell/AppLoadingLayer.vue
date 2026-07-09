@@ -1,22 +1,31 @@
 <template>
-    <div class="loading-layer">
-        <div class="loading-backdrop" />
-        <div class="loading-content">
-            <div class="loading-spinner">
-                <GIcon name="loader" :size="24" spin />
-            </div>
-            <div class="loading-message">{{ loading.globalMessage || 'Loading...' }}</div>
-            <div v-if="loading.currentTask?.progress !== undefined" class="loading-progress">
-                <div class="progress-track">
-                    <div
-                        class="progress-fill"
-                        :style="{ width: (loading.currentTask.progress * 100) + '%' }"
-                    />
-                </div>
-                <span class="progress-text">{{ Math.round(loading.currentTask.progress * 100) }}%</span>
-            </div>
+  <div class="loading-layer">
+    <div class="loading-backdrop" />
+    <div class="loading-content">
+      <div class="loading-spinner">
+        <GIcon
+          name="loader"
+          :size="24"
+          spin
+        />
+      </div>
+      <div class="loading-message">
+        {{ loading.globalMessage || 'Loading...' }}
+      </div>
+      <div
+        v-if="loading.currentTask?.progress !== undefined"
+        class="loading-progress"
+      >
+        <div class="progress-track">
+          <div
+            class="progress-fill"
+            :style="{ width: (loading.currentTask.progress * 100) + '%' }"
+          />
         </div>
+        <span class="progress-text">{{ Math.round(loading.currentTask.progress * 100) }}%</span>
+      </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">

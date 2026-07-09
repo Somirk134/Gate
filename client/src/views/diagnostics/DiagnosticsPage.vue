@@ -7,8 +7,21 @@
         <span>定位 DNS、Token、服务端、端口、超时、版本和本机环境问题。</span>
       </div>
       <div class="hero-actions">
-        <GButton variant="secondary" icon="refresh" :loading="loading" @click="loadAll">重新诊断</GButton>
-        <GButton variant="primary" icon="copy" @click="copyDiagnostics">复制诊断信息</GButton>
+        <GButton
+          variant="secondary"
+          icon="refresh"
+          :loading="loading"
+          @click="loadAll"
+        >
+          重新诊断
+        </GButton>
+        <GButton
+          variant="primary"
+          icon="copy"
+          @click="copyDiagnostics"
+        >
+          复制诊断信息
+        </GButton>
       </div>
     </header>
 
@@ -26,30 +39,61 @@
           <div class="connection-form">
             <label>
               <span>服务器地址</span>
-              <input v-model.trim="server.host" autocomplete="off" placeholder="gate.example.com" />
+              <input
+                v-model.trim="server.host"
+                autocomplete="off"
+                placeholder="gate.example.com"
+              >
             </label>
             <label>
               <span>端口</span>
-              <input v-model.number="server.port" inputmode="numeric" type="number" placeholder="7000" />
+              <input
+                v-model.number="server.port"
+                inputmode="numeric"
+                type="number"
+                placeholder="7000"
+              >
             </label>
             <label class="connection-form__token">
               <span>Token</span>
-              <input v-model.trim="server.token" autocomplete="off" type="password" placeholder="服务端 Token" />
+              <input
+                v-model.trim="server.token"
+                autocomplete="off"
+                type="password"
+                placeholder="服务端 Token"
+              >
             </label>
           </div>
 
           <div class="section-actions">
-            <GButton variant="primary" icon="plug-zap" :loading="connectionLoading" @click="testConnection">
+            <GButton
+              variant="primary"
+              icon="plug-zap"
+              :loading="connectionLoading"
+              @click="testConnection"
+            >
               测试连接
             </GButton>
-            <GButton variant="secondary" icon="shield-check" :loading="deploymentLoading" @click="runDeployment">
+            <GButton
+              variant="secondary"
+              icon="shield-check"
+              :loading="deploymentLoading"
+              @click="runDeployment"
+            >
               运行部署检查
             </GButton>
           </div>
 
-          <article v-if="connectionReport" class="connection-card" :class="{ ok: connectionReport.ok }">
+          <article
+            v-if="connectionReport"
+            class="connection-card"
+            :class="{ ok: connectionReport.ok }"
+          >
             <div class="connection-card__title">
-              <GIcon :name="connectionReport.ok ? 'check-circle' : 'alert-circle'" :size="22" />
+              <GIcon
+                :name="connectionReport.ok ? 'check-circle' : 'alert-circle'"
+                :size="22"
+              />
               <div>
                 <strong>{{ connectionReport.title }}</strong>
                 <span>{{ connectionReport.code }} · {{ connectionReport.elapsedMs }}ms</span>
@@ -61,8 +105,20 @@
               <div><dt>解决方案</dt><dd>{{ connectionReport.solution }}</dd></div>
             </dl>
             <div class="section-actions">
-              <GButton variant="ghost" icon="logs" @click="openLogs">查看日志</GButton>
-              <GButton variant="ghost" icon="copy" @click="copyConnectionError">复制错误</GButton>
+              <GButton
+                variant="ghost"
+                icon="logs"
+                @click="openLogs"
+              >
+                查看日志
+              </GButton>
+              <GButton
+                variant="ghost"
+                icon="copy"
+                @click="copyConnectionError"
+              >
+                复制错误
+              </GButton>
             </div>
           </article>
         </section>
@@ -75,8 +131,15 @@
             </div>
           </header>
           <div class="diagnostic-grid">
-            <article v-for="item in connectionChecks" :key="item.label" :class="`is-${item.status}`">
-              <GIcon :name="findingIcon(item.status)" :size="18" />
+            <article
+              v-for="item in connectionChecks"
+              :key="item.label"
+              :class="`is-${item.status}`"
+            >
+              <GIcon
+                :name="findingIcon(item.status)"
+                :size="18"
+              />
               <strong>{{ item.label }}</strong>
               <span>{{ item.value }}</span>
             </article>
@@ -91,8 +154,15 @@
             </div>
           </header>
           <div class="finding-list">
-            <article v-for="finding in deploymentReport?.findings ?? []" :key="finding.id" :class="`is-${finding.status}`">
-              <GIcon :name="findingIcon(finding.status)" :size="17" />
+            <article
+              v-for="finding in deploymentReport?.findings ?? []"
+              :key="finding.id"
+              :class="`is-${finding.status}`"
+            >
+              <GIcon
+                :name="findingIcon(finding.status)"
+                :size="17"
+              />
               <div>
                 <strong>{{ finding.label }}</strong>
                 <p>{{ finding.reason }}</p>
@@ -114,16 +184,32 @@
             <div><dt>服务端</dt><dd>{{ systemInfo?.serverVersion ?? "-" }}</dd></div>
             <div><dt>协议</dt><dd>{{ systemInfo?.protocolVersion ?? "-" }}</dd></div>
           </dl>
-          <p v-if="versionMismatch" class="side-warning">客户端与服务端版本未确认一致，建议先升级到相同 Beta 版本。</p>
+          <p
+            v-if="versionMismatch"
+            class="side-warning"
+          >
+            客户端与服务端版本未确认一致，建议先升级到相同 Beta 版本。
+          </p>
         </section>
 
         <section class="side-panel">
           <header>
             <strong>System Info</strong>
-            <button type="button" @click="copySystemInfo"><GIcon name="copy" :size="14" /></button>
+            <button
+              type="button"
+              @click="copySystemInfo"
+            >
+              <GIcon
+                name="copy"
+                :size="14"
+              />
+            </button>
           </header>
           <dl class="info-list">
-            <div v-for="item in systemInfoRows" :key="item.label">
+            <div
+              v-for="item in systemInfoRows"
+              :key="item.label"
+            >
               <dt>{{ item.label }}</dt>
               <dd>{{ item.value }}</dd>
             </div>
@@ -136,28 +222,48 @@
             <span>收藏预留</span>
           </header>
           <div class="compact-list">
-            <button v-for="recent in recentServers" :key="recent.serverAddr" type="button" @click="applyRecent(recent.serverAddr)">
+            <button
+              v-for="recent in recentServers"
+              :key="recent.serverAddr"
+              type="button"
+              @click="applyRecent(recent.serverAddr)"
+            >
               <span>{{ recent.serverAddr }}</span>
               <small>{{ recent.successCount }} 次成功</small>
             </button>
-            <p v-if="!recentServers.length">暂无最近连接。</p>
+            <p v-if="!recentServers.length">
+              暂无最近连接。
+            </p>
           </div>
         </section>
 
         <section class="side-panel">
           <header>
             <strong>Connection History</strong>
-            <button type="button" @click="clearHistory"><GIcon name="trash" :size="14" /></button>
+            <button
+              type="button"
+              @click="clearHistory"
+            >
+              <GIcon
+                name="trash"
+                :size="14"
+              />
+            </button>
           </header>
           <div class="history-compact">
-            <article v-for="entry in connectionHistory" :key="entry.id">
+            <article
+              v-for="entry in connectionHistory"
+              :key="entry.id"
+            >
               <span :class="entry.result">{{ entry.result === "success" ? "成功" : "失败" }}</span>
               <div>
                 <strong>{{ entry.serverAddr }}</strong>
                 <small>{{ entry.failureReason || `${entry.elapsedMs}ms` }}</small>
               </div>
             </article>
-            <p v-if="!connectionHistory.length">暂无连接记录。</p>
+            <p v-if="!connectionHistory.length">
+              暂无连接记录。
+            </p>
           </div>
         </section>
       </aside>
