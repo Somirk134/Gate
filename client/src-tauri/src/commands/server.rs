@@ -1,10 +1,11 @@
 use serde_json::Value;
 use tauri::State;
 
+use crate::commands::error::{AppError, CommandResult};
 use crate::runtime::{ClientRuntimeState, CreateServerRequest, UpdateServerRequest};
 
 #[tauri::command]
-pub async fn server_list(state: State<'_, ClientRuntimeState>) -> Result<Value, String> {
+pub async fn server_list(state: State<'_, ClientRuntimeState>) -> CommandResult<Value> {
     Ok(state.list_servers().await)
 }
 
@@ -12,8 +13,8 @@ pub async fn server_list(state: State<'_, ClientRuntimeState>) -> Result<Value, 
 pub async fn server_create(
     state: State<'_, ClientRuntimeState>,
     request: CreateServerRequest,
-) -> Result<String, String> {
-    state.create_server(request).await
+) -> CommandResult<String> {
+    state.create_server(request).await.map_err(server_error)
 }
 
 #[tauri::command]
@@ -21,38 +22,52 @@ pub async fn server_update(
     state: State<'_, ClientRuntimeState>,
     server_id: String,
     patch: UpdateServerRequest,
-) -> Result<(), String> {
-    state.update_server(server_id, patch).await
+) -> CommandResult<()> {
+    state
+        .update_server(server_id, patch)
+        .await
+        .map_err(server_error)
 }
 
 #[tauri::command]
 pub async fn server_delete(
     state: State<'_, ClientRuntimeState>,
     server_id: String,
-) -> Result<(), String> {
-    state.delete_server(server_id).await
+) -> CommandResult<()> {
+    state.delete_server(server_id).await.map_err(server_error)
 }
 
 #[tauri::command]
 pub async fn server_connect(
     state: State<'_, ClientRuntimeState>,
     server_id: String,
-) -> Result<String, String> {
-    state.connect_server(server_id).await
+) -> CommandResult<String> {
+    state.connect_server(server_id).await.map_err(server_error)
 }
 
 #[tauri::command]
 pub async fn server_disconnect(
     state: State<'_, ClientRuntimeState>,
     server_id: String,
-) -> Result<(), String> {
-    state.disconnect_server(server_id).await
+) -> CommandResult<()> {
+    state
+        .disconnect_server(server_id)
+        .await
+        .map_err(server_error)
 }
 
 #[tauri::command]
 pub async fn server_test(
     state: State<'_, ClientRuntimeState>,
     server_id: String,
-) -> Result<Value, String> {
-    state.test_server(server_id).await
+) -> CommandResult<Value> {
+    state.test_server(server_id).await.map_err(server_error)
+}
+
+fn server_error(source: impl std::fmt::Display) -> AppError {
+    AppError::from_source(
+        "SERVER_OPERATION_FAILED",
+        "errors.server.operationFailed",
+        source,
+    )
 }

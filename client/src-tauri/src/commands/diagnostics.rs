@@ -1,4 +1,4 @@
-use crate::runtime::ClientRuntimeState;
+use crate::{commands::error::CommandResult, runtime::ClientRuntimeState};
 use gate_communication::{TcpTransport, Transport, TransportEndpoint};
 use gate_protocol::{Body, Command, Message, Metadata};
 use serde::Serialize;
@@ -11,6 +11,10 @@ use std::{
 };
 use tauri::State;
 use tokio::{net::TcpStream, time::timeout};
+
+const DIAGNOSTIC_VALUE_DISCONNECTED: &str = "DIAGNOSTIC_VALUE_DISCONNECTED";
+const DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED: &str =
+    "DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -75,7 +79,7 @@ pub async fn diagnostics_test_connection(
     server_addr: String,
     token: String,
     timeout_ms: Option<u64>,
-) -> Result<ConnectionTestReport, String> {
+) -> CommandResult<ConnectionTestReport> {
     Ok(test_connection(server_addr, token, timeout_ms.unwrap_or(5000)).await)
 }
 
@@ -83,7 +87,7 @@ pub async fn diagnostics_test_connection(
 pub async fn diagnostics_run_deployment(
     state: State<'_, ClientRuntimeState>,
     server_addr: Option<String>,
-) -> Result<DeploymentCheckReport, String> {
+) -> CommandResult<DeploymentCheckReport> {
     let checked_at = now_ms();
     let mut findings = Vec::new();
 
@@ -99,11 +103,11 @@ pub async fn diagnostics_run_deployment(
     } else {
         findings.push(DiagnosticFinding {
             id: "server.port".to_string(),
-            label: "监听端口".to_string(),
+            label: "help.deployment.findings.serverPort.label".to_string(),
             status: "warning".to_string(),
-            reason: "尚未填写服务器地址，无法检查服务端监听端口。".to_string(),
-            possible_cause: "首次启动流程还没有进入服务器配置步骤。".to_string(),
-            solution: "在下一步填写服务器地址和端口后重新运行部署检查。".to_string(),
+            reason: "help.deployment.findings.serverPort.reason.missing".to_string(),
+            possible_cause: "help.deployment.findings.serverPort.possibleCause.missing".to_string(),
+            solution: "help.deployment.findings.serverPort.solution.missing".to_string(),
             elapsed_ms: None,
         });
     }
@@ -111,11 +115,11 @@ pub async fn diagnostics_run_deployment(
     let failed = findings.iter().any(|finding| finding.status == "error");
     let warning = findings.iter().any(|finding| finding.status == "warning");
     let summary = if failed {
-        "部署检查发现阻塞项，请先处理错误后再创建 Tunnel。"
+        "help.deployment.summaryIssue"
     } else if warning {
-        "部署检查可继续，但有项目建议确认。"
+        "help.deployment.summaryIssue"
     } else {
-        "部署检查通过，可以继续连接服务器。"
+        "help.deployment.summaryOk"
     };
 
     Ok(DeploymentCheckReport {
@@ -129,12 +133,12 @@ pub async fn diagnostics_run_deployment(
 #[tauri::command]
 pub async fn diagnostics_collect_system_info(
     state: State<'_, ClientRuntimeState>,
-) -> Result<SystemInfoReport, String> {
+) -> CommandResult<SystemInfoReport> {
     let config = state.config().await;
     let server_version = config
         .get("server.version")
         .and_then(Value::as_str)
-        .unwrap_or("未连接")
+        .unwrap_or(DIAGNOSTIC_VALUE_DISCONNECTED)
         .to_string();
     let protocol_version = config
         .get("protocol.version")
@@ -152,7 +156,7 @@ pub async fn diagnostics_collect_system_info(
         cpu: std::thread::available_parallelism()
             .map(|count| format!("{} logical cores", count.get()))
             .unwrap_or_else(|_| "unknown".to_string()),
-        memory: "需要系统权限时由用户反馈补充".to_string(),
+        memory: DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED.to_string(),
         config_dir: config_path()
             .map(|path| path.display().to_string())
             .unwrap_or_else(|| "unknown".to_string()),
@@ -175,10 +179,10 @@ async fn test_connection(
         return report(
             false,
             "TOKEN_EMPTY",
-            "Token 为空",
-            "客户端没有可用于认证的 Token。",
-            "首次部署时常见于复制漏掉环境变量，或还没有在服务端生成 Token。",
-            "从服务端配置或部署平台复制完整 Token，再点击测试连接。",
+            "TOKEN_EMPTY",
+            "TOKEN_EMPTY_REASON",
+            "TOKEN_EMPTY_CAUSE",
+            "TOKEN_EMPTY_SOLUTION",
             started.elapsed().as_millis(),
         );
     }
@@ -189,10 +193,10 @@ async fn test_connection(
             return report(
                 false,
                 "ADDRESS_INVALID",
-                "服务器地址格式不正确",
+                "ADDRESS_INVALID",
                 &reason,
-                "地址没有使用 host:port 格式，或端口不是 1-65535。",
-                "按示例填写，例如 gate.example.com:7000 或 127.0.0.1:7000。",
+                "ADDRESS_INVALID_CAUSE",
+                "ADDRESS_INVALID_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -204,10 +208,10 @@ async fn test_connection(
             return report(
                 false,
                 "DNS_ERROR",
-                "DNS 解析失败",
+                "DNS_ERROR",
                 &reason,
-                "域名没有解析记录、DNS 服务不可用，或当前网络无法访问该域名。",
-                "确认域名拼写、DNS 记录和本机网络后重试；也可以先用服务器 IP 测试。",
+                "DNS_ERROR_CAUSE",
+                "DNS_ERROR_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -215,10 +219,10 @@ async fn test_connection(
             return report(
                 false,
                 "TIMEOUT",
-                "DNS 解析超时",
-                "在限定时间内没有完成域名解析。",
-                "当前网络 DNS 响应慢，或域名解析链路不可用。",
-                "切换网络、检查 DNS 设置，或临时使用服务器 IP 地址。",
+                "TIMEOUT",
+                "DNS_TIMEOUT_REASON",
+                "DNS_TIMEOUT_CAUSE",
+                "DNS_TIMEOUT_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -233,14 +237,14 @@ async fn test_connection(
                 "PORT_UNREACHABLE"
             };
             let title = if code == "SERVER_NOT_STARTED" {
-                "服务器未启动"
+                "SERVER_NOT_STARTED"
             } else {
-                "端口无法访问"
+                "PORT_UNREACHABLE"
             };
             let possible_cause = if code == "SERVER_NOT_STARTED" {
-                "目标主机可达，但 Gate Server 没有监听该端口，或服务刚刚崩溃退出。"
+                "SERVER_NOT_STARTED_CAUSE"
             } else {
-                "防火墙、安全组、NAT、端口映射或服务器监听地址阻止了访问。"
+                "PORT_UNREACHABLE_CAUSE"
             };
             return report(
                 false,
@@ -248,7 +252,7 @@ async fn test_connection(
                 title,
                 &error.to_string(),
                 possible_cause,
-                "确认 Rust Server 已启动，端口已监听，并放行防火墙/安全组入站规则。",
+                "SERVER_PORT_SOLUTION",
                 started.elapsed().as_millis(),
             );
         }
@@ -256,10 +260,10 @@ async fn test_connection(
             return report(
                 false,
                 "TIMEOUT",
-                "连接超时",
-                "客户端在限定时间内没有连上服务器端口。",
-                "服务器网络不可达、跨境链路不稳定、防火墙丢包，或端口没有对公网开放。",
-                "检查服务器安全组和监听端口；如果是内网服务器，请先确认 VPN 或内网连通性。",
+                "TIMEOUT",
+                "CONNECT_TIMEOUT_REASON",
+                "CONNECT_TIMEOUT_CAUSE",
+                "CONNECT_TIMEOUT_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -276,10 +280,10 @@ async fn test_connection(
             return report(
                 false,
                 "SERVER_NOT_STARTED",
-                "服务器协议无响应",
+                "SERVER_NOT_STARTED",
                 &error.to_string(),
-                "端口可以建立 TCP 连接，但对端可能不是 Gate Server，或服务端协议尚未就绪。",
-                "确认该端口运行的是 Gate Rust Server，而不是其他 TCP 服务。",
+                "SERVER_PROTOCOL_UNAVAILABLE_CAUSE",
+                "SERVER_PROTOCOL_UNAVAILABLE_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -287,10 +291,10 @@ async fn test_connection(
             return report(
                 false,
                 "TIMEOUT",
-                "协议握手超时",
-                "TCP 已连通，但客户端没有在限定时间内完成 Gate 协议握手。",
-                "目标端口可能不是 Gate Server，或服务端负载过高。",
-                "确认该端口运行的是 Gate Rust Server，并查看服务端日志。",
+                "TIMEOUT",
+                "PROTOCOL_TIMEOUT_REASON",
+                "PROTOCOL_TIMEOUT_CAUSE",
+                "PROTOCOL_TIMEOUT_SOLUTION",
                 started.elapsed().as_millis(),
             )
         }
@@ -309,10 +313,10 @@ async fn test_connection(
             return report(
                 false,
                 "SERVER_NOT_STARTED",
-                "服务器无法接收认证请求",
+                "SERVER_NOT_STARTED",
                 &error.to_string(),
-                "对端关闭连接、协议版本不一致，或该端口不是 Gate Server。",
-                "检查服务端版本和协议版本；必要时重启服务端后再测试。",
+                "AUTH_SEND_FAILED_CAUSE",
+                "AUTH_SEND_FAILED_SOLUTION",
                 started.elapsed().as_millis(),
             );
         }
@@ -321,10 +325,10 @@ async fn test_connection(
             return report(
                 false,
                 "TIMEOUT",
-                "发送认证请求超时",
-                "客户端没有在限定时间内把认证请求发送到服务器。",
-                "网络链路不稳定，或服务端读取连接卡住。",
-                "检查网络延迟和服务端负载后重试。",
+                "TIMEOUT",
+                "AUTH_SEND_TIMEOUT_REASON",
+                "AUTH_SEND_TIMEOUT_CAUSE",
+                "AUTH_SEND_TIMEOUT_SOLUTION",
                 started.elapsed().as_millis(),
             );
         }
@@ -338,56 +342,56 @@ async fn test_connection(
             Body::Json(value) if value.get("ok").and_then(Value::as_bool) == Some(true) => report(
                 true,
                 "OK",
-                "连接测试通过",
-                "服务器在线，端口可达，Token 已通过认证。",
-                "无。",
-                "继续创建第一个 Tunnel。",
+                "OK",
+                "OK_REASON",
+                "NONE",
+                "OK_SOLUTION",
                 started.elapsed().as_millis(),
             ),
             Body::Json(value) => report(
                 false,
                 "TOKEN_ERROR",
-                "Token 错误",
+                "TOKEN_ERROR",
                 &value.to_string(),
-                "Token 填写错误、服务端已经轮换 Token，或复制时包含了额外空格。",
-                "重新从服务端配置复制 Token，确认没有空格或换行后重试。",
+                "TOKEN_ERROR_CAUSE",
+                "TOKEN_ERROR_SOLUTION",
                 started.elapsed().as_millis(),
             ),
             _ => report(
                 false,
                 "SERVER_NOT_STARTED",
-                "服务器响应格式不正确",
-                "服务端返回了非 JSON 认证响应。",
-                "目标端口可能不是 Gate Server，或客户端/服务端协议版本不一致。",
-                "确认连接的是 Gate Server 端口，并检查版本兼容性。",
+                "SERVER_NOT_STARTED",
+                "AUTH_RESPONSE_INVALID_REASON",
+                "AUTH_RESPONSE_INVALID_CAUSE",
+                "AUTH_RESPONSE_INVALID_SOLUTION",
                 started.elapsed().as_millis(),
             ),
         },
         Ok(Ok(None)) => report(
             false,
             "SERVER_NOT_STARTED",
-            "服务器提前关闭连接",
-            "认证前服务端关闭了 TCP 连接。",
-            "服务端进程可能刚启动失败，或协议版本不兼容。",
-            "查看服务端日志，确认 Rust Server 正常运行后重试。",
+            "SERVER_NOT_STARTED",
+            "AUTH_CONNECTION_CLOSED_REASON",
+            "AUTH_CONNECTION_CLOSED_CAUSE",
+            "AUTH_CONNECTION_CLOSED_SOLUTION",
             started.elapsed().as_millis(),
         ),
         Ok(Err(error)) => report(
             false,
             "SERVER_NOT_STARTED",
-            "服务器认证响应失败",
+            "SERVER_NOT_STARTED",
             &error.to_string(),
-            "服务端连接异常、协议不兼容，或服务端正在重启。",
-            "查看服务端日志并确认版本一致后重试。",
+            "AUTH_RESPONSE_FAILED_CAUSE",
+            "AUTH_RESPONSE_FAILED_SOLUTION",
             started.elapsed().as_millis(),
         ),
         Err(_) => report(
             false,
             "TIMEOUT",
-            "认证超时",
-            "TCP 已连通，但服务端没有在限定时间内返回认证结果。",
-            "服务端负载过高、协议处理卡住，或网络延迟过大。",
-            "检查服务端日志和机器负载，必要时重启 Rust Server。",
+            "TIMEOUT",
+            "AUTH_TIMEOUT_REASON",
+            "AUTH_TIMEOUT_CAUSE",
+            "AUTH_TIMEOUT_SOLUTION",
             started.elapsed().as_millis(),
         ),
     }
@@ -413,12 +417,12 @@ fn report(
         checked_at: now_ms(),
         actions: vec![
             DiagnosticAction {
-                label: "查看日志".to_string(),
-                description: "打开 Logs 页面查看客户端最近日志。".to_string(),
+                label: "help.actions.openLogs".to_string(),
+                description: "help.actions.openLogsDescription".to_string(),
             },
             DiagnosticAction {
-                label: "复制错误".to_string(),
-                description: "复制结构化错误信息，方便提交反馈。".to_string(),
+                label: "help.actions.copyError".to_string(),
+                description: "help.actions.copyErrorDescription".to_string(),
             },
         ],
     }
@@ -428,12 +432,12 @@ fn parse_server_addr(server_addr: &str) -> Result<(String, u16), String> {
     let trimmed = server_addr.trim();
     let (host, port) = trimmed
         .rsplit_once(':')
-        .ok_or_else(|| "服务器地址必须包含端口。".to_string())?;
+        .ok_or_else(|| "ADDRESS_PORT_REQUIRED".to_string())?;
     let port = port
         .parse::<u16>()
-        .map_err(|_| "端口必须是 1-65535 之间的数字。".to_string())?;
+        .map_err(|_| "ADDRESS_PORT_INVALID".to_string())?;
     if host.trim().is_empty() {
-        return Err("服务器地址不能为空。".to_string());
+        return Err("ADDRESS_HOST_EMPTY".to_string());
     }
     Ok((host.trim().to_string(), port))
 }
@@ -442,38 +446,39 @@ async fn resolve_addr(host: &str, port: u16) -> Result<SocketAddr, String> {
     let mut addrs = tokio::net::lookup_host((host, port))
         .await
         .map_err(|error| error.to_string())?;
-    addrs
-        .next()
-        .ok_or_else(|| "DNS 没有返回可连接地址。".to_string())
+    addrs.next().ok_or_else(|| "DNS_NO_ADDRESS".to_string())
 }
 
 fn check_current_exe() -> DiagnosticFinding {
     match env::current_exe() {
         Ok(path) if path.exists() => DiagnosticFinding {
             id: "client.executable".to_string(),
-            label: "客户端可执行文件".to_string(),
+            label: "help.deployment.findings.clientExecutable.label".to_string(),
             status: "ok".to_string(),
-            reason: format!("已定位客户端：{}", path.display()),
-            possible_cause: "无。".to_string(),
-            solution: "继续下一步。".to_string(),
+            reason: "help.deployment.findings.clientExecutable.reason.ok".to_string(),
+            possible_cause: "help.deployment.findings.clientExecutable.possibleCause.ok"
+                .to_string(),
+            solution: "help.deployment.findings.clientExecutable.solution.ok".to_string(),
             elapsed_ms: None,
         },
-        Ok(path) => DiagnosticFinding {
+        Ok(_path) => DiagnosticFinding {
             id: "client.executable".to_string(),
-            label: "客户端可执行文件".to_string(),
+            label: "help.deployment.findings.clientExecutable.label".to_string(),
             status: "warning".to_string(),
-            reason: format!("当前路径不存在：{}", path.display()),
-            possible_cause: "应用可能从临时目录或打包异常位置启动。".to_string(),
-            solution: "重新安装 Gate Desktop，或从正式安装目录启动。".to_string(),
+            reason: "help.deployment.findings.clientExecutable.reason.missing".to_string(),
+            possible_cause: "help.deployment.findings.clientExecutable.possibleCause.missing"
+                .to_string(),
+            solution: "help.deployment.findings.clientExecutable.solution.missing".to_string(),
             elapsed_ms: None,
         },
-        Err(error) => DiagnosticFinding {
+        Err(_error) => DiagnosticFinding {
             id: "client.executable".to_string(),
-            label: "客户端可执行文件".to_string(),
+            label: "help.deployment.findings.clientExecutable.label".to_string(),
             status: "error".to_string(),
-            reason: error.to_string(),
-            possible_cause: "系统限制了读取进程路径。".to_string(),
-            solution: "检查系统权限后重新启动客户端。".to_string(),
+            reason: "help.deployment.findings.clientExecutable.reason.error".to_string(),
+            possible_cause: "help.deployment.findings.clientExecutable.possibleCause.error"
+                .to_string(),
+            solution: "help.deployment.findings.clientExecutable.solution.error".to_string(),
             elapsed_ms: None,
         },
     }
@@ -481,22 +486,22 @@ fn check_current_exe() -> DiagnosticFinding {
 
 fn check_current_dir() -> DiagnosticFinding {
     match env::current_dir() {
-        Ok(path) => DiagnosticFinding {
+        Ok(_path) => DiagnosticFinding {
             id: "client.cwd".to_string(),
-            label: "工作目录".to_string(),
+            label: "help.deployment.findings.clientCwd.label".to_string(),
             status: "ok".to_string(),
-            reason: format!("当前工作目录：{}", path.display()),
-            possible_cause: "无。".to_string(),
-            solution: "继续下一步。".to_string(),
+            reason: "help.deployment.findings.clientCwd.reason.ok".to_string(),
+            possible_cause: "help.deployment.findings.clientCwd.possibleCause.ok".to_string(),
+            solution: "help.deployment.findings.clientCwd.solution.ok".to_string(),
             elapsed_ms: None,
         },
-        Err(error) => DiagnosticFinding {
+        Err(_error) => DiagnosticFinding {
             id: "client.cwd".to_string(),
-            label: "工作目录".to_string(),
+            label: "help.deployment.findings.clientCwd.label".to_string(),
             status: "error".to_string(),
-            reason: error.to_string(),
-            possible_cause: "客户端无法读取当前目录，可能是权限或安装路径问题。".to_string(),
-            solution: "将应用移动到普通用户可访问目录后重试。".to_string(),
+            reason: "help.deployment.findings.clientCwd.reason.error".to_string(),
+            possible_cause: "help.deployment.findings.clientCwd.possibleCause.error".to_string(),
+            solution: "help.deployment.findings.clientCwd.solution.error".to_string(),
             elapsed_ms: None,
         },
     }
@@ -507,22 +512,22 @@ fn check_config_file() -> DiagnosticFinding {
     let exists = path.exists();
     DiagnosticFinding {
         id: "config.file".to_string(),
-        label: "配置文件".to_string(),
+        label: "help.deployment.findings.configFile.label".to_string(),
         status: if exists { "ok" } else { "warning" }.to_string(),
         reason: if exists {
-            format!("已找到配置文件：{}", path.display())
+            "help.deployment.findings.configFile.reason.ok".to_string()
         } else {
-            format!("尚未找到配置文件：{}", path.display())
+            "help.deployment.findings.configFile.reason.missing".to_string()
         },
         possible_cause: if exists {
-            "无。".to_string()
+            "help.deployment.findings.configFile.possibleCause.ok".to_string()
         } else {
-            "首次启动尚未保存配置，或配置目录被清理。".to_string()
+            "help.deployment.findings.configFile.possibleCause.missing".to_string()
         },
         solution: if exists {
-            "继续下一步。".to_string()
+            "help.deployment.findings.configFile.solution.ok".to_string()
         } else {
-            "完成服务器配置后 Gate 会写入配置；如已配置过，请检查配置目录权限。".to_string()
+            "help.deployment.findings.configFile.solution.missing".to_string()
         },
         elapsed_ms: None,
     }
@@ -533,22 +538,22 @@ fn check_log_dir() -> DiagnosticFinding {
     let status = if path.exists() { "ok" } else { "warning" };
     DiagnosticFinding {
         id: "logs.dir".to_string(),
-        label: "日志目录".to_string(),
+        label: "help.deployment.findings.logsDir.label".to_string(),
         status: status.to_string(),
         reason: if path.exists() {
-            format!("已找到日志目录：{}", path.display())
+            "help.deployment.findings.logsDir.reason.ok".to_string()
         } else {
-            format!("尚未创建日志目录：{}", path.display())
+            "help.deployment.findings.logsDir.reason.missing".to_string()
         },
         possible_cause: if path.exists() {
-            "无。".to_string()
+            "help.deployment.findings.logsDir.possibleCause.ok".to_string()
         } else {
-            "首次运行或日志目录被清理。".to_string()
+            "help.deployment.findings.logsDir.possibleCause.missing".to_string()
         },
         solution: if path.exists() {
-            "继续下一步。".to_string()
+            "help.deployment.findings.logsDir.solution.ok".to_string()
         } else {
-            "启动一次客户端或在反馈页面生成诊断信息后会创建日志目录。".to_string()
+            "help.deployment.findings.logsDir.solution.missing".to_string()
         },
         elapsed_ms: None,
     }
@@ -560,20 +565,21 @@ fn check_temp_permission() -> DiagnosticFinding {
     match result {
         Ok(_) => DiagnosticFinding {
             id: "permission.write".to_string(),
-            label: "写入权限".to_string(),
+            label: "help.deployment.findings.permissionWrite.label".to_string(),
             status: "ok".to_string(),
-            reason: "临时目录写入测试通过。".to_string(),
-            possible_cause: "无。".to_string(),
-            solution: "继续下一步。".to_string(),
+            reason: "help.deployment.findings.permissionWrite.reason.ok".to_string(),
+            possible_cause: "help.deployment.findings.permissionWrite.possibleCause.ok".to_string(),
+            solution: "help.deployment.findings.permissionWrite.solution.ok".to_string(),
             elapsed_ms: None,
         },
-        Err(error) => DiagnosticFinding {
+        Err(_error) => DiagnosticFinding {
             id: "permission.write".to_string(),
-            label: "写入权限".to_string(),
+            label: "help.deployment.findings.permissionWrite.label".to_string(),
             status: "error".to_string(),
-            reason: error.to_string(),
-            possible_cause: "当前用户没有写入目录权限，或安全软件拦截了文件写入。".to_string(),
-            solution: "以普通用户重新安装到用户目录，或放行 Gate 的文件写入权限。".to_string(),
+            reason: "help.deployment.findings.permissionWrite.reason.error".to_string(),
+            possible_cause: "help.deployment.findings.permissionWrite.possibleCause.error"
+                .to_string(),
+            solution: "help.deployment.findings.permissionWrite.solution.error".to_string(),
             elapsed_ms: None,
         },
     }
@@ -585,7 +591,7 @@ async fn check_runtime_config(state: State<'_, ClientRuntimeState>) -> Diagnosti
     let has_auth = config.get("authentication.required").is_some();
     DiagnosticFinding {
         id: "config.valid".to_string(),
-        label: "配置合法性".to_string(),
+        label: "help.deployment.findings.configValid.label".to_string(),
         status: if has_transport && has_auth {
             "ok"
         } else {
@@ -593,19 +599,19 @@ async fn check_runtime_config(state: State<'_, ClientRuntimeState>) -> Diagnosti
         }
         .to_string(),
         reason: if has_transport && has_auth {
-            "运行时配置包含网络传输和认证设置。".to_string()
+            "help.deployment.findings.configValid.reason.ok".to_string()
         } else {
-            "运行时配置缺少部分默认字段。".to_string()
+            "help.deployment.findings.configValid.reason.missing".to_string()
         },
         possible_cause: if has_transport && has_auth {
-            "无。".to_string()
+            "help.deployment.findings.configValid.possibleCause.ok".to_string()
         } else {
-            "配置文件被手动修改、导入配置不完整，或旧版本配置未迁移。".to_string()
+            "help.deployment.findings.configValid.possibleCause.missing".to_string()
         },
         solution: if has_transport && has_auth {
-            "继续下一步。".to_string()
+            "help.deployment.findings.configValid.solution.ok".to_string()
         } else {
-            "在设置中恢复默认设置，再重新填写服务器连接信息。".to_string()
+            "help.deployment.findings.configValid.solution.missing".to_string()
         },
         elapsed_ms: None,
     }
@@ -623,60 +629,69 @@ async fn check_server_port(server_addr: String) -> DiagnosticFinding {
                         drop(stream);
                         DiagnosticFinding {
                             id: "server.port".to_string(),
-                            label: "监听端口".to_string(),
+                            label: "help.deployment.findings.serverPort.label".to_string(),
                             status: "ok".to_string(),
-                            reason: format!("{server_addr} 可以建立 TCP 连接。"),
-                            possible_cause: "无。".to_string(),
-                            solution: "继续测试 Token 和协议版本。".to_string(),
+                            reason: "help.deployment.findings.serverPort.reason.ok".to_string(),
+                            possible_cause: "help.deployment.findings.serverPort.possibleCause.ok"
+                                .to_string(),
+                            solution: "help.deployment.findings.serverPort.solution.ok".to_string(),
                             elapsed_ms: Some(started.elapsed().as_millis()),
                         }
                     }
-                    Ok(Err(error)) => DiagnosticFinding {
+                    Ok(Err(_error)) => DiagnosticFinding {
                         id: "server.port".to_string(),
-                        label: "监听端口".to_string(),
+                        label: "help.deployment.findings.serverPort.label".to_string(),
                         status: "error".to_string(),
-                        reason: error.to_string(),
-                        possible_cause: "服务端未监听、端口未开放或防火墙拒绝连接。".to_string(),
-                        solution: "启动 Rust Server，并放行服务器入站端口。".to_string(),
+                        reason: "help.deployment.findings.serverPort.reason.connectFailed"
+                            .to_string(),
+                        possible_cause:
+                            "help.deployment.findings.serverPort.possibleCause.connectFailed"
+                                .to_string(),
+                        solution: "help.deployment.findings.serverPort.solution.connectFailed"
+                            .to_string(),
                         elapsed_ms: Some(started.elapsed().as_millis()),
                     },
                     Err(_) => DiagnosticFinding {
                         id: "server.port".to_string(),
-                        label: "监听端口".to_string(),
+                        label: "help.deployment.findings.serverPort.label".to_string(),
                         status: "error".to_string(),
-                        reason: "端口连接超时。".to_string(),
-                        possible_cause: "安全组、防火墙、NAT 或网络链路阻止访问。".to_string(),
-                        solution: "检查服务器网络策略和公网访问路径。".to_string(),
+                        reason: "help.deployment.findings.serverPort.reason.timeout".to_string(),
+                        possible_cause: "help.deployment.findings.serverPort.possibleCause.timeout"
+                            .to_string(),
+                        solution: "help.deployment.findings.serverPort.solution.timeout"
+                            .to_string(),
                         elapsed_ms: Some(started.elapsed().as_millis()),
                     },
                 }
             }
-            Ok(Err(error)) => DiagnosticFinding {
+            Ok(Err(_error)) => DiagnosticFinding {
                 id: "server.port".to_string(),
-                label: "监听端口".to_string(),
+                label: "help.deployment.findings.serverPort.label".to_string(),
                 status: "error".to_string(),
-                reason: error,
-                possible_cause: "DNS 解析失败或域名未配置记录。".to_string(),
-                solution: "修正域名解析，或改用服务器 IP 测试。".to_string(),
+                reason: "help.deployment.findings.serverPort.reason.dnsFailed".to_string(),
+                possible_cause: "help.deployment.findings.serverPort.possibleCause.dnsFailed"
+                    .to_string(),
+                solution: "help.deployment.findings.serverPort.solution.dnsFailed".to_string(),
                 elapsed_ms: Some(started.elapsed().as_millis()),
             },
             Err(_) => DiagnosticFinding {
                 id: "server.port".to_string(),
-                label: "监听端口".to_string(),
+                label: "help.deployment.findings.serverPort.label".to_string(),
                 status: "error".to_string(),
-                reason: "DNS 解析超时。".to_string(),
-                possible_cause: "当前网络 DNS 不稳定。".to_string(),
-                solution: "切换网络或使用服务器 IP。".to_string(),
+                reason: "help.deployment.findings.serverPort.reason.dnsTimeout".to_string(),
+                possible_cause: "help.deployment.findings.serverPort.possibleCause.dnsTimeout"
+                    .to_string(),
+                solution: "help.deployment.findings.serverPort.solution.dnsTimeout".to_string(),
                 elapsed_ms: Some(started.elapsed().as_millis()),
             },
         },
-        Err(reason) => DiagnosticFinding {
+        Err(_reason) => DiagnosticFinding {
             id: "server.port".to_string(),
-            label: "监听端口".to_string(),
+            label: "help.deployment.findings.serverPort.label".to_string(),
             status: "warning".to_string(),
-            reason,
-            possible_cause: "服务器地址尚未填写完整。".to_string(),
-            solution: "使用 host:port 格式填写服务器地址。".to_string(),
+            reason: "help.deployment.findings.serverPort.reason.invalid".to_string(),
+            possible_cause: "help.deployment.findings.serverPort.possibleCause.invalid".to_string(),
+            solution: "help.deployment.findings.serverPort.solution.invalid".to_string(),
             elapsed_ms: Some(started.elapsed().as_millis()),
         },
     }

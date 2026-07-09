@@ -23,7 +23,7 @@ impl Default for ProjectWorkspaceState {
             },
             Err(error) => Self {
                 service: None,
-                init_error: Some(format!("项目数据库初始化失败：{error}")),
+                init_error: Some(format!("PROJECT_DATABASE_INIT_FAILED:{error}")),
             },
         }
     }
@@ -34,7 +34,7 @@ impl ProjectWorkspaceState {
         self.service.as_ref().ok_or_else(|| {
             self.init_error
                 .clone()
-                .unwrap_or_else(|| "项目服务不可用".to_string())
+                .unwrap_or_else(|| "PROJECT_SERVICE_UNAVAILABLE".to_string())
         })
     }
 

@@ -2,37 +2,41 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
 };
 use tauri::State;
 
 use crate::{
+    commands::error::{AppError, CommandResult},
     project::{project_store_path, ProjectWorkspaceState},
-    runtime::{
-        certificate_store_root, domain_store_path, runtime_data_dir, runtime_store_path,
-        ClientRuntimeState,
-    },
+    runtime::{certificate_store_root, domain_store_path, runtime_data_dir, ClientRuntimeState},
 };
 
 const BACKUP_SCHEMA_VERSION: u32 = 1;
+const BACKUP_VERSION: &str = "0.9";
 const BACKUP_PRODUCT: &str = "Gate";
-const BACKUP_FILE_NAME: &str = "gate-backup.zip";
+const BACKUP_FILE_NAME: &str = "gate-v0.9.gatebackup";
 const MAX_BACKUP_SIZE: u64 = 128 * 1024 * 1024;
+const BASE64_TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct BackupManifest {
+struct GateBackupFile {
     product: String,
+    version: String,
     schema_version: u32,
     app_version: String,
     created_at: String,
     created_at_ms: i64,
     contents: BackupContents,
-    files: BTreeMap<String, String>,
     security: BackupSecurity,
     notes: Vec<String>,
+    runtime_snapshot: Value,
+    projects: Vec<Value>,
+    project_database: Option<EncodedFile>,
+    domain_database: Option<EncodedFile>,
+    certificate_metadata: Vec<CertificateMetadataBackup>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -50,8 +54,17 @@ struct BackupContents {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct BackupSecurity {
+    server_tokens_included: bool,
     certificate_private_keys_included: bool,
     certificate_pem_included: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EncodedFile {
+    path: String,
+    encoding: String,
+    data: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,12 +73,6 @@ struct CertificateMetadataBackup {
     domain: String,
     file: String,
     metadata: Value,
-}
-
-#[derive(Debug, Clone)]
-struct ZipInputEntry {
-    name: String,
-    data: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,88 +87,86 @@ pub async fn backup_export(
     runtime_state: State<'_, ClientRuntimeState>,
     project_state: State<'_, ProjectWorkspaceState>,
     destination: Option<String>,
-) -> Result<Value, String> {
+) -> CommandResult<Value> {
     let destination_path = backup_destination(destination);
-    let runtime_snapshot = runtime_state.backup_snapshot().await?;
-    let project_count = project_state.list()?.len();
-    let certificates = collect_certificate_metadata()?;
-    let contents = backup_contents(&runtime_snapshot, project_count, certificates.len());
-    let mut files = BTreeMap::new();
-    files.insert(
-        "runtimeDatabase".to_string(),
-        "database/client-runtime.json".to_string(),
-    );
-    files.insert(
-        "projectDatabase".to_string(),
-        "database/projects.sqlite3".to_string(),
-    );
-    files.insert(
-        "domainDatabase".to_string(),
-        "database/domains.sqlite3".to_string(),
-    );
-    files.insert(
-        "certificateMetadata".to_string(),
-        "certificate-metadata/certificates.json".to_string(),
-    );
+    let mut runtime_snapshot = runtime_state.backup_snapshot().await.map_err(|source| {
+        AppError::from_source(
+            "BACKUP_RUNTIME_SNAPSHOT_FAILED",
+            "errors.backup.runtimeSnapshotFailed",
+            source,
+        )
+    })?;
+    sanitize_runtime_snapshot(&mut runtime_snapshot);
 
-    let manifest = BackupManifest {
+    let projects = project_state
+        .list()
+        .map_err(|source| {
+            AppError::from_source(
+                "BACKUP_PROJECT_READ_FAILED",
+                "errors.backup.projectReadFailed",
+                source,
+            )
+        })?
+        .into_iter()
+        .map(|project| {
+            serde_json::to_value(project).map_err(|source| {
+                AppError::from_source(
+                    "BACKUP_PROJECT_SERIALIZE_FAILED",
+                    "errors.backup.projectSerializeFailed",
+                    source,
+                )
+            })
+        })
+        .collect::<CommandResult<Vec<_>>>()?;
+
+    let certificates = collect_certificate_metadata()?;
+    let contents = backup_contents(&runtime_snapshot, projects.len(), certificates.len());
+    let created_at = Utc::now();
+    let backup = GateBackupFile {
         product: BACKUP_PRODUCT.to_string(),
+        version: BACKUP_VERSION.to_string(),
         schema_version: BACKUP_SCHEMA_VERSION,
         app_version: env!("CARGO_PKG_VERSION").to_string(),
-        created_at: Utc::now().to_rfc3339(),
-        created_at_ms: Utc::now().timestamp_millis(),
+        created_at: created_at.to_rfc3339(),
+        created_at_ms: created_at.timestamp_millis(),
         contents: contents.clone(),
-        files,
         security: BackupSecurity {
+            server_tokens_included: false,
             certificate_private_keys_included: false,
             certificate_pem_included: false,
         },
         notes: vec![
-            "证书备份只包含 metadata，不包含 private_key.pem 或 certificate.pem。".to_string(),
-            "恢复后 Runtime 保持停止，需要用户手动重新连接服务器和启动 Tunnel。".to_string(),
+            "backup.notes.tokensExcluded".to_string(),
+            "backup.notes.certificateSecretsExcluded".to_string(),
+            "backup.notes.manualReconnectRequired".to_string(),
         ],
+        runtime_snapshot,
+        projects,
+        project_database: read_encoded_file(project_store_path(), "database/projects.sqlite3")?,
+        domain_database: read_encoded_file(domain_store_path(), "database/domains.sqlite3")?,
+        certificate_metadata: certificates,
     };
 
-    let mut entries = vec![
-        ZipInputEntry {
-            name: "backup.json".to_string(),
-            data: serde_json::to_vec_pretty(&manifest).map_err(|error| error.to_string())?,
-        },
-        ZipInputEntry {
-            name: "database/client-runtime.json".to_string(),
-            data: serde_json::to_vec_pretty(&runtime_snapshot)
-                .map_err(|error| error.to_string())?,
-        },
-        ZipInputEntry {
-            name: "certificate-metadata/certificates.json".to_string(),
-            data: serde_json::to_vec_pretty(&certificates).map_err(|error| error.to_string())?,
-        },
-    ];
+    let bytes = serde_json::to_vec_pretty(&backup).map_err(|source| {
+        AppError::from_source(
+            "BACKUP_SERIALIZE_FAILED",
+            "errors.backup.serializeFailed",
+            source,
+        )
+    })?;
 
-    push_file_entry(
-        &mut entries,
-        "database/projects.sqlite3",
-        project_store_path(),
-    )?;
-    push_file_entry(
-        &mut entries,
-        "database/domains.sqlite3",
-        domain_store_path(),
-    )?;
-
-    for certificate in &certificates {
-        entries.push(ZipInputEntry {
-            name: format!("certificate-metadata/{}", certificate.file),
-            data: serde_json::to_vec_pretty(&certificate.metadata)
-                .map_err(|error| error.to_string())?,
-        });
-    }
-
-    let archive = write_zip_archive(&entries)?;
     if let Some(parent) = destination_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        fs::create_dir_all(parent).map_err(|source| {
+            AppError::from_source(
+                "BACKUP_DIRECTORY_CREATE_FAILED",
+                "errors.backup.directoryCreateFailed",
+                source,
+            )
+        })?;
     }
-    fs::write(&destination_path, &archive).map_err(|error| error.to_string())?;
+    fs::write(&destination_path, &bytes).map_err(|source| {
+        AppError::from_source("BACKUP_WRITE_FAILED", "errors.backup.writeFailed", source)
+    })?;
 
     Ok(json!({
         "path": destination_path.display().to_string(),
@@ -169,30 +174,31 @@ pub async fn backup_export(
             .file_name()
             .and_then(|value| value.to_str())
             .unwrap_or(BACKUP_FILE_NAME),
-        "size": archive.len(),
-        "createdAt": manifest.created_at,
+        "size": bytes.len(),
+        "createdAt": backup.created_at,
         "contents": contents,
-        "entries": entries.len()
+        "entries": backup_entries(&backup).len(),
+        "security": backup.security,
     }))
 }
 
 #[tauri::command]
-pub async fn backup_preview(path: String) -> Result<Value, String> {
-    let archive = read_backup_archive(Path::new(&path))?;
-    let manifest = read_manifest(&archive)?;
-    validate_manifest(&manifest)?;
+pub async fn backup_preview(path: String) -> CommandResult<Value> {
+    let backup = read_backup_file(Path::new(&path))?;
+    validate_backup(&backup)?;
 
     Ok(json!({
         "valid": true,
         "path": path,
-        "product": manifest.product,
-        "schemaVersion": manifest.schema_version,
-        "appVersion": manifest.app_version,
-        "createdAt": manifest.created_at,
-        "contents": manifest.contents,
-        "security": manifest.security,
-        "notes": manifest.notes,
-        "entries": archive.keys().cloned().collect::<Vec<_>>()
+        "product": backup.product,
+        "version": backup.version,
+        "schemaVersion": backup.schema_version,
+        "appVersion": backup.app_version,
+        "createdAt": backup.created_at,
+        "contents": backup.contents,
+        "security": backup.security,
+        "notes": backup.notes,
+        "entries": backup_entries(&backup),
     }))
 }
 
@@ -200,37 +206,34 @@ pub async fn backup_preview(path: String) -> Result<Value, String> {
 pub async fn backup_restore(
     runtime_state: State<'_, ClientRuntimeState>,
     path: String,
-) -> Result<Value, String> {
-    let archive = read_backup_archive(Path::new(&path))?;
-    let manifest = read_manifest(&archive)?;
-    validate_manifest(&manifest)?;
-    let runtime_snapshot = read_runtime_snapshot(&archive)?;
-    let certificate_metadata = read_certificate_metadata(&archive)?;
+) -> CommandResult<Value> {
+    let backup = read_backup_file(Path::new(&path))?;
+    validate_backup(&backup)?;
 
-    runtime_state.stop_for_restore().await?;
-    let rollback = capture_rollback(&certificate_metadata)?;
-    let result = apply_restore_archive(
-        &runtime_state,
-        &archive,
-        runtime_snapshot,
-        &certificate_metadata,
-    )
-    .await;
+    runtime_state.stop_for_restore().await.map_err(|source| {
+        AppError::from_source(
+            "RESTORE_RUNTIME_STOP_FAILED",
+            "errors.backup.runtimeStopFailed",
+            source,
+        )
+    })?;
+    let rollback = capture_rollback(&backup.certificate_metadata)?;
+    let result = apply_restore_archive(&runtime_state, &backup).await;
 
     if let Err(error) = result {
-        let rollback_message = match restore_rollback(&rollback) {
-            Ok(()) => {
-                if let Ok(bytes) = fs::read(runtime_store_path()) {
-                    if let Ok(snapshot) = serde_json::from_slice::<Value>(&bytes) {
-                        let _ = runtime_state.restore_runtime_snapshot(snapshot).await;
-                    }
-                }
-                cleanup_rollback(&rollback);
-                "已回滚到恢复前的数据文件".to_string()
-            }
-            Err(rollback_error) => format!("回滚失败：{rollback_error}"),
-        };
-        return Err(format!("恢复失败：{error}。{rollback_message}"));
+        let rollback_ok = restore_rollback(&rollback).is_ok();
+        if rollback_ok {
+            cleanup_rollback(&rollback);
+        }
+        return Err(AppError::with_details(
+            "RESTORE_APPLY_FAILED",
+            "errors.backup.restoreApplyFailed",
+            json!({
+                "source": error.code,
+                "messageKey": error.message_key,
+                "rollbackOk": rollback_ok,
+            }),
+        ));
     }
 
     cleanup_rollback(&rollback);
@@ -238,29 +241,28 @@ pub async fn backup_restore(
     Ok(json!({
         "ok": true,
         "restoredAt": Utc::now().timestamp_millis(),
-        "contents": manifest.contents,
-        "message": "备份已恢复，Runtime 已停止，请手动重新连接服务器。"
+        "contents": backup.contents,
+        "messageKey": "backup.restore.successMessage",
     }))
 }
 
 async fn apply_restore_archive(
     runtime_state: &ClientRuntimeState,
-    archive: &BTreeMap<String, Vec<u8>>,
-    runtime_snapshot: Value,
-    certificate_metadata: &[CertificateMetadataBackup],
-) -> Result<(), String> {
-    replace_file(
-        &project_store_path(),
-        archive.get("database/projects.sqlite3").map(Vec::as_slice),
-    )?;
-    replace_file(
-        &domain_store_path(),
-        archive.get("database/domains.sqlite3").map(Vec::as_slice),
-    )?;
-    restore_certificate_metadata(certificate_metadata)?;
+    backup: &GateBackupFile,
+) -> CommandResult<()> {
+    write_encoded_file(&project_store_path(), backup.project_database.as_ref())?;
+    write_encoded_file(&domain_store_path(), backup.domain_database.as_ref())?;
+    restore_certificate_metadata(&backup.certificate_metadata)?;
     runtime_state
-        .restore_runtime_snapshot(runtime_snapshot)
-        .await?;
+        .restore_runtime_snapshot(backup.runtime_snapshot.clone())
+        .await
+        .map_err(|source| {
+            AppError::from_source(
+                "RESTORE_RUNTIME_APPLY_FAILED",
+                "errors.backup.runtimeApplyFailed",
+                source,
+            )
+        })?;
     Ok(())
 }
 
@@ -294,6 +296,22 @@ fn backup_contents(
     }
 }
 
+fn backup_entries(backup: &GateBackupFile) -> Vec<String> {
+    let mut entries = vec![
+        "backup.json".to_string(),
+        "runtimeSnapshot".to_string(),
+        "projects".to_string(),
+        "certificateMetadata".to_string(),
+    ];
+    if backup.project_database.is_some() {
+        entries.push("projectDatabase".to_string());
+    }
+    if backup.domain_database.is_some() {
+        entries.push("domainDatabase".to_string());
+    }
+    entries
+}
+
 fn object_len(value: &Value, key: &str) -> usize {
     value
         .get(key)
@@ -302,32 +320,169 @@ fn object_len(value: &Value, key: &str) -> usize {
         .unwrap_or_default()
 }
 
-fn push_file_entry(
-    entries: &mut Vec<ZipInputEntry>,
-    name: &str,
-    path: PathBuf,
-) -> Result<(), String> {
-    if path.exists() {
-        entries.push(ZipInputEntry {
-            name: name.to_string(),
-            data: fs::read(path).map_err(|error| error.to_string())?,
-        });
+fn read_encoded_file(path: PathBuf, backup_path: &str) -> CommandResult<Option<EncodedFile>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let bytes = fs::read(path).map_err(|source| {
+        AppError::from_source(
+            "BACKUP_FILE_READ_FAILED",
+            "errors.backup.fileReadFailed",
+            source,
+        )
+    })?;
+    Ok(Some(EncodedFile {
+        path: backup_path.to_string(),
+        encoding: "base64".to_string(),
+        data: base64_encode(&bytes),
+    }))
+}
+
+fn write_encoded_file(path: &Path, file: Option<&EncodedFile>) -> CommandResult<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_DIRECTORY_CREATE_FAILED",
+                "errors.backup.directoryCreateFailed",
+                source,
+            )
+        })?;
+    }
+
+    if let Some(file) = file {
+        if file.encoding != "base64" {
+            return Err(AppError::with_details(
+                "RESTORE_ENCODING_UNSUPPORTED",
+                "errors.backup.encodingUnsupported",
+                json!({ "encoding": file.encoding }),
+            ));
+        }
+        let bytes = base64_decode(&file.data)?;
+        fs::write(path, bytes).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_FILE_WRITE_FAILED",
+                "errors.backup.restoreFileWriteFailed",
+                source,
+            )
+        })
+    } else if path.exists() {
+        fs::remove_file(path).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_FILE_REMOVE_FAILED",
+                "errors.backup.restoreFileRemoveFailed",
+                source,
+            )
+        })
+    } else {
+        Ok(())
+    }
+}
+
+fn read_backup_file(path: &Path) -> CommandResult<GateBackupFile> {
+    let metadata = fs::metadata(path).map_err(|source| {
+        AppError::from_source("BACKUP_READ_FAILED", "errors.backup.readFailed", source)
+    })?;
+    if metadata.len() > MAX_BACKUP_SIZE {
+        return Err(AppError::with_details(
+            "BACKUP_TOO_LARGE",
+            "errors.backup.tooLarge",
+            json!({
+                "sizeMb": metadata.len() / 1024 / 1024,
+                "maxMb": MAX_BACKUP_SIZE / 1024 / 1024,
+            }),
+        ));
+    }
+    let bytes = fs::read(path).map_err(|source| {
+        AppError::from_source("BACKUP_READ_FAILED", "errors.backup.readFailed", source)
+    })?;
+    serde_json::from_slice(&bytes).map_err(|source| {
+        AppError::from_source("BACKUP_PARSE_FAILED", "errors.backup.parseFailed", source)
+    })
+}
+
+fn validate_backup(backup: &GateBackupFile) -> CommandResult<()> {
+    if backup.product != BACKUP_PRODUCT {
+        return Err(AppError::with_details(
+            "BACKUP_PRODUCT_MISMATCH",
+            "errors.backup.productMismatch",
+            json!({ "product": backup.product }),
+        ));
+    }
+    if backup.version != BACKUP_VERSION {
+        return Err(AppError::with_details(
+            "BACKUP_VERSION_UNSUPPORTED",
+            "errors.backup.versionUnsupported",
+            json!({
+                "version": backup.version,
+                "supported": BACKUP_VERSION,
+            }),
+        ));
+    }
+    if backup.schema_version == 0 || backup.schema_version > BACKUP_SCHEMA_VERSION {
+        return Err(AppError::with_details(
+            "BACKUP_SCHEMA_UNSUPPORTED",
+            "errors.backup.schemaUnsupported",
+            json!({
+                "schemaVersion": backup.schema_version,
+                "supported": BACKUP_SCHEMA_VERSION,
+            }),
+        ));
     }
     Ok(())
 }
 
-fn collect_certificate_metadata() -> Result<Vec<CertificateMetadataBackup>, String> {
+fn sanitize_runtime_snapshot(value: &mut Value) {
+    if let Some(servers) = value.get_mut("servers").and_then(Value::as_object_mut) {
+        for server in servers.values_mut() {
+            if let Some(server) = server.as_object_mut() {
+                server.insert("token".to_string(), Value::String(String::new()));
+                server.insert("lastError".to_string(), Value::Null);
+                server.insert("sessionId".to_string(), Value::Null);
+                server.insert(
+                    "status".to_string(),
+                    Value::String("disconnected".to_string()),
+                );
+            }
+        }
+    }
+    if let Some(logs) = value.get_mut("logs") {
+        *logs = Value::Array(Vec::new());
+    }
+    if let Some(active_server_id) = value.get_mut("activeServerId") {
+        *active_server_id = Value::Null;
+    }
+}
+
+fn collect_certificate_metadata() -> CommandResult<Vec<CertificateMetadataBackup>> {
     let root = certificate_store_root();
     if !root.exists() {
         return Ok(Vec::new());
     }
 
     let mut certificates = Vec::new();
-    for entry in fs::read_dir(root).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
+    for entry in fs::read_dir(root).map_err(|source| {
+        AppError::from_source(
+            "CERTIFICATE_METADATA_READ_FAILED",
+            "errors.backup.certificateMetadataReadFailed",
+            source,
+        )
+    })? {
+        let entry = entry.map_err(|source| {
+            AppError::from_source(
+                "CERTIFICATE_METADATA_READ_FAILED",
+                "errors.backup.certificateMetadataReadFailed",
+                source,
+            )
+        })?;
         if !entry
             .file_type()
-            .map_err(|error| error.to_string())?
+            .map_err(|source| {
+                AppError::from_source(
+                    "CERTIFICATE_METADATA_READ_FAILED",
+                    "errors.backup.certificateMetadataReadFailed",
+                    source,
+                )
+            })?
             .is_dir()
         {
             continue;
@@ -339,8 +494,20 @@ fn collect_certificate_metadata() -> Result<Vec<CertificateMetadataBackup>, Stri
         }
 
         let mut metadata: Value =
-            serde_json::from_slice(&fs::read(metadata_path).map_err(|error| error.to_string())?)
-                .map_err(|error| error.to_string())?;
+            serde_json::from_slice(&fs::read(metadata_path).map_err(|source| {
+                AppError::from_source(
+                    "CERTIFICATE_METADATA_READ_FAILED",
+                    "errors.backup.certificateMetadataReadFailed",
+                    source,
+                )
+            })?)
+            .map_err(|source| {
+                AppError::from_source(
+                    "CERTIFICATE_METADATA_PARSE_FAILED",
+                    "errors.backup.certificateMetadataParseFailed",
+                    source,
+                )
+            })?;
         sanitize_certificate_metadata(&mut metadata);
         let domain = metadata
             .get("domain")
@@ -397,68 +564,22 @@ fn sanitize_path_segment(value: &str) -> String {
         .collect()
 }
 
-fn read_backup_archive(path: &Path) -> Result<BTreeMap<String, Vec<u8>>, String> {
-    let metadata = fs::metadata(path).map_err(|error| error.to_string())?;
-    if metadata.len() > MAX_BACKUP_SIZE {
-        return Err(format!(
-            "备份文件过大：{} MB，当前最大支持 128 MB",
-            metadata.len() / 1024 / 1024
-        ));
-    }
-    let bytes = fs::read(path).map_err(|error| error.to_string())?;
-    read_zip_archive(&bytes)
-}
-
-fn read_manifest(archive: &BTreeMap<String, Vec<u8>>) -> Result<BackupManifest, String> {
-    let bytes = archive
-        .get("backup.json")
-        .ok_or_else(|| "备份文件缺少 backup.json".to_string())?;
-    serde_json::from_slice(bytes).map_err(|error| error.to_string())
-}
-
-fn validate_manifest(manifest: &BackupManifest) -> Result<(), String> {
-    if manifest.product != BACKUP_PRODUCT {
-        return Err("备份文件不是 Gate 产品备份".to_string());
-    }
-    if manifest.schema_version == 0 || manifest.schema_version > BACKUP_SCHEMA_VERSION {
-        return Err(format!(
-            "备份版本 {} 不受支持，当前支持到 {}",
-            manifest.schema_version, BACKUP_SCHEMA_VERSION
-        ));
-    }
-    Ok(())
-}
-
-fn read_runtime_snapshot(archive: &BTreeMap<String, Vec<u8>>) -> Result<Value, String> {
-    let bytes = archive
-        .get("database/client-runtime.json")
-        .ok_or_else(|| "备份缺少 Runtime 数据库快照".to_string())?;
-    serde_json::from_slice(bytes).map_err(|error| error.to_string())
-}
-
-fn read_certificate_metadata(
-    archive: &BTreeMap<String, Vec<u8>>,
-) -> Result<Vec<CertificateMetadataBackup>, String> {
-    let Some(bytes) = archive.get("certificate-metadata/certificates.json") else {
-        return Ok(Vec::new());
-    };
-    serde_json::from_slice(bytes).map_err(|error| error.to_string())
-}
-
 fn capture_rollback(
     certificate_metadata: &[CertificateMetadataBackup],
-) -> Result<Vec<RollbackFile>, String> {
+) -> CommandResult<Vec<RollbackFile>> {
     let rollback_dir = runtime_data_dir().join(format!(
         ".restore-rollback-{}",
         Utc::now().timestamp_millis()
     ));
-    fs::create_dir_all(&rollback_dir).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&rollback_dir).map_err(|source| {
+        AppError::from_source(
+            "RESTORE_ROLLBACK_CREATE_FAILED",
+            "errors.backup.rollbackCreateFailed",
+            source,
+        )
+    })?;
 
-    let mut targets = vec![
-        runtime_store_path(),
-        project_store_path(),
-        domain_store_path(),
-    ];
+    let mut targets = vec![project_store_path(), domain_store_path()];
     targets.extend(existing_certificate_metadata_targets()?);
     for certificate in certificate_metadata {
         if let Some(target) = certificate_metadata_target(certificate) {
@@ -473,7 +594,13 @@ fn capture_rollback(
         let backup = rollback_dir.join(format!("file-{index}"));
         let existed = target.exists();
         if existed {
-            fs::copy(&target, &backup).map_err(|error| error.to_string())?;
+            fs::copy(&target, &backup).map_err(|source| {
+                AppError::from_source(
+                    "RESTORE_ROLLBACK_COPY_FAILED",
+                    "errors.backup.rollbackCreateFailed",
+                    source,
+                )
+            })?;
         }
         rollback.push(RollbackFile {
             target,
@@ -485,15 +612,33 @@ fn capture_rollback(
     Ok(rollback)
 }
 
-fn restore_rollback(files: &[RollbackFile]) -> Result<(), String> {
+fn restore_rollback(files: &[RollbackFile]) -> CommandResult<()> {
     for file in files {
         if file.existed {
             if let Some(parent) = file.target.parent() {
-                fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+                fs::create_dir_all(parent).map_err(|source| {
+                    AppError::from_source(
+                        "RESTORE_ROLLBACK_FAILED",
+                        "errors.backup.rollbackFailed",
+                        source,
+                    )
+                })?;
             }
-            fs::copy(&file.backup, &file.target).map_err(|error| error.to_string())?;
+            fs::copy(&file.backup, &file.target).map_err(|source| {
+                AppError::from_source(
+                    "RESTORE_ROLLBACK_FAILED",
+                    "errors.backup.rollbackFailed",
+                    source,
+                )
+            })?;
         } else if file.target.exists() {
-            fs::remove_file(&file.target).map_err(|error| error.to_string())?;
+            fs::remove_file(&file.target).map_err(|source| {
+                AppError::from_source(
+                    "RESTORE_ROLLBACK_FAILED",
+                    "errors.backup.rollbackFailed",
+                    source,
+                )
+            })?;
         }
     }
     Ok(())
@@ -510,22 +655,8 @@ fn cleanup_rollback(files: &[RollbackFile]) {
     let _ = fs::remove_dir_all(directory);
 }
 
-fn replace_file(path: &Path, data: Option<&[u8]>) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    if let Some(data) = data {
-        fs::write(path, data).map_err(|error| error.to_string())
-    } else if path.exists() {
-        fs::remove_file(path).map_err(|error| error.to_string())
-    } else {
-        Ok(())
-    }
-}
-
-fn restore_certificate_metadata(certificates: &[CertificateMetadataBackup]) -> Result<(), String> {
-    // 恢复证书 metadata 前先清空旧 metadata，避免备份外的旧证书记录混入恢复结果。
+fn restore_certificate_metadata(certificates: &[CertificateMetadataBackup]) -> CommandResult<()> {
+    // 恢复前先清理旧 metadata，避免备份外的旧证书记录混入恢复结果。
     clear_certificate_metadata()?;
 
     for certificate in certificates {
@@ -533,34 +664,75 @@ fn restore_certificate_metadata(certificates: &[CertificateMetadataBackup]) -> R
             continue;
         };
         if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+            fs::create_dir_all(parent).map_err(|source| {
+                AppError::from_source(
+                    "RESTORE_DIRECTORY_CREATE_FAILED",
+                    "errors.backup.directoryCreateFailed",
+                    source,
+                )
+            })?;
         }
-        let bytes =
-            serde_json::to_vec_pretty(&certificate.metadata).map_err(|error| error.to_string())?;
-        fs::write(target, bytes).map_err(|error| error.to_string())?;
+        let bytes = serde_json::to_vec_pretty(&certificate.metadata).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_CERTIFICATE_METADATA_SERIALIZE_FAILED",
+                "errors.backup.certificateMetadataSerializeFailed",
+                source,
+            )
+        })?;
+        fs::write(target, bytes).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_CERTIFICATE_METADATA_WRITE_FAILED",
+                "errors.backup.certificateMetadataWriteFailed",
+                source,
+            )
+        })?;
     }
     Ok(())
 }
 
-fn clear_certificate_metadata() -> Result<(), String> {
+fn clear_certificate_metadata() -> CommandResult<()> {
     for target in existing_certificate_metadata_targets()? {
-        fs::remove_file(target).map_err(|error| error.to_string())?;
+        fs::remove_file(target).map_err(|source| {
+            AppError::from_source(
+                "RESTORE_CERTIFICATE_METADATA_REMOVE_FAILED",
+                "errors.backup.certificateMetadataRemoveFailed",
+                source,
+            )
+        })?;
     }
     Ok(())
 }
 
-fn existing_certificate_metadata_targets() -> Result<Vec<PathBuf>, String> {
+fn existing_certificate_metadata_targets() -> CommandResult<Vec<PathBuf>> {
     let root = certificate_store_root();
     if !root.exists() {
         return Ok(Vec::new());
     }
 
     let mut targets = Vec::new();
-    for entry in fs::read_dir(root).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
+    for entry in fs::read_dir(root).map_err(|source| {
+        AppError::from_source(
+            "CERTIFICATE_METADATA_READ_FAILED",
+            "errors.backup.certificateMetadataReadFailed",
+            source,
+        )
+    })? {
+        let entry = entry.map_err(|source| {
+            AppError::from_source(
+                "CERTIFICATE_METADATA_READ_FAILED",
+                "errors.backup.certificateMetadataReadFailed",
+                source,
+            )
+        })?;
         if !entry
             .file_type()
-            .map_err(|error| error.to_string())?
+            .map_err(|source| {
+                AppError::from_source(
+                    "CERTIFICATE_METADATA_READ_FAILED",
+                    "errors.backup.certificateMetadataReadFailed",
+                    source,
+                )
+            })?
             .is_dir()
         {
             continue;
@@ -589,219 +761,67 @@ fn certificate_metadata_target(certificate: &CertificateMetadataBackup) -> Optio
     )
 }
 
-fn write_zip_archive(entries: &[ZipInputEntry]) -> Result<Vec<u8>, String> {
-    let mut output = Vec::new();
-    let mut central = Vec::new();
+fn base64_encode(data: &[u8]) -> String {
+    let mut output = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let first = chunk[0];
+        let second = *chunk.get(1).unwrap_or(&0);
+        let third = *chunk.get(2).unwrap_or(&0);
 
-    for entry in entries {
-        validate_zip_name(&entry.name)?;
-        let name = entry.name.as_bytes();
-        let crc = crc32(&entry.data);
-        let size = u32_len(entry.data.len(), "ZIP 条目内容")?;
-        let name_len = u16_len(name.len(), "ZIP 条目名称")?;
-        let local_offset = u32_len(output.len(), "ZIP 偏移")?;
+        output.push(BASE64_TABLE[(first >> 2) as usize] as char);
+        output.push(BASE64_TABLE[(((first & 0b0000_0011) << 4) | (second >> 4)) as usize] as char);
+        if chunk.len() > 1 {
+            output.push(
+                BASE64_TABLE[(((second & 0b0000_1111) << 2) | (third >> 6)) as usize] as char,
+            );
+        } else {
+            output.push('=');
+        }
+        if chunk.len() > 2 {
+            output.push(BASE64_TABLE[(third & 0b0011_1111) as usize] as char);
+        } else {
+            output.push('=');
+        }
+    }
+    output
+}
 
-        write_u32(&mut output, 0x0403_4b50);
-        write_u16(&mut output, 20);
-        write_u16(&mut output, 0);
-        write_u16(&mut output, 0);
-        write_u16(&mut output, 0);
-        write_u16(&mut output, 0);
-        write_u32(&mut output, crc);
-        write_u32(&mut output, size);
-        write_u32(&mut output, size);
-        write_u16(&mut output, name_len);
-        write_u16(&mut output, 0);
-        output.extend_from_slice(name);
-        output.extend_from_slice(&entry.data);
-
-        write_u32(&mut central, 0x0201_4b50);
-        write_u16(&mut central, 20);
-        write_u16(&mut central, 20);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u32(&mut central, crc);
-        write_u32(&mut central, size);
-        write_u32(&mut central, size);
-        write_u16(&mut central, name_len);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u16(&mut central, 0);
-        write_u32(&mut central, 0);
-        write_u32(&mut central, local_offset);
-        central.extend_from_slice(name);
+fn base64_decode(input: &str) -> CommandResult<Vec<u8>> {
+    let bytes = input.trim().as_bytes();
+    if bytes.len() % 4 != 0 {
+        return Err(AppError::new(
+            "RESTORE_BASE64_INVALID",
+            "errors.backup.base64Invalid",
+        ));
     }
 
-    let central_offset = u32_len(output.len(), "ZIP 中央目录偏移")?;
-    let central_size = u32_len(central.len(), "ZIP 中央目录大小")?;
-    let entry_count = u16_len(entries.len(), "ZIP 条目数量")?;
-    output.extend_from_slice(&central);
-    write_u32(&mut output, 0x0605_4b50);
-    write_u16(&mut output, 0);
-    write_u16(&mut output, 0);
-    write_u16(&mut output, entry_count);
-    write_u16(&mut output, entry_count);
-    write_u32(&mut output, central_size);
-    write_u32(&mut output, central_offset);
-    write_u16(&mut output, 0);
+    let mut output = Vec::with_capacity(bytes.len() / 4 * 3);
+    for chunk in bytes.chunks(4) {
+        let mut values = [0_u8; 4];
+        let mut padding = 0;
+        for (index, byte) in chunk.iter().enumerate() {
+            if *byte == b'=' {
+                padding += 1;
+                values[index] = 0;
+            } else if let Some(position) =
+                BASE64_TABLE.iter().position(|candidate| candidate == byte)
+            {
+                values[index] = position as u8;
+            } else {
+                return Err(AppError::new(
+                    "RESTORE_BASE64_INVALID",
+                    "errors.backup.base64Invalid",
+                ));
+            }
+        }
 
+        output.push((values[0] << 2) | (values[1] >> 4));
+        if padding < 2 {
+            output.push((values[1] << 4) | (values[2] >> 2));
+        }
+        if padding == 0 {
+            output.push((values[2] << 6) | values[3]);
+        }
+    }
     Ok(output)
-}
-
-fn read_zip_archive(bytes: &[u8]) -> Result<BTreeMap<String, Vec<u8>>, String> {
-    let eocd = find_eocd(bytes).ok_or_else(|| "备份文件不是有效 ZIP".to_string())?;
-    let total_entries = read_u16(bytes, eocd + 10)? as usize;
-    let central_size = read_u32(bytes, eocd + 12)? as usize;
-    let central_offset = read_u32(bytes, eocd + 16)? as usize;
-    if central_offset
-        .checked_add(central_size)
-        .filter(|end| *end <= bytes.len())
-        .is_none()
-    {
-        return Err("ZIP 中央目录越界".to_string());
-    }
-
-    let mut cursor = central_offset;
-    let mut entries = BTreeMap::new();
-    for _ in 0..total_entries {
-        if read_u32(bytes, cursor)? != 0x0201_4b50 {
-            return Err("ZIP 中央目录损坏".to_string());
-        }
-        let method = read_u16(bytes, cursor + 10)?;
-        if method != 0 {
-            return Err("当前仅支持未压缩 ZIP 备份".to_string());
-        }
-        let expected_crc = read_u32(bytes, cursor + 16)?;
-        let compressed_size = read_u32(bytes, cursor + 20)? as usize;
-        let uncompressed_size = read_u32(bytes, cursor + 24)? as usize;
-        let name_len = read_u16(bytes, cursor + 28)? as usize;
-        let extra_len = read_u16(bytes, cursor + 30)? as usize;
-        let comment_len = read_u16(bytes, cursor + 32)? as usize;
-        let local_offset = read_u32(bytes, cursor + 42)? as usize;
-        let name_start = cursor + 46;
-        let name_end = checked_end(name_start, name_len, bytes.len())?;
-        let name = std::str::from_utf8(&bytes[name_start..name_end])
-            .map_err(|error| error.to_string())?
-            .to_string();
-        validate_zip_name(&name)?;
-
-        let data = read_zip_local_data(
-            bytes,
-            local_offset,
-            compressed_size,
-            uncompressed_size,
-            expected_crc,
-        )?;
-        entries.insert(name, data);
-        cursor = checked_end(name_end, extra_len + comment_len, bytes.len())?;
-    }
-
-    Ok(entries)
-}
-
-fn read_zip_local_data(
-    bytes: &[u8],
-    local_offset: usize,
-    compressed_size: usize,
-    uncompressed_size: usize,
-    expected_crc: u32,
-) -> Result<Vec<u8>, String> {
-    if compressed_size != uncompressed_size {
-        return Err("ZIP 条目大小不一致".to_string());
-    }
-    if read_u32(bytes, local_offset)? != 0x0403_4b50 {
-        return Err("ZIP 本地文件头损坏".to_string());
-    }
-    let method = read_u16(bytes, local_offset + 8)?;
-    if method != 0 {
-        return Err("当前仅支持未压缩 ZIP 备份".to_string());
-    }
-    let name_len = read_u16(bytes, local_offset + 26)? as usize;
-    let extra_len = read_u16(bytes, local_offset + 28)? as usize;
-    let data_start = checked_end(local_offset + 30, name_len + extra_len, bytes.len())?;
-    let data_end = checked_end(data_start, compressed_size, bytes.len())?;
-    let data = bytes[data_start..data_end].to_vec();
-    if crc32(&data) != expected_crc {
-        return Err("ZIP 条目校验失败".to_string());
-    }
-    Ok(data)
-}
-
-fn find_eocd(bytes: &[u8]) -> Option<usize> {
-    if bytes.len() < 22 {
-        return None;
-    }
-    let start = bytes.len().saturating_sub(66_000);
-    (start..=bytes.len() - 4)
-        .rev()
-        .find(|index| bytes[*index..*index + 4] == [0x50, 0x4b, 0x05, 0x06])
-}
-
-fn validate_zip_name(name: &str) -> Result<(), String> {
-    if name.is_empty()
-        || name.starts_with('/')
-        || name.contains('\\')
-        || name
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-    {
-        return Err(format!("ZIP 条目路径不安全：{name}"));
-    }
-    Ok(())
-}
-
-fn checked_end(start: usize, len: usize, total: usize) -> Result<usize, String> {
-    start
-        .checked_add(len)
-        .filter(|end| *end <= total)
-        .ok_or_else(|| "ZIP 数据越界".to_string())
-}
-
-fn u16_len(value: usize, label: &str) -> Result<u16, String> {
-    u16::try_from(value).map_err(|_| format!("{label} 超出 ZIP 限制"))
-}
-
-fn u32_len(value: usize, label: &str) -> Result<u32, String> {
-    u32::try_from(value).map_err(|_| format!("{label} 超出 ZIP 限制"))
-}
-
-fn write_u16(output: &mut Vec<u8>, value: u16) {
-    output.extend_from_slice(&value.to_le_bytes());
-}
-
-fn write_u32(output: &mut Vec<u8>, value: u32) {
-    output.extend_from_slice(&value.to_le_bytes());
-}
-
-fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, String> {
-    let end = checked_end(offset, 2, bytes.len())?;
-    Ok(u16::from_le_bytes(
-        bytes[offset..end]
-            .try_into()
-            .map_err(|_| "ZIP u16 损坏".to_string())?,
-    ))
-}
-
-fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, String> {
-    let end = checked_end(offset, 4, bytes.len())?;
-    Ok(u32::from_le_bytes(
-        bytes[offset..end]
-            .try_into()
-            .map_err(|_| "ZIP u32 损坏".to_string())?,
-    ))
-}
-
-fn crc32(data: &[u8]) -> u32 {
-    let mut crc = 0xffff_ffff_u32;
-    for byte in data {
-        crc ^= u32::from(*byte);
-        for _ in 0..8 {
-            let mask = if crc & 1 == 1 { 0xedb8_8320 } else { 0 };
-            crc = (crc >> 1) ^ mask;
-        }
-    }
-    !crc
 }

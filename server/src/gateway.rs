@@ -920,7 +920,7 @@ impl TunnelGateway {
         info!(
             target: "gate_gateway",
             addr = %bound_addr,
-            "隧道网关开始监听公网端口"
+            "Tunnel gateway public listener started"
         );
         Ok(())
     }
@@ -957,7 +957,7 @@ impl TunnelGateway {
         info!(
             target: "gate_gateway",
             addr = %bound_addr,
-            "HTTP Host Router 开始监听公网端口"
+            "HTTP host router public listener started"
         );
         Ok(())
     }
@@ -1002,7 +1002,7 @@ impl TunnelGateway {
         info!(
             target: "gate_gateway",
             addr = %bound_addr,
-            "HTTPS TLS Listener 已开始监听公网端口"
+            "HTTPS TLS listener public listener started"
         );
         Ok(())
     }
@@ -1027,7 +1027,7 @@ impl TunnelGateway {
                                 target: "gate_gateway",
                                 remote_addr = %remote_addr,
                                 error = %error,
-                                "隧道网关转发失败"
+                                "Tunnel gateway forwarding failed"
                             );
                         }
                     });
@@ -1037,7 +1037,7 @@ impl TunnelGateway {
                         target: "gate_gateway",
                         addr = %bound_addr,
                         error = %source,
-                        "隧道网关接受连接失败"
+                        "Tunnel gateway accept failed"
                     );
                     break;
                 }
@@ -1064,7 +1064,7 @@ impl TunnelGateway {
                                 target: "gate_gateway",
                                 remote_addr = %remote_addr,
                                 error = %error,
-                                "HTTP Host Router 转发失败"
+                                "HTTP host router forwarding failed"
                             );
                         }
                     });
@@ -1074,7 +1074,7 @@ impl TunnelGateway {
                         target: "gate_gateway",
                         addr = %bound_addr,
                         error = %source,
-                        "HTTP Host Router 接受连接失败"
+                        "HTTP host router accept failed"
                     );
                     break;
                 }
@@ -1108,7 +1108,7 @@ impl TunnelGateway {
                                 target: "gate_gateway",
                                 remote_addr = %remote_addr,
                                 error = %error,
-                                "HTTPS TLS Listener 转发失败"
+                                "HTTPS TLS listener forwarding failed"
                             );
                         }
                     });
@@ -1118,7 +1118,7 @@ impl TunnelGateway {
                         target: "gate_gateway",
                         addr = %bound_addr,
                         error = %source,
-                        "HTTPS TLS Listener 接受连接失败"
+                        "HTTPS TLS listener accept failed"
                     );
                     break;
                 }
@@ -1168,7 +1168,7 @@ impl TunnelGateway {
             tls_version = ?connection.tls_version,
             sni = ?connection.sni,
             handshake_time_ms = elapsed_millis(started),
-            "HTTPS TLS 握手成功"
+            "HTTPS TLS handshake succeeded"
         );
 
         self.handle_http_public_stream(remote_port, tls_stream, remote_addr, connection)
@@ -1510,7 +1510,7 @@ impl TunnelGateway {
                 target: "gate_gateway",
                 tunnel_id = %tunnel_id,
                 remote_addr = %remote_addr,
-                "隧道连接开始转发"
+                "Tunnel relay forwarding started"
             );
 
             let outcome = self
@@ -1523,7 +1523,7 @@ impl TunnelGateway {
                 upload_bytes = outcome.bytes_in,
                 download_bytes = outcome.bytes_out,
                 duration_ms = outcome.duration_ms,
-                "隧道连接转发完成"
+                "Tunnel relay forwarding completed"
             );
             Ok::<(), anyhow::Error>(())
         }
@@ -1783,7 +1783,7 @@ impl TunnelGateway {
                             target: "gate_gateway",
                             domain = %record.domain,
                             error = %error,
-                            "HTTPS 证书验证失败，已跳过加载"
+                            "HTTPS certificate validation failed; skipped loading"
                         );
                         continue;
                     }
@@ -1794,7 +1794,7 @@ impl TunnelGateway {
                         target: "gate_gateway",
                         domain = %record.domain,
                         error = %error,
-                        "HTTPS 证书材料缺失，已跳过加载"
+                        "HTTPS certificate material missing; skipped loading"
                     );
                 }
             }
@@ -1891,7 +1891,7 @@ impl TunnelGateway {
                 warn!(
                     target: "gate_gateway",
                     error = %error,
-                    "HTTPS 证书续期扫描失败"
+                    "HTTPS certificate renewal scan failed"
                 );
                 return;
             }
@@ -1905,7 +1905,7 @@ impl TunnelGateway {
                     info!(
                         target: "gate_gateway",
                         domain = %attempt.domain,
-                        "HTTPS 证书续期成功"
+                        "HTTPS certificate renewal succeeded"
                     );
                 }
                 gate_server_tls::renew::RenewAttemptStatus::Failed => {
@@ -1915,7 +1915,7 @@ impl TunnelGateway {
                         target: "gate_gateway",
                         domain = %attempt.domain,
                         error = %error,
-                        "HTTPS 证书续期失败"
+                        "HTTPS certificate renewal failed"
                     );
                 }
             }

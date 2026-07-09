@@ -450,7 +450,7 @@ impl RuntimeInner {
                 "connected" | "connecting" | "recovering"
             ) {
                 server.status = "recovering".to_string();
-                server.last_error = Some("客户端重启后等待自动恢复".to_string());
+                server.last_error = Some("CLIENT_RESTART_WAITING_RECOVERY".to_string());
             }
         }
         let mut tunnels = stored.tunnels;
@@ -649,7 +649,7 @@ impl ClientRuntimeState {
                 if let Some(server) = inner.servers.get_mut(server_id) {
                     server.status = "disconnected".to_string();
                     server.session_id = None;
-                    server.last_error = Some("恢复备份前已停止 Runtime".to_string());
+                    server.last_error = Some("BACKUP_RUNTIME_STOPPED".to_string());
                     server.updated_at = Utc::now().timestamp_millis();
                 }
             }
@@ -673,7 +673,7 @@ impl ClientRuntimeState {
             serde_json::from_value(snapshot).map_err(|error| error.to_string())?;
         if stored.version > STORE_VERSION {
             return Err(format!(
-                "备份 Runtime 版本 {} 高于当前支持版本 {}",
+                "RUNTIME_BACKUP_VERSION_UNSUPPORTED:{}>{}",
                 stored.version, STORE_VERSION
             ));
         }
@@ -1061,8 +1061,10 @@ impl ClientRuntimeState {
         {
             Ok(response) => response,
             Err(error) => {
-                self.record_control_disconnect(&format!("心跳失败，准备自动恢复：{error}"))
-                    .await;
+                self.record_control_disconnect(&format!(
+                    "heartbeat failed; starting control recovery: {error}"
+                ))
+                .await;
                 self.restore_active_server_with_backoff(&default_reconnect_delays())
                     .await?;
                 self.request(Command::HeartbeatPing, self.heartbeat_payload().await)
@@ -1154,11 +1156,11 @@ impl ClientRuntimeState {
             let server_id = inner
                 .active_server_id
                 .clone()
-                .ok_or_else(|| "没有可恢复的活动服务器".to_string())?;
+                .ok_or_else(|| "NO_RECOVERABLE_ACTIVE_SERVER".to_string())?;
             let server = inner
                 .servers
                 .get(&server_id)
-                .ok_or_else(|| "活动服务器配置不存在".to_string())?;
+                .ok_or_else(|| "ACTIVE_SERVER_CONFIG_MISSING".to_string())?;
             let server_addr = format!("{}:{}", server.host, server.port);
             let token = server.token.clone();
             let previous_session_id = inner
@@ -1222,7 +1224,7 @@ impl ClientRuntimeState {
                     inner.log(
                         "warn",
                         "reconnect",
-                        &format!("控制连接恢复失败，等待下一次退避：{error}"),
+                        &format!("control recovery failed; waiting for next backoff: {error}"),
                     );
                     let _ = persist_runtime(&self.storage_path, &inner);
                 }
@@ -1237,8 +1239,8 @@ impl ClientRuntimeState {
         }
 
         Err(format!(
-            "控制连接恢复失败：{}",
-            last_error.unwrap_or_else(|| "没有可用重试机会".to_string())
+            "control recovery failed: {}",
+            last_error.unwrap_or_else(|| "no retry opportunity available".to_string())
         ))
     }
 
@@ -1907,12 +1909,14 @@ impl ClientRuntimeState {
                 continue;
             };
 
-            let elapsed_seconds =
-                now.saturating_sub(tunnel.last_sample_at).max(0) as f64 / 1000.0;
+            let elapsed_seconds = now.saturating_sub(tunnel.last_sample_at).max(0) as f64 / 1000.0;
             let mut upload_speed_bps =
                 bytes_per_second(snapshot.upload_bytes, tunnel.upload_bytes, elapsed_seconds);
-            let download_speed_bps =
-                bytes_per_second(snapshot.download_bytes, tunnel.download_bytes, elapsed_seconds);
+            let download_speed_bps = bytes_per_second(
+                snapshot.download_bytes,
+                tunnel.download_bytes,
+                elapsed_seconds,
+            );
             if upload_speed_bps == 0.0
                 && download_speed_bps == 0.0
                 && snapshot.current_speed_bps > 0
@@ -2034,7 +2038,7 @@ async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnel
             );
             runtime.start().await.map_err(|error| {
                 format!(
-                    "无法启动本地 TCP 监听 {} -> {}：{}",
+                    "failed to start local TCP listener {} -> {}: {}",
                     listen_addr, target_addr, error
                 )
             })?;
@@ -2061,17 +2065,14 @@ async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnel
             );
             runtime.start().await.map_err(|error| {
                 format!(
-                    "无法启动本地 HTTP 监听 {} -> {}：{}",
+                    "failed to start local HTTP listener {} -> {}: {}",
                     listen_addr, target_addr, error
                 )
             })?;
             Ok(LocalTunnelRuntime::Http(runtime))
         }
-        "https" => Err(
-            "HTTPS 隧道需要可用证书后才能启动本地 TLS 监听；请先用 HTTP 隧道完成连通性测试。"
-                .to_string(),
-        ),
-        protocol => Err(format!("不支持的 Tunnel 协议：{protocol}")),
+        "https" => Err("HTTPS_LOCAL_CERTIFICATE_REQUIRED".to_string()),
+        protocol => Err(format!("UNSUPPORTED_TUNNEL_PROTOCOL:{protocol}")),
     }
 }
 
@@ -2167,10 +2168,10 @@ async fn relay_worker_once(
 ) -> Result<(), String> {
     let mut stream = TcpStream::connect((config.server_host.as_str(), config.server_port))
         .await
-        .map_err(|error| format!("无法连接服务端 relay 入口：{error}"))?;
+        .map_err(|error| format!("failed to connect server relay entry: {error}"))?;
     stream
         .set_nodelay(true)
-        .map_err(|error| format!("无法设置 relay TCP_NODELAY：{error}"))?;
+        .map_err(|error| format!("failed to set relay TCP_NODELAY: {error}"))?;
 
     let protocol = ProtocolBuilder::new().build();
     let connect = Message::request(
@@ -2188,36 +2189,44 @@ async fn relay_worker_once(
 
     let response = read_protocol_message(&mut stream, &protocol)
         .await?
-        .ok_or_else(|| "服务端关闭了 relay 握手连接".to_string())?;
+        .ok_or_else(|| "server closed relay handshake connection".to_string())?;
     match response.body {
         Body::Json(value) => ensure_ok(&value)?,
-        _ => return Err("服务端 relay 握手响应不是 JSON".to_string()),
+        _ => return Err("server relay handshake response was not JSON".to_string()),
     }
 
     let start = tokio::select! {
         result = read_protocol_message(&mut stream, &protocol) => {
-            result?.ok_or_else(|| "服务端关闭了空闲 relay worker".to_string())?
+            result?.ok_or_else(|| "server closed idle relay worker".to_string())?
         }
         _ = shutdown.changed() => return Ok(()),
     };
 
     if start.header.command != Command::TunnelRelayStart {
-        return Err(format!("收到不支持的 relay 指令：{}", start.header.command));
+        return Err(format!(
+            "unsupported relay command received: {}",
+            start.header.command
+        ));
     }
 
     stats.total_connections.fetch_add(1, Ordering::Relaxed);
     let mut target = TcpStream::connect(config.target_addr)
         .await
-        .map_err(|error| format!("无法连接本地服务 {}：{error}", config.target_addr))?;
+        .map_err(|error| {
+            format!(
+                "failed to connect local service {}: {error}",
+                config.target_addr
+            )
+        })?;
     target
         .set_nodelay(true)
-        .map_err(|error| format!("无法设置本地服务 TCP_NODELAY：{error}"))?;
+        .map_err(|error| format!("failed to set local service TCP_NODELAY: {error}"))?;
 
     stats.active_connections.fetch_add(1, Ordering::Relaxed);
     let copy = tokio::io::copy_bidirectional(&mut stream, &mut target);
     tokio::pin!(copy);
     let result = tokio::select! {
-        result = &mut copy => result.map_err(|error| format!("relay 双向转发失败：{error}")),
+        result = &mut copy => result.map_err(|error| format!("relay bidirectional copy failed: {error}")),
         _ = shutdown.changed() => Ok((0, 0)),
     };
     stats.active_connections.fetch_sub(1, Ordering::Relaxed);
@@ -2241,15 +2250,17 @@ fn local_listen_addr(remote_port: u16) -> SocketAddr {
 async fn resolve_target_addr(host: &str, port: u16) -> Result<SocketAddr, String> {
     let host = host.trim();
     if host.is_empty() {
-        return Err("本地服务地址不能为空".to_string());
+        return Err("LOCAL_SERVICE_HOST_EMPTY".to_string());
     }
 
     let mut addrs = tokio::net::lookup_host((host, port))
         .await
-        .map_err(|error| format!("无法解析本地服务地址 {host}:{port}：{error}"))?;
+        .map_err(|error| {
+            format!("failed to resolve local service address {host}:{port}: {error}")
+        })?;
     addrs
         .next()
-        .ok_or_else(|| format!("无法解析本地服务地址 {host}:{port}"))
+        .ok_or_else(|| format!("failed to resolve local service address {host}:{port}"))
 }
 
 async fn verify_target_reachable(target_addr: SocketAddr) -> Result<(), String> {
@@ -2260,8 +2271,10 @@ async fn verify_target_reachable(target_addr: SocketAddr) -> Result<(), String> 
     .await
     {
         Ok(Ok(_stream)) => Ok(()),
-        Ok(Err(error)) => Err(format!("本地服务不可访问 {target_addr}：{error}")),
-        Err(_) => Err(format!("本地服务连接超时 {target_addr}")),
+        Ok(Err(error)) => Err(format!(
+            "local service is unreachable {target_addr}: {error}"
+        )),
+        Err(_) => Err(format!("local service connection timed out {target_addr}")),
     }
 }
 
@@ -2276,13 +2289,13 @@ fn local_runtime_timeout() -> TimeoutConfig {
 
 fn tunnel_server_not_ready_message(inner: &RuntimeInner) -> String {
     if inner.servers.is_empty() {
-        return "没有可用服务器配置。请先到“服务器”页面添加并连接服务器；本机测试先运行 npm run dev:server。".to_string();
+        return "NO_AVAILABLE_SERVER_CONFIG".to_string();
     }
 
     if let Some(server_id) = inner.active_server_id.as_deref() {
         if let Some(server) = inner.servers.get(server_id) {
             return format!(
-                "服务器「{}」当前没有可用连接。请确认服务端正在运行（本机测试运行 npm run dev:server），然后到“服务器”页面重新连接 {}:{}。",
+                "server `{}` has no active connection; reconnect {}:{} after confirming the server process is running",
                 server.name, server.host, server.port
             );
         }
@@ -2296,17 +2309,17 @@ fn tunnel_server_not_ready_message(inner: &RuntimeInner) -> String {
 
     if let Some(server) = connected_server {
         return format!(
-            "服务器未连接，Tunnel 无法启动。请先确认服务端进程已启动，再到“服务器”页面连接「{}」({}:{})。本机测试可运行 npm run dev:server。",
+            "server is disconnected; tunnel cannot start until `{}` ({}:{}) reconnects",
             server.name, server.host, server.port
         );
     }
 
-    "服务器未连接，Tunnel 无法启动。请先启动服务端并在“服务器”页面连接成功。".to_string()
+    "SERVER_DISCONNECTED_TUNNEL_START_BLOCKED".to_string()
 }
 
 fn explain_server_control_error(error: &str) -> String {
     format!(
-        "服务端不可用或控制连接已断开：{error}。请检查服务端是否正在运行；本机测试请先运行 npm run dev:server，然后到“服务器”页面重新连接。如果仍失败，请确认 Token 与 GATE_AUTH_TOKEN 一致。"
+        "server unavailable or control connection disconnected: {error}; check server process and token"
     )
 }
 
@@ -2315,30 +2328,31 @@ fn explain_local_runtime_error(tunnel: &TunnelRecord, error: &str) -> String {
     if lower.contains("10048")
         || lower.contains("address already in use")
         || lower.contains("only one usage")
-        || lower.contains("通常每个套接字地址")
     {
         return format!(
-            "端口 {} 已被占用，无法作为测试访问入口。请停止占用该端口的程序，或把 Tunnel 的公网端口改成其他端口。",
+            "port {} is already in use and cannot be used as the local test entry",
             tunnel.remote_port
         );
     }
 
-    if error.contains("本地服务不可访问") || error.contains("本地服务连接超时") {
+    if error.contains("local service is unreachable")
+        || error.contains("local service connection timed out")
+    {
         return format!(
-            "本地服务 {}:{} 不可访问，Tunnel 已停止。请先启动你的本地应用，再重新启动 Tunnel。详细信息：{}",
+            "local service {}:{} is unreachable; tunnel stopped; detail: {}",
             tunnel.local_host, tunnel.local_port, error
         );
     }
 
-    if error.contains("无法解析本地服务地址") {
+    if error.contains("failed to resolve local service address") {
         return format!(
-            "本地服务地址配置有误：{}:{}。请检查 Host 和端口是否填写正确。详细信息：{}",
+            "local service address is invalid: {}:{}; detail: {}",
             tunnel.local_host, tunnel.local_port, error
         );
     }
 
     format!(
-        "本地 Runtime 启动失败。请检查本地服务 {}:{}、公网端口 {} 和协议 {}。详细信息：{}",
+        "local runtime failed to start; check local service {}:{}, public port {}, protocol {}; detail: {}",
         tunnel.local_host, tunnel.local_port, tunnel.remote_port, tunnel.protocol, error
     )
 }
@@ -2488,7 +2502,7 @@ fn mark_restored_runtime_inactive(inner: &mut RuntimeInner) {
         ) {
             server.status = "disconnected".to_string();
             server.session_id = None;
-            server.last_error = Some("备份恢复后需要手动重新连接服务器".to_string());
+            server.last_error = Some("BACKUP_RESTORED_MANUAL_RECONNECT".to_string());
             server.updated_at = Utc::now().timestamp_millis();
         }
     }
@@ -2825,7 +2839,7 @@ async fn read_protocol_message(
     match stream.read_exact(&mut length).await {
         Ok(_) => {}
         Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-        Err(error) => return Err(format!("读取协议帧失败：{error}")),
+        Err(error) => return Err(format!("failed to read protocol frame: {error}")),
     }
 
     let length = u32::from_be_bytes(length) as usize;
@@ -2833,11 +2847,11 @@ async fn read_protocol_message(
     stream
         .read_exact(&mut payload)
         .await
-        .map_err(|error| format!("读取协议载荷失败：{error}"))?;
+        .map_err(|error| format!("failed to read protocol payload: {error}"))?;
     protocol
         .decode(&payload)
         .map(Some)
-        .map_err(|error| format!("解析协议消息失败：{error}"))
+        .map_err(|error| format!("failed to decode protocol message: {error}"))
 }
 
 async fn write_protocol_message(
@@ -2847,17 +2861,18 @@ async fn write_protocol_message(
 ) -> Result<(), String> {
     let payload = protocol
         .encode(message)
-        .map_err(|error| format!("编码协议消息失败：{error}"))?;
-    let frame = Frame::new(payload).map_err(|error| format!("创建协议帧失败：{error}"))?;
+        .map_err(|error| format!("failed to encode protocol message: {error}"))?;
+    let frame =
+        Frame::new(payload).map_err(|error| format!("failed to create protocol frame: {error}"))?;
     let bytes = FrameEncoder::encode(&frame);
     stream
         .write_all(&bytes)
         .await
-        .map_err(|error| format!("写入协议帧失败：{error}"))?;
+        .map_err(|error| format!("failed to write protocol frame: {error}"))?;
     stream
         .flush()
         .await
-        .map_err(|error| format!("刷新协议帧失败：{error}"))
+        .map_err(|error| format!("failed to flush protocol frame: {error}"))
 }
 
 fn ensure_ok(response: &Value) -> Result<(), String> {

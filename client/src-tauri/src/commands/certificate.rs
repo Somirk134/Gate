@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{env, fs, path::PathBuf};
 
+use crate::commands::error::{AppError, CommandResult};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateRecord {
     domain: String,
@@ -27,16 +29,34 @@ pub struct CertificateFingerprint {
 }
 
 #[tauri::command]
-pub async fn certificate_list() -> Result<Value, String> {
+pub async fn certificate_list() -> CommandResult<Value> {
     let root = certificate_store_root();
     let mut certificates = Vec::new();
 
     if root.exists() {
-        for entry in fs::read_dir(&root).map_err(|error| error.to_string())? {
-            let entry = entry.map_err(|error| error.to_string())?;
+        for entry in fs::read_dir(&root).map_err(|error| {
+            AppError::from_source(
+                "CERTIFICATE_DIRECTORY_READ_FAILED",
+                "errors.certificate.readDirectoryFailed",
+                error,
+            )
+        })? {
+            let entry = entry.map_err(|error| {
+                AppError::from_source(
+                    "CERTIFICATE_DIRECTORY_READ_FAILED",
+                    "errors.certificate.readDirectoryFailed",
+                    error,
+                )
+            })?;
             if !entry
                 .file_type()
-                .map_err(|error| error.to_string())?
+                .map_err(|error| {
+                    AppError::from_source(
+                        "CERTIFICATE_DIRECTORY_READ_FAILED",
+                        "errors.certificate.readDirectoryFailed",
+                        error,
+                    )
+                })?
                 .is_dir()
             {
                 continue;
@@ -47,10 +67,21 @@ pub async fn certificate_list() -> Result<Value, String> {
                 continue;
             }
 
-            let record: CertificateRecord = serde_json::from_slice(
-                &fs::read(&metadata_path).map_err(|error| error.to_string())?,
-            )
-            .map_err(|error| error.to_string())?;
+            let record: CertificateRecord =
+                serde_json::from_slice(&fs::read(&metadata_path).map_err(|error| {
+                    AppError::from_source(
+                        "CERTIFICATE_METADATA_READ_FAILED",
+                        "errors.certificate.metadataReadFailed",
+                        error,
+                    )
+                })?)
+                .map_err(|error| {
+                    AppError::from_source(
+                        "CERTIFICATE_METADATA_PARSE_FAILED",
+                        "errors.certificate.metadataParseFailed",
+                        error,
+                    )
+                })?;
             certificates.push(certificate_summary(record, &entry.path()));
         }
     }
@@ -69,7 +100,7 @@ pub async fn certificate_list() -> Result<Value, String> {
 }
 
 #[tauri::command]
-pub async fn certificate_detail(domain: String) -> Result<Value, String> {
+pub async fn certificate_detail(domain: String) -> CommandResult<Value> {
     let domain = normalize_domain(&domain)?;
     let (record, certificate_pem) = load_certificate(&domain)?;
 
@@ -82,10 +113,16 @@ pub async fn certificate_detail(domain: String) -> Result<Value, String> {
 }
 
 #[tauri::command]
-pub async fn certificate_export_pem(domain: String) -> Result<String, String> {
+pub async fn certificate_export_pem(domain: String) -> CommandResult<String> {
     let domain = normalize_domain(&domain)?;
     let (_, certificate_pem) = load_certificate(&domain)?;
-    certificate_pem.ok_or_else(|| format!("certificate PEM for domain `{domain}` was not found"))
+    certificate_pem.ok_or_else(|| {
+        AppError::with_details(
+            "CERTIFICATE_PEM_NOT_FOUND",
+            "errors.certificate.pemNotFound",
+            json!({ "domain": domain }),
+        )
+    })
 }
 
 fn certificate_summary(record: CertificateRecord, domain_dir: &std::path::Path) -> Value {
@@ -170,20 +207,41 @@ fn normalize_status(value: &str) -> &'static str {
     }
 }
 
-fn load_certificate(domain: &str) -> Result<(CertificateRecord, Option<String>), String> {
+fn load_certificate(domain: &str) -> CommandResult<(CertificateRecord, Option<String>)> {
     let domain_dir = certificate_domain_dir(domain);
     let metadata_path = domain_dir.join("metadata.json");
     let certificate_path = domain_dir.join("certificate.pem");
 
     if !metadata_path.exists() {
-        return Err(format!("certificate for domain `{domain}` was not found"));
+        return Err(AppError::with_details(
+            "CERTIFICATE_NOT_FOUND",
+            "errors.certificate.notFound",
+            json!({ "domain": domain }),
+        ));
     }
 
-    let record =
-        serde_json::from_slice(&fs::read(metadata_path).map_err(|error| error.to_string())?)
-            .map_err(|error| error.to_string())?;
+    let record = serde_json::from_slice(&fs::read(metadata_path).map_err(|error| {
+        AppError::from_source(
+            "CERTIFICATE_METADATA_READ_FAILED",
+            "errors.certificate.metadataReadFailed",
+            error,
+        )
+    })?)
+    .map_err(|error| {
+        AppError::from_source(
+            "CERTIFICATE_METADATA_PARSE_FAILED",
+            "errors.certificate.metadataParseFailed",
+            error,
+        )
+    })?;
     let certificate_pem = if certificate_path.exists() {
-        Some(fs::read_to_string(certificate_path).map_err(|error| error.to_string())?)
+        Some(fs::read_to_string(certificate_path).map_err(|error| {
+            AppError::from_source(
+                "CERTIFICATE_PEM_READ_FAILED",
+                "errors.certificate.pemReadFailed",
+                error,
+            )
+        })?)
     } else {
         None
     };
@@ -226,14 +284,17 @@ fn runtime_data_dir() -> PathBuf {
     PathBuf::from(".gate")
 }
 
-fn normalize_domain(domain: &str) -> Result<String, String> {
+fn normalize_domain(domain: &str) -> CommandResult<String> {
     let domain = domain.trim().trim_end_matches('.').to_ascii_lowercase();
     if domain.is_empty()
         || domain
             .chars()
             .any(|value| !(value.is_ascii_alphanumeric() || matches!(value, '.' | '-' | '_')))
     {
-        return Err("domain is invalid".to_string());
+        return Err(AppError::new(
+            "CERTIFICATE_DOMAIN_INVALID",
+            "errors.certificate.domainInvalid",
+        ));
     }
     Ok(domain)
 }

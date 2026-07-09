@@ -266,7 +266,12 @@ impl E2eStack {
             )
             .env("GATE_AUTH_TOKEN", AUTH_TOKEN)
             .env("GATE_TUNNEL_BIND_ADDR", "127.0.0.1")
-            .env("GATE_HEARTBEAT_TIMEOUT_MS", "1500");
+            .env("GATE_HEARTBEAT_TIMEOUT_MS", "1500")
+            // 服务端域名绑定也必须隔离，避免固定 e2e.local 污染用户默认数据目录。
+            .env(
+                "GATE_SERVER_DOMAIN_DB",
+                self.root.join("server-domains.sqlite3"),
+            );
 
         let process = ProcessGuard::spawn(command)?;
         wait_for_tcp_port(self.server_port, Duration::from_secs(5)).await?;
