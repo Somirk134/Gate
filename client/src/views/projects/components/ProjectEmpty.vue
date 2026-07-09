@@ -6,39 +6,28 @@
 <template>
   <div class="project-empty">
     <div class="project-empty__illustration">
-      <GIcon
-        name="projects"
-        :size="48"
-      />
+      <GIcon name="projects" :size="48" />
     </div>
-    <h2 class="project-empty__title">
-      欢迎使用 Gate
-    </h2>
-    <p class="project-empty__desc">
-      还没有项目。创建第一个项目，开始管理你的隧道集合。
-    </p>
+    <h2 class="project-empty__title">{{ t('project.empty') }}</h2>
+    <p class="project-empty__desc">{{ t('project.emptyDesc') }}</p>
     <p class="project-empty__hint">
-      <GIcon
-        name="info-circle"
-        :size="12"
-      />
-      所有 Tunnel 必须属于某个 Project
+      <GIcon name="info-circle" :size="12" />
+      {{ t('project.emptyHint') }}
     </p>
     <div class="project-empty__action">
-      <GButton
-        variant="primary"
-        icon="plus"
-        @click="$emit('create')"
-      >
-        创建第一个项目
+      <GButton variant="primary" icon="plus" @click="$emit('create')">
+        {{ t('project.createNow') }}
       </GButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+
+const { t } = useI18n()
 
 defineEmits<{ create: [] }>()
 </script>

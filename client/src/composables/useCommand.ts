@@ -1,6 +1,6 @@
-import { computed } from "vue"
-import { useAppContext } from "@/providers/appContext"
-import type { Command, ExecuteCommandOptions } from "@/commands/types"
+import { computed } from 'vue'
+import { useAppContext } from '@/providers/appContext'
+import type { Command, ExecuteCommandOptions } from '@/commands/types'
 
 export function useCommand() {
   const context = useAppContext()
@@ -12,9 +12,7 @@ export function useCommand() {
     return context.commands.execute<TResult, TArgs>(id, options)
   }
 
-  function register<TArgs = unknown, TResult = unknown>(
-    command: Command<TArgs, TResult>,
-  ) {
+  function register<TArgs = unknown, TResult = unknown>(command: Command<TArgs, TResult>) {
     return context.commands.register(command)
   }
 

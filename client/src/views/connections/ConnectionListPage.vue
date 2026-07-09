@@ -1,11 +1,7 @@
 <template>
   <n-space vertical>
     <n-h1>{{ t('connections.title') }}</n-h1>
-    <n-data-table
-      :columns="columns"
-      :data="connections"
-      :loading="loading"
-    />
+    <n-data-table :columns="columns" :data="connections" :loading="loading" />
   </n-space>
 </template>
 
@@ -19,9 +15,9 @@ const loading = ref(false)
 const connections = ref([])
 
 const columns = computed(() => [
-    { title: t('common.details'), key: 'id' },
-    { title: t('connections.client'), key: 'clientId' },
-    { title: t('connections.remoteAddr'), key: 'remoteAddr' },
-    { title: t('connections.connectedAt'), key: 'connectedAt' },
+  { title: t('common.details'), key: 'id' },
+  { title: t('connections.client'), key: 'clientId' },
+  { title: t('connections.remoteAddr'), key: 'remoteAddr' },
+  { title: t('connections.connectedAt'), key: 'connectedAt' },
 ])
 </script>

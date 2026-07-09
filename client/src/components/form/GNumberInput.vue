@@ -11,31 +11,14 @@
     :placeholder="placeholder"
     :disabled="disabled"
     :state="state"
-    @update:model-value="onInput"
-  >
+    @update:model-value="onInput">
     <template #suffix>
       <div class="g-number__stepper">
-        <button
-          type="button"
-          class="g-number__btn"
-          :disabled="disabled || atMax"
-          @click="step(1)"
-        >
-          <GIcon
-            name="chevron-up"
-            :size="12"
-          />
+        <button type="button" class="g-number__btn" :disabled="disabled || atMax" @click="step(1)">
+          <GIcon name="chevron-up" :size="12" />
         </button>
-        <button
-          type="button"
-          class="g-number__btn"
-          :disabled="disabled || atMin"
-          @click="step(-1)"
-        >
-          <GIcon
-            name="chevron-down"
-            :size="12"
-          />
+        <button type="button" class="g-number__btn" :disabled="disabled || atMin" @click="step(-1)">
+          <GIcon name="chevron-down" :size="12" />
         </button>
       </div>
     </template>
@@ -43,40 +26,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GInput from "./GInput.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed } from 'vue'
+import GInput from './GInput.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue?: number | null
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     disabled?: boolean
-    state?: "normal" | "error" | "success"
+    state?: 'normal' | 'error' | 'success'
     min?: number
     max?: number
     step?: number
   }>(),
   {
-    size: "md",
+    size: 'md',
     disabled: false,
-    state: "normal",
+    state: 'normal',
     min: -Infinity,
     max: Infinity,
     step: 1,
   },
 )
 
-const emit = defineEmits<{ "update:modelValue": [value: number | null] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: number | null] }>()
 
 const atMin = computed(() => props.modelValue != null && props.modelValue <= props.min)
 const atMax = computed(() => props.modelValue != null && props.modelValue >= props.max)
 
 function onInput(val: string) {
-  if (val === "") return emit("update:modelValue", null)
+  if (val === '') return emit('update:modelValue', null)
   const n = Number(val)
-  emit("update:modelValue", Number.isNaN(n) ? null : n)
+  emit('update:modelValue', Number.isNaN(n) ? null : n)
 }
 
 function step(dir: 1 | -1) {
@@ -85,7 +68,7 @@ function step(dir: 1 | -1) {
   let next = base + dir * props.step
   if (next < props.min) next = props.min
   if (next > props.max) next = props.max
-  emit("update:modelValue", next)
+  emit('update:modelValue', next)
 }
 </script>
 
@@ -105,7 +88,9 @@ function step(dir: 1 | -1) {
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .g-number__btn:hover:not(:disabled) {
   color: var(--text-primary);

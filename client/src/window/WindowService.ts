@@ -1,4 +1,4 @@
-import type { ConfigurationService } from "@/services/ConfigurationService"
+import type { ConfigurationService } from '@/services/ConfigurationService'
 
 export interface WindowBounds {
   width: number
@@ -32,11 +32,11 @@ export class BrowserWindowService implements WindowService {
 
   constructor(private readonly configuration: ConfigurationService) {
     this.state = {
-      title: this.configuration.get<string>("window.title") ?? "Gate",
-      focused: typeof document !== "undefined" ? document.hasFocus() : true,
+      title: this.configuration.get<string>('window.title') ?? 'Gate',
+      focused: typeof document !== 'undefined' ? document.hasFocus() : true,
       maximized: false,
       minimized: false,
-      bounds: this.configuration.get<WindowBounds>("window.bounds"),
+      bounds: this.configuration.get<WindowBounds>('window.bounds'),
     }
   }
 
@@ -47,11 +47,11 @@ export class BrowserWindowService implements WindowService {
   setTitle(title: string) {
     this.state = { ...this.state, title }
 
-    if (typeof document !== "undefined") {
+    if (typeof document !== 'undefined') {
       document.title = title
     }
 
-    this.configuration.set("window.title", title)
+    this.configuration.set('window.title', title)
   }
 
   async minimize() {
@@ -77,13 +77,13 @@ export class BrowserWindowService implements WindowService {
   async focus() {
     this.state = { ...this.state, focused: true }
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       window.focus()
     }
   }
 
   async setBounds(bounds: WindowBounds) {
     this.state = { ...this.state, bounds }
-    this.configuration.set("window.bounds", bounds)
+    this.configuration.set('window.bounds', bounds)
   }
 }

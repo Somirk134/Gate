@@ -1428,6 +1428,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "gate-communication",
+ "gate-domain",
  "gate-engine",
  "gate-protocol",
  "gate-server-domain",
@@ -1472,9 +1473,13 @@ dependencies = [
 name = "gate-domain"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "gate-shared",
+ "rusqlite",
  "serde",
+ "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
  "tracing",
  "uuid",

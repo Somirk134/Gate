@@ -1,14 +1,7 @@
 export type CertificateStatus =
-  | "pending"
-  | "active"
-  | "expiringSoon"
-  | "expired"
-  | "revoked"
-  | "deleted"
-  | "failed"
-  | "unknown"
+  'pending' | 'active' | 'expiringSoon' | 'expired' | 'revoked' | 'deleted' | 'failed' | 'unknown'
 
-export type AutoRenewalStatus = "scheduled" | "due" | "notScheduled" | "expired"
+export type AutoRenewalStatus = 'scheduled' | 'due' | 'notScheduled' | 'expired'
 
 export interface CertificateSummary {
   domain: string

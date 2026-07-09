@@ -1,7 +1,7 @@
-import { computed } from "vue"
-import { storeToRefs } from "pinia"
-import { useSettingsStore } from "../stores"
-import type { SettingItem } from "../types"
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useSettingsStore } from '../stores'
+import type { SettingItem } from '../types'
 
 export function useSettingReset() {
   const store = useSettingsStore()

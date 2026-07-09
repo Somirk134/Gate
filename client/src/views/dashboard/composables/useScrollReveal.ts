@@ -8,21 +8,21 @@
    也可作为函数调用，对指定根容器的子元素批量注册。
    ================================================================== */
 
-import { onMounted, onUnmounted, type Directive } from "vue"
+import { onMounted, onUnmounted, type Directive } from 'vue'
 
 export const vScrollReveal: Directive<HTMLElement> = {
   mounted(el) {
-    el.classList.add("scroll-reveal")
+    el.classList.add('scroll-reveal')
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("is-revealed")
+            entry.target.classList.add('is-revealed')
             observer.unobserve(entry.target)
           }
         })
       },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
     )
     observer.observe(el)
     // 存储 observer 以便卸载
@@ -44,14 +44,14 @@ export function useScrollReveal() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("is-revealed")
+            entry.target.classList.add('is-revealed')
             observer?.unobserve(entry.target)
           }
         })
       },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
     )
-    const targets = root.querySelectorAll(".scroll-reveal")
+    const targets = root.querySelectorAll('.scroll-reveal')
     targets.forEach((t) => observer?.observe(t))
   }
 

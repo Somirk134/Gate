@@ -1,37 +1,21 @@
 <!--
   ProjectStatistics — 项目统计卡片组
   ------------------------------------------------------------------
-  展示：今日流量 / 累计流量 / 运行时间 / 连接数 / Tunnel 数量
+  展示：今日流量 / 累计流量 / 运行时间 / 连接数 / 隧道数量
   全部使用 Card 布局。
 -->
 <template>
   <section class="project-stat-section">
     <div class="project-section__head">
       <div class="project-section__title">
-        <GIcon
-          name="chart-bar"
-          :size="16"
-          class="project-section__title-icon"
-        />
+        <GIcon name="chart-bar" :size="16" class="project-section__title-icon" />
         <span>统计概览</span>
       </div>
     </div>
     <div class="project-stat-grid">
-      <GCard
-        v-for="item in stats"
-        :key="item.label"
-        variant="plain"
-        padding="md"
-        class="stat-card"
-      >
-        <div
-          class="stat-card__icon"
-          :style="{ color: item.color, background: item.color + '1f' }"
-        >
-          <GIcon
-            :name="item.icon"
-            :size="18"
-          />
+      <GCard v-for="item in stats" :key="item.label" variant="plain" padding="md" class="stat-card">
+        <div class="stat-card__icon" :style="{ color: item.color, background: item.color + '1f' }">
+          <GIcon :name="item.icon" :size="18" />
         </div>
         <div class="stat-card__body">
           <span class="stat-card__value">{{ item.value }}</span>
@@ -43,44 +27,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { Project } from "../types"
-import { formatBytes, formatDuration } from "../utils"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { Project } from '../types'
+import { formatBytes, formatDuration } from '../utils'
 
 const props = defineProps<{ project: Project }>()
 
 const stats = computed(() => [
   {
-    label: "今日流量",
+    label: '今日流量',
     value: formatBytes(props.project.statistics.todayTraffic),
-    icon: "download",
-    color: "#5B8DEF",
+    icon: 'download',
+    color: '#5B8DEF',
   },
   {
-    label: "累计流量",
+    label: '累计流量',
     value: formatBytes(props.project.statistics.totalTraffic),
-    icon: "cloud",
-    color: "#7C6FF2",
+    icon: 'cloud',
+    color: '#7C6FF2',
   },
   {
-    label: "运行时间",
+    label: '运行时间',
     value: formatDuration(props.project.statistics.uptime),
-    icon: "clock",
-    color: "#22C55E",
+    icon: 'clock',
+    color: '#22C55E',
   },
   {
-    label: "连接数",
+    label: '连接数',
     value: String(props.project.statistics.connections),
-    icon: "link",
-    color: "#F59E0B",
+    icon: 'link',
+    color: '#F59E0B',
   },
   {
-    label: "Tunnel 数量",
+    label: '隧道数量',
     value: String(props.project.tunnelCount),
-    icon: "router",
-    color: "#06B6D4",
+    icon: 'router',
+    color: '#06B6D4',
   },
 ])
 </script>

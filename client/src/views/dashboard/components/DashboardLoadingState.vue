@@ -6,11 +6,7 @@
 <template>
   <div class="dash-loading">
     <!-- Welcome skeleton -->
-    <GSkeleton
-      variant="rect"
-      height="120px"
-      rounded="var(--radius-xl)"
-    />
+    <GSkeleton variant="rect" height="120px" rounded="var(--radius-xl)" />
 
     <!-- Quick actions skeleton -->
     <div class="dash-loading__row">
@@ -19,8 +15,7 @@
         :key="`qa-${i}`"
         variant="rect"
         height="96px"
-        rounded="var(--radius-lg)"
-      />
+        rounded="var(--radius-lg)" />
     </div>
 
     <!-- Stats skeleton -->
@@ -30,8 +25,7 @@
         :key="`st-${i}`"
         variant="rect"
         height="92px"
-        rounded="var(--radius-lg)"
-      />
+        rounded="var(--radius-lg)" />
     </div>
 
     <!-- Projects skeleton -->
@@ -41,28 +35,19 @@
         :key="`pr-${i}`"
         variant="rect"
         height="140px"
-        rounded="var(--radius-lg)"
-      />
+        rounded="var(--radius-lg)" />
     </div>
 
     <!-- Bottom row skeleton -->
     <div class="dash-loading__bottom">
-      <GSkeleton
-        variant="rect"
-        height="280px"
-        rounded="var(--radius-xl)"
-      />
-      <GSkeleton
-        variant="rect"
-        height="280px"
-        rounded="var(--radius-xl)"
-      />
+      <GSkeleton variant="rect" height="280px" rounded="var(--radius-xl)" />
+      <GSkeleton variant="rect" height="280px" rounded="var(--radius-xl)" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GSkeleton from "@components/feedback/GSkeleton.vue"
+import GSkeleton from '@components/feedback/GSkeleton.vue'
 </script>
 
 <style scoped>

@@ -1,21 +1,14 @@
-export type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL"
+export type LogLevel = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL'
 
 export type LogSource =
-  | "SYSTEM"
-  | "CLIENT"
-  | "SERVER"
-  | "PROJECT"
-  | "TUNNEL"
-  | "STATISTICS"
-  | "UPDATE"
-  | "PLUGIN"
+  'SYSTEM' | 'CLIENT' | 'SERVER' | 'PROJECT' | 'TUNNEL' | 'STATISTICS' | 'UPDATE' | 'PLUGIN'
 
-export type LogTimeRange = "all" | "15m" | "1h" | "24h" | "today"
+export type LogTimeRange = 'all' | '15m' | '1h' | '24h' | 'today'
 
-export type LogGroupBy = "none" | "time" | "source" | "level"
+export type LogGroupBy = 'none' | 'time' | 'source' | 'level'
 
 export interface LogContext {
-  environment: "desktop" | "server" | "client"
+  environment: 'desktop' | 'server' | 'client'
   host: string
   processId: number
   thread: string
@@ -78,7 +71,7 @@ export interface LogStatistics {
 }
 
 export interface LogSourceNode {
-  id: LogSource | "ALL"
+  id: LogSource | 'ALL'
   label: string
   icon: string
   children?: LogSourceNode[]
@@ -93,4 +86,4 @@ export interface LogLevelOption {
   icon: string
 }
 
-export type LogLoadStatus = "idle" | "loading" | "success" | "error"
+export type LogLoadStatus = 'idle' | 'loading' | 'success' | 'error'

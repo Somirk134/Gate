@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod config;
 pub mod native;
+pub mod project;
 pub mod runtime;
 pub mod tray;
 pub mod updater;
@@ -21,6 +22,7 @@ pub fn run() -> Result<()> {
 
     tauri::Builder::default()
         .manage(runtime::ClientRuntimeState::default())
+        .manage(project::ProjectWorkspaceState::default())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -72,6 +74,23 @@ pub fn run() -> Result<()> {
             commands::diagnostics::diagnostics_test_connection,
             commands::diagnostics::diagnostics_run_deployment,
             commands::diagnostics::diagnostics_collect_system_info,
+            commands::project::project_list,
+            commands::project::project_detail,
+            commands::project::project_create,
+            commands::project::project_update,
+            commands::project::project_delete_impact,
+            commands::project::project_delete,
+            commands::project::project_set_favorite,
+            commands::project::project_set_pinned,
+            commands::project::project_add_tunnel,
+            commands::project::project_remove_tunnel,
+            commands::project::project_move_tunnel,
+            commands::project::project_add_domain,
+            commands::project::project_remove_domain,
+            commands::project::project_add_certificate,
+            commands::project::project_remove_certificate,
+            commands::project::project_templates,
+            commands::project::project_recommend_tunnels,
         ])
         .run(tauri::generate_context!())?;
 

@@ -4,29 +4,21 @@
   展示单个标签，支持点击移除（编辑态）与展示态（纯展示）。
 -->
 <template>
-  <span
-    class="project-tag"
-    :class="{ 'project-tag--removable': removable }"
-    :style="tagStyle"
-  >
+  <span class="project-tag" :class="{ 'project-tag--removable': removable }" :style="tagStyle">
     <span class="project-tag__label">{{ name }}</span>
     <button
       v-if="removable"
       class="project-tag__remove"
       type="button"
-      @click.stop="$emit('remove', name)"
-    >
-      <GIcon
-        name="close"
-        :size="10"
-      />
+      @click.stop="$emit('remove', name)">
+      <GIcon name="close" :size="10" />
     </button>
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -35,7 +27,7 @@ const props = withDefaults(
     removable?: boolean
   }>(),
   {
-    color: "",
+    color: '',
     removable: false,
   },
 )
@@ -86,7 +78,8 @@ const tagStyle = computed(() => {
   opacity: 0.6;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: opacity var(--duration-fast) var(--ease-out),
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 

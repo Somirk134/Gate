@@ -1,16 +1,10 @@
-import { createCommunicationId } from "../shared/id"
-import type {
-  Command,
-  Event as CommunicationEvent,
-  Message,
-} from "../types"
-import { ClientEventManager } from "../event/ClientEventManager"
-import { ClientRequestManager } from "../request/ClientRequestManager"
-import { ResponseDispatcher } from "./ResponseDispatcher"
+import { createCommunicationId } from '../shared/id'
+import type { Command, Event as CommunicationEvent, Message } from '../types'
+import { ClientEventManager } from '../event/ClientEventManager'
+import { ClientRequestManager } from '../request/ClientRequestManager'
+import { ResponseDispatcher } from './ResponseDispatcher'
 
-export type CommandHandler<TBody = unknown> = (
-  message: Message<TBody>,
-) => void | Promise<void>
+export type CommandHandler<TBody = unknown> = (message: Message<TBody>) => void | Promise<void>
 
 export class ClientDispatcher {
   private readonly commandHandlers = new Map<Command, CommandHandler>()
@@ -33,15 +27,15 @@ export class ClientDispatcher {
 
   async dispatch(message: Message) {
     switch (message.header.messageType) {
-      case "response":
+      case 'response':
         this.responses.dispatch(message)
         return
-      case "event":
-      case "broadcast":
-      case "notification":
+      case 'event':
+      case 'broadcast':
+      case 'notification':
         await this.dispatchEvent(message)
         return
-      case "request":
+      case 'request':
         await this.dispatchCommand(message)
         return
       default:
@@ -51,10 +45,10 @@ export class ClientDispatcher {
 
   private async dispatchEvent<TBody>(message: Message<TBody>) {
     const event: CommunicationEvent<TBody> = {
-      id: createCommunicationId("evt"),
+      id: createCommunicationId('evt'),
       name: message.header.command,
       payload: message.body,
-      source: "communication",
+      source: 'communication',
       priority: 0,
       timestamp: Date.now(),
     }

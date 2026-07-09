@@ -1,30 +1,18 @@
 <template>
-  <article
-    class="statistics-card"
-    :class="`statistics-card--${tone}`"
-  >
-    <div
-      class="statistics-card__icon"
-      :title="label"
-    >
-      <GIcon
-        :name="icon"
-        :size="18"
-      />
+  <article class="statistics-card" :class="`statistics-card--${tone}`">
+    <div class="statistics-card__icon" :title="label">
+      <GIcon :name="icon" :size="18" />
     </div>
     <div class="statistics-card__content">
       <span class="statistics-card__label">{{ label }}</span>
       <strong class="statistics-card__value">{{ value }}</strong>
-      <span
-        v-if="meta"
-        class="statistics-card__meta"
-      >{{ meta }}</span>
+      <span v-if="meta" class="statistics-card__meta">{{ meta }}</span>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
+import GIcon from '@components/icons/GIcon.vue'
 
 withDefaults(
   defineProps<{
@@ -32,10 +20,10 @@ withDefaults(
     value: string
     icon: string
     meta?: string
-    tone?: "neutral" | "primary" | "success" | "warning" | "danger" | "info"
+    tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
   }>(),
   {
-    tone: "neutral",
+    tone: 'neutral',
   },
 )
 </script>
@@ -64,11 +52,26 @@ withDefaults(
   background: var(--bg-surface-hover);
 }
 
-.statistics-card--primary .statistics-card__icon { color: var(--color-primary); background: var(--color-primary-muted); }
-.statistics-card--success .statistics-card__icon { color: var(--color-success); background: var(--color-success-muted); }
-.statistics-card--warning .statistics-card__icon { color: var(--color-warning); background: var(--color-warning-muted); }
-.statistics-card--danger .statistics-card__icon { color: var(--color-error); background: var(--color-error-muted); }
-.statistics-card--info .statistics-card__icon { color: var(--color-info); background: var(--color-info-muted); }
+.statistics-card--primary .statistics-card__icon {
+  color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
+.statistics-card--success .statistics-card__icon {
+  color: var(--color-success);
+  background: var(--color-success-muted);
+}
+.statistics-card--warning .statistics-card__icon {
+  color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+.statistics-card--danger .statistics-card__icon {
+  color: var(--color-error);
+  background: var(--color-error-muted);
+}
+.statistics-card--info .statistics-card__icon {
+  color: var(--color-info);
+  background: var(--color-info-muted);
+}
 
 .statistics-card__content {
   display: flex;

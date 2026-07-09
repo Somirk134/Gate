@@ -5,9 +5,9 @@
    组件层只需调用本 hook，无需直接操作 store 状态机。
    ================================================================== */
 
-import { onMounted } from "vue"
-import { storeToRefs } from "pinia"
-import { useDashboardStore } from "../store/dashboard"
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useDashboardStore } from '../store/dashboard'
 
 export function useDashboardData() {
   const store = useDashboardStore()
@@ -47,7 +47,7 @@ export function useDashboardData() {
   }
 
   onMounted(() => {
-    if (store.status === "idle") {
+    if (store.status === 'idle') {
       loadData()
     }
   })

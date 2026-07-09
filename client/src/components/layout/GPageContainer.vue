@@ -9,8 +9,7 @@
 <template>
   <div
     class="g-page-container"
-    :class="[`g-page-container--${width}`, { 'g-page-container--padded': padded }]"
-  >
+    :class="[`g-page-container--${width}`, { 'g-page-container--padded': padded }]">
     <slot />
   </div>
 </template>
@@ -18,11 +17,11 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    width?: "normal" | "narrow" | "wide" | "full"
+    width?: 'normal' | 'narrow' | 'wide' | 'full'
     padded?: boolean
   }>(),
   {
-    width: "normal",
+    width: 'normal',
     padded: true,
   },
 )
@@ -36,8 +35,16 @@ withDefaults(
 .g-page-container--padded {
   padding: var(--page-padding);
 }
-.g-page-container--normal { max-width: var(--content-max-width); }
-.g-page-container--narrow { max-width: 800px; }
-.g-page-container--wide   { max-width: 1600px; }
-.g-page-container--full   { max-width: 100%; }
+.g-page-container--normal {
+  max-width: var(--content-max-width);
+}
+.g-page-container--narrow {
+  max-width: 800px;
+}
+.g-page-container--wide {
+  max-width: 1600px;
+}
+.g-page-container--full {
+  max-width: 100%;
+}
 </style>

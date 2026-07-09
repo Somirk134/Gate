@@ -1,13 +1,13 @@
-import { onMounted } from "vue"
-import { storeToRefs } from "pinia"
-import { useLogStore } from "../store"
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useLogStore } from '../store'
 
 export function useLog() {
   const store = useLogStore()
   const refs = storeToRefs(store)
 
   onMounted(() => {
-    if (store.status === "idle") {
+    if (store.status === 'idle') {
       void store.load()
     }
   })

@@ -1,10 +1,13 @@
 use chrono::Utc;
 use gate_communication::{TcpTransport, Transport, TransportEndpoint};
+#[cfg(test)]
 use gate_engine::runtime::{
     HttpRouteConfig, HttpRuntimeConfig, HttpTunnelRuntime, RuntimeConfig, TimeoutConfig,
     TunnelRuntime,
 };
-use gate_protocol::{Body, Command, Message, Metadata};
+use gate_protocol::{
+    Body, Command, Frame, FrameEncoder, Message, Metadata, ProtocolBuilder, ProtocolManager,
+};
 use gate_server_domain::{
     model::{
         Domain as ManagedDomain, DomainId as ManagedDomainId, DomainStatus as ManagedDomainStatus,
@@ -14,20 +17,33 @@ use gate_server_domain::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+#[cfg(test)]
+use std::net::{IpAddr, Ipv4Addr};
 use std::{
     collections::{BTreeMap, BTreeSet},
     env, fs,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    net::SocketAddr,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use sysinfo::{Disks, System};
-use tokio::sync::Mutex;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+    sync::{watch, Mutex},
+    task::JoinHandle,
+    time::sleep,
+};
 use uuid::Uuid;
 
 const STORE_VERSION: u32 = 1;
 const MAX_LOGS: usize = 500;
+const RELAY_WORKERS_PER_TUNNEL: usize = 4;
+const RELAY_RECONNECT_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RuntimeLog {
@@ -217,9 +233,40 @@ struct SystemSnapshot {
     memory_bytes: u64,
 }
 
+struct RelayTunnelRuntime {
+    shutdown: watch::Sender<bool>,
+    tasks: Vec<JoinHandle<()>>,
+    stats: Arc<RelayTunnelStats>,
+}
+
+#[derive(Debug, Default)]
+struct RelayTunnelStats {
+    active_connections: AtomicU64,
+    upload_bytes: AtomicU64,
+    download_bytes: AtomicU64,
+    total_connections: AtomicU64,
+    failed_connections: AtomicU64,
+    started_at_millis: AtomicU64,
+}
+
+#[derive(Debug, Clone)]
+struct RelayWorkerConfig {
+    worker_id: usize,
+    server_host: String,
+    server_port: u16,
+    token: String,
+    session_id: String,
+    tunnel_id: String,
+    protocol: String,
+    target_addr: SocketAddr,
+}
+
 enum LocalTunnelRuntime {
+    #[cfg(test)]
     Tcp(TunnelRuntime),
+    #[cfg(test)]
     Http(HttpTunnelRuntime),
+    Remote(RelayTunnelRuntime),
 }
 
 #[derive(Debug, Clone)]
@@ -235,16 +282,55 @@ struct LocalTunnelRuntimeSnapshot {
     recent_requests: Vec<HttpRequestRecord>,
 }
 
+impl RelayTunnelRuntime {
+    async fn shutdown(self) -> Result<(), String> {
+        let _ = self.shutdown.send(true);
+        for task in self.tasks {
+            task.abort();
+            let _ = task.await;
+        }
+        Ok(())
+    }
+
+    fn snapshot(&self) -> LocalTunnelRuntimeSnapshot {
+        let started_at = self.stats.started_at_millis.load(Ordering::Relaxed);
+        let now = Utc::now().timestamp_millis().max(0) as u64;
+        let runtime_seconds = now.saturating_sub(started_at) / 1000;
+        let upload_bytes = self.stats.upload_bytes.load(Ordering::Relaxed);
+        let download_bytes = self.stats.download_bytes.load(Ordering::Relaxed);
+
+        LocalTunnelRuntimeSnapshot {
+            active_connections: self.stats.active_connections.load(Ordering::Relaxed),
+            upload_bytes,
+            download_bytes,
+            current_speed_bps: 0,
+            runtime_seconds,
+            request_count: self.stats.total_connections.load(Ordering::Relaxed),
+            success_count: self
+                .stats
+                .total_connections
+                .load(Ordering::Relaxed)
+                .saturating_sub(self.stats.failed_connections.load(Ordering::Relaxed)),
+            total_latency_ms: 0,
+            recent_requests: Vec::new(),
+        }
+    }
+}
+
 impl LocalTunnelRuntime {
     async fn shutdown(self) -> Result<(), String> {
         match self {
+            #[cfg(test)]
             Self::Tcp(runtime) => runtime.shutdown().await.map_err(|error| error.to_string()),
+            #[cfg(test)]
             Self::Http(runtime) => runtime.shutdown().await.map_err(|error| error.to_string()),
+            Self::Remote(runtime) => runtime.shutdown().await,
         }
     }
 
     fn snapshot(&self) -> LocalTunnelRuntimeSnapshot {
         match self {
+            #[cfg(test)]
             Self::Tcp(runtime) => {
                 let metrics = runtime.metrics();
                 LocalTunnelRuntimeSnapshot {
@@ -259,6 +345,7 @@ impl LocalTunnelRuntime {
                     recent_requests: Vec::new(),
                 }
             }
+            #[cfg(test)]
             Self::Http(runtime) => {
                 let metrics = runtime.metrics();
                 let http = runtime.http_metrics();
@@ -291,6 +378,7 @@ impl LocalTunnelRuntime {
                     recent_requests,
                 }
             }
+            Self::Remote(runtime) => runtime.snapshot(),
         }
     }
 }
@@ -1004,8 +1092,11 @@ impl ClientRuntimeState {
             return Err(error);
         }
 
+        let (tunnel, server_addr, token, session_id) =
+            self.active_relay_context(&tunnel_id).await?;
+
         if let Err(error) = self
-            .request_required(Command::TunnelStart, json!({ "id": tunnel_id }))
+            .request_required(Command::TunnelStart, tunnel_control_payload(&tunnel))
             .await
         {
             let message = explain_server_control_error(&error);
@@ -1015,15 +1106,7 @@ impl ClientRuntimeState {
         }
 
         if !self.local_tunnels.lock().await.contains_key(&tunnel_id) {
-            let tunnel = {
-                let inner = self.inner.lock().await;
-                inner
-                    .tunnels
-                    .get(&tunnel_id)
-                    .cloned()
-                    .ok_or_else(|| "tunnel not found".to_string())?
-            };
-            match start_local_tunnel_runtime(&tunnel).await {
+            match start_remote_tunnel_runtime(&tunnel, &server_addr, &token, &session_id).await {
                 Ok(runtime) => {
                     self.local_tunnels
                         .lock()
@@ -1103,51 +1186,50 @@ impl ClientRuntimeState {
         patch: UpdateTunnelRequest,
     ) -> Result<(), String> {
         self.ensure_tunnel_exists(&tunnel_id).await?;
-        self.request_if_connected(
-            Command::TunnelCreate,
-            json!({
-                "id": tunnel_id,
-                "patch": patch.clone()
-            }),
-        )
-        .await?;
 
-        let mut inner = self.inner.lock().await;
-        let tunnel = inner
-            .tunnels
-            .get_mut(&tunnel_id)
-            .ok_or_else(|| "tunnel not found".to_string())?;
-        if let Some(name) = patch.name {
-            tunnel.name = name;
-        }
-        if let Some(protocol) = patch.protocol {
-            tunnel.protocol = normalize_protocol(&protocol)?;
-        }
-        if let Some(local_host) = patch.local_host {
-            tunnel.local_host = local_host;
-        }
-        if let Some(local_port) = patch.local_port {
-            tunnel.local_port = local_port;
-        }
-        if let Some(remote_port) = patch.remote_port {
-            tunnel.remote_port = remote_port;
-        }
-        if let Some(host) = patch.host {
-            tunnel.host = Some(host);
-        }
-        if let Some(path) = patch.path {
-            tunnel.path = Some(normalize_http_path(&path));
-        }
-        tunnel.tls_version = if tunnel.protocol == "https" {
-            Some("TLS".to_string())
-        } else {
-            None
+        let control_payload = {
+            let mut inner = self.inner.lock().await;
+            let tunnel = inner
+                .tunnels
+                .get_mut(&tunnel_id)
+                .ok_or_else(|| "tunnel not found".to_string())?;
+            if let Some(name) = patch.name {
+                tunnel.name = name;
+            }
+            if let Some(protocol) = patch.protocol {
+                tunnel.protocol = normalize_protocol(&protocol)?;
+            }
+            if let Some(local_host) = patch.local_host {
+                tunnel.local_host = local_host;
+            }
+            if let Some(local_port) = patch.local_port {
+                tunnel.local_port = local_port;
+            }
+            if let Some(remote_port) = patch.remote_port {
+                tunnel.remote_port = remote_port;
+            }
+            if let Some(host) = patch.host {
+                tunnel.host = Some(host);
+            }
+            if let Some(path) = patch.path {
+                tunnel.path = Some(normalize_http_path(&path));
+            }
+            tunnel.tls_version = if tunnel.protocol == "https" {
+                Some("TLS".to_string())
+            } else {
+                None
+            };
+            tunnel.updated_at = Utc::now().timestamp_millis();
+            let control_payload = tunnel_control_payload(tunnel);
+            inner.sync_domain_index_for_tunnel(&tunnel_id);
+            sync_runtime_domains(&self.domain_repository, &inner.domains)?;
+            inner.log("info", "tunnel", "tunnel configuration updated");
+            persist_runtime(&self.storage_path, &inner)?;
+            control_payload
         };
-        tunnel.updated_at = Utc::now().timestamp_millis();
-        inner.sync_domain_index_for_tunnel(&tunnel_id);
-        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
-        inner.log("info", "tunnel", "tunnel configuration updated");
-        persist_runtime(&self.storage_path, &inner)?;
+
+        self.request_if_connected(Command::TunnelRegister, control_payload)
+            .await?;
         Ok(())
     }
 
@@ -1418,6 +1500,32 @@ impl ClientRuntimeState {
         let _ = persist_runtime(&self.storage_path, &inner);
     }
 
+    async fn active_relay_context(
+        &self,
+        tunnel_id: &str,
+    ) -> Result<(TunnelRecord, String, String, String), String> {
+        let inner = self.inner.lock().await;
+        let tunnel = inner
+            .tunnels
+            .get(tunnel_id)
+            .cloned()
+            .ok_or_else(|| "tunnel not found".to_string())?;
+        let session_id = inner
+            .session_id
+            .clone()
+            .ok_or_else(|| tunnel_server_not_ready_message(&inner))?;
+        let server_id = inner
+            .active_server_id
+            .as_deref()
+            .ok_or_else(|| tunnel_server_not_ready_message(&inner))?;
+        let server = inner
+            .servers
+            .get(server_id)
+            .ok_or_else(|| tunnel_server_not_ready_message(&inner))?;
+        let server_addr = format!("{}:{}", server.host, server.port);
+        Ok((tunnel, server_addr, server.token.clone(), session_id))
+    }
+
     async fn ensure_tunnel_exists(&self, tunnel_id: &str) -> Result<(), String> {
         let inner = self.inner.lock().await;
         if inner.tunnels.contains_key(tunnel_id) {
@@ -1471,6 +1579,7 @@ impl ClientRuntimeState {
     }
 }
 
+#[cfg(test)]
 async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnelRuntime, String> {
     let listen_addr = local_listen_addr(tunnel.remote_port);
     let target_addr = resolve_target_addr(&tunnel.local_host, tunnel.local_port).await?;
@@ -1530,6 +1639,151 @@ async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnel
     }
 }
 
+async fn start_remote_tunnel_runtime(
+    tunnel: &TunnelRecord,
+    server_addr: &str,
+    token: &str,
+    session_id: &str,
+) -> Result<LocalTunnelRuntime, String> {
+    let (server_host, server_port) = parse_server_addr(server_addr)?;
+    let target_addr = resolve_target_addr(&tunnel.local_host, tunnel.local_port).await?;
+    verify_target_reachable(target_addr).await?;
+
+    let (shutdown, shutdown_rx) = watch::channel(false);
+    let stats = Arc::new(RelayTunnelStats::default());
+    stats.started_at_millis.store(
+        Utc::now().timestamp_millis().max(0) as u64,
+        Ordering::Relaxed,
+    );
+
+    let mut tasks = Vec::with_capacity(RELAY_WORKERS_PER_TUNNEL);
+    for worker_id in 0..RELAY_WORKERS_PER_TUNNEL {
+        let config = RelayWorkerConfig {
+            worker_id,
+            server_host: server_host.clone(),
+            server_port,
+            token: token.to_string(),
+            session_id: session_id.to_string(),
+            tunnel_id: tunnel.id.clone(),
+            protocol: tunnel.protocol.clone(),
+            target_addr,
+        };
+        let worker_stats = Arc::clone(&stats);
+        let worker_shutdown = shutdown_rx.clone();
+        tasks.push(tokio::spawn(async move {
+            relay_worker_loop(config, worker_stats, worker_shutdown).await;
+        }));
+    }
+
+    Ok(LocalTunnelRuntime::Remote(RelayTunnelRuntime {
+        shutdown,
+        tasks,
+        stats,
+    }))
+}
+
+async fn relay_worker_loop(
+    config: RelayWorkerConfig,
+    stats: Arc<RelayTunnelStats>,
+    mut shutdown: watch::Receiver<bool>,
+) {
+    loop {
+        if *shutdown.borrow() {
+            break;
+        }
+
+        if relay_worker_once(config.clone(), Arc::clone(&stats), shutdown.clone())
+            .await
+            .is_err()
+        {
+            stats.failed_connections.fetch_add(1, Ordering::Relaxed);
+        }
+
+        if *shutdown.borrow() {
+            break;
+        }
+
+        tokio::select! {
+            _ = shutdown.changed() => {}
+            _ = sleep(RELAY_RECONNECT_DELAY) => {}
+        }
+    }
+}
+
+async fn relay_worker_once(
+    config: RelayWorkerConfig,
+    stats: Arc<RelayTunnelStats>,
+    mut shutdown: watch::Receiver<bool>,
+) -> Result<(), String> {
+    let mut stream = TcpStream::connect((config.server_host.as_str(), config.server_port))
+        .await
+        .map_err(|error| format!("无法连接服务端 relay 入口：{error}"))?;
+    stream
+        .set_nodelay(true)
+        .map_err(|error| format!("无法设置 relay TCP_NODELAY：{error}"))?;
+
+    let protocol = ProtocolBuilder::new().build();
+    let connect = Message::request(
+        Command::TunnelRelayConnect,
+        Body::Json(json!({
+            "token": &config.token,
+            "sessionId": &config.session_id,
+            "tunnelId": &config.tunnel_id,
+            "protocol": &config.protocol,
+            "workerId": config.worker_id
+        })),
+        Metadata::default(),
+    );
+    write_protocol_message(&mut stream, &protocol, &connect).await?;
+
+    let response = read_protocol_message(&mut stream, &protocol)
+        .await?
+        .ok_or_else(|| "服务端关闭了 relay 握手连接".to_string())?;
+    match response.body {
+        Body::Json(value) => ensure_ok(&value)?,
+        _ => return Err("服务端 relay 握手响应不是 JSON".to_string()),
+    }
+
+    let start = tokio::select! {
+        result = read_protocol_message(&mut stream, &protocol) => {
+            result?.ok_or_else(|| "服务端关闭了空闲 relay worker".to_string())?
+        }
+        _ = shutdown.changed() => return Ok(()),
+    };
+
+    if start.header.command != Command::TunnelRelayStart {
+        return Err(format!("收到不支持的 relay 指令：{}", start.header.command));
+    }
+
+    stats.total_connections.fetch_add(1, Ordering::Relaxed);
+    let mut target = TcpStream::connect(config.target_addr)
+        .await
+        .map_err(|error| format!("无法连接本地服务 {}：{error}", config.target_addr))?;
+    target
+        .set_nodelay(true)
+        .map_err(|error| format!("无法设置本地服务 TCP_NODELAY：{error}"))?;
+
+    stats.active_connections.fetch_add(1, Ordering::Relaxed);
+    let copy = tokio::io::copy_bidirectional(&mut stream, &mut target);
+    tokio::pin!(copy);
+    let result = tokio::select! {
+        result = &mut copy => result.map_err(|error| format!("relay 双向转发失败：{error}")),
+        _ = shutdown.changed() => Ok((0, 0)),
+    };
+    stats.active_connections.fetch_sub(1, Ordering::Relaxed);
+
+    let (upload_bytes, download_bytes) = result?;
+    stats
+        .upload_bytes
+        .fetch_add(upload_bytes, Ordering::Relaxed);
+    stats
+        .download_bytes
+        .fetch_add(download_bytes, Ordering::Relaxed);
+
+    Ok(())
+}
+
+#[cfg(test)]
 fn local_listen_addr(remote_port: u16) -> SocketAddr {
     SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), remote_port)
 }
@@ -1561,6 +1815,7 @@ async fn verify_target_reachable(target_addr: SocketAddr) -> Result<(), String> 
     }
 }
 
+#[cfg(test)]
 fn local_runtime_timeout() -> TimeoutConfig {
     TimeoutConfig::builder()
         .connect_timeout(Duration::from_secs(3))
@@ -1862,16 +2117,18 @@ fn sanitize_domain_key(host: &str) -> String {
 }
 
 fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
+    let (host, port) = parse_server_addr(server_addr)?;
+    Ok(TransportEndpoint::Tcp { host, port })
+}
+
+fn parse_server_addr(server_addr: &str) -> Result<(String, u16), String> {
     let (host, port) = server_addr
         .rsplit_once(':')
         .ok_or_else(|| "server address must be host:port".to_string())?;
     let port = port
         .parse::<u16>()
         .map_err(|_| "server port must be a valid u16".to_string())?;
-    Ok(TransportEndpoint::Tcp {
-        host: host.to_string(),
-        port,
-    })
+    Ok((host.to_string(), port))
 }
 
 fn normalize_protocol(protocol: &str) -> Result<String, String> {
@@ -2018,6 +2275,49 @@ async fn send_request(
     }
 }
 
+async fn read_protocol_message(
+    stream: &mut TcpStream,
+    protocol: &ProtocolManager,
+) -> Result<Option<Message>, String> {
+    let mut length = [0_u8; 4];
+    match stream.read_exact(&mut length).await {
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
+        Err(error) => return Err(format!("读取协议帧失败：{error}")),
+    }
+
+    let length = u32::from_be_bytes(length) as usize;
+    let mut payload = vec![0_u8; length];
+    stream
+        .read_exact(&mut payload)
+        .await
+        .map_err(|error| format!("读取协议载荷失败：{error}"))?;
+    protocol
+        .decode(&payload)
+        .map(Some)
+        .map_err(|error| format!("解析协议消息失败：{error}"))
+}
+
+async fn write_protocol_message(
+    stream: &mut TcpStream,
+    protocol: &ProtocolManager,
+    message: &Message,
+) -> Result<(), String> {
+    let payload = protocol
+        .encode(message)
+        .map_err(|error| format!("编码协议消息失败：{error}"))?;
+    let frame = Frame::new(payload).map_err(|error| format!("创建协议帧失败：{error}"))?;
+    let bytes = FrameEncoder::encode(&frame);
+    stream
+        .write_all(&bytes)
+        .await
+        .map_err(|error| format!("写入协议帧失败：{error}"))?;
+    stream
+        .flush()
+        .await
+        .map_err(|error| format!("刷新协议帧失败：{error}"))
+}
+
 fn ensure_ok(response: &Value) -> Result<(), String> {
     if response.get("ok").and_then(Value::as_bool) == Some(true) {
         return Ok(());
@@ -2028,6 +2328,24 @@ fn ensure_ok(response: &Value) -> Result<(), String> {
     }
 
     Err(response.to_string())
+}
+
+fn tunnel_control_payload(tunnel: &TunnelRecord) -> Value {
+    json!({
+        "id": &tunnel.id,
+        "tunnelId": &tunnel.id,
+        "name": &tunnel.name,
+        "protocol": &tunnel.protocol,
+        "remotePort": tunnel.remote_port,
+        "localHost": &tunnel.local_host,
+        "localPort": tunnel.local_port,
+        "host": &tunnel.host,
+        "path": &tunnel.path,
+        "metadata": {
+            "createdAt": tunnel.created_at,
+            "updatedAt": tunnel.updated_at
+        }
+    })
 }
 
 fn statistics_json(inner: &RuntimeInner) -> Value {

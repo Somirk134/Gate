@@ -18,44 +18,38 @@
   <span
     v-if="!dot"
     class="g-badge"
-    :class="[`g-badge--${variant}`, `g-badge--${type}`, `g-badge--${size}`]"
-  >
-    <span
-      v-if="showDot"
-      class="g-badge__dot"
-      :class="{ 'g-badge__dot--pulse': pulse }"
-    />
+    :class="[`g-badge--${variant}`, `g-badge--${type}`, `g-badge--${size}`]">
+    <span v-if="showDot" class="g-badge__dot" :class="{ 'g-badge__dot--pulse': pulse }" />
     <slot />
   </span>
 
   <span
     v-else
     class="g-badge-dot"
-    :class="[`g-badge-dot--${variant}`, { 'g-badge-dot--pulse': pulse }]"
-  />
+    :class="[`g-badge-dot--${variant}`, { 'g-badge-dot--pulse': pulse }]" />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
-    variant?: "neutral" | "primary" | "success" | "warning" | "error" | "info"
-    type?: "dot" | "solid" | "soft" | "outline"
-    size?: "sm" | "md"
+    variant?: 'neutral' | 'primary' | 'success' | 'warning' | 'error' | 'info'
+    type?: 'dot' | 'solid' | 'soft' | 'outline'
+    size?: 'sm' | 'md'
     dot?: boolean
     pulse?: boolean
   }>(),
   {
-    variant: "neutral",
-    type: "soft",
-    size: "md",
+    variant: 'neutral',
+    type: 'soft',
+    size: 'md',
     dot: false,
     pulse: false,
   },
 )
 
-const showDot = computed(() => props.type === "dot")
+const showDot = computed(() => props.type === 'dot')
 </script>
 
 <style scoped>
@@ -142,11 +136,26 @@ const showDot = computed(() => props.type === "dot")
   border-color: var(--color-border-strong);
   color: var(--text-secondary);
 }
-.g-badge--primary.g-badge--outline { border-color: var(--color-primary); color: var(--color-primary); }
-.g-badge--success.g-badge--outline { border-color: var(--color-success); color: var(--color-success); }
-.g-badge--warning.g-badge--outline { border-color: var(--color-warning); color: var(--color-warning); }
-.g-badge--error.g-badge--outline   { border-color: var(--color-error);   color: var(--color-error); }
-.g-badge--info.g-badge--outline    { border-color: var(--color-info);    color: var(--color-info); }
+.g-badge--primary.g-badge--outline {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.g-badge--success.g-badge--outline {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.g-badge--warning.g-badge--outline {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+.g-badge--error.g-badge--outline {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.g-badge--info.g-badge--outline {
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
 
 /* ── 内嵌圆点（type=dot 时） ── */
 .g-badge__dot {
@@ -158,12 +167,24 @@ const showDot = computed(() => props.type === "dot")
 .g-badge__dot--pulse {
   animation: g-pulse 1.5s var(--ease-in-out) infinite;
 }
-.g-badge--neutral .g-badge__dot  { background: var(--status-offline); }
-.g-badge--primary .g-badge__dot  { background: var(--color-primary); }
-.g-badge--success .g-badge__dot  { background: var(--color-success); }
-.g-badge--warning .g-badge__dot  { background: var(--color-warning); }
-.g-badge--error   .g-badge__dot  { background: var(--color-error); }
-.g-badge--info    .g-badge__dot  { background: var(--color-info); }
+.g-badge--neutral .g-badge__dot {
+  background: var(--status-offline);
+}
+.g-badge--primary .g-badge__dot {
+  background: var(--color-primary);
+}
+.g-badge--success .g-badge__dot {
+  background: var(--color-success);
+}
+.g-badge--warning .g-badge__dot {
+  background: var(--color-warning);
+}
+.g-badge--error .g-badge__dot {
+  background: var(--color-error);
+}
+.g-badge--info .g-badge__dot {
+  background: var(--color-info);
+}
 
 /* ── 纯圆点徽章（dot prop） ── */
 .g-badge-dot {
@@ -177,10 +198,22 @@ const showDot = computed(() => props.type === "dot")
 .g-badge-dot--pulse {
   animation: g-pulse 1.5s var(--ease-in-out) infinite;
 }
-.g-badge-dot--neutral { background: var(--status-offline); }
-.g-badge-dot--primary { background: var(--color-primary); }
-.g-badge-dot--success { background: var(--color-success); }
-.g-badge-dot--warning { background: var(--color-warning); }
-.g-badge-dot--error   { background: var(--color-error); }
-.g-badge-dot--info    { background: var(--color-info); }
+.g-badge-dot--neutral {
+  background: var(--status-offline);
+}
+.g-badge-dot--primary {
+  background: var(--color-primary);
+}
+.g-badge-dot--success {
+  background: var(--color-success);
+}
+.g-badge-dot--warning {
+  background: var(--color-warning);
+}
+.g-badge-dot--error {
+  background: var(--color-error);
+}
+.g-badge-dot--info {
+  background: var(--color-info);
+}
 </style>

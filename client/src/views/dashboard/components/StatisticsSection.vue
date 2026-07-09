@@ -8,11 +8,7 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon
-          name="chart-bar"
-          :size="16"
-          class="dashboard-section__title-icon"
-        />
+        <GIcon name="chart-bar" :size="16" class="dashboard-section__title-icon" />
         <span>{{ title }}</span>
       </div>
     </div>
@@ -24,26 +20,13 @@
         variant="plain"
         padding="md"
         class="statistics__card dashboard-card-lift"
-        :class="`stagger-${(i % 6) + 1}`"
-      >
+        :class="`stagger-${(i % 6) + 1}`">
         <div class="statistics__head">
-          <span
-            class="statistics__icon"
-            :class="`statistics__icon--${stat.variant}`"
-          >
-            <GIcon
-              :name="stat.icon"
-              :size="18"
-            />
+          <span class="statistics__icon" :class="`statistics__icon--${stat.variant}`">
+            <GIcon :name="stat.icon" :size="18" />
           </span>
-          <span
-            v-if="stat.trend"
-            class="statistics__trend"
-          >
-            <GIcon
-              :name="stat.trendDir"
-              :size="12"
-            />
+          <span v-if="stat.trend" class="statistics__trend">
+            <GIcon :name="stat.trendDir" :size="12" />
             {{ stat.trend }}
           </span>
         </div>
@@ -59,11 +42,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { DashboardStatistics } from "../types"
-import { useCountUp } from "../composables/useCountUp"
+import { computed, ref, watchEffect } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { DashboardStatistics } from '../types'
+import { useCountUp } from '../composables/useCountUp'
 
 const props = withDefaults(
   defineProps<{
@@ -71,7 +54,7 @@ const props = withDefaults(
     title?: string
   }>(),
   {
-    title: "数据统计",
+    title: '数据统计',
   },
 )
 
@@ -91,7 +74,7 @@ const tunnelCount = useCountUp(tunnelTarget)
 const runningCount = useCountUp(runningTarget)
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B"
+  if (bytes === 0) return '0 B'
   const gb = bytes / (1024 * 1024 * 1024)
   if (gb >= 1) return `${gb.toFixed(1)} GB`
   const mb = bytes / (1024 * 1024)
@@ -108,58 +91,58 @@ const statItems = computed(() => {
   const s = props.statistics
   return [
     {
-      key: "project",
-      label: "项目总数",
-      icon: "projects",
-      variant: "primary" as const,
+      key: 'project',
+      label: '项目总数',
+      icon: 'projects',
+      variant: 'primary' as const,
       display: String(Math.round(projectCount.value)),
-      trend: "+2",
-      trendDir: "trending-up" as const,
+      trend: '+2',
+      trendDir: 'trending-up' as const,
     },
     {
-      key: "tunnel",
-      label: "隧道总数",
-      icon: "link",
-      variant: "info" as const,
+      key: 'tunnel',
+      label: '隧道总数',
+      icon: 'link',
+      variant: 'info' as const,
       display: String(Math.round(tunnelCount.value)),
-      trend: "+5",
-      trendDir: "trending-up" as const,
+      trend: '+5',
+      trendDir: 'trending-up' as const,
     },
     {
-      key: "running",
-      label: "运行中隧道",
-      icon: "activity",
-      variant: "success" as const,
+      key: 'running',
+      label: '运行中隧道',
+      icon: 'activity',
+      variant: 'success' as const,
       display: String(Math.round(runningCount.value)),
-      trend: "+3",
-      trendDir: "trending-up" as const,
+      trend: '+3',
+      trendDir: 'trending-up' as const,
     },
     {
-      key: "upload",
-      label: "今日上传",
-      icon: "upload",
-      variant: "warning" as const,
-      display: s ? formatBytes(s.todayUpload) : "—",
-      trend: "12%",
-      trendDir: "trending-up" as const,
+      key: 'upload',
+      label: '今日上传',
+      icon: 'upload',
+      variant: 'warning' as const,
+      display: s ? formatBytes(s.todayUpload) : '—',
+      trend: '12%',
+      trendDir: 'trending-up' as const,
     },
     {
-      key: "download",
-      label: "今日下载",
-      icon: "download",
-      variant: "primary" as const,
-      display: s ? formatBytes(s.todayDownload) : "—",
-      trend: "8%",
-      trendDir: "trending-up" as const,
+      key: 'download',
+      label: '今日下载',
+      icon: 'download',
+      variant: 'primary' as const,
+      display: s ? formatBytes(s.todayDownload) : '—',
+      trend: '8%',
+      trendDir: 'trending-up' as const,
     },
     {
-      key: "online",
-      label: "在线时长",
-      icon: "timer",
-      variant: "info" as const,
-      display: s ? formatDuration(s.onlineTime) : "—",
-      trend: "",
-      trendDir: "trending-up" as const,
+      key: 'online',
+      label: '在线时长',
+      icon: 'timer',
+      variant: 'info' as const,
+      display: s ? formatDuration(s.onlineTime) : '—',
+      trend: '',
+      trendDir: 'trending-up' as const,
     },
   ]
 })

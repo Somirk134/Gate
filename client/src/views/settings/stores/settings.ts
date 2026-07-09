@@ -1,12 +1,12 @@
-import { defineStore } from "pinia"
-import { computed, ref, watch } from "vue"
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
 import type {
   SettingActionStatus,
   SettingCategory,
   SettingCategoryId,
   SettingItem,
   SettingValue,
-} from "../types"
+} from '../types'
 import {
   cloneSettingValue,
   findSettingContext,
@@ -15,71 +15,71 @@ import {
   getDefaultValues,
   isEqualSettingValue,
   validateSettingValue,
-} from "../utils"
+} from '../utils'
 
 const settingsCategories: SettingCategory[] = [
   {
-    id: "general",
-    label: "General",
-    description: "基础应用偏好。",
-    icon: "settings",
+    id: 'general',
+    label: '通用',
+    description: '基础应用偏好。',
+    icon: 'settings',
     order: 1,
     groups: [
       {
-        id: "general.language",
-        categoryId: "general",
-        label: "Language",
+        id: 'general.language',
+        categoryId: 'general',
+        label: '语言',
         items: [
           {
-            id: "general.language",
-            key: "general.language",
-            categoryId: "general",
-            groupId: "general.language",
-            label: "Language",
-            description: "界面语言。",
+            id: 'general.language',
+            key: 'general.language',
+            categoryId: 'general',
+            groupId: 'general.language',
+            label: '语言',
+            description: '界面语言。',
             control: {
-              type: "select",
+              type: 'select',
               options: [
-                { label: "简体中文", value: "zh-CN" },
-                { label: "English", value: "en" },
+                { label: '简体中文', value: 'zh-CN' },
+                { label: '英文', value: 'en' },
               ],
             },
-            defaultValue: "zh-CN",
-            status: "stable",
+            defaultValue: 'zh-CN',
+            status: 'stable',
           },
         ],
       },
     ],
   },
   {
-    id: "appearance",
-    label: "Appearance",
-    description: "界面主题偏好。",
-    icon: "palette",
+    id: 'appearance',
+    label: '外观',
+    description: '界面主题偏好。',
+    icon: 'palette',
     order: 2,
     groups: [
       {
-        id: "appearance.theme",
-        categoryId: "appearance",
-        label: "Theme",
+        id: 'appearance.theme',
+        categoryId: 'appearance',
+        label: '主题',
         items: [
           {
-            id: "appearance.theme",
-            key: "appearance.theme",
-            categoryId: "appearance",
-            groupId: "appearance.theme",
-            label: "Theme",
-            description: "选择浅色、深色或跟随系统。",
+            id: 'appearance.theme',
+            key: 'appearance.theme',
+            categoryId: 'appearance',
+            groupId: 'appearance.theme',
+            label: '主题',
+            description: '选择浅色、深色或跟随系统。',
             control: {
-              type: "select",
+              type: 'select',
               options: [
-                { label: "Dark", value: "dark" },
-                { label: "Light", value: "light" },
-                { label: "System", value: "system" },
+                { label: '深色', value: 'dark' },
+                { label: '浅色', value: 'light' },
+                { label: '跟随系统', value: 'system' },
               ],
             },
-            defaultValue: "dark",
-            status: "stable",
+            defaultValue: 'dark',
+            status: 'stable',
           },
         ],
       },
@@ -87,16 +87,16 @@ const settingsCategories: SettingCategory[] = [
   },
 ]
 
-export const useSettingsStore = defineStore("settings", () => {
+export const useSettingsStore = defineStore('settings', () => {
   const categories = ref<SettingCategory[]>(settingsCategories)
   const defaults = computed(() => getDefaultValues(categories.value))
   const values = ref<Record<string, SettingValue>>(getDefaultValues(settingsCategories))
   const validationErrors = ref<Record<string, string | undefined>>({})
-  const activeCategoryId = ref<SettingCategoryId>("general")
+  const activeCategoryId = ref<SettingCategoryId>('general')
   const activeGroupId = ref<string | null>(null)
-  const selectedSettingId = ref<string | null>("general.language")
-  const searchQuery = ref("")
-  const categoryFilter = ref<SettingCategoryId | "all">("all")
+  const selectedSettingId = ref<string | null>('general.language')
+  const searchQuery = ref('')
+  const categoryFilter = ref<SettingCategoryId | 'all'>('all')
   const loading = ref(false)
   const actionStatuses = ref<Record<string, SettingActionStatus>>({})
 
@@ -104,11 +104,15 @@ export const useSettingsStore = defineStore("settings", () => {
   const allItems = computed(() => allContexts.value.map(({ item }) => item))
   const currentCategory = computed(() => getCategoryById(categories.value, activeCategoryId.value))
   const selectedContext = computed(() => {
-    return findSettingContext(categories.value, selectedSettingId.value) ?? allContexts.value[0] ?? null
+    return (
+      findSettingContext(categories.value, selectedSettingId.value) ?? allContexts.value[0] ?? null
+    )
   })
   const selectedSetting = computed(() => selectedContext.value?.item ?? null)
   const dirtyKeys = computed(() =>
-    Object.keys(defaults.value).filter((key) => !isEqualSettingValue(values.value[key], defaults.value[key])),
+    Object.keys(defaults.value).filter(
+      (key) => !isEqualSettingValue(values.value[key], defaults.value[key]),
+    ),
   )
   const modifiedCount = computed(() => dirtyKeys.value.length)
   const hasModifiedSettings = computed(() => modifiedCount.value > 0)
@@ -118,12 +122,15 @@ export const useSettingsStore = defineStore("settings", () => {
   }
 
   function getValue(itemOrKey: SettingItem | string) {
-    const key = typeof itemOrKey === "string" ? itemOrKey : itemOrKey.key
+    const key = typeof itemOrKey === 'string' ? itemOrKey : itemOrKey.key
     return values.value[key]
   }
 
   function setValue(itemOrKey: SettingItem | string, value: SettingValue) {
-    const context = findSettingContext(categories.value, typeof itemOrKey === "string" ? itemOrKey : itemOrKey.key)
+    const context = findSettingContext(
+      categories.value,
+      typeof itemOrKey === 'string' ? itemOrKey : itemOrKey.key,
+    )
     if (!context) return false
 
     const error = validateSettingValue(context.item, value)
@@ -143,7 +150,10 @@ export const useSettingsStore = defineStore("settings", () => {
   }
 
   function resetSetting(itemOrKey: SettingItem | string) {
-    const context = findSettingContext(categories.value, typeof itemOrKey === "string" ? itemOrKey : itemOrKey.key)
+    const context = findSettingContext(
+      categories.value,
+      typeof itemOrKey === 'string' ? itemOrKey : itemOrKey.key,
+    )
     if (!context) return
 
     values.value = {
@@ -236,15 +246,15 @@ export const useSettingsStore = defineStore("settings", () => {
     searchQuery.value = query
   }
 
-  function setCategoryFilter(categoryId: SettingCategoryId | "all") {
+  function setCategoryFilter(categoryId: SettingCategoryId | 'all') {
     categoryFilter.value = categoryId
   }
 
   function runAction(actionId: string) {
-    actionStatuses.value = { ...actionStatuses.value, [actionId]: "idle" }
+    actionStatuses.value = { ...actionStatuses.value, [actionId]: 'idle' }
     validationErrors.value = {
       ...validationErrors.value,
-      [actionId]: "该功能暂未实现",
+      [actionId]: '该功能暂未实现',
     }
   }
 

@@ -4,14 +4,11 @@
    搜索范围：名称 / 协议 / 端口 / 项目 / 服务器 / 标签 / 状态文本
    ================================================================== */
 
-import { computed, type Ref } from "vue"
-import type { Tunnel } from "../types"
-import { TUNNEL_STATUS_CONFIG } from "../utils"
+import { computed, type Ref } from 'vue'
+import type { Tunnel } from '../types'
+import { TUNNEL_STATUS_CONFIG } from '../utils'
 
-export function useTunnelSearch(
-  tunnels: Ref<Tunnel[]>,
-  query: Ref<string>,
-) {
+export function useTunnelSearch(tunnels: Ref<Tunnel[]>, query: Ref<string>) {
   const normalizedQuery = computed(() => query.value.trim().toLowerCase())
 
   const results = computed(() => {

@@ -1,4 +1,4 @@
-import type { AppContext } from "@/core/AppContext"
+import type { AppContext } from '@/core/AppContext'
 
 export type CommandId = string
 

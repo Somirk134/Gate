@@ -1,35 +1,35 @@
 export type SettingCategoryId =
-  | "general"
-  | "appearance"
-  | "workspace"
-  | "project"
-  | "tunnel"
-  | "server"
-  | "logs"
-  | "network"
-  | "https"
-  | "notification"
-  | "shortcut"
-  | "storage"
-  | "security"
-  | "update"
-  | "experimental"
-  | "developer"
-  | "about"
+  | 'general'
+  | 'appearance'
+  | 'workspace'
+  | 'project'
+  | 'tunnel'
+  | 'server'
+  | 'logs'
+  | 'network'
+  | 'https'
+  | 'notification'
+  | 'shortcut'
+  | 'storage'
+  | 'security'
+  | 'update'
+  | 'experimental'
+  | 'developer'
+  | 'about'
 
 export type SettingControlType =
-  | "switch"
-  | "select"
-  | "input"
-  | "slider"
-  | "number"
-  | "checkbox"
-  | "radio"
-  | "color"
-  | "folder"
-  | "readonly"
-  | "shortcut"
-  | "action"
+  | 'switch'
+  | 'select'
+  | 'input'
+  | 'slider'
+  | 'number'
+  | 'checkbox'
+  | 'radio'
+  | 'color'
+  | 'folder'
+  | 'readonly'
+  | 'shortcut'
+  | 'action'
 
 export type SettingPrimitive = string | number | boolean
 export type SettingValue = SettingPrimitive | string[] | null
@@ -47,7 +47,7 @@ export interface SettingAction {
   id: string
   label: string
   icon?: string
-  variant?: "primary" | "secondary" | "ghost" | "danger"
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   disabled?: boolean
   reserved?: boolean
 }
@@ -62,18 +62,23 @@ export interface SettingValidation {
 }
 
 export type SettingControl =
-  | { type: "switch"; disabled?: boolean }
-  | { type: "select"; options: SettingOption[]; disabled?: boolean }
-  | { type: "input"; placeholder?: string; inputType?: "text" | "password" | "url"; disabled?: boolean }
-  | { type: "slider"; min: number; max: number; step?: number; unit?: string; disabled?: boolean }
-  | { type: "number"; min?: number; max?: number; step?: number; unit?: string; disabled?: boolean }
-  | { type: "checkbox"; disabled?: boolean }
-  | { type: "radio"; options: SettingOption[]; disabled?: boolean }
-  | { type: "color"; swatches?: string[]; disabled?: boolean; reserved?: boolean }
-  | { type: "folder"; placeholder?: string; disabled?: boolean; reserved?: boolean }
-  | { type: "readonly"; variant?: "text" | "mono" | "block" | "badge" }
-  | { type: "shortcut"; editable?: boolean; disabled?: boolean }
-  | { type: "action"; actions: SettingAction[] }
+  | { type: 'switch'; disabled?: boolean }
+  | { type: 'select'; options: SettingOption[]; disabled?: boolean }
+  | {
+      type: 'input'
+      placeholder?: string
+      inputType?: 'text' | 'password' | 'url'
+      disabled?: boolean
+    }
+  | { type: 'slider'; min: number; max: number; step?: number; unit?: string; disabled?: boolean }
+  | { type: 'number'; min?: number; max?: number; step?: number; unit?: string; disabled?: boolean }
+  | { type: 'checkbox'; disabled?: boolean }
+  | { type: 'radio'; options: SettingOption[]; disabled?: boolean }
+  | { type: 'color'; swatches?: string[]; disabled?: boolean; reserved?: boolean }
+  | { type: 'folder'; placeholder?: string; disabled?: boolean; reserved?: boolean }
+  | { type: 'readonly'; variant?: 'text' | 'mono' | 'block' | 'badge' }
+  | { type: 'shortcut'; editable?: boolean; disabled?: boolean }
+  | { type: 'action'; actions: SettingAction[] }
 
 export interface SettingItem {
   id: string
@@ -89,7 +94,7 @@ export interface SettingItem {
   restartRequired?: boolean
   helpUrl?: string
   tags?: string[]
-  status?: "stable" | "reserved" | "unimplemented"
+  status?: 'stable' | 'reserved' | 'unimplemented'
   readonly?: boolean
 }
 
@@ -117,7 +122,7 @@ export interface SettingContext {
 }
 
 export interface SettingSearchMatch {
-  field: "label" | "description" | "key" | "tags" | "category" | "group"
+  field: 'label' | 'description' | 'key' | 'tags' | 'category' | 'group'
   score: number
 }
 
@@ -137,7 +142,7 @@ export interface SettingState {
   activeGroupId: string | null
   selectedSettingId: string | null
   searchQuery: string
-  categoryFilter: SettingCategoryId | "all"
+  categoryFilter: SettingCategoryId | 'all'
 }
 
-export type SettingActionStatus = "idle" | "running" | "done"
+export type SettingActionStatus = 'idle' | 'running' | 'done'

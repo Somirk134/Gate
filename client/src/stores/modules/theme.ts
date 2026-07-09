@@ -6,82 +6,82 @@ import { THEME_SERVICE } from '@/services/tokens'
 export type ThemeMode = 'dark' | 'light' | 'auto'
 
 export const useThemeStore = defineStore('theme', () => {
-    // === State ===
-    const mode = ref<ThemeMode>('dark')
-    const systemPrefersDark = ref(false)
-    let unsubscribeThemeChanged: (() => void) | null = null
+  // === State ===
+  const mode = ref<ThemeMode>('dark')
+  const systemPrefersDark = ref(false)
+  let unsubscribeThemeChanged: (() => void) | null = null
 
-    // === Getters ===
-    const effectiveTheme = computed<'light' | 'dark'>(() => {
-        if (mode.value === 'auto') {
-            return systemPrefersDark.value ? 'dark' : 'light'
-        }
-        return mode.value
-    })
+  // === Getters ===
+  const effectiveTheme = computed<'light' | 'dark'>(() => {
+    if (mode.value === 'auto') {
+      return systemPrefersDark.value ? 'dark' : 'light'
+    }
+    return mode.value
+  })
 
-    const isDark = computed(() => effectiveTheme.value === 'dark')
-    const isLight = computed(() => effectiveTheme.value === 'light')
-    const currentMode = computed(() => mode.value)
+  const isDark = computed(() => effectiveTheme.value === 'dark')
+  const isLight = computed(() => effectiveTheme.value === 'light')
+  const currentMode = computed(() => mode.value)
 
-    // === Actions ===
-    function setTheme(newMode: ThemeMode) {
-        const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
+  // === Actions ===
+  function setTheme(newMode: ThemeMode) {
+    const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
 
-        if (service) {
-            service.setTheme(newMode)
-            syncFromService()
-            return
-        }
-
-        mode.value = newMode
-        syncSystemPreference()
+    if (service) {
+      service.setTheme(newMode)
+      syncFromService()
+      return
     }
 
-    function toggleTheme() {
-        if (mode.value === 'dark') setTheme('light')
-        else if (mode.value === 'light') setTheme('dark')
-        else setTheme('dark')
-    }
+    mode.value = newMode
+    syncSystemPreference()
+  }
 
-    function initTheme() {
+  function toggleTheme() {
+    if (mode.value === 'dark') setTheme('light')
+    else if (mode.value === 'light') setTheme('dark')
+    else setTheme('dark')
+  }
+
+  function initTheme() {
+    syncFromService()
+
+    const context = tryGetApplicationContext()
+
+    if (context && !unsubscribeThemeChanged) {
+      unsubscribeThemeChanged = context.events.subscribe('theme:changed', () => {
         syncFromService()
+      })
+    }
+  }
 
-        const context = tryGetApplicationContext()
+  function syncSystemPreference() {
+    if (typeof window !== 'undefined') {
+      systemPrefersDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+    }
+  }
 
-        if (context && !unsubscribeThemeChanged) {
-            unsubscribeThemeChanged = context.events.subscribe("theme:changed", () => {
-                syncFromService()
-            })
-        }
+  function syncFromService() {
+    const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
+
+    if (!service) {
+      syncSystemPreference()
+      return
     }
 
-    function syncSystemPreference() {
-        if (typeof window !== 'undefined') {
-            systemPrefersDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-        }
-    }
+    const state = service.getState()
+    mode.value = state.mode
+    systemPrefersDark.value = state.systemPrefersDark
+  }
 
-    function syncFromService() {
-        const service = tryGetApplicationContext()?.services.optional(THEME_SERVICE)
-
-        if (!service) {
-            syncSystemPreference()
-            return
-        }
-
-        const state = service.getState()
-        mode.value = state.mode
-        systemPrefersDark.value = state.systemPrefersDark
-    }
-
-    return {
-        mode,
-        effectiveTheme,
-        isDark,
-        isLight,
-        currentMode,
-        setTheme,
-        toggleTheme,
-        initTheme,
-    }
+  return {
+    mode,
+    effectiveTheme,
+    isDark,
+    isLight,
+    currentMode,
+    setTheme,
+    toggleTheme,
+    initTheme,
+  }
 })

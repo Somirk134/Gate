@@ -2,35 +2,18 @@
   <header class="app-header">
     <div class="header-left">
       <!-- Toggle Sidebar -->
-      <button
-        class="header-btn"
-        title="切换侧边栏"
-        @click="layout.toggleSidebar"
-      >
-        <GIcon
-          name="menu"
-          :size="16"
-        />
+      <button class="header-btn" title="切换侧边栏" @click="layout.toggleSidebar">
+        <GIcon name="menu" :size="16" />
       </button>
 
       <!-- Breadcrumbs -->
-      <div
-        v-if="breadcrumbs.length"
-        class="header-breadcrumbs"
-      >
-        <template
-          v-for="(crumb, i) in breadcrumbs"
-          :key="i"
-        >
-          <span
-            v-if="i > 0"
-            class="breadcrumb-sep"
-          >/</span>
+      <div v-if="breadcrumbs.length" class="header-breadcrumbs">
+        <template v-for="(crumb, i) in breadcrumbs" :key="i">
+          <span v-if="i > 0" class="breadcrumb-sep">/</span>
           <span
             class="breadcrumb-item"
             :class="{ active: i === breadcrumbs.length - 1 }"
-            @click="crumb.path && router.push(crumb.path)"
-          >
+            @click="crumb.path && router.push(crumb.path)">
             {{ crumb.label }}
           </span>
         </template>
@@ -39,22 +22,13 @@
 
     <div class="header-center">
       <!-- Page Title (optional) -->
-      <span
-        v-if="pageTitle"
-        class="page-title"
-      >{{ pageTitle }}</span>
+      <span v-if="pageTitle" class="page-title">{{ pageTitle }}</span>
     </div>
 
     <div class="header-right">
       <!-- Search Placeholder -->
-      <button
-        class="header-btn search-btn"
-        @click="layout.openCommandPalette"
-      >
-        <GIcon
-          name="search"
-          :size="16"
-        />
+      <button class="header-btn search-btn" @click="layout.openCommandPalette">
+        <GIcon name="search" :size="16" />
         <span class="search-label">{{ t('common.search') }}</span>
         <span class="search-shortcut">Ctrl K</span>
       </button>
@@ -63,34 +37,17 @@
       <button
         class="header-btn"
         :title="t('common.toggleInspector')"
-        @click="layout.toggleInspector"
-      >
-        <GIcon
-          name="panel-right-open"
-          :size="16"
-        />
+        @click="layout.toggleInspector">
+        <GIcon name="panel-right-open" :size="16" />
       </button>
 
-      <button
-        class="header-btn"
-        :title="t('common.toggleTheme')"
-        @click="themeStore.toggleTheme"
-      >
-        <GIcon
-          :name="themeStore.isDark ? 'sun' : 'moon'"
-          :size="16"
-        />
+      <button class="header-btn" :title="t('common.toggleTheme')" @click="themeStore.toggleTheme">
+        <GIcon :name="themeStore.isDark ? 'sun' : 'moon'" :size="16" />
       </button>
 
       <!-- Notification Placeholder -->
-      <button
-        class="header-btn"
-        :title="t('common.notifications')"
-      >
-        <GIcon
-          name="bell"
-          :size="16"
-        />
+      <button class="header-btn" :title="t('common.notifications')">
+        <GIcon name="bell" :size="16" />
         <span class="notification-dot" />
       </button>
     </div>
@@ -120,6 +77,7 @@ const routeTitleMap: Record<string, string> = {
   servers: 'nav.servers',
   'server-detail': 'nav.servers',
   logs: 'nav.logs',
+  help: 'nav.help',
   settings: 'nav.settings',
   about: 'nav.about',
 }
@@ -130,8 +88,7 @@ const routeSegmentMap: Record<string, string> = {
   servers: 'nav.servers',
   logs: 'nav.logs',
   certificates: 'nav.certificates',
-  diagnostics: 'nav.diagnostics',
-  feedback: 'nav.feedback',
+  help: 'nav.help',
   settings: 'nav.settings',
   about: 'nav.about',
 }

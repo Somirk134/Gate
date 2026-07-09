@@ -11,29 +11,28 @@
     :clearable="clearable"
     prefix="search"
     @update:model-value="emit('update:modelValue', $event)"
-    @enter="emit('search', $event)"
-  />
+    @enter="emit('search', $event)" />
 </template>
 
 <script setup lang="ts">
-import GInput from "./GInput.vue"
+import GInput from './GInput.vue'
 
 withDefaults(
   defineProps<{
     modelValue?: string
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     clearable?: boolean
   }>(),
   {
-    size: "md",
-    placeholder: "搜索…",
+    size: 'md',
+    placeholder: '搜索…',
     clearable: true,
   },
 )
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string]
+  'update:modelValue': [value: string]
   search: [event: KeyboardEvent]
 }>()
 </script>

@@ -5,7 +5,7 @@ import type {
   SettingItem,
   SettingSearchMatch,
   SettingSearchResult,
-} from "../types"
+} from '../types'
 
 export interface HighlightPart {
   text: string
@@ -15,12 +15,13 @@ export interface HighlightPart {
 export function searchSettings(
   categories: SettingCategory[],
   query: string,
-  categoryFilter: SettingCategoryId | "all",
+  categoryFilter: SettingCategoryId | 'all',
 ) {
   const normalizedQuery = normalizeSearchText(query)
-  const scopedCategories = categoryFilter === "all"
-    ? categories
-    : categories.filter((category) => category.id === categoryFilter)
+  const scopedCategories =
+    categoryFilter === 'all'
+      ? categories
+      : categories.filter((category) => category.id === categoryFilter)
 
   if (!normalizedQuery) return scopedCategories
 
@@ -51,7 +52,8 @@ export function searchSettings(
 
 export function countSettings(categories: SettingCategory[]) {
   return categories.reduce(
-    (total, category) => total + category.groups.reduce((groupTotal, group) => groupTotal + group.items.length, 0),
+    (total, category) =>
+      total + category.groups.reduce((groupTotal, group) => groupTotal + group.items.length, 0),
     0,
   )
 }
@@ -109,13 +111,13 @@ function scoreSettingItem(
   item: SettingItem,
   normalizedQuery: string,
 ): SettingSearchResult | null {
-  const fields: Array<[SettingSearchMatch["field"], string, number]> = [
-    ["label", item.label, 64],
-    ["key", item.key, 54],
-    ["description", item.description, 34],
-    ["tags", item.tags?.join(" ") ?? "", 28],
-    ["category", category.label, 22],
-    ["group", group.label, 18],
+  const fields: Array<[SettingSearchMatch['field'], string, number]> = [
+    ['label', item.label, 64],
+    ['key', item.key, 54],
+    ['description', item.description, 34],
+    ['tags', item.tags?.join(' ') ?? '', 28],
+    ['category', category.label, 22],
+    ['group', group.label, 18],
   ]
 
   const matches: SettingSearchMatch[] = []

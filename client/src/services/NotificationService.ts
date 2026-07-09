@@ -1,5 +1,5 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap, NotificationPayload } from "@/types/application"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap, NotificationPayload } from '@/types/application'
 
 export interface NotificationService {
   show(notification: NotificationPayload): string
@@ -13,9 +13,10 @@ export class EventNotificationService implements NotificationService {
   constructor(private readonly events: EventBus<AppEventMap>) {}
 
   show(notification: NotificationPayload) {
-    const id = notification.id ?? `notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const id =
+      notification.id ?? `notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    void this.events.publish("notification:show", {
+    void this.events.publish('notification:show', {
       ...notification,
       id,
     })
@@ -24,18 +25,18 @@ export class EventNotificationService implements NotificationService {
   }
 
   success(title: string, content?: string) {
-    return this.show({ type: "success", title, content })
+    return this.show({ type: 'success', title, content })
   }
 
   error(title: string, content?: string) {
-    return this.show({ type: "error", title, content })
+    return this.show({ type: 'error', title, content })
   }
 
   warning(title: string, content?: string) {
-    return this.show({ type: "warning", title, content })
+    return this.show({ type: 'warning', title, content })
   }
 
   info(title: string, content?: string) {
-    return this.show({ type: "info", title, content })
+    return this.show({ type: 'info', title, content })
   }
 }

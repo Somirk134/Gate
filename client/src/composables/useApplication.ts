@@ -1,10 +1,10 @@
-import { onUnmounted, ref } from "vue"
-import { useAppContext } from "@/providers/appContext"
+import { onUnmounted, ref } from 'vue'
+import { useAppContext } from '@/providers/appContext'
 
 export function useApplication() {
   const app = useAppContext()
   const phase = ref(app.lifecycle.phase)
-  const unsubscribe = app.events.subscribe("lifecycle:transition", ({ payload }) => {
+  const unsubscribe = app.events.subscribe('lifecycle:transition', ({ payload }) => {
     phase.value = payload.to
   })
 

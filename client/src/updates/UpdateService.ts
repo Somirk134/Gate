@@ -1,13 +1,7 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap } from "@/types/application"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap } from '@/types/application'
 
-export type UpdateStatus =
-  | "idle"
-  | "checking"
-  | "available"
-  | "downloading"
-  | "ready"
-  | "error"
+export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
 
 export interface UpdateInfo {
   available: boolean
@@ -24,7 +18,7 @@ export interface AutoUpdateService {
 }
 
 export class StubAutoUpdateService implements AutoUpdateService {
-  private status: UpdateStatus = "idle"
+  private status: UpdateStatus = 'idle'
 
   constructor(private readonly events: EventBus<AppEventMap>) {}
 
@@ -33,25 +27,25 @@ export class StubAutoUpdateService implements AutoUpdateService {
   }
 
   async check(): Promise<UpdateInfo> {
-    this.setStatus("checking")
-    this.setStatus("idle")
+    this.setStatus('checking')
+    this.setStatus('idle')
     return { available: false }
   }
 
   async download() {
-    this.setStatus("idle")
+    this.setStatus('idle')
   }
 
   async install() {
-    this.setStatus("idle")
+    this.setStatus('idle')
   }
 
   async restart() {
-    this.setStatus("idle")
+    this.setStatus('idle')
   }
 
   private setStatus(status: UpdateStatus) {
     this.status = status
-    void this.events.publish("update:status", { status })
+    void this.events.publish('update:status', { status })
   }
 }

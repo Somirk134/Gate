@@ -1,32 +1,19 @@
 <template>
-  <DashboardWidget
-    title="Tunnel List"
-    icon="router"
-  >
+  <DashboardWidget title="隧道列表" icon="router">
     <div class="tunnel-statistics">
       <div class="tunnel-statistics__summary">
-        <span
-          v-for="bucket in status"
-          :key="bucket.label"
-        >
+        <span v-for="bucket in status" :key="bucket.label">
           <strong>{{ bucket.count }}</strong>
           {{ bucket.label }}
         </span>
       </div>
       <div class="tunnel-statistics__list">
-        <article
-          v-for="tunnel in tunnels"
-          :key="tunnel.id"
-          class="tunnel-statistics__item"
-        >
+        <article v-for="tunnel in tunnels" :key="tunnel.id" class="tunnel-statistics__item">
           <div>
             <strong>{{ tunnel.name }}</strong>
-            <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.connections }} conn</small>
+            <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.connections }} 个连接</small>
           </div>
-          <span
-            class="tunnel-statistics__status"
-            :class="`is-${tunnel.status}`"
-          >
+          <span class="tunnel-statistics__status" :class="`is-${tunnel.status}`">
             {{ tunnel.status }}
           </span>
           <div class="tunnel-statistics__speed">
@@ -40,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-import DashboardWidget from "./DashboardWidget.vue"
-import type { DashboardTunnel } from "@/monitoring/types"
+import DashboardWidget from './DashboardWidget.vue'
+import type { DashboardTunnel } from '@/monitoring/types'
 
 defineProps<{
   status: Array<{ label: string; count: number }>
@@ -126,9 +113,17 @@ function formatSpeed(value: number) {
   font-size: var(--text-xs);
 }
 
-.tunnel-statistics__status.is-running { color: var(--color-success); background: var(--color-success-muted); }
-.tunnel-statistics__status.is-warning { color: var(--color-warning); background: var(--color-warning-muted); }
-.tunnel-statistics__status.is-stopped { color: var(--text-tertiary); }
+.tunnel-statistics__status.is-running {
+  color: var(--color-success);
+  background: var(--color-success-muted);
+}
+.tunnel-statistics__status.is-warning {
+  color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+.tunnel-statistics__status.is-stopped {
+  color: var(--text-tertiary);
+}
 
 .tunnel-statistics__speed {
   display: flex;

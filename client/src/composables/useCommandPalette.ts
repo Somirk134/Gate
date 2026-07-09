@@ -1,13 +1,13 @@
-import { computed, ref } from "vue"
-import { useLayoutStore } from "@stores"
-import { useAppContext } from "@/providers/appContext"
-import type { CommandItem } from "@/types/shell"
+import { computed, ref } from 'vue'
+import { useLayoutStore } from '@stores'
+import { useAppContext } from '@/providers/appContext'
+import type { CommandItem } from '@/types/shell'
 
 export function useCommandPalette() {
   const context = useAppContext()
   const layoutStore = useLayoutStore()
 
-  const query = ref("")
+  const query = ref('')
   const selectedIndex = ref(0)
   const recentCommands = ref<string[]>([])
 
@@ -22,7 +22,7 @@ export function useCommandPalette() {
       shortcut: command.shortcut,
       category: command.category,
       action: async () => {
-        await context.commands.execute(command.id, { source: "command-palette" })
+        await context.commands.execute(command.id, { source: 'command-palette' })
       },
       keywords: command.keywords,
     }))
@@ -41,14 +41,16 @@ export function useCommandPalette() {
         command.subtitle,
         command.category,
         ...(command.keywords ?? []),
-      ].join(" ").toLowerCase()
+      ]
+        .join(' ')
+        .toLowerCase()
 
       return haystack.includes(keyword)
     })
   })
 
   function open() {
-    query.value = ""
+    query.value = ''
     selectedIndex.value = 0
     layoutStore.openCommandPalette()
   }

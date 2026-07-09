@@ -17,17 +17,12 @@
       }"
       :style="{ '--server-color': preset.color }"
       :disabled="preset.availability !== 'enabled'"
-      @click="preset.availability === 'enabled' && $emit('update:modelValue', preset.key)"
-    >
+      @click="preset.availability === 'enabled' && $emit('update:modelValue', preset.key)">
       <div class="server-kind-option__head">
         <span
           class="server-kind-option__icon"
-          :style="{ background: preset.color + '1f', color: preset.color }"
-        >
-          <GIcon
-            :name="preset.icon"
-            :size="14"
-          />
+          :style="{ background: preset.color + '1f', color: preset.color }">
+          <GIcon :name="preset.icon" :size="14" />
         </span>
         <span class="server-kind-option__name">{{ preset.label }}</span>
       </div>
@@ -37,20 +32,19 @@
         variant="neutral"
         type="soft"
         size="sm"
-        class="server-kind-option__badge"
-      >
-        {{ preset.availability === "soon" ? "即将" : "计划" }}
+        class="server-kind-option__badge">
+        {{ preset.availability === 'soon' ? '即将' : '计划' }}
       </GBadge>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GBadge from "@components/base/GBadge.vue"
-import type { ServerKind } from "../types"
-import { KIND_PRESETS } from "../utils"
+import GIcon from '@components/icons/GIcon.vue'
+import GBadge from '@components/base/GBadge.vue'
+import type { ServerKind } from '../types'
+import { KIND_PRESETS } from '../utils'
 
 defineProps<{ modelValue: ServerKind }>()
-defineEmits<{ "update:modelValue": [value: ServerKind] }>()
+defineEmits<{ 'update:modelValue': [value: ServerKind] }>()
 </script>

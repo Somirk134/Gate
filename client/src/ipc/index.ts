@@ -1,1 +1,1 @@
-export * from "./IpcClient"
+export * from './IpcClient'

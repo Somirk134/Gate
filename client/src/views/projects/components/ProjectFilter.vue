@@ -12,13 +12,8 @@
       type="button"
       class="projects-segment__item"
       :class="{ 'projects-segment__item--active': modelValue === item.key }"
-      @click="$emit('update:modelValue', item.key)"
-    >
-      <GIcon
-        v-if="item.icon"
-        :name="item.icon"
-        :size="13"
-      />
+      @click="$emit('update:modelValue', item.key)">
+      <GIcon v-if="item.icon" :name="item.icon" :size="13" />
       <span>{{ item.label }}</span>
       <span class="projects-segment__count">{{ counts[item.key] ?? 0 }}</span>
     </button>
@@ -26,21 +21,25 @@
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import type { ProjectFilterType } from "../types"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import type { ProjectFilterType } from '../types'
 
 defineProps<{
   modelValue: ProjectFilterType
   counts: Record<ProjectFilterType, number>
 }>()
 
-defineEmits<{ "update:modelValue": [value: ProjectFilterType] }>()
+defineEmits<{ 'update:modelValue': [value: ProjectFilterType] }>()
 
-const items: Array<{ key: ProjectFilterType; label: string; icon?: string }> = [
-  { key: "all", label: "全部" },
-  { key: "running", label: "运行中", icon: "play" },
-  { key: "stopped", label: "已停止", icon: "stop" },
-  { key: "favorite", label: "收藏", icon: "star" },
-  { key: "recent", label: "最近", icon: "clock" },
-]
+const { t } = useI18n()
+
+const items = computed<Array<{ key: ProjectFilterType; label: string; icon?: string }>>(() => [
+  { key: 'all', label: t('project.filters.all') },
+  { key: 'running', label: t('project.filters.running'), icon: 'play' },
+  { key: 'stopped', label: t('project.filters.stopped'), icon: 'stop' },
+  { key: 'favorite', label: t('project.filters.favorite'), icon: 'star' },
+  { key: 'recent', label: t('project.filters.recent'), icon: 'clock' },
+])
 </script>

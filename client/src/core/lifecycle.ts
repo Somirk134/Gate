@@ -1,15 +1,15 @@
-import { EventBus } from "@/events/EventBus"
-import type { AppEventMap } from "@/types/application"
+import { EventBus } from '@/events/EventBus'
+import type { AppEventMap } from '@/types/application'
 
 export enum AppLifecyclePhase {
-  Starting = "starting",
-  Initializing = "initializing",
-  Ready = "ready",
-  Running = "running",
-  Updating = "updating",
-  Restarting = "restarting",
-  Closing = "closing",
-  Exit = "exit",
+  Starting = 'starting',
+  Initializing = 'initializing',
+  Ready = 'ready',
+  Running = 'running',
+  Updating = 'updating',
+  Restarting = 'restarting',
+  Closing = 'closing',
+  Exit = 'exit',
 }
 
 export interface AppLifecycleTransition {
@@ -51,6 +51,6 @@ export class AppLifecycle {
 
     this.currentPhase = phase
     this.transitions.push(transition)
-    await this.events.publish("lifecycle:transition", transition, "app-lifecycle")
+    await this.events.publish('lifecycle:transition', transition, 'app-lifecycle')
   }
 }

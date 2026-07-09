@@ -145,7 +145,8 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out),
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
 
@@ -239,7 +240,8 @@
   white-space: nowrap;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border-bottom: 2px solid transparent;
-  transition: color var(--duration-fast) var(--ease-out),
+  transition:
+    color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
@@ -632,11 +634,26 @@
 }
 
 /* 日志等级颜色 */
-.server-log-line__level--debug { background: rgba(107, 107, 114, 0.18); color: var(--text-tertiary); }
-.server-log-line__level--info  { background: var(--color-info-muted); color: var(--color-info); }
-.server-log-line__level--success { background: var(--color-success-muted); color: var(--color-success); }
-.server-log-line__level--warn  { background: var(--color-warning-muted); color: var(--color-warning); }
-.server-log-line__level--error { background: var(--color-error-muted); color: var(--color-error); }
+.server-log-line__level--debug {
+  background: rgba(107, 107, 114, 0.18);
+  color: var(--text-tertiary);
+}
+.server-log-line__level--info {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
+.server-log-line__level--success {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+.server-log-line__level--warn {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+.server-log-line__level--error {
+  background: var(--color-error-muted);
+  color: var(--color-error);
+}
 
 /* ============================================================
    Settings 表单
@@ -868,7 +885,8 @@
   opacity: 0.6;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: opacity var(--duration-fast) var(--ease-out),
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 
@@ -888,7 +906,8 @@
   background: var(--bg-input);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  transition: border-color var(--duration-fast) var(--ease-out),
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
@@ -1539,11 +1558,13 @@
 }
 
 .dialog-pop-enter-active {
-  transition: transform var(--duration-slow) var(--ease-spring),
+  transition:
+    transform var(--duration-slow) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 .dialog-pop-leave-active {
-  transition: transform var(--duration-fast) var(--ease-in),
+  transition:
+    transform var(--duration-fast) var(--ease-in),
     opacity var(--duration-fast) var(--ease-in);
 }
 .dialog-pop-enter-from {
@@ -1674,7 +1695,7 @@
 }
 
 .server-delete__list li::before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: var(--space-1);
   color: var(--color-error);
@@ -1714,13 +1735,27 @@
 }
 
 /* ── 状态条颜色 ── */
-.server-row__bar--connected { background: var(--status-online); }
-.server-row__bar--connecting { background: var(--status-connecting); }
-.server-row__bar--reconnecting { background: var(--status-connecting); }
-.server-row__bar--maintenance { background: var(--status-warning); }
-.server-row__bar--error { background: var(--status-error); }
-.server-row__bar--disconnected { background: var(--status-warning); }
-.server-row__bar--offline { background: var(--status-offline); }
+.server-row__bar--connected {
+  background: var(--status-online);
+}
+.server-row__bar--connecting {
+  background: var(--status-connecting);
+}
+.server-row__bar--reconnecting {
+  background: var(--status-connecting);
+}
+.server-row__bar--maintenance {
+  background: var(--status-warning);
+}
+.server-row__bar--error {
+  background: var(--status-error);
+}
+.server-row__bar--disconnected {
+  background: var(--status-warning);
+}
+.server-row__bar--offline {
+  background: var(--status-offline);
+}
 
 /* ── Inspector ── */
 .server-inspector {
@@ -1853,8 +1888,12 @@
   font-size: var(--text-xs);
 }
 
-.server-inspector__value :deep(.on) { color: var(--color-success); }
-.server-inspector__value :deep(.off) { color: var(--text-tertiary); }
+.server-inspector__value :deep(.on) {
+  color: var(--color-success);
+}
+.server-inspector__value :deep(.off) {
+  color: var(--text-tertiary);
+}
 
 .server-inspector__stat {
   display: grid;
@@ -1997,11 +2036,21 @@
   border-color: currentColor;
 }
 
-.server-logs__level-btn--debug.server-logs__level-btn--active { color: var(--text-tertiary); }
-.server-logs__level-btn--info.server-logs__level-btn--active { color: var(--color-info); }
-.server-logs__level-btn--success.server-logs__level-btn--active { color: var(--color-success); }
-.server-logs__level-btn--warn.server-logs__level-btn--active { color: var(--color-warning); }
-.server-logs__level-btn--error.server-logs__level-btn--active { color: var(--color-error); }
+.server-logs__level-btn--debug.server-logs__level-btn--active {
+  color: var(--text-tertiary);
+}
+.server-logs__level-btn--info.server-logs__level-btn--active {
+  color: var(--color-info);
+}
+.server-logs__level-btn--success.server-logs__level-btn--active {
+  color: var(--color-success);
+}
+.server-logs__level-btn--warn.server-logs__level-btn--active {
+  color: var(--color-warning);
+}
+.server-logs__level-btn--error.server-logs__level-btn--active {
+  color: var(--color-error);
+}
 
 .server-logs__spacer {
   flex: 1;
@@ -2140,8 +2189,12 @@
   border-radius: var(--radius-md);
 }
 
-.server-info-row__value :deep(.on) { color: var(--color-success); }
-.server-info-row__value :deep(.off) { color: var(--text-tertiary); }
+.server-info-row__value :deep(.on) {
+  color: var(--color-success);
+}
+.server-info-row__value :deep(.off) {
+  color: var(--text-tertiary);
+}
 
 .server-settings__actions {
   display: flex;

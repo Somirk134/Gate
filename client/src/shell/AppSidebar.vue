@@ -4,31 +4,14 @@
     data-sidebar="active-shell-sidebar"
     :class="{ collapsed: layout.sidebarCollapsed, hovered: layout.sidebarHovered }"
     @mouseenter="layout.hoverSidebar(true)"
-    @mouseleave="layout.hoverSidebar(false)"
-  >
+    @mouseleave="layout.hoverSidebar(false)">
     <!-- Header: Logo -->
     <div class="sidebar-header">
-      <div
-        class="sidebar-logo"
-        @click="layout.toggleSidebar"
-      >
+      <div class="sidebar-logo" @click="layout.toggleSidebar">
         <div class="logo-icon">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
+          <img :src="appLogoUrl" alt="" />
         </div>
-        <span
-          v-show="!isCollapsed"
-          class="logo-text"
-        >Gate</span>
+        <span v-show="!isCollapsed" class="logo-text">Gate</span>
       </div>
     </div>
 
@@ -40,22 +23,12 @@
         class="nav-item"
         :class="{ active: isActive(item.path) }"
         :data-onboarding-target="item.tourTarget"
-        @click="navigate(item.path)"
-      >
+        @click="navigate(item.path)">
         <div class="nav-icon">
-          <GIcon
-            :name="item.icon"
-            :size="18"
-          />
+          <GIcon :name="item.icon" :size="18" />
         </div>
-        <span
-          v-show="!isCollapsed"
-          class="nav-label"
-        >{{ item.label }}</span>
-        <span
-          v-show="!isCollapsed && item.shortcut"
-          class="nav-shortcut"
-        >{{ item.shortcut }}</span>
+        <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
+        <span v-show="!isCollapsed && item.shortcut" class="nav-shortcut">{{ item.shortcut }}</span>
       </div>
     </nav>
 
@@ -65,31 +38,20 @@
         class="onboarding-link"
         type="button"
         :title="t('common.reopenOnboarding')"
-        @click="openOnboarding"
-      >
-        <GIcon
-          name="sparkles"
-          :size="14"
-        />
+        @click="openOnboarding">
+        <GIcon name="sparkles" :size="14" />
         <span v-show="!isCollapsed">{{ t('common.onboarding') }}</span>
       </button>
-      <div
-        v-show="!isCollapsed"
-        class="version-info"
-      >
+      <div v-show="!isCollapsed" class="version-info">
         <span class="version-text">v{{ version }}</span>
       </div>
       <a
         v-show="!isCollapsed"
         class="github-link"
-        href="https://github.com"
+        :href="GITHUB_REPOSITORY_URL"
         target="_blank"
-        rel="noopener noreferrer"
-      >
-        <GIcon
-          name="external-link"
-          :size="14"
-        />
+        rel="noopener noreferrer">
+        <GIcon name="external-link" :size="14" />
         <span>GitHub</span>
       </a>
     </div>
@@ -102,6 +64,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLayoutStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
+import { GITHUB_REPOSITORY_URL } from '@/constants'
+import appLogoUrl from '@repo-assets/logo/logo-ui.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -148,18 +112,11 @@ const navItems = computed(() => [
     tourTarget: 'certificates',
   },
   {
-    path: '/diagnostics',
-    label: t('nav.diagnostics'),
-    icon: 'activity',
+    path: '/help',
+    label: t('nav.help'),
+    icon: 'help',
     shortcut: '',
-    tourTarget: 'diagnostics',
-  },
-  {
-    path: '/feedback',
-    label: t('nav.feedback'),
-    icon: 'message',
-    shortcut: '',
-    tourTarget: 'feedback',
+    tourTarget: 'help',
   },
   {
     path: '/settings',
@@ -213,15 +170,19 @@ function openOnboarding() {
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--accent-primary);
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
 }
 
-.logo-icon svg {
+.logo-icon img {
   width: 100%;
   height: 100%;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.18));
 }
 
 .logo-text {

@@ -1,5 +1,5 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap } from "@/types/application"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap } from '@/types/application'
 
 export interface StorageMigration<T = unknown> {
   fromVersion: number
@@ -35,7 +35,7 @@ export class LocalStorageService implements StorageService {
   private readonly memory = new Map<string, StorageRecord<unknown>>()
 
   constructor(
-    private readonly defaultNamespace = "gate",
+    private readonly defaultNamespace = 'gate',
     private readonly events?: EventBus<AppEventMap>,
   ) {}
 
@@ -55,10 +55,10 @@ export class LocalStorageService implements StorageService {
 
     if (this.isExpired(record)) {
       this.remove(key, options)
-      void this.events?.publish("storage:changed", {
+      void this.events?.publish('storage:changed', {
         namespace: options.namespace ?? this.defaultNamespace,
         key,
-        action: "expire",
+        action: 'expire',
       })
       return undefined
     }
@@ -71,10 +71,10 @@ export class LocalStorageService implements StorageService {
         ...options,
         version,
       })
-      void this.events?.publish("storage:changed", {
+      void this.events?.publish('storage:changed', {
         namespace: options.namespace ?? this.defaultNamespace,
         key,
-        action: "migrate",
+        action: 'migrate',
       })
     }
 
@@ -100,10 +100,10 @@ export class LocalStorageService implements StorageService {
 
     this.memory.set(storageKey, record)
     this.storage?.setItem(storageKey, JSON.stringify(record))
-    void this.events?.publish("storage:changed", {
+    void this.events?.publish('storage:changed', {
       namespace: options.namespace ?? this.defaultNamespace,
       key,
-      action: "set",
+      action: 'set',
     })
   }
 
@@ -111,10 +111,10 @@ export class LocalStorageService implements StorageService {
     const storageKey = this.toStorageKey(key, options.namespace)
     this.memory.delete(storageKey)
     this.storage?.removeItem(storageKey)
-    void this.events?.publish("storage:changed", {
+    void this.events?.publish('storage:changed', {
       namespace: options.namespace ?? this.defaultNamespace,
       key,
-      action: "remove",
+      action: 'remove',
     })
   }
 
@@ -125,10 +125,10 @@ export class LocalStorageService implements StorageService {
       this.storage?.removeItem(storageKey)
     }
 
-    void this.events?.publish("storage:changed", {
+    void this.events?.publish('storage:changed', {
       namespace,
-      key: "*",
-      action: "clear",
+      key: '*',
+      action: 'clear',
     })
   }
 
@@ -152,7 +152,7 @@ export class LocalStorageService implements StorageService {
   }
 
   private get storage(): Storage | undefined {
-    if (typeof window === "undefined") {
+    if (typeof window === 'undefined') {
       return undefined
     }
 

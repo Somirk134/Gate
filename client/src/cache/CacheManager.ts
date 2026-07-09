@@ -1,6 +1,6 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap } from "@/types/application"
-import type { Disposable } from "@/utils/disposable"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap } from '@/types/application'
+import type { Disposable } from '@/utils/disposable'
 
 export interface CacheOptions {
   ttl?: number
@@ -22,7 +22,7 @@ export interface CacheManager {
 }
 
 export interface DiskCacheManager extends CacheManager {
-  readonly kind: "disk"
+  readonly kind: 'disk'
 }
 
 export class MemoryCacheManager implements CacheManager, Disposable {
@@ -30,11 +30,11 @@ export class MemoryCacheManager implements CacheManager, Disposable {
   private readonly cleanupTimer?: number
 
   constructor(
-    private readonly defaultNamespace = "memory",
+    private readonly defaultNamespace = 'memory',
     private readonly events?: EventBus<AppEventMap>,
     cleanupInterval = 60_000,
   ) {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       this.cleanupTimer = window.setInterval(() => this.cleanup(), cleanupInterval)
     }
   }
@@ -71,7 +71,7 @@ export class MemoryCacheManager implements CacheManager, Disposable {
   delete(key: string, options: CacheOptions = {}) {
     const namespace = options.namespace ?? this.defaultNamespace
     this.entries.delete(this.toCacheKey(key, namespace))
-    void this.events?.publish("cache:expired", { namespace, key })
+    void this.events?.publish('cache:expired', { namespace, key })
   }
 
   clear(namespace = this.defaultNamespace) {
@@ -90,9 +90,9 @@ export class MemoryCacheManager implements CacheManager, Disposable {
         continue
       }
 
-      const [namespace, key] = cacheKey.split(":", 2)
+      const [namespace, key] = cacheKey.split(':', 2)
       this.entries.delete(cacheKey)
-      void this.events?.publish("cache:expired", { namespace, key })
+      void this.events?.publish('cache:expired', { namespace, key })
     }
   }
 

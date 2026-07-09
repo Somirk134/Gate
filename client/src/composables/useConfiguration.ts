@@ -1,12 +1,12 @@
-import { onUnmounted, ref } from "vue"
-import { useAppContext } from "@/providers/appContext"
-import type { AppConfiguration } from "@/services/ConfigurationService"
+import { onUnmounted, ref } from 'vue'
+import { useAppContext } from '@/providers/appContext'
+import type { AppConfiguration } from '@/services/ConfigurationService'
 
 export function useConfiguration() {
   const context = useAppContext()
   const snapshot = ref<AppConfiguration>(context.configuration.snapshot())
 
-  const subscription = context.configuration.watch("*", () => {
+  const subscription = context.configuration.watch('*', () => {
     snapshot.value = context.configuration.snapshot()
   })
   onUnmounted(() => {

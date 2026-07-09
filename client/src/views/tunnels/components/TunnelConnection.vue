@@ -8,121 +8,81 @@
   <div class="tunnel-connection">
     <div class="tunnel-section__head">
       <div class="tunnel-section__title">
-        <GIcon
-          name="link"
-          :size="16"
-          class="tunnel-section__title-icon"
-        />
+        <GIcon name="link" :size="16" class="tunnel-section__title-icon" />
         <span>当前连接</span>
-        <GBadge
-          variant="primary"
-          type="soft"
-          size="sm"
-        >
+        <GBadge variant="primary" type="soft" size="sm">
           {{ tunnel.connections.length }}
         </GBadge>
       </div>
-      <GButton
-        size="sm"
-        variant="ghost"
-        icon="refresh"
-        @click="$emit('refresh')"
-      >
-        刷新
-      </GButton>
+      <GButton size="sm" variant="ghost" icon="refresh" @click="$emit('refresh')"> 刷新 </GButton>
     </div>
 
-    <div
-      v-if="tunnel.connections.length === 0"
-      class="tunnel-connection__empty"
-    >
-      <GIcon
-        name="wifi-off"
-        :size="28"
-      />
+    <div v-if="tunnel.connections.length === 0" class="tunnel-connection__empty">
+      <GIcon name="wifi-off" :size="28" />
       <span>暂无活动连接</span>
     </div>
 
-    <div
-      v-else
-      class="tunnel-conn-table"
-    >
+    <div v-else class="tunnel-conn-table">
       <div class="tunnel-conn-row tunnel-conn-row--head">
-        <span class="tunnel-conn-row__cell">Client IP</span>
-        <span class="tunnel-conn-row__cell">Region</span>
-        <span class="tunnel-conn-row__cell">Duration</span>
-        <span class="tunnel-conn-row__cell">Protocol</span>
-        <span class="tunnel-conn-row__cell">Status</span>
+        <span class="tunnel-conn-row__cell">客户端 IP</span>
+        <span class="tunnel-conn-row__cell">地区</span>
+        <span class="tunnel-conn-row__cell">持续时间</span>
+        <span class="tunnel-conn-row__cell">协议</span>
+        <span class="tunnel-conn-row__cell">状态</span>
       </div>
-      <div
-        v-for="conn in tunnel.connections"
-        :key="conn.id"
-        class="tunnel-conn-row"
-      >
+      <div v-for="conn in tunnel.connections" :key="conn.id" class="tunnel-conn-row">
         <span class="tunnel-conn-row__cell mono">{{ conn.clientIp }}</span>
         <span class="tunnel-conn-row__cell">
-          <GIcon
-            name="globe"
-            :size="11"
-          />
+          <GIcon name="globe" :size="11" />
           {{ conn.region }}
         </span>
         <span class="tunnel-conn-row__cell mono">{{ formatDuration(conn.duration) }}</span>
         <span class="tunnel-conn-row__cell">
-          <TunnelBadge
-            :protocol="conn.protocol"
-            size="sm"
-          />
+          <TunnelBadge :protocol="conn.protocol" size="sm" />
         </span>
         <span class="tunnel-conn-row__cell">
-          <GStatusDot
-            :status="connStatus(conn.status)"
-            size="xs"
-          />
+          <GStatusDot :status="connStatus(conn.status)" size="xs" />
           <span :style="{ color: connColor(conn.status) }">{{ connLabel(conn.status) }}</span>
         </span>
       </div>
     </div>
 
     <p class="tunnel-connection__hint">
-      <GIcon
-        name="info-circle"
-        :size="12"
-      />
+      <GIcon name="info-circle" :size="12" />
       当前为 Mock 数据。未来将支持实时连接监控。
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
-import GBadge from "@components/base/GBadge.vue"
-import GStatusDot from "@components/status/GStatusDot.vue"
-import TunnelBadge from "./TunnelBadge.vue"
-import type { Tunnel, TunnelConnection } from "../types"
-import { formatDuration } from "../utils"
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+import GBadge from '@components/base/GBadge.vue'
+import GStatusDot from '@components/status/GStatusDot.vue'
+import TunnelBadge from './TunnelBadge.vue'
+import type { Tunnel, TunnelConnection } from '../types'
+import { formatDuration } from '../utils'
 
 defineProps<{ tunnel: Tunnel }>()
 
 defineEmits<{ refresh: [] }>()
 
-function connStatus(s: TunnelConnection["status"]): "online" | "warning" | "offline" {
-  if (s === "active") return "online"
-  if (s === "idle") return "warning"
-  return "offline"
+function connStatus(s: TunnelConnection['status']): 'online' | 'warning' | 'offline' {
+  if (s === 'active') return 'online'
+  if (s === 'idle') return 'warning'
+  return 'offline'
 }
 
-function connLabel(s: TunnelConnection["status"]): string {
-  if (s === "active") return "活跃"
-  if (s === "idle") return "空闲"
-  return "已关闭"
+function connLabel(s: TunnelConnection['status']): string {
+  if (s === 'active') return '活跃'
+  if (s === 'idle') return '空闲'
+  return '已关闭'
 }
 
-function connColor(s: TunnelConnection["status"]): string {
-  if (s === "active") return "var(--color-success)"
-  if (s === "idle") return "var(--color-warning)"
-  return "var(--text-tertiary)"
+function connColor(s: TunnelConnection['status']): string {
+  if (s === 'active') return 'var(--color-success)'
+  if (s === 'idle') return 'var(--color-warning)'
+  return 'var(--text-tertiary)'
 }
 </script>
 

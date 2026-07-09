@@ -13,19 +13,13 @@
       <h1 class="g-page-header__title">
         <slot />
       </h1>
-      <p
-        v-if="$slots.description || description"
-        class="g-page-header__desc"
-      >
+      <p v-if="$slots.description || description" class="g-page-header__desc">
         <slot name="description">
           {{ description }}
         </slot>
       </p>
     </div>
-    <div
-      v-if="$slots.actions"
-      class="g-page-header__actions"
-    >
+    <div v-if="$slots.actions" class="g-page-header__actions">
       <slot name="actions" />
     </div>
   </div>

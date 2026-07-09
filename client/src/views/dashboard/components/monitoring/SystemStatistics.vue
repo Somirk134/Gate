@@ -1,14 +1,7 @@
 <template>
-  <DashboardWidget
-    title="System Statistics"
-    icon="cpu"
-  >
+  <DashboardWidget title="系统统计" icon="cpu">
     <div class="system-statistics">
-      <div
-        v-for="item in items"
-        :key="item.label"
-        class="system-statistics__meter"
-      >
+      <div v-for="item in items" :key="item.label" class="system-statistics__meter">
         <div class="system-statistics__meter-head">
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}</strong>
@@ -18,33 +11,45 @@
         </div>
       </div>
       <div class="system-statistics__details">
-        <span>Threads {{ system.threadCount }}</span>
-        <span>Open Files {{ system.openFile ?? "reserved" }}</span>
-        <span>Uptime {{ formatDuration(system.processUptimeSeconds) }}</span>
+        <span>线程 {{ system.threadCount }}</span>
+        <span>打开文件 {{ system.openFile ?? '预留' }}</span>
+        <span>运行时间 {{ formatDuration(system.processUptimeSeconds) }}</span>
       </div>
     </div>
   </DashboardWidget>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import DashboardWidget from "./DashboardWidget.vue"
-import type { SystemStatistics } from "@/monitoring/types"
+import { computed } from 'vue'
+import DashboardWidget from './DashboardWidget.vue'
+import type { SystemStatistics } from '@/monitoring/types'
 
 const props = defineProps<{
   system: SystemStatistics
 }>()
 
 const items = computed(() => [
-  { label: "CPU Usage", value: `${props.system.cpuUsage.toFixed(0)}%`, percent: props.system.cpuUsage },
-  { label: "Memory Usage", value: `${props.system.memoryUsage.toFixed(0)}%`, percent: props.system.memoryUsage },
-  { label: "Disk Usage", value: props.system.diskUsage ? `${props.system.diskUsage.toFixed(0)}%` : "reserved", percent: props.system.diskUsage ?? 0 },
+  {
+    label: 'CPU 使用率',
+    value: `${props.system.cpuUsage.toFixed(0)}%`,
+    percent: props.system.cpuUsage,
+  },
+  {
+    label: '内存使用率',
+    value: `${props.system.memoryUsage.toFixed(0)}%`,
+    percent: props.system.memoryUsage,
+  },
+  {
+    label: '磁盘使用率',
+    value: props.system.diskUsage ? `${props.system.diskUsage.toFixed(0)}%` : '预留',
+    percent: props.system.diskUsage ?? 0,
+  },
 ])
 
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  return `${hours}h ${minutes}m`
+  return `${hours} 小时 ${minutes} 分钟`
 }
 </script>
 

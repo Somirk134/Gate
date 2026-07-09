@@ -14,7 +14,7 @@ Please do not open public issues for vulnerabilities.
 Report privately through one of these channels:
 
 - GitHub Security Advisories for this repository.
-- Email: [security@example.com](mailto:security@example.com)
+- Email: [15035267995@163.com](mailto:15035267995@163.com)
 
 Include:
 

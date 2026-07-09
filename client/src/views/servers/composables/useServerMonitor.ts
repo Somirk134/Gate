@@ -6,13 +6,10 @@
    未来替换为真实 Rust Server 指标时，改为订阅 WebSocket / IPC 推送即可。
    ================================================================== */
 
-import { onMounted, onBeforeUnmount, ref } from "vue"
-import type { useServerStore } from "../store/server"
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+import type { useServerStore } from '../store/server'
 
-export function useServerMonitor(
-  store: ReturnType<typeof useServerStore>,
-  intervalMs = 1000,
-) {
+export function useServerMonitor(store: ReturnType<typeof useServerStore>, intervalMs = 1000) {
   const active = ref(false)
   let timer: ReturnType<typeof setInterval> | null = null
 

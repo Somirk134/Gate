@@ -1,14 +1,8 @@
 <template>
-  <section
-    :id="`settings-category-${category.id}`"
-    class="settings-category"
-  >
+  <section :id="`settings-category-${category.id}`" class="settings-category">
     <header class="settings-category__header">
       <div class="settings-category__icon">
-        <GIcon
-          :name="category.icon"
-          :size="18"
-        />
+        <GIcon :name="category.icon" :size="18" />
       </div>
       <div>
         <h2>{{ category.label }}</h2>
@@ -30,16 +24,15 @@
       @select="emit('select', $event)"
       @reset="emit('reset', $event)"
       @run-action="emit('run-action', $event)"
-      @update:value="handleUpdateValue"
-    />
+      @update:value="handleUpdateValue" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { SettingActionStatus, SettingCategory, SettingItem, SettingValue } from "../types"
-import SettingGroup from "./SettingGroup.vue"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { SettingActionStatus, SettingCategory, SettingItem, SettingValue } from '../types'
+import SettingGroup from './SettingGroup.vue'
 
 const props = defineProps<{
   category: SettingCategory
@@ -52,15 +45,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  "update:value": [item: SettingItem, value: SettingValue]
+  'update:value': [item: SettingItem, value: SettingValue]
   select: [item: SettingItem]
   reset: [item: SettingItem]
-  "run-action": [actionId: string]
+  'run-action': [actionId: string]
 }>()
 
-const itemCount = computed(() => props.category.groups.reduce((total, group) => total + group.items.length, 0))
+const itemCount = computed(() =>
+  props.category.groups.reduce((total, group) => total + group.items.length, 0),
+)
 
 function handleUpdateValue(item: SettingItem, value: SettingValue) {
-  emit("update:value", item, value)
+  emit('update:value', item, value)
 }
 </script>

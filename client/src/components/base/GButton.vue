@@ -27,32 +27,16 @@
     ]"
     :disabled="disabled || loading"
     :type="type"
-    @click="handleClick"
-  >
+    @click="handleClick">
     <!-- Loading spinner -->
-    <span
-      v-if="loading"
-      class="g-btn__spinner"
-    >
-      <GIcon
-        name="loader"
-        :size="iconSize"
-        spin
-      />
+    <span v-if="loading" class="g-btn__spinner">
+      <GIcon name="loader" :size="iconSize" spin />
     </span>
 
     <!-- Leading icon -->
-    <GIcon
-      v-if="icon && !loading"
-      :name="icon"
-      :size="iconSize"
-      class="g-btn__icon"
-    />
+    <GIcon v-if="icon && !loading" :name="icon" :size="iconSize" class="g-btn__icon" />
 
-    <span
-      v-if="!iconOnly"
-      class="g-btn__label"
-    >
+    <span v-if="!iconOnly" class="g-btn__label">
       <slot />
     </span>
 
@@ -61,33 +45,32 @@
       v-if="trailingIcon"
       :name="trailingIcon"
       :size="iconSize"
-      class="g-btn__icon g-btn__icon--trailing"
-    />
+      class="g-btn__icon g-btn__icon--trailing" />
   </button>
 </template>
 
 <script setup lang="ts">
-import { computed, useSlots } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed, useSlots } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
-    variant?: "primary" | "secondary" | "ghost" | "danger" | "text"
-    size?: "sm" | "md" | "lg"
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'text'
+    size?: 'sm' | 'md' | 'lg'
     icon?: string
     trailingIcon?: string
     loading?: boolean
     disabled?: boolean
     block?: boolean
-    type?: "button" | "submit" | "reset"
+    type?: 'button' | 'submit' | 'reset'
   }>(),
   {
-    variant: "secondary",
-    size: "md",
+    variant: 'secondary',
+    size: 'md',
     loading: false,
     disabled: false,
     block: false,
-    type: "button",
+    type: 'button',
   },
 )
 
@@ -95,11 +78,11 @@ const emit = defineEmits<{ click: [event: MouseEvent] }>()
 const slots = useSlots()
 
 const iconOnly = computed(() => !!props.icon && !slots.default)
-const iconSize = computed(() => (props.size === "sm" ? 14 : props.size === "lg" ? 18 : 16))
+const iconSize = computed(() => (props.size === 'sm' ? 14 : props.size === 'lg' ? 18 : 16))
 
 function handleClick(e: MouseEvent) {
   if (props.disabled || props.loading) return
-  emit("click", e)
+  emit('click', e)
 }
 </script>
 
@@ -125,7 +108,8 @@ function handleClick(e: MouseEvent) {
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  transition: background-color var(--duration-fast) var(--ease-out),
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out),

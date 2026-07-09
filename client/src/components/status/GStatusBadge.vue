@@ -12,58 +12,51 @@
   内置 status → {label, pulse} 映射，业务可直接传 status。
 -->
 <template>
-  <span
-    class="g-status-badge"
-    :class="[`g-status-badge--${size}`]"
-  >
-    <GStatusDot
-      :status="dotStatus"
-      :pulse="needsPulse"
-      :size="size === 'sm' ? 'xs' : 'sm'"
-    />
+  <span class="g-status-badge" :class="[`g-status-badge--${size}`]">
+    <GStatusDot :status="dotStatus" :pulse="needsPulse" :size="size === 'sm' ? 'xs' : 'sm'" />
     <span class="g-status-badge__text">{{ displayLabel }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GStatusDot from "./GStatusDot.vue"
+import { computed } from 'vue'
+import GStatusDot from './GStatusDot.vue'
 
 type Status =
-  | "online"
-  | "offline"
-  | "connecting"
-  | "reconnecting"
-  | "error"
-  | "warning"
-  | "updating"
-  | "maintenance"
-  | "starting"
+  | 'online'
+  | 'offline'
+  | 'connecting'
+  | 'reconnecting'
+  | 'error'
+  | 'warning'
+  | 'updating'
+  | 'maintenance'
+  | 'starting'
 
 const props = withDefaults(
   defineProps<{
     status: Status
     label?: string
-    size?: "sm" | "md"
+    size?: 'sm' | 'md'
   }>(),
   {
-    size: "md",
+    size: 'md',
   },
 )
 
 const defaultLabels: Record<Status, string> = {
-  online: "在线",
-  offline: "离线",
-  connecting: "连接中",
-  reconnecting: "重连中",
-  error: "错误",
-  warning: "警告",
-  updating: "更新中",
-  maintenance: "维护中",
-  starting: "启动中",
+  online: '在线',
+  offline: '离线',
+  connecting: '连接中',
+  reconnecting: '重连中',
+  error: '错误',
+  warning: '警告',
+  updating: '更新中',
+  maintenance: '维护中',
+  starting: '启动中',
 }
 
-const pulseStatuses: Status[] = ["connecting", "reconnecting", "updating", "starting"]
+const pulseStatuses: Status[] = ['connecting', 'reconnecting', 'updating', 'starting']
 
 const displayLabel = computed(() => props.label ?? defaultLabels[props.status])
 const needsPulse = computed(() => pulseStatuses.includes(props.status))

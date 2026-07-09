@@ -1,11 +1,5 @@
-import { TauriIpcClient } from "@/ipc"
-import type {
-  DashboardData,
-  HealthReport,
-  Metric,
-  Statistics,
-  TrafficStatistics,
-} from "../types"
+import { TauriIpcClient } from '@/ipc'
+import type { DashboardData, HealthReport, Metric, Statistics, TrafficStatistics } from '../types'
 
 const ipc = new TauriIpcClient()
 
@@ -98,7 +92,7 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
     client: {
       onlineTimeSeconds: 0,
       openProject: 0,
-      currentWorkspace: "",
+      currentWorkspace: '',
       uiFps: 0,
       memoryBytes: 0,
     },
@@ -122,7 +116,7 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
     tunnelStatus: [],
     serverStatus: [],
     systemHealth: {
-      overall: "offline",
+      overall: 'offline',
       signals: [],
       updatedAt: now,
     },
@@ -134,7 +128,7 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
 
 class RuntimeStatisticsService implements StatisticsService {
   async getStatistics() {
-    return ipc.invoke<Statistics>("runtime_get_statistics")
+    return ipc.invoke<Statistics>('runtime_get_statistics')
   }
 
   async getTraffic() {
@@ -144,13 +138,13 @@ class RuntimeStatisticsService implements StatisticsService {
 
 class RuntimeMetricsService implements MetricsService {
   async collect() {
-    return ipc.invoke<Metric[]>("runtime_collect_metrics")
+    return ipc.invoke<Metric[]>('runtime_collect_metrics')
   }
 }
 
 class RuntimeHealthService implements HealthService {
   async getHealthReport() {
-    return ipc.invoke<HealthReport>("runtime_get_health")
+    return ipc.invoke<HealthReport>('runtime_get_health')
   }
 }
 
@@ -159,7 +153,7 @@ class RuntimeDashboardService implements DashboardService {
   private timer: number | undefined
 
   async getDashboard() {
-    return ipc.invoke<DashboardData>("runtime_get_dashboard")
+    return ipc.invoke<DashboardData>('runtime_get_dashboard')
   }
 
   subscribe(listener: (data: DashboardData) => void) {
@@ -205,7 +199,7 @@ class RuntimeExportService implements ExportService {
 
   async exportCsv() {
     const metrics = await metricsService.collect()
-    const rows = ["name,kind,scope,unit,value,timestamp"]
+    const rows = ['name,kind,scope,unit,value,timestamp']
     for (const metric of metrics) {
       rows.push(
         [
@@ -213,12 +207,12 @@ class RuntimeExportService implements ExportService {
           metric.kind,
           metric.scope,
           metric.unit,
-          Array.isArray(metric.value) ? metric.value.join("|") : metric.value,
+          Array.isArray(metric.value) ? metric.value.join('|') : metric.value,
           metric.timestamp,
-        ].join(","),
+        ].join(','),
       )
     }
-    return rows.join("\n")
+    return rows.join('\n')
   }
 }
 

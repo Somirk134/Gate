@@ -1,21 +1,15 @@
 <template>
   <Transition name="wizard">
-    <div
-      v-if="visible"
-      class="wizard-backdrop"
-      @click.self="close"
-      @keydown.esc="close"
-    >
+    <div v-if="visible" class="wizard-backdrop" @click.self="close" @keydown.esc="close">
       <section
         class="wizard"
         role="dialog"
         aria-modal="true"
         aria-labelledby="wizard-title"
-        tabindex="-1"
-      >
+        tabindex="-1">
         <header class="wizard__header">
           <div>
-            <p>Create Tunnel Wizard</p>
+            <p>{{ t('tunnel.wizard.title') }}</p>
             <h2 id="wizard-title">
               {{ stepTitle }}
             </h2>
@@ -23,69 +17,50 @@
           <button
             type="button"
             class="wizard__close"
-            aria-label="关闭"
-            @click="close"
-          >
-            <GIcon
-              name="close"
-              :size="16"
-            />
+            :aria-label="t('tunnel.wizard.close')"
+            @click="close">
+            <GIcon name="close" :size="16" />
           </button>
         </header>
 
-        <div
-          v-if="step < 5"
-          class="wizard__steps"
-          aria-label="创建步骤"
-        >
+        <div v-if="step < 5" class="wizard__steps" :aria-label="t('tunnel.wizard.stepsAria')">
           <span
             v-for="item in steps"
             :key="item.index"
-            :class="{ active: step === item.index, done: step > item.index }"
-          >
+            :class="{ active: step === item.index, done: step > item.index }">
             {{ item.index }}
           </span>
         </div>
 
         <main class="wizard__body">
-          <section
-            v-if="step === 1"
-            class="wizard-step"
-          >
+          <section v-if="step === 1" class="wizard-step">
             <div class="wizard-copy">
-              <strong>选择一个场景</strong>
-              <p>Gate 会自动填入建议名称、端口、标签和模板。你仍然可以在下一步调整。</p>
+              <strong>{{ t('tunnel.wizard.chooseScenario') }}</strong>
+              <p>{{ t('tunnel.wizard.chooseScenarioDesc') }}</p>
             </div>
             <div class="preset-grid">
               <button
-                v-for="scenario in quickStartScenarios"
+                v-for="scenario in localizedScenarios"
                 :key="scenario.id"
                 type="button"
                 class="preset-card"
                 :class="{ active: selectedScenarioId === scenario.id }"
-                @click="applyScenario(scenario.id)"
-              >
-                <span><GIcon
-                  :name="scenario.icon"
-                  :size="18"
-                /></span>
+                @click="applyScenario(scenario.id)">
+                <span><GIcon :name="scenario.icon" :size="18" /></span>
                 <strong>{{ scenario.title }}</strong>
                 <small>{{ scenario.description }}</small>
               </button>
             </div>
           </section>
 
-          <section
-            v-else-if="step === 2"
-            class="wizard-step"
-          >
+          <section v-else-if="step === 2" class="wizard-step">
             <div class="wizard-copy">
-              <strong>选择 Tunnel 模板</strong>
-              <p>Templates generate recommended TCP or HTTP tunnel settings.</p>
+              <strong>{{ t('tunnel.wizard.chooseTemplate') }}</strong>
+              <p>{{ t('tunnel.wizard.chooseTemplateDesc') }}</p>
             </div>
             <div class="template-list">
               <button
-                v-for="template in tunnelTemplates"
+                v-for="template in localizedTunnelTemplates"
                 :key="template.id"
                 type="button"
                 class="template-row"
@@ -94,12 +69,8 @@
                   reserved: template.availability === 'reserved',
                 }"
                 :disabled="template.availability === 'reserved'"
-                @click="applyTemplate(template.id)"
-              >
-                <span><GIcon
-                  :name="template.icon"
-                  :size="18"
-                /></span>
+                @click="applyTemplate(template.id)">
+                <span><GIcon :name="template.icon" :size="18" /></span>
                 <div>
                   <strong>{{ template.title }}</strong>
                   <small>{{ template.description }}</small>
@@ -109,170 +80,133 @@
             </div>
           </section>
 
-          <section
-            v-else-if="step === 3"
-            class="wizard-step wizard-step--form"
-          >
+          <section v-else-if="step === 3" class="wizard-step wizard-step--form">
             <label>
-              <span>Tunnel 名称</span>
-              <input
-                v-model.trim="form.name"
-                autocomplete="off"
-                :placeholder="suggestedName"
-              >
+              <span>{{ t('tunnel.wizard.name') }}</span>
+              <input v-model.trim="form.name" autocomplete="off" :placeholder="suggestedName" />
             </label>
 
             <div class="form-grid">
               <label>
-                <span>本地地址</span>
-                <input
-                  v-model.trim="form.localHost"
-                  autocomplete="off"
-                  placeholder="127.0.0.1"
-                >
+                <span>{{ t('tunnel.wizard.localAddress') }}</span>
+                <input v-model.trim="form.localHost" autocomplete="off" placeholder="127.0.0.1" />
               </label>
               <label>
-                <span>协议</span>
+                <span>{{ t('tunnel.wizard.protocol') }}</span>
                 <select v-model="form.protocol">
                   <option value="tcp">TCP</option>
-                  <option value="http">HTTP（已有能力）</option>
+                  <option value="http">{{ t('tunnel.wizard.httpAvailable') }}</option>
                 </select>
               </label>
             </div>
 
             <div class="form-grid">
               <label>
-                <span>本地端口</span>
-                <input
-                  v-model.number="form.localPort"
-                  inputmode="numeric"
-                  type="number"
-                >
+                <span>{{ t('tunnel.wizard.localPort') }}</span>
+                <input v-model.number="form.localPort" inputmode="numeric" type="number" />
               </label>
               <label>
-                <span>公网端口</span>
-                <input
-                  v-model.number="form.remotePort"
-                  inputmode="numeric"
-                  type="number"
-                >
+                <span>{{ t('tunnel.wizard.publicPort') }}</span>
+                <input v-model.number="form.remotePort" inputmode="numeric" type="number" />
               </label>
             </div>
 
             <div class="form-grid">
               <label>
-                <span>项目</span>
+                <span>{{ t('tunnel.wizard.project') }}</span>
                 <select v-model="form.projectId">
-                  <option
-                    v-if="!projects.length"
-                    value=""
-                  >未分组</option>
-                  <option
-                    v-for="project in projects"
-                    :key="project.id"
-                    :value="project.id"
-                  >{{ project.name }}</option>
+                  <option v-if="!projects.length" value="">
+                    {{ t('tunnel.wizard.ungrouped') }}
+                  </option>
+                  <option v-for="project in projects" :key="project.id" :value="project.id">
+                    {{ project.name }}
+                  </option>
                 </select>
               </label>
               <label>
-                <span>服务器</span>
+                <span>{{ t('tunnel.wizard.server') }}</span>
                 <select v-model="form.serverName">
-                  <option
-                    v-if="!serverNames.length"
-                    value=""
-                  >未连接服务器</option>
-                  <option
-                    v-for="serverName in serverNames"
-                    :key="serverName"
-                    :value="serverName"
-                  >{{ serverName }}</option>
+                  <option v-if="!serverNames.length" value="">
+                    {{ t('tunnel.wizard.noConnectedServer') }}
+                  </option>
+                  <option v-for="serverName in serverNames" :key="serverName" :value="serverName">
+                    {{ serverName }}
+                  </option>
                 </select>
               </label>
             </div>
 
             <label class="wizard-check">
-              <input
-                v-model="form.autoStart"
-                type="checkbox"
-              >
-              <span>创建后自动启动 Tunnel</span>
+              <input v-model="form.autoStart" type="checkbox" />
+              <span>{{ t('tunnel.wizard.autoStart') }}</span>
             </label>
           </section>
 
-          <section
-            v-else-if="step === 4"
-            class="wizard-step wizard-step--confirm"
-          >
+          <section v-else-if="step === 4" class="wizard-step wizard-step--confirm">
             <div class="confirm-list">
-              <div><span>场景</span><strong>{{ selectedScenario?.title ?? "自定义" }}</strong></div>
-              <div><span>模板</span><strong>{{ selectedTemplate.title }}</strong></div>
-              <div><span>协议</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
-              <div><span>服务器</span><strong>{{ form.serverName || "未连接服务器" }}</strong></div>
-              <div><span>本地服务</span><strong>{{ form.localHost }}:{{ form.localPort || "-" }}</strong></div>
-              <div><span>公网端口</span><strong>{{ form.remotePort || "-" }}</strong></div>
-              <div><span>访问地址</span><strong>{{ publicPreview }}</strong></div>
-              <div><span>标签</span><strong>{{ form.tags.join(", ") || "-" }}</strong></div>
+              <div>
+                <span>{{ t('tunnel.wizard.scenario') }}</span
+                ><strong>{{ selectedScenario?.title ?? t('tunnel.wizard.custom') }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.template') }}</span
+                ><strong>{{ selectedTemplate.title }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.protocol') }}</span
+                ><strong>{{ form.protocol.toUpperCase() }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.server') }}</span
+                ><strong>{{ form.serverName || t('tunnel.wizard.noConnectedServer') }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.localService') }}</span
+                ><strong>{{ form.localHost }}:{{ form.localPort || '-' }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.publicPort') }}</span
+                ><strong>{{ form.remotePort || '-' }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.accessAddress') }}</span
+                ><strong>{{ publicPreview }}</strong>
+              </div>
+              <div>
+                <span>{{ t('tunnel.wizard.tags') }}</span
+                ><strong>{{ form.tags.join(', ') || '-' }}</strong>
+              </div>
             </div>
 
-            <div
-              v-if="errorMessage"
-              class="wizard-error-card"
-            >
-              <GIcon
-                name="alert-circle"
-                :size="18"
-              />
+            <div v-if="errorMessage" class="wizard-error-card">
+              <GIcon name="alert-circle" :size="18" />
               <div>
-                <strong>配置还不完整</strong>
+                <strong>{{ t('tunnel.wizard.incomplete') }}</strong>
                 <p>{{ errorMessage }}</p>
               </div>
             </div>
           </section>
 
-          <section
-            v-else
-            class="wizard-success"
-          >
-            <span><GIcon
-              name="check-circle"
-              :size="28"
-            /></span>
-            <h2>创建成功</h2>
-            <p>{{ createdName }} 已加入 Tunnel 列表，可以立即启动或继续调整设置。</p>
+          <section v-else class="wizard-success">
+            <span><GIcon name="check-circle" :size="28" /></span>
+            <h2>{{ t('tunnel.wizard.successTitle') }}</h2>
+            <p>{{ t('tunnel.wizard.successDesc', { name: createdName }) }}</p>
           </section>
         </main>
 
         <footer class="wizard__footer">
-          <GButton
-            v-if="step > 1 && step < 5"
-            variant="ghost"
-            @click="step -= 1"
-          >
-            上一步
+          <GButton v-if="step > 1 && step < 5" variant="ghost" @click="step -= 1">
+            {{ t('tunnel.wizard.previous') }}
           </GButton>
-          <span class="wizard__error">{{ step < 4 ? errorMessage : "" }}</span>
-          <GButton
-            v-if="step < 4"
-            variant="primary"
-            trailing-icon="arrow-right"
-            @click="next"
-          >
-            下一步
+          <span class="wizard__error">{{ step < 4 ? errorMessage : '' }}</span>
+          <GButton v-if="step < 4" variant="primary" trailing-icon="arrow-right" @click="next">
+            {{ t('tunnel.wizard.next') }}
           </GButton>
-          <GButton
-            v-else-if="step === 4"
-            variant="primary"
-            icon="plus"
-            @click="createTunnel"
-          >
-            创建
+          <GButton v-else-if="step === 4" variant="primary" icon="plus" @click="createTunnel">
+            {{ t('tunnel.wizard.create') }}
           </GButton>
-          <GButton
-            v-else
-            variant="primary"
-            @click="finish"
-          >
-            完成
+          <GButton v-else variant="primary" @click="finish">
+            {{ t('tunnel.wizard.finish') }}
           </GButton>
         </footer>
       </section>
@@ -281,56 +215,85 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import { findTemplate, quickStartScenarios, tunnelTemplates } from "@/onboarding/presets"
-import type { TunnelFormData } from "../types"
+import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import { findTemplate, quickStartScenarios, tunnelTemplates } from '@/onboarding/presets'
+import type { TunnelFormData } from '../types'
 
 const props = defineProps<{
   visible: boolean
   projects: Array<{ id: string; name: string }>
   serverNames: string[]
+  defaultProjectId?: string
 }>()
 
 const emit = defineEmits<{
-  "update:visible": [value: boolean]
+  'update:visible': [value: boolean]
   submit: [form: TunnelFormData]
 }>()
 
-const steps = [
-  { index: 1, title: "Quick Start" },
-  { index: 2, title: "Tunnel Template" },
-  { index: 3, title: "本地配置" },
-  { index: 4, title: "确认创建" },
-]
+const { t } = useI18n()
+
+const steps = computed(() => [
+  { index: 1, title: t('tunnel.wizard.quickStart') },
+  { index: 2, title: t('tunnel.wizard.tunnelTemplate') },
+  { index: 3, title: t('tunnel.wizard.localConfig') },
+  { index: 4, title: t('tunnel.wizard.confirmCreate') },
+])
 
 const step = ref(1)
-const errorMessage = ref("")
-const createdName = ref("")
-const selectedScenarioId = ref("local-dev")
-const selectedTemplateId = ref("tcp")
+const errorMessage = ref('')
+const createdName = ref('')
+const selectedScenarioId = ref('local-dev')
+const selectedTemplateId = ref('tcp')
 
 const form = reactive<TunnelFormData>({
-  name: "",
-  protocol: "tcp",
-  localHost: "127.0.0.1",
+  name: '',
+  protocol: 'tcp',
+  localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
-  projectId: "",
-  serverName: "",
+  projectId: '',
+  serverName: '',
   autoStart: false,
-  remark: "",
+  remark: '',
   tags: [],
 })
 
-const selectedScenario = computed(() =>
-  quickStartScenarios.find((scenario) => scenario.id === selectedScenarioId.value),
+const localizedScenarios = computed(() =>
+  quickStartScenarios.map((scenario) => ({
+    ...scenario,
+    title: t(`tunnel.wizard.scenarios.${scenarioLocaleKey(scenario.id)}.title`),
+    description: t(`tunnel.wizard.scenarios.${scenarioLocaleKey(scenario.id)}.description`),
+  })),
 )
-const selectedTemplate = computed(() => findTemplate(selectedTemplateId.value))
-const stepTitle = computed(() => steps.find((item) => item.index === step.value)?.title ?? "创建成功")
-const suggestedName = computed(() => form.name || selectedScenario.value?.suggestedName || selectedTemplate.value.suggestedName)
-const publicPreview = computed(() => (form.remotePort ? `:${form.remotePort}` : "保存后由 Runtime 返回"))
+const localizedTunnelTemplates = computed(() =>
+  tunnelTemplates.map((template) => ({
+    ...template,
+    title: t(`tunnel.wizard.templates.${template.id}.title`),
+    description: t(`tunnel.wizard.templates.${template.id}.description`),
+  })),
+)
+const selectedScenario = computed(() =>
+  localizedScenarios.value.find((scenario) => scenario.id === selectedScenarioId.value),
+)
+const selectedTemplate = computed(
+  () =>
+    localizedTunnelTemplates.value.find((template) => template.id === selectedTemplateId.value) ??
+    localizedTunnelTemplates.value[1],
+)
+const stepTitle = computed(
+  () =>
+    steps.value.find((item) => item.index === step.value)?.title ?? t('tunnel.wizard.successTitle'),
+)
+const suggestedName = computed(
+  () => form.name || selectedScenario.value?.suggestedName || selectedTemplate.value.suggestedName,
+)
+const publicPreview = computed(() =>
+  form.remotePort ? `:${form.remotePort}` : t('tunnel.wizard.runtimeReturned'),
+)
 
 watch(
   () => props.visible,
@@ -341,19 +304,23 @@ watch(
 
 function reset() {
   step.value = 1
-  errorMessage.value = ""
-  createdName.value = ""
-  form.name = ""
-  form.protocol = "tcp"
-  form.localHost = "127.0.0.1"
+  errorMessage.value = ''
+  createdName.value = ''
+  form.name = ''
+  form.protocol = 'tcp'
+  form.localHost = '127.0.0.1'
   form.localPort = null
   form.remotePort = null
-  form.projectId = props.projects[0]?.id ?? ""
-  form.serverName = props.serverNames[0] ?? ""
+  form.projectId =
+    props.defaultProjectId &&
+    props.projects.some((project) => project.id === props.defaultProjectId)
+      ? props.defaultProjectId
+      : (props.projects[0]?.id ?? '')
+  form.serverName = props.serverNames[0] ?? ''
   form.autoStart = false
-  form.remark = ""
+  form.remark = ''
   form.tags = []
-  applyScenario("local-dev")
+  applyScenario('local-dev')
 }
 
 function applyScenario(id: string) {
@@ -368,12 +335,12 @@ function applyScenario(id: string) {
   form.remotePort = scenario.remotePort
   form.tags = [...new Set([...template.tags, ...scenario.tags])]
   form.remark = scenario.description
-  errorMessage.value = ""
+  errorMessage.value = ''
 }
 
 function applyTemplate(id: string) {
   const template = findTemplate(id)
-  if (template.availability === "reserved") return
+  if (template.availability === 'reserved') return
   selectedTemplateId.value = template.id
   form.protocol = template.protocol
   form.name = template.suggestedName
@@ -381,7 +348,7 @@ function applyTemplate(id: string) {
   form.remotePort = template.remotePort
   form.tags = [...template.tags]
   form.remark = template.description
-  errorMessage.value = ""
+  errorMessage.value = ''
 }
 
 function isValidPort(port: number | null) {
@@ -389,15 +356,25 @@ function isValidPort(port: number | null) {
 }
 
 function validateCurrentStep() {
-  errorMessage.value = ""
+  errorMessage.value = ''
   if (step.value === 3 || step.value === 4) {
-    if (!props.serverNames.length) errorMessage.value = "请先在服务器页面添加并连接服务器。"
-    else if (!form.serverName) errorMessage.value = "请选择一台已连接服务器。"
-    else if (!form.localHost.trim()) errorMessage.value = "请填写本地地址。"
-    else if (!isValidPort(form.localPort)) errorMessage.value = "本地端口必须在 1-65535 之间。"
-    else if (!isValidPort(form.remotePort)) errorMessage.value = "公网端口必须在 1-65535 之间。"
+    if (!props.serverNames.length) errorMessage.value = t('tunnel.wizard.validationServerPage')
+    else if (!form.serverName) errorMessage.value = t('tunnel.wizard.validationServer')
+    else if (!form.localHost.trim()) errorMessage.value = t('tunnel.wizard.validationLocalAddress')
+    else if (!isValidPort(form.localPort))
+      errorMessage.value = t('tunnel.wizard.validationLocalPort')
+    else if (!isValidPort(form.remotePort))
+      errorMessage.value = t('tunnel.wizard.validationPublicPort')
   }
   return !errorMessage.value
+}
+
+function scenarioLocaleKey(id: string) {
+  const map: Record<string, string> = {
+    'local-dev': 'localDev',
+    'payment-callback': 'paymentCallback',
+  }
+  return map[id] ?? id
 }
 
 function next() {
@@ -409,12 +386,12 @@ function createTunnel() {
   if (!validateCurrentStep()) return
   const name = form.name.trim() || suggestedName.value
   createdName.value = name
-  emit("submit", { ...form, name, tags: [...form.tags] })
+  emit('submit', { ...form, name, tags: [...form.tags] })
   step.value = 5
 }
 
 function close() {
-  emit("update:visible", false)
+  emit('update:visible', false)
 }
 
 function finish() {
@@ -767,7 +744,9 @@ function finish() {
 
 .wizard-enter-active .wizard,
 .wizard-leave-active .wizard {
-  transition: transform var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out);
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
 }
 
 .wizard-enter-from,

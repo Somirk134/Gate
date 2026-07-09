@@ -36,6 +36,7 @@ export default defineConfig({
             '@utils': resolve(__dirname, 'src/utils'),
             '@types': resolve(__dirname, 'src/types'),
             '@assets': resolve(__dirname, 'src/assets'),
+            '@repo-assets': resolve(__dirname, '../assets'),
             '@hooks': resolve(__dirname, 'src/hooks'),
             '@layouts': resolve(__dirname, 'src/layouts'),
             '@shell': resolve(__dirname, 'src/shell'),

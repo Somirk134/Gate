@@ -4,14 +4,11 @@
    搜索范围：名称 / 地区 / IP / 版本 / 类型 / 标签 / 状态文本
    ================================================================== */
 
-import { computed, type Ref } from "vue"
-import type { Server } from "../types"
-import { KIND_MAP, SERVER_STATUS_CONFIG } from "../utils"
+import { computed, type Ref } from 'vue'
+import type { Server } from '../types'
+import { KIND_MAP, SERVER_STATUS_CONFIG } from '../utils'
 
-export function useServerSearch(
-  servers: Ref<Server[]>,
-  query: Ref<string>,
-) {
+export function useServerSearch(servers: Ref<Server[]>, query: Ref<string>) {
   const normalizedQuery = computed(() => query.value.trim().toLowerCase())
 
   const results = computed(() => {

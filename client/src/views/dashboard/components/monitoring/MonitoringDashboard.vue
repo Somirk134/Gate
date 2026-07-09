@@ -2,19 +2,12 @@
   <div class="monitoring-dashboard">
     <header class="monitoring-dashboard__header">
       <div>
-        <h1>Monitoring Center</h1>
-        <p>Live observability for tunnels, runtime, connections, health, and traffic.</p>
+        <h1>监控中心</h1>
+        <p>实时观察隧道、运行时、连接、健康状态和流量。</p>
       </div>
-      <button
-        type="button"
-        class="monitoring-dashboard__refresh"
-        @click="refresh"
-      >
-        <GIcon
-          name="refresh"
-          :size="14"
-        />
-        <span>{{ loading ? "Refreshing" : "Refresh" }}</span>
+      <button type="button" class="monitoring-dashboard__refresh" @click="refresh">
+        <GIcon name="refresh" :size="14" />
+        <span>{{ loading ? '刷新中' : '刷新' }}</span>
       </button>
     </header>
 
@@ -26,21 +19,14 @@
     </div>
 
     <div class="monitoring-dashboard__grid monitoring-dashboard__grid--main">
-      <TunnelStatistics
-        :status="dashboard.tunnelStatus"
-        :tunnels="dashboard.tunnels"
-      />
+      <TunnelStatistics :status="dashboard.tunnelStatus" :tunnels="dashboard.tunnels" />
       <ConnectionStatistics
         :connection="dashboard.statistics.connection"
-        :trend="dashboard.connectionTrend"
-      />
+        :trend="dashboard.connectionTrend" />
     </div>
 
     <div class="monitoring-dashboard__grid monitoring-dashboard__grid--side">
-      <DashboardWidget
-        title="System Health"
-        icon="shield-check"
-      >
+      <DashboardWidget title="系统健康" icon="shield-check">
         <div class="monitoring-dashboard__health">
           <HealthIndicator
             v-for="signal in dashboard.systemHealth.signals"
@@ -48,23 +34,16 @@
             :label="signal.target"
             :status="signal.status"
             :score="signal.score"
-            :message="signal.message"
-          />
+            :message="signal.message" />
         </div>
       </DashboardWidget>
       <RuntimePanel :runtime="dashboard.statistics.runtime" />
       <SystemStatistics :system="dashboard.statistics.system" />
     </div>
 
-    <DashboardWidget
-      title="Recent Activity"
-      icon="history"
-    >
+    <DashboardWidget title="最近活动" icon="history">
       <div class="monitoring-dashboard__activity">
-        <article
-          v-for="activity in dashboard.recentActivity"
-          :key="activity.id"
-        >
+        <article v-for="activity in dashboard.recentActivity" :key="activity.id">
           <span>{{ activity.category }}</span>
           <strong>{{ activity.title }}</strong>
           <small>{{ formatTime(activity.timestamp) }}</small>
@@ -72,35 +51,32 @@
       </div>
     </DashboardWidget>
 
-    <p
-      v-if="error"
-      class="monitoring-dashboard__error"
-    >
+    <p v-if="error" class="monitoring-dashboard__error">
       {{ error }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import { useMonitoringDashboard } from "@/monitoring/composables/useMonitoringDashboard"
-import ConnectionStatistics from "./ConnectionStatistics.vue"
-import DashboardWidget from "./DashboardWidget.vue"
-import HealthIndicator from "./HealthIndicator.vue"
-import OverviewPanel from "./OverviewPanel.vue"
-import RealtimeChart from "./RealtimeChart.vue"
-import RuntimePanel from "./RuntimePanel.vue"
-import SystemStatistics from "./SystemStatistics.vue"
-import TrafficChart from "./TrafficChart.vue"
-import TunnelStatistics from "./TunnelStatistics.vue"
+import GIcon from '@components/icons/GIcon.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+import ConnectionStatistics from './ConnectionStatistics.vue'
+import DashboardWidget from './DashboardWidget.vue'
+import HealthIndicator from './HealthIndicator.vue'
+import OverviewPanel from './OverviewPanel.vue'
+import RealtimeChart from './RealtimeChart.vue'
+import RuntimePanel from './RuntimePanel.vue'
+import SystemStatistics from './SystemStatistics.vue'
+import TrafficChart from './TrafficChart.vue'
+import TunnelStatistics from './TunnelStatistics.vue'
 
 const { dashboard, loading, error, refresh } = useMonitoringDashboard()
 
 function formatTime(timestamp: number) {
-  return new Intl.DateTimeFormat("en", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+  return new Intl.DateTimeFormat('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   }).format(timestamp)
 }
 </script>

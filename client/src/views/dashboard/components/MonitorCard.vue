@@ -6,40 +6,28 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard
-      variant="plain"
-      padding="none"
-      class="monitor-card"
-    >
+    <GCard variant="plain" padding="none" class="monitor-card">
       <template #header>
         <GSectionHeader icon="activity">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div
-        v-if="resource"
-        class="monitor__grid"
-      >
+      <div v-if="resource" class="monitor__grid">
         <div
           v-for="(item, i) in monitors"
           :key="item.key"
           class="monitor__item"
-          :class="`stagger-${(i % 6) + 1}`"
-        >
+          :class="`stagger-${(i % 6) + 1}`">
           <GCircleProgress
             :value="item.value"
             :size="64"
             :stroke="5"
             :variant="item.variant"
-            show-label
-          />
+            show-label />
           <div class="monitor__info">
             <span class="monitor__label">
-              <GIcon
-                :name="item.icon"
-                :size="12"
-              />
+              <GIcon :name="item.icon" :size="12" />
               {{ item.label }}
             </span>
             <span class="monitor__value">{{ item.value }}%</span>
@@ -47,22 +35,19 @@
         </div>
       </div>
 
-      <GEmptyState
-        v-else
-        title="暂无资源数据"
-      />
+      <GEmptyState v-else title="暂无资源数据" />
     </GCard>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GSectionHeader from "@components/layout/GSectionHeader.vue"
-import GCircleProgress from "@components/feedback/GCircleProgress.vue"
-import GEmptyState from "@components/feedback/GEmptyState.vue"
-import type { DashboardResource } from "../types"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GSectionHeader from '@components/layout/GSectionHeader.vue'
+import GCircleProgress from '@components/feedback/GCircleProgress.vue'
+import GEmptyState from '@components/feedback/GEmptyState.vue'
+import type { DashboardResource } from '../types'
 
 const props = withDefaults(
   defineProps<{
@@ -70,24 +55,42 @@ const props = withDefaults(
     title?: string
   }>(),
   {
-    title: "资源监控",
+    title: '资源监控',
   },
 )
 
-function variantFor(v: number): "success" | "warning" | "error" {
-  if (v < 60) return "success"
-  if (v < 85) return "warning"
-  return "error"
+function variantFor(v: number): 'success' | 'warning' | 'error' {
+  if (v < 60) return 'success'
+  if (v < 85) return 'warning'
+  return 'error'
 }
 
 const monitors = computed(() => {
   const r = props.resource
   if (!r) return []
   return [
-    { key: "cpu", label: "CPU", icon: "cpu", value: r.cpu, variant: variantFor(r.cpu) },
-    { key: "memory", label: "内存", icon: "memory-stick", value: r.memory, variant: variantFor(r.memory) },
-    { key: "traffic", label: "流量", icon: "network", value: r.traffic, variant: variantFor(r.traffic) },
-    { key: "connection", label: "连接", icon: "users", value: r.connection, variant: variantFor(r.connection) },
+    { key: 'cpu', label: 'CPU', icon: 'cpu', value: r.cpu, variant: variantFor(r.cpu) },
+    {
+      key: 'memory',
+      label: '内存',
+      icon: 'memory-stick',
+      value: r.memory,
+      variant: variantFor(r.memory),
+    },
+    {
+      key: 'traffic',
+      label: '流量',
+      icon: 'network',
+      value: r.traffic,
+      variant: variantFor(r.traffic),
+    },
+    {
+      key: 'connection',
+      label: '连接',
+      icon: 'users',
+      value: r.connection,
+      variant: variantFor(r.connection),
+    },
   ]
 })
 </script>

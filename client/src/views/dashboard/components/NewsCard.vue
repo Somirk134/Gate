@@ -5,46 +5,27 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard
-      variant="plain"
-      padding="none"
-      class="news-card"
-    >
+    <GCard variant="plain" padding="none" class="news-card">
       <template #header>
         <GSectionHeader icon="sparkles">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div
-        v-if="news.length"
-        class="news__list"
-      >
+      <div v-if="news.length" class="news__list">
         <button
           v-for="(item, i) in news"
           :key="item.id"
           class="news__item"
           :class="`stagger-${(i % 6) + 1}`"
-          @click="$emit('open', item)"
-        >
-          <span
-            class="news__icon"
-            :class="`news__icon--${item.type}`"
-          >
-            <GIcon
-              :name="newsIcon(item.type)"
-              :size="14"
-            />
+          @click="$emit('open', item)">
+          <span class="news__icon" :class="`news__icon--${item.type}`">
+            <GIcon :name="newsIcon(item.type)" :size="14" />
           </span>
           <div class="news__body">
             <div class="news__title-row">
               <span class="news__title">{{ item.title }}</span>
-              <GBadge
-                v-if="item.version"
-                variant="primary"
-                type="soft"
-                size="sm"
-              >
+              <GBadge v-if="item.version" variant="primary" type="soft" size="sm">
                 {{ item.version }}
               </GBadge>
             </div>
@@ -53,29 +34,22 @@
             </p>
             <span class="news__date">{{ item.date }}</span>
           </div>
-          <GIcon
-            name="chevron-right"
-            :size="14"
-            class="news__arrow"
-          />
+          <GIcon name="chevron-right" :size="14" class="news__arrow" />
         </button>
       </div>
 
-      <GEmptyState
-        v-else
-        title="暂无资讯"
-      />
+      <GEmptyState v-else title="暂无资讯" />
     </GCard>
   </section>
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GBadge from "@components/base/GBadge.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GSectionHeader from "@components/layout/GSectionHeader.vue"
-import GEmptyState from "@components/feedback/GEmptyState.vue"
-import type { DashboardNews } from "../types"
+import GCard from '@components/base/GCard.vue'
+import GBadge from '@components/base/GBadge.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GSectionHeader from '@components/layout/GSectionHeader.vue'
+import GEmptyState from '@components/feedback/GEmptyState.vue'
+import type { DashboardNews } from '../types'
 
 withDefaults(
   defineProps<{
@@ -83,18 +57,22 @@ withDefaults(
     title?: string
   }>(),
   {
-    title: "资讯与更新",
+    title: '资讯与更新',
   },
 )
 
 defineEmits<{ open: [news: DashboardNews] }>()
 
-function newsIcon(type: DashboardNews["type"]): string {
+function newsIcon(type: DashboardNews['type']): string {
   switch (type) {
-    case "release": return "rocket"
-    case "github": return "github"
-    case "changelog": return "file-text"
-    default: return "info-circle"
+    case 'release':
+      return 'rocket'
+    case 'github':
+      return 'github'
+    case 'changelog':
+      return 'file-text'
+    default:
+      return 'info-circle'
   }
 }
 </script>

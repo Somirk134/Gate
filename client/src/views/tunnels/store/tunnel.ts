@@ -1,48 +1,46 @@
-import { defineStore } from "pinia"
-import { computed, ref } from "vue"
-import { tunnelService } from "@/services/tunnel.service"
-import { useServerStore } from "@views/servers"
-import type { DashboardTunnel } from "@/monitoring/types"
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { tunnelService } from '@/services/tunnel.service'
+import { useServerStore } from '@views/servers'
+import type { DashboardTunnel } from '@/monitoring/types'
 import type {
   Tunnel,
   TunnelFormData,
   TunnelLoadStatus,
   TunnelProtocol,
   TunnelStatus,
-} from "../types"
-import { TUNNEL_STATUS_CONFIG, isRunningStatus } from "../utils"
+} from '../types'
+import { TUNNEL_STATUS_CONFIG, isRunningStatus } from '../utils'
 
 export const defaultTunnelForm: TunnelFormData = {
-  name: "",
-  protocol: "tcp",
-  localHost: "127.0.0.1",
+  name: '',
+  protocol: 'tcp',
+  localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
-  projectId: "",
-  serverName: "",
+  projectId: '',
+  serverName: '',
   autoStart: false,
-  remark: "",
+  remark: '',
   tags: [],
 }
 
-export const useTunnelStore = defineStore("tunnel-module", () => {
+export const useTunnelStore = defineStore('tunnel-module', () => {
   const tunnels = ref<Tunnel[]>([])
-  const status = ref<TunnelLoadStatus>("idle")
-  const error = ref<string>("")
+  const status = ref<TunnelLoadStatus>('idle')
+  const error = ref<string>('')
   const lastUpdated = ref<number>(0)
 
-  const isLoading = computed(() => status.value === "loading")
-  const isError = computed(() => status.value === "error")
-  const isReady = computed(() => status.value === "success")
+  const isLoading = computed(() => status.value === 'loading')
+  const isError = computed(() => status.value === 'error')
+  const isReady = computed(() => status.value === 'success')
   const hasTunnels = computed(() => tunnels.value.length > 0)
 
   const pinnedTunnels = computed(() => tunnels.value.filter((t) => t.pinned))
   const favoriteTunnels = computed(() => tunnels.value.filter((t) => t.favorite))
-  const runningTunnels = computed(() =>
-    tunnels.value.filter((t) => isRunningStatus(t.status)),
-  )
+  const runningTunnels = computed(() => tunnels.value.filter((t) => isRunningStatus(t.status)))
   const stoppedTunnels = computed(() =>
-    tunnels.value.filter((t) => t.status === "stopped" || t.status === "offline"),
+    tunnels.value.filter((t) => t.status === 'stopped' || t.status === 'offline'),
   )
   const recentTunnels = computed(() =>
     [...tunnels.value]
@@ -50,17 +48,14 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
       .slice(0, 10),
   )
 
-  const httpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === "http"))
-  const tcpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === "tcp"))
+  const httpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === 'http'))
+  const tcpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === 'tcp'))
 
   const totalConnections = computed(() =>
     tunnels.value.reduce((sum, t) => sum + t.statistics.connections, 0),
   )
   const totalTraffic = computed(() =>
-    tunnels.value.reduce(
-      (sum, t) => sum + t.traffic.totalUpload + t.traffic.totalDownload,
-      0,
-    ),
+    tunnels.value.reduce((sum, t) => sum + t.traffic.totalUpload + t.traffic.totalDownload, 0),
   )
   const totalUploadSpeed = computed(() =>
     tunnels.value.reduce((sum, t) => sum + t.traffic.uploadSpeed, 0),
@@ -74,16 +69,16 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   async function load(): Promise<void> {
-    status.value = "loading"
-    error.value = ""
+    status.value = 'loading'
+    error.value = ''
     try {
       const rows = await tunnelService.list()
       tunnels.value = rows.map(mapRuntimeTunnel)
-      status.value = "success"
+      status.value = 'success'
       lastUpdated.value = Date.now()
     } catch (e) {
-      status.value = "error"
-      error.value = e instanceof Error ? e.message : "Failed to load tunnels"
+      status.value = 'error'
+      error.value = e instanceof Error ? e.message : '隧道加载失败'
     }
   }
 
@@ -93,24 +88,24 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
 
   async function createTunnel(form: TunnelFormData): Promise<Tunnel> {
     const serverStore = useServerStore()
-    if (serverStore.status === "idle") {
+    if (serverStore.status === 'idle') {
       await serverStore.load()
     }
     if (!serverStore.onlineServers.length || !form.serverName) {
-      throw new Error("请先在服务器页面添加并连接一台服务器，然后再创建 Tunnel。")
+      throw new Error('请先在服务器页面添加并连接一台服务器，然后再创建隧道。')
     }
 
     const id = await tunnelService.create({
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
       protocol: form.protocol,
-      localHost: form.localHost || "127.0.0.1",
+      localHost: form.localHost || '127.0.0.1',
     })
 
     await tunnelService.edit(id, {
       name: form.name.trim(),
       protocol: form.protocol,
-      localHost: form.localHost || "127.0.0.1",
+      localHost: form.localHost || '127.0.0.1',
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
     })
@@ -118,7 +113,7 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
     await load()
     const created = getById(id)
     if (!created) {
-      throw new Error("Tunnel was saved but could not be reloaded from backend.")
+      throw new Error('隧道已保存，但无法从后端重新加载。')
     }
 
     if (form.autoStart) {
@@ -170,16 +165,16 @@ export const useTunnelStore = defineStore("tunnel-module", () => {
   }
 
   function cloneTunnel(_id: string): Tunnel | undefined {
-    error.value = "该功能暂未实现"
+    error.value = '该功能暂未实现'
     return undefined
   }
 
   function togglePin(_id: string): void {
-    error.value = "该功能暂未实现"
+    error.value = '该功能暂未实现'
   }
 
   function toggleFavorite(_id: string): void {
-    error.value = "该功能暂未实现"
+    error.value = '该功能暂未实现'
   }
 
   function tick(): void {
@@ -232,19 +227,19 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
     id: row.id,
     name: row.name,
     protocol,
-    localHost: row.localHost ?? "127.0.0.1",
+    localHost: row.localHost ?? '127.0.0.1',
     localPort: row.localPort ?? 0,
     remotePort: row.remotePort ?? 0,
     publicAddr: publicAddress(row),
-    remark: "",
+    remark: '',
     status,
     autoStart: false,
     compression: false,
     encryption: false,
     tags: [],
-    serverName: "",
-    projectName: "",
-    projectId: "",
+    serverName: '',
+    projectName: '',
+    projectId: '',
     pinned: false,
     favorite: false,
     traffic: {
@@ -272,42 +267,48 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
       timestamp: log.timestamp,
       source: log.source,
     })),
-    lastStartedAt: row.uptimeSeconds > 0 ? `${row.uptimeSeconds}s` : "",
+    lastStartedAt: row.uptimeSeconds > 0 ? `${row.uptimeSeconds}s` : '',
     createdAt,
     updatedAt: nowIso,
   }
 }
 
-function normalizeProtocol(protocol: DashboardTunnel["protocol"]): TunnelProtocol {
-  if (protocol === "http" || protocol === "tcp" || protocol === "https" || protocol === "udp") {
+function normalizeProtocol(protocol: DashboardTunnel['protocol']): TunnelProtocol {
+  if (protocol === 'http' || protocol === 'tcp' || protocol === 'https' || protocol === 'udp') {
     return protocol
   }
-  return "tcp"
+  return 'tcp'
 }
 
-function normalizeStatus(status: DashboardTunnel["status"]): TunnelStatus {
-  if (status === "running") return "running"
-  if (status === "warning") return "error"
-  return "stopped"
+function normalizeStatus(status: DashboardTunnel['status']): TunnelStatus {
+  if (status === 'running') return 'running'
+  if (status === 'warning') return 'error'
+  return 'stopped'
 }
 
-function normalizeLogLevel(level: string): Tunnel["logs"][number]["level"] {
-  if (level === "debug" || level === "info" || level === "warn" || level === "error" || level === "success") {
+function normalizeLogLevel(level: string): Tunnel['logs'][number]['level'] {
+  if (
+    level === 'debug' ||
+    level === 'info' ||
+    level === 'warn' ||
+    level === 'error' ||
+    level === 'success'
+  ) {
     return level
   }
-  return "info"
+  return 'info'
 }
 
 function publicAddress(row: DashboardTunnel): string {
-  if ((row.protocol === "http" || row.protocol === "https") && row.host) {
-    return `${row.host}${row.path ?? "/"}`
+  if ((row.protocol === 'http' || row.protocol === 'https') && row.host) {
+    return `${row.host}${row.path ?? '/'}`
   }
 
   if (row.remotePort) {
     return `:${row.remotePort}`
   }
 
-  return "Not assigned"
+  return 'Not assigned'
 }
 
 export { TUNNEL_STATUS_CONFIG }

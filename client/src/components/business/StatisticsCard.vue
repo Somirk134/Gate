@@ -6,10 +6,7 @@
   复用：GCard / GStatCard / GSectionHeader
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="none"
-  >
+  <GCard variant="plain" padding="none">
     <template #header>
       <GSectionHeader :icon="icon">
         {{ title }}
@@ -24,16 +21,15 @@
         :value="item.value"
         :icon="item.icon"
         :variant="item.variant ?? 'neutral'"
-        :trend="item.trend"
-      />
+        :trend="item.trend" />
     </div>
   </GCard>
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GStatCard from "@components/cards/GStatCard.vue"
-import GSectionHeader from "@components/layout/GSectionHeader.vue"
+import GCard from '@components/base/GCard.vue'
+import GStatCard from '@components/cards/GStatCard.vue'
+import GSectionHeader from '@components/layout/GSectionHeader.vue'
 
 defineProps<{
   title: string
@@ -42,7 +38,7 @@ defineProps<{
     label: string
     value: string | number
     icon?: string
-    variant?: "neutral" | "primary" | "success" | "warning" | "error" | "info"
+    variant?: 'neutral' | 'primary' | 'success' | 'warning' | 'error' | 'info'
     trend?: string
   }>
 }>()

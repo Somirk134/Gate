@@ -13,57 +13,48 @@
     :state="state"
     :disabled="disabled"
     prefix="key"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
+    @update:model-value="emit('update:modelValue', $event)">
     <template #suffix>
       <button
         type="button"
         class="g-token__action"
         :title="visible ? '隐藏' : '显示'"
-        @click="visible = !visible"
-      >
-        <GIcon
-          :name="visible ? 'eye-off' : 'eye'"
-          :size="14"
-        />
+        @click="visible = !visible">
+        <GIcon :name="visible ? 'eye-off' : 'eye'" :size="14" />
       </button>
       <button
         type="button"
         class="g-token__action"
         :title="copied ? '已复制' : '复制'"
-        @click="copy"
-      >
-        <GIcon
-          :name="copied ? 'check' : 'copy'"
-          :size="14"
-        />
+        @click="copy">
+        <GIcon :name="copied ? 'check' : 'copy'" :size="14" />
       </button>
     </template>
   </GInput>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
-import GInput from "./GInput.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { ref } from 'vue'
+import GInput from './GInput.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     disabled?: boolean
-    state?: "normal" | "error" | "success"
+    state?: 'normal' | 'error' | 'success'
   }>(),
   {
-    size: "md",
+    size: 'md',
     disabled: false,
-    state: "normal",
+    state: 'normal',
   },
 )
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string]
+  'update:modelValue': [value: string]
   copy: [value: string]
 }>()
 
@@ -77,7 +68,7 @@ async function copy() {
   } catch {
     /* 业务层可自行处理 */
   }
-  emit("copy", props.modelValue)
+  emit('copy', props.modelValue)
   copied.value = true
   setTimeout(() => (copied.value = false), 1500)
 }
@@ -99,7 +90,9 @@ async function copy() {
   padding: 2px;
   border-radius: var(--radius-sm);
   margin-right: var(--space-1);
-  transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .g-token__action:hover {
   color: var(--text-primary);

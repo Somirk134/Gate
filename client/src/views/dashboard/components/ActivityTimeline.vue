@@ -5,73 +5,49 @@
 -->
 <template>
   <section class="dashboard-section">
-    <GCard
-      variant="plain"
-      padding="none"
-      class="timeline-card"
-    >
+    <GCard variant="plain" padding="none" class="timeline-card">
       <template #header>
         <GSectionHeader icon="history">
           {{ title }}
         </GSectionHeader>
       </template>
 
-      <div
-        v-if="activities.length"
-        class="timeline"
-      >
+      <div v-if="activities.length" class="timeline">
         <div
           v-for="(item, i) in groupedActivities"
           :key="item.id"
           class="timeline__item"
-          :class="`stagger-${(i % 6) + 1}`"
-        >
+          :class="`stagger-${(i % 6) + 1}`">
           <div class="timeline__indicator">
-            <span
-              class="timeline__dot"
-              :class="`timeline__dot--${item.type}`"
-            >
-              <GIcon
-                :name="activityIcon(item.type)"
-                :size="11"
-              />
+            <span class="timeline__dot" :class="`timeline__dot--${item.type}`">
+              <GIcon :name="activityIcon(item.type)" :size="11" />
             </span>
-            <span
-              v-if="i < groupedActivities.length - 1"
-              class="timeline__line"
-            />
+            <span v-if="i < groupedActivities.length - 1" class="timeline__line" />
           </div>
           <div class="timeline__content">
             <div class="timeline__title-row">
               <span class="timeline__title">{{ item.title }}</span>
               <span class="timeline__time">{{ relativeTime(item.timestamp) }}</span>
             </div>
-            <p
-              v-if="item.description"
-              class="timeline__desc"
-            >
+            <p v-if="item.description" class="timeline__desc">
               {{ item.description }}
             </p>
           </div>
         </div>
       </div>
 
-      <GEmptyState
-        v-else
-        title="暂无活动记录"
-        description="你的操作将在此处显示。"
-      />
+      <GEmptyState v-else title="暂无活动记录" description="你的操作将在此处显示。" />
     </GCard>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GSectionHeader from "@components/layout/GSectionHeader.vue"
-import GEmptyState from "@components/feedback/GEmptyState.vue"
-import type { DashboardActivity, ActivityType } from "../types"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GSectionHeader from '@components/layout/GSectionHeader.vue'
+import GEmptyState from '@components/feedback/GEmptyState.vue'
+import type { DashboardActivity, ActivityType } from '../types'
 
 const props = withDefaults(
   defineProps<{
@@ -79,7 +55,7 @@ const props = withDefaults(
     title?: string
   }>(),
   {
-    title: "最近活动",
+    title: '最近活动',
   },
 )
 
@@ -87,15 +63,15 @@ const groupedActivities = computed(() => props.activities)
 
 function activityIcon(type: ActivityType): string {
   const map: Record<ActivityType, string> = {
-    create: "plus",
-    start: "play",
-    stop: "stop",
-    config: "edit",
-    connect: "plug",
-    update: "refresh",
-    delete: "trash",
+    create: 'plus',
+    start: 'play',
+    stop: 'stop',
+    config: 'edit',
+    connect: 'plug',
+    update: 'refresh',
+    delete: 'trash',
   }
-  return map[type] ?? "circle"
+  return map[type] ?? 'circle'
 }
 
 function relativeTime(ts: number): string {
@@ -103,10 +79,10 @@ function relativeTime(ts: number): string {
   const min = 60 * 1000
   const hour = 60 * min
   const day = 24 * hour
-  if (diff < min) return "刚刚"
+  if (diff < min) return '刚刚'
   if (diff < hour) return `${Math.floor(diff / min)} 分钟前`
   if (diff < day) return `${Math.floor(diff / hour)} 小时前`
-  if (diff < 2 * day) return "昨天"
+  if (diff < 2 * day) return '昨天'
   return `${Math.floor(diff / day)} 天前`
 }
 </script>
@@ -144,13 +120,27 @@ function relativeTime(ts: number): string {
   flex-shrink: 0;
   z-index: 1;
 }
-.timeline__dot--create { background: var(--color-primary); }
-.timeline__dot--start { background: var(--color-success); }
-.timeline__dot--stop { background: var(--status-offline); }
-.timeline__dot--config { background: var(--color-warning); }
-.timeline__dot--connect { background: var(--color-info); }
-.timeline__dot--update { background: var(--color-secondary); }
-.timeline__dot--delete { background: var(--color-error); }
+.timeline__dot--create {
+  background: var(--color-primary);
+}
+.timeline__dot--start {
+  background: var(--color-success);
+}
+.timeline__dot--stop {
+  background: var(--status-offline);
+}
+.timeline__dot--config {
+  background: var(--color-warning);
+}
+.timeline__dot--connect {
+  background: var(--color-info);
+}
+.timeline__dot--update {
+  background: var(--color-secondary);
+}
+.timeline__dot--delete {
+  background: var(--color-error);
+}
 .timeline__line {
   width: 2px;
   flex: 1;

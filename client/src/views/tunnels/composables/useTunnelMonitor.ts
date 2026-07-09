@@ -1,10 +1,7 @@
-import { onBeforeUnmount, onMounted, ref } from "vue"
-import type { useTunnelStore } from "../store/tunnel"
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import type { useTunnelStore } from '../store/tunnel'
 
-export function useTunnelMonitor(
-  store: ReturnType<typeof useTunnelStore>,
-  intervalMs = 5000,
-) {
+export function useTunnelMonitor(store: ReturnType<typeof useTunnelStore>, intervalMs = 5000) {
   const active = ref(false)
   let timer: ReturnType<typeof setInterval> | null = null
 
@@ -12,7 +9,7 @@ export function useTunnelMonitor(
     if (active.value) return
     active.value = true
     timer = setInterval(() => {
-      if (store.status !== "loading") {
+      if (store.status !== 'loading') {
         void store.refresh()
       }
     }, intervalMs)

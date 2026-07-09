@@ -5,22 +5,44 @@
       :key="l.value"
       class="lang-btn"
       :class="{ active: locale === l.value }"
-      @click="setLocale(l.value)"
-    >
+      @click="setLocale(l.value)">
       {{ l.label }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useLocaleSwitcher } from "@composables/useLocaleSwitcher"
+import { useLocaleSwitcher } from '@composables/useLocaleSwitcher'
 
 const { locale, locales, setLocale } = useLocaleSwitcher()
 </script>
 
 <style scoped>
-.lang-switch { display: flex; gap: 2px; padding: 2px; background: var(--bg-input); border-radius: var(--radius-md); }
-.lang-btn { padding: 2px 8px; border: none; background: transparent; color: var(--text-muted); font-family: var(--font-ui); font-size: var(--text-xs); font-weight: 500; border-radius: 4px; cursor: pointer; transition: all var(--duration-micro) var(--ease-out); }
-.lang-btn:hover { color: var(--text-secondary); }
-.lang-btn.active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-xs); }
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-input);
+  border-radius: var(--radius-md);
+}
+.lang-btn {
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--duration-micro) var(--ease-out);
+}
+.lang-btn:hover {
+  color: var(--text-secondary);
+}
+.lang-btn.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
 </style>

@@ -64,7 +64,8 @@
 .scroll-reveal {
   opacity: 0;
   transform: translateY(16px);
-  transition: opacity var(--duration-slow) var(--ease-out),
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
     transform var(--duration-slow) var(--ease-out);
 }
 
@@ -75,7 +76,8 @@
 
 /* ── 卡片悬停抬升 ── */
 .dashboard-card-lift {
-  transition: transform var(--duration-base) var(--ease-out),
+  transition:
+    transform var(--duration-base) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out),
     border-color var(--duration-base) var(--ease-out);
 }
@@ -136,12 +138,24 @@
 }
 
 /* ── 交错入场延迟 ── */
-.stagger-1 { animation-delay: 40ms; }
-.stagger-2 { animation-delay: 80ms; }
-.stagger-3 { animation-delay: 120ms; }
-.stagger-4 { animation-delay: 160ms; }
-.stagger-5 { animation-delay: 200ms; }
-.stagger-6 { animation-delay: 240ms; }
+.stagger-1 {
+  animation-delay: 40ms;
+}
+.stagger-2 {
+  animation-delay: 80ms;
+}
+.stagger-3 {
+  animation-delay: 120ms;
+}
+.stagger-4 {
+  animation-delay: 160ms;
+}
+.stagger-5 {
+  animation-delay: 200ms;
+}
+.stagger-6 {
+  animation-delay: 240ms;
+}
 
 /* ── Footer ── */
 .dashboard-footer {

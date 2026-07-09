@@ -1,10 +1,10 @@
-import { createCommunicationId } from "../shared/id"
+import { createCommunicationId } from '../shared/id'
 import type {
   Connection,
   ConnectionMetadata,
   ConnectionState,
   ConnectionStatistics,
-} from "../types"
+} from '../types'
 
 const createEmptyStatistics = (): ConnectionStatistics => ({
   connectedCount: 0,
@@ -16,8 +16,8 @@ const createEmptyStatistics = (): ConnectionStatistics => ({
 })
 
 export class ClientConnection implements Connection {
-  readonly id = createCommunicationId("conn")
-  state: ConnectionState = "created"
+  readonly id = createCommunicationId('conn')
+  state: ConnectionState = 'created'
   statistics = createEmptyStatistics()
   readonly createdAt = Date.now()
   updatedAt = this.createdAt
@@ -28,15 +28,15 @@ export class ClientConnection implements Connection {
     this.state = state
     this.updatedAt = Date.now()
 
-    if (state === "connected") {
+    if (state === 'connected') {
       this.statistics.connectedCount += 1
     }
 
-    if (state === "reconnecting") {
+    if (state === 'reconnecting') {
       this.statistics.reconnectCount += 1
     }
 
-    if (state === "failed") {
+    if (state === 'failed') {
       this.statistics.failedCount += 1
     }
   }

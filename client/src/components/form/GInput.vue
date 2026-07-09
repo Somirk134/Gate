@@ -26,21 +26,11 @@
       `g-input--${size}`,
       `g-input--${state}`,
       { 'g-input--disabled': disabled, 'g-input--focused': focused, 'g-input--readonly': readonly },
-    ]"
-  >
-    <span
-      v-if="prefix"
-      class="g-input__prefix-icon"
-    >
-      <GIcon
-        :name="prefix"
-        :size="iconSize"
-      />
+    ]">
+    <span v-if="prefix" class="g-input__prefix-icon">
+      <GIcon :name="prefix" :size="iconSize" />
     </span>
-    <span
-      v-else-if="$slots.prefix"
-      class="g-input__prefix-slot"
-    ><slot name="prefix" /></span>
+    <span v-else-if="$slots.prefix" class="g-input__prefix-slot"><slot name="prefix" /></span>
 
     <input
       class="g-input__field"
@@ -55,49 +45,32 @@
       @input="onInput"
       @keydown.enter="emit('enter', $event)"
       @focus="onFocus"
-      @blur="onBlur"
-    >
+      @blur="onBlur" />
 
-    <span
-      v-if="clearable && modelValue && !disabled"
-      class="g-input__clear"
-      @click="clear"
-    >
-      <GIcon
-        name="close"
-        :size="iconSize - 2"
-      />
+    <span v-if="clearable && modelValue && !disabled" class="g-input__clear" @click="clear">
+      <GIcon name="close" :size="iconSize - 2" />
     </span>
 
-    <span
-      v-if="suffix"
-      class="g-input__suffix-icon"
-    >
-      <GIcon
-        :name="suffix"
-        :size="iconSize"
-      />
+    <span v-if="suffix" class="g-input__suffix-icon">
+      <GIcon :name="suffix" :size="iconSize" />
     </span>
-    <span
-      v-else-if="$slots.suffix"
-      class="g-input__suffix-slot"
-    ><slot name="suffix" /></span>
+    <span v-else-if="$slots.suffix" class="g-input__suffix-slot"><slot name="suffix" /></span>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { ref, computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string | number
     type?: string
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     disabled?: boolean
     readonly?: boolean
-    state?: "normal" | "error" | "success"
+    state?: 'normal' | 'error' | 'success'
     clearable?: boolean
     prefix?: string
     suffix?: string
@@ -106,18 +79,18 @@ const props = withDefaults(
     spellcheck?: boolean
   }>(),
   {
-    type: "text",
-    size: "md",
+    type: 'text',
+    size: 'md',
     disabled: false,
     readonly: false,
-    state: "normal",
+    state: 'normal',
     clearable: false,
     spellcheck: false,
   },
 )
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string]
+  'update:modelValue': [value: string]
   enter: [event: KeyboardEvent]
   focus: [event: FocusEvent]
   blur: [event: FocusEvent]
@@ -125,22 +98,22 @@ const emit = defineEmits<{
 }>()
 
 const focused = ref(false)
-const iconSize = computed(() => (props.size === "sm" ? 14 : props.size === "lg" ? 18 : 16))
+const iconSize = computed(() => (props.size === 'sm' ? 14 : props.size === 'lg' ? 18 : 16))
 
 function onInput(e: Event) {
-  emit("update:modelValue", (e.target as HTMLInputElement).value)
+  emit('update:modelValue', (e.target as HTMLInputElement).value)
 }
 function onFocus(e: FocusEvent) {
   focused.value = true
-  emit("focus", e)
+  emit('focus', e)
 }
 function onBlur(e: FocusEvent) {
   focused.value = false
-  emit("blur", e)
+  emit('blur', e)
 }
 function clear() {
-  emit("update:modelValue", "")
-  emit("clear")
+  emit('update:modelValue', '')
+  emit('clear')
 }
 </script>
 
@@ -156,14 +129,23 @@ function clear() {
   color: var(--text-primary);
   font-family: var(--font-ui);
   font-size: var(--font-size-input);
-  transition: border-color var(--duration-fast) var(--ease-out),
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 
-.g-input--sm { height: var(--control-height-sm); font-size: var(--text-sm); }
-.g-input--md { height: var(--control-height-md); }
-.g-input--lg { height: var(--control-height-lg); font-size: var(--text-md); }
+.g-input--sm {
+  height: var(--control-height-sm);
+  font-size: var(--text-sm);
+}
+.g-input--md {
+  height: var(--control-height-md);
+}
+.g-input--lg {
+  height: var(--control-height-lg);
+  font-size: var(--text-md);
+}
 
 .g-input__field {
   flex: 1;
@@ -189,11 +171,25 @@ function clear() {
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
-.g-input__prefix-icon { padding-left: var(--space-3); }
-.g-input__suffix-icon { padding-right: var(--space-3); }
+.g-input__prefix-icon {
+  padding-left: var(--space-3);
+}
+.g-input__suffix-icon {
+  padding-right: var(--space-3);
+}
 
-.g-input__prefix-slot { display: inline-flex; align-items: center; padding-left: var(--space-2); flex-shrink: 0; }
-.g-input__suffix-slot { display: inline-flex; align-items: center; padding-right: var(--space-2); flex-shrink: 0; }
+.g-input__prefix-slot {
+  display: inline-flex;
+  align-items: center;
+  padding-left: var(--space-2);
+  flex-shrink: 0;
+}
+.g-input__suffix-slot {
+  display: inline-flex;
+  align-items: center;
+  padding-right: var(--space-2);
+  flex-shrink: 0;
+}
 
 .g-input__clear {
   display: inline-flex;
@@ -204,9 +200,14 @@ function clear() {
   padding: 2px;
   border-radius: var(--radius-full);
   margin-right: var(--space-2);
-  transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
-.g-input__clear:hover { color: var(--text-primary); background: var(--bg-surface-hover); }
+.g-input__clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
 
 /* ── States ── */
 .g-input--focused {
@@ -229,6 +230,10 @@ function clear() {
   cursor: not-allowed;
   background: var(--bg-surface);
 }
-.g-input--disabled .g-input__field { cursor: not-allowed; }
-.g-input--readonly .g-input__field { cursor: default; }
+.g-input--disabled .g-input__field {
+  cursor: not-allowed;
+}
+.g-input--readonly .g-input__field {
+  cursor: default;
+}
 </style>

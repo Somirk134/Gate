@@ -140,7 +140,8 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out),
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
 
@@ -234,7 +235,8 @@
   white-space: nowrap;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border-bottom: 2px solid transparent;
-  transition: color var(--duration-fast) var(--ease-out),
+  transition:
+    color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
@@ -618,11 +620,26 @@
 }
 
 /* 日志等级颜色 */
-.tunnel-log-line__level--debug { background: rgba(107, 107, 114, 0.18); color: var(--text-tertiary); }
-.tunnel-log-line__level--info  { background: var(--color-info-muted); color: var(--color-info); }
-.tunnel-log-line__level--success { background: var(--color-success-muted); color: var(--color-success); }
-.tunnel-log-line__level--warn  { background: var(--color-warning-muted); color: var(--color-warning); }
-.tunnel-log-line__level--error { background: var(--color-error-muted); color: var(--color-error); }
+.tunnel-log-line__level--debug {
+  background: rgba(107, 107, 114, 0.18);
+  color: var(--text-tertiary);
+}
+.tunnel-log-line__level--info {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
+.tunnel-log-line__level--success {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+.tunnel-log-line__level--warn {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+.tunnel-log-line__level--error {
+  background: var(--color-error-muted);
+  color: var(--color-error);
+}
 
 /* ============================================================
    Settings 表单
@@ -854,7 +871,8 @@
   opacity: 0.6;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: opacity var(--duration-fast) var(--ease-out),
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 
@@ -874,7 +892,8 @@
   background: var(--bg-input);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-input);
-  transition: border-color var(--duration-fast) var(--ease-out),
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
@@ -1216,11 +1235,13 @@
 }
 
 .dialog-pop-enter-active {
-  transition: transform var(--duration-slow) var(--ease-spring),
+  transition:
+    transform var(--duration-slow) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 .dialog-pop-leave-active {
-  transition: transform var(--duration-fast) var(--ease-in),
+  transition:
+    transform var(--duration-fast) var(--ease-in),
     opacity var(--duration-fast) var(--ease-in);
 }
 .dialog-pop-enter-from {
@@ -1234,7 +1255,8 @@
 
 .card-actions-enter-active,
 .card-actions-leave-active {
-  transition: opacity var(--duration-fast) var(--ease-out),
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
     max-height var(--duration-fast) var(--ease-out);
   max-height: 60px;
   overflow: hidden;

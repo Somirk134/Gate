@@ -17,17 +17,12 @@
       }"
       :style="{ '--proto-color': p.color }"
       :disabled="p.availability !== 'enabled'"
-      @click="onSelect(p.key, p.availability)"
-    >
+      @click="onSelect(p.key, p.availability)">
       <span class="tunnel-protocol-option__head">
         <span
           class="tunnel-protocol-option__icon"
-          :style="{ background: `${p.color}22`, color: p.color }"
-        >
-          <GIcon
-            :name="p.icon"
-            :size="14"
-          />
+          :style="{ background: `${p.color}22`, color: p.color }">
+          <GIcon :name="p.icon" :size="14" />
         </span>
         <span class="tunnel-protocol-option__name">{{ p.label }}</span>
       </span>
@@ -37,32 +32,31 @@
         class="tunnel-protocol-option__badge"
         :variant="p.availability === 'soon' ? 'info' : 'neutral'"
         type="soft"
-        size="sm"
-      >
-        {{ p.availability === "soon" ? "即将" : "计划" }}
+        size="sm">
+        {{ p.availability === 'soon' ? '即将' : '计划' }}
       </GBadge>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GBadge from "@components/base/GBadge.vue"
-import type { ProtocolAvailability, TunnelProtocol } from "../types"
-import { PROTOCOL_PRESETS } from "../utils"
+import GIcon from '@components/icons/GIcon.vue'
+import GBadge from '@components/base/GBadge.vue'
+import type { ProtocolAvailability, TunnelProtocol } from '../types'
+import { PROTOCOL_PRESETS } from '../utils'
 
 defineProps<{
   modelValue: TunnelProtocol
 }>()
 
 const emit = defineEmits<{
-  "update:modelValue": [value: TunnelProtocol]
+  'update:modelValue': [value: TunnelProtocol]
 }>()
 
 const protocols = PROTOCOL_PRESETS
 
 function onSelect(key: TunnelProtocol, availability: ProtocolAvailability) {
-  if (availability !== "enabled") return
-  emit("update:modelValue", key)
+  if (availability !== 'enabled') return
+  emit('update:modelValue', key)
 }
 </script>

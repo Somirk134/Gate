@@ -2,150 +2,93 @@
   <main class="certificate-page">
     <header class="certificate-page__header">
       <div>
-        <span class="certificate-page__eyebrow">TLS Store</span>
-        <h1>Certificates</h1>
+        <span class="certificate-page__eyebrow">TLS 存储</span>
+        <h1>证书</h1>
       </div>
-      <button
-        class="certificate-page__icon-button"
-        type="button"
-        title="Refresh"
-        @click="refresh"
-      >
-        <GIcon
-          name="refresh"
-          :size="16"
-        />
+      <button class="certificate-page__icon-button" type="button" title="刷新" @click="refresh">
+        <GIcon name="refresh" :size="16" />
       </button>
     </header>
 
     <GEmptyState
       v-if="!loading && certificates.length === 0"
-      title="No certificates"
-      :description="`Store: ${storeRoot || 'not created yet'}`"
-    >
+      title="暂无证书"
+      :description="`存储目录：${storeRoot || '尚未创建'}`">
       <template #icon>
-        <GIcon
-          name="shield-check"
-          :size="32"
-        />
+        <GIcon name="shield-check" :size="32" />
       </template>
       <template #action>
-        <button
-          class="certificate-page__button"
-          type="button"
-          @click="refresh"
-        >
-          <GIcon
-            name="refresh"
-            :size="14"
-          />
-          Refresh
+        <button class="certificate-page__button" type="button" @click="refresh">
+          <GIcon name="refresh" :size="14" />
+          刷新
         </button>
       </template>
     </GEmptyState>
 
-    <section
-      v-else
-      class="certificate-page__table"
-      aria-label="Certificate list"
-    >
+    <section v-else class="certificate-page__table" aria-label="证书列表">
       <div class="certificate-page__table-head">
-        <span>Domain</span>
-        <span>Issuer</span>
-        <span>Issued</span>
-        <span>Expires</span>
-        <span>Days</span>
-        <span>Status</span>
-        <span>Renewal</span>
+        <span>域名</span>
+        <span>签发者</span>
+        <span>签发时间</span>
+        <span>到期时间</span>
+        <span>天数</span>
+        <span>状态</span>
+        <span>续期</span>
         <span />
       </div>
       <article
         v-for="certificate in certificates"
         :key="certificate.domain"
-        class="certificate-page__row"
-      >
+        class="certificate-page__row">
         <strong>{{ certificate.domain }}</strong>
         <span :title="certificate.issuer">{{ certificate.issuer }}</span>
         <span>{{ formatDate(certificate.createTime) }}</span>
         <span>{{ formatDate(certificate.expireTime) }}</span>
         <span>{{ certificate.daysRemaining }}</span>
-        <span
-          class="certificate-page__status"
-          :class="`is-${certificate.status}`"
-        >
+        <span class="certificate-page__status" :class="`is-${certificate.status}`">
           {{ statusLabel(certificate.status) }}
         </span>
-        <span class="certificate-page__renewal">{{ renewalLabel(certificate.autoRenewalStatus) }}</span>
+        <span class="certificate-page__renewal">{{
+          renewalLabel(certificate.autoRenewalStatus)
+        }}</span>
         <div class="certificate-page__actions">
-          <button
-            type="button"
-            title="View details"
-            @click="select(certificate.domain)"
-          >
-            <GIcon
-              name="eye"
-              :size="15"
-            />
+          <button type="button" title="查看详情" @click="select(certificate.domain)">
+            <GIcon name="eye" :size="15" />
           </button>
-          <button
-            type="button"
-            title="Export PEM"
-            @click="exportPem(certificate.domain)"
-          >
-            <GIcon
-              name="download"
-              :size="15"
-            />
+          <button type="button" title="导出 PEM" @click="exportPem(certificate.domain)">
+            <GIcon name="download" :size="15" />
           </button>
-          <button
-            type="button"
-            title="Copy certificate information"
-            @click="copyInfo(certificate)"
-          >
-            <GIcon
-              name="copy"
-              :size="15"
-            />
+          <button type="button" title="复制证书信息" @click="copyInfo(certificate)">
+            <GIcon name="copy" :size="15" />
           </button>
         </div>
       </article>
     </section>
 
-    <aside
-      v-if="selected"
-      class="certificate-page__detail"
-      aria-label="Certificate detail"
-    >
+    <aside v-if="selected" class="certificate-page__detail" aria-label="证书详情">
       <header>
         <div>
-          <span>Certificate Detail</span>
+          <span>证书详情</span>
           <h2>{{ selected.summary.domain }}</h2>
         </div>
-        <button
-          type="button"
-          title="Close"
-          @click="selected = null"
-        >
-          <GIcon
-            name="close"
-            :size="16"
-          />
+        <button type="button" title="关闭" @click="selected = null">
+          <GIcon name="close" :size="16" />
         </button>
       </header>
       <dl>
-        <dt>Issuer</dt>
+        <dt>签发者</dt>
         <dd>{{ selected.summary.issuer }}</dd>
-        <dt>Serial</dt>
-        <dd>{{ selected.summary.serialNumber || "-" }}</dd>
-        <dt>Algorithm</dt>
+        <dt>序列号</dt>
+        <dd>{{ selected.summary.serialNumber || '-' }}</dd>
+        <dt>算法</dt>
         <dd>{{ selected.summary.algorithm }}</dd>
-        <dt>Fingerprint</dt>
+        <dt>指纹</dt>
         <dd class="mono">
           {{ selected.summary.fingerprintSha256 }}
         </dd>
         <dt>SAN</dt>
-        <dd>{{ selected.summary.san.join(", ") || "-" }}</dd>
-        <dt>Certificate Path</dt>
+        <dd>{{ selected.summary.san.join(', ') || '-' }}</dd>
+        <dt>证书路径</dt>
         <dd class="mono">
           {{ selected.summary.certificatePath }}
         </dd>
@@ -153,33 +96,30 @@
       <pre>{{ selected.certificatePem }}</pre>
     </aside>
 
-    <p
-      v-if="loading"
-      class="certificate-page__loading"
-    >
-      Loading certificates...
-    </p>
-    <p
-      v-if="error"
-      class="certificate-page__error"
-    >
+    <p v-if="loading" class="certificate-page__loading">正在加载证书...</p>
+    <p v-if="error" class="certificate-page__error">
       {{ error }}
     </p>
   </main>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
-import GEmptyState from "@/components/feedback/GEmptyState.vue"
-import GIcon from "@/components/icons/GIcon.vue"
-import { certificateService } from "./service"
-import type { CertificateDetailResponse, CertificateStatus, CertificateSummary, AutoRenewalStatus } from "./types"
+import { onMounted, ref } from 'vue'
+import GEmptyState from '@/components/feedback/GEmptyState.vue'
+import GIcon from '@/components/icons/GIcon.vue'
+import { certificateService } from './service'
+import type {
+  CertificateDetailResponse,
+  CertificateStatus,
+  CertificateSummary,
+  AutoRenewalStatus,
+} from './types'
 
 const certificates = ref<CertificateSummary[]>([])
 const selected = ref<CertificateDetailResponse | null>(null)
 const loading = ref(false)
-const error = ref("")
-const storeRoot = ref("")
+const error = ref('')
+const storeRoot = ref('')
 
 onMounted(() => {
   void refresh()
@@ -187,7 +127,7 @@ onMounted(() => {
 
 async function refresh() {
   loading.value = true
-  error.value = ""
+  error.value = ''
   try {
     const response = await certificateService.list()
     certificates.value = response.certificates
@@ -200,7 +140,7 @@ async function refresh() {
 }
 
 async function select(domain: string) {
-  error.value = ""
+  error.value = ''
   try {
     selected.value = await certificateService.detail(domain)
   } catch (source) {
@@ -210,9 +150,9 @@ async function select(domain: string) {
 
 async function exportPem(domain: string) {
   const pem = await certificateService.exportPem(domain)
-  const blob = new Blob([pem], { type: "application/x-pem-file" })
+  const blob = new Blob([pem], { type: 'application/x-pem-file' })
   const url = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
+  const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = `${safeFileName(domain)}.pem`
   document.body.appendChild(anchor)
@@ -227,36 +167,36 @@ async function copyInfo(certificate: CertificateSummary) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date(value))
 }
 
 function statusLabel(status: CertificateStatus) {
   return {
-    pending: "Pending",
-    active: "Active",
-    expiringSoon: "Expiring Soon",
-    expired: "Expired",
-    revoked: "Revoked",
-    deleted: "Deleted",
-    failed: "Failed",
-    unknown: "Unknown",
+    pending: '待处理',
+    active: '有效',
+    expiringSoon: '即将过期',
+    expired: '已过期',
+    revoked: '已吊销',
+    deleted: '已删除',
+    failed: '失败',
+    unknown: '未知',
   }[status]
 }
 
 function renewalLabel(status: AutoRenewalStatus) {
   return {
-    scheduled: "Scheduled",
-    due: "Due",
-    notScheduled: "Not Scheduled",
-    expired: "Expired",
+    scheduled: '已计划',
+    due: '待续期',
+    notScheduled: '未计划',
+    expired: '已过期',
   }[status]
 }
 
 function safeFileName(value: string) {
-  return value.replace(/[^a-z0-9.-]+/gi, "_").replace(/^_+|_+$/g, "") || "certificate"
+  return value.replace(/[^a-z0-9.-]+/gi, '_').replace(/^_+|_+$/g, '') || 'certificate'
 }
 </script>
 
@@ -320,7 +260,9 @@ function safeFileName(value: string) {
 .certificate-page__table-head,
 .certificate-page__row {
   display: grid;
-  grid-template-columns: minmax(140px, 1.3fr) minmax(160px, 1.5fr) 110px 110px 64px 118px 120px 112px;
+  grid-template-columns:
+    minmax(140px, 1.3fr) minmax(160px, 1.5fr)
+    110px 110px 64px 118px 120px 112px;
   align-items: center;
   gap: var(--space-3);
   min-height: 44px;

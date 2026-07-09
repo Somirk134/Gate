@@ -1,15 +1,15 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap } from "@/types/application"
-import type { PluginAPI } from "./PluginAPI"
-import { PluginRegistry, type PluginManifest } from "./PluginRegistry"
-import type { PluginLifecycle } from "./lifecycle/PluginLifecycle"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap } from '@/types/application'
+import type { PluginAPI } from './PluginAPI'
+import { PluginRegistry, type PluginManifest } from './PluginRegistry'
+import type { PluginLifecycle } from './lifecycle/PluginLifecycle'
 
 export interface PluginManager {
   readonly registry: PluginRegistry
   register(manifest: PluginManifest, lifecycle: PluginLifecycle): void
   activate(id: string): Promise<void>
   deactivate(id: string): Promise<void>
-  list(): ReturnType<PluginRegistry["list"]>
+  list(): ReturnType<PluginRegistry['list']>
 }
 
 export class DefaultPluginManager implements PluginManager {
@@ -27,17 +27,17 @@ export class DefaultPluginManager implements PluginManager {
   async activate(id: string) {
     const plugin = this.requirePlugin(id)
 
-    if (plugin.state === "active") {
+    if (plugin.state === 'active') {
       return
     }
 
     try {
-      this.registry.setState(id, "activating")
+      this.registry.setState(id, 'activating')
       await plugin.lifecycle.activate(this.api)
-      this.registry.setState(id, "active")
-      await this.events.publish("plugin:activated", { id })
+      this.registry.setState(id, 'active')
+      await this.events.publish('plugin:activated', { id })
     } catch (error) {
-      this.registry.setState(id, "failed")
+      this.registry.setState(id, 'failed')
       throw error
     }
   }
@@ -45,14 +45,14 @@ export class DefaultPluginManager implements PluginManager {
   async deactivate(id: string) {
     const plugin = this.requirePlugin(id)
 
-    if (plugin.state !== "active") {
+    if (plugin.state !== 'active') {
       return
     }
 
-    this.registry.setState(id, "deactivating")
+    this.registry.setState(id, 'deactivating')
     await plugin.lifecycle.deactivate?.(this.api)
-    this.registry.setState(id, "inactive")
-    await this.events.publish("plugin:deactivated", { id })
+    this.registry.setState(id, 'inactive')
+    await this.events.publish('plugin:deactivated', { id })
   }
 
   list() {

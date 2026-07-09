@@ -1,7 +1,7 @@
-import type { Router } from "vue-router"
-import type { AppContext } from "./AppContext"
-import { AppLifecyclePhase } from "./lifecycle"
-import { WINDOW_SERVICE } from "@/services/tokens"
+import type { Router } from 'vue-router'
+import type { AppContext } from './AppContext'
+import { AppLifecyclePhase } from './lifecycle'
+import { WINDOW_SERVICE } from '@/services/tokens'
 
 export function installAppRouterGuards(router: Router, context: AppContext) {
   router.beforeEach(async (to) => {
@@ -9,7 +9,7 @@ export function installAppRouterGuards(router: Router, context: AppContext) {
       context.lifecycle.phase === AppLifecyclePhase.Starting ||
       context.lifecycle.phase === AppLifecyclePhase.Initializing
     ) {
-      await context.events.publish("navigation:request", {
+      await context.events.publish('navigation:request', {
         path: to.fullPath,
         replace: true,
       })
@@ -19,9 +19,10 @@ export function installAppRouterGuards(router: Router, context: AppContext) {
   })
 
   router.afterEach((to) => {
-    const title = typeof to.meta.title === "string"
-      ? `${to.meta.title} - ${context.environment.name}`
-      : context.environment.name
+    const title =
+      typeof to.meta.title === 'string'
+        ? `${to.meta.title} - ${context.environment.name}`
+        : context.environment.name
 
     context.services.resolve(WINDOW_SERVICE).setTitle(title)
   })

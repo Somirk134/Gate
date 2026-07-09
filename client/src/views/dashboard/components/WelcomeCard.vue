@@ -5,11 +5,7 @@
   未来可根据用户名动态显示。
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="lg"
-    class="welcome-card"
-  >
+  <GCard variant="plain" padding="lg" class="welcome-card">
     <div class="welcome-card__inner">
       <div class="welcome-card__left">
         <div class="welcome-card__greeting">
@@ -18,28 +14,18 @@
           <span class="welcome-card__user">{{ username }}</span>
         </div>
         <div class="welcome-card__time">
-          <GIcon
-            name="clock"
-            :size="14"
-          />
+          <GIcon name="clock" :size="14" />
           <span class="welcome-card__time-text">{{ timeText }}</span>
           <span class="welcome-card__time-date">{{ dateText }}</span>
         </div>
         <div class="welcome-card__quote">
-          <GIcon
-            name="sparkles"
-            :size="14"
-            class="welcome-card__quote-icon"
-          />
+          <GIcon name="sparkles" :size="14" class="welcome-card__quote-icon" />
           <span class="welcome-card__quote-text">{{ quote }}</span>
         </div>
       </div>
       <div class="welcome-card__right">
         <div class="welcome-card__version">
-          <GIcon
-            name="rocket"
-            :size="16"
-          />
+          <GIcon name="rocket" :size="16" />
           <span class="welcome-card__version-label">Gate</span>
           <span class="welcome-card__version-num">{{ version }}</span>
         </div>
@@ -60,10 +46,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import { useDashboardClock } from "../composables/useDashboardClock"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import { useDashboardClock } from '../composables/useDashboardClock'
 
 withDefaults(
   defineProps<{
@@ -74,7 +60,7 @@ withDefaults(
     serverCount: number
   }>(),
   {
-    username: "开发者",
+    username: '开发者',
   },
 )
 
@@ -82,10 +68,10 @@ const { timeText, dateText, greeting } = useDashboardClock()
 
 const greetingEmoji = computed(() => {
   const h = new Date().getHours()
-  if (h < 6) return "🌙"
-  if (h < 12) return "🌅"
-  if (h < 18) return "☀️"
-  return "🌆"
+  if (h < 6) return '🌙'
+  if (h < 12) return '🌅'
+  if (h < 18) return '☀️'
+  return '🌆'
 })
 </script>
 
@@ -93,24 +79,16 @@ const greetingEmoji = computed(() => {
 .welcome-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--bg-card) 0%,
-    var(--bg-surface-hover) 100%
-  );
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-surface-hover) 100%);
 }
 .welcome-card::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -40%;
   right: -10%;
   width: 360px;
   height: 360px;
-  background: radial-gradient(
-    circle,
-    var(--color-primary-muted) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, var(--color-primary-muted) 0%, transparent 70%);
   pointer-events: none;
 }
 .welcome-card__inner {

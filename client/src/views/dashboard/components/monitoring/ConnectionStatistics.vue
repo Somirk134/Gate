@@ -1,44 +1,34 @@
 <template>
-  <DashboardWidget
-    title="Connection Statistics"
-    icon="network"
-  >
+  <DashboardWidget title="连接统计" icon="network">
     <div class="connection-statistics">
       <div class="connection-statistics__numbers">
         <span>
           <strong>{{ connection.currentConnection }}</strong>
-          Current
+          当前
         </span>
         <span>
           <strong>{{ connection.success }}</strong>
-          Success
+          成功
         </span>
         <span>
           <strong>{{ connection.failure }}</strong>
-          Failure
+          失败
         </span>
         <span>
           <strong>{{ connection.reconnect }}</strong>
-          Reconnect
+          重连
         </span>
       </div>
       <svg
         class="connection-statistics__chart"
         viewBox="0 0 420 140"
         role="img"
-        aria-label="Connection trend"
-      >
-        <path
-          class="connection-statistics__grid"
-          d="M20 24H400M20 68H400M20 112H400"
-        />
-        <polyline
-          class="connection-statistics__line"
-          :points="trendPoints"
-        />
+        aria-label="连接趋势">
+        <path class="connection-statistics__grid" d="M20 24H400M20 68H400M20 112H400" />
+        <polyline class="connection-statistics__line" :points="trendPoints" />
       </svg>
       <div class="connection-statistics__footer">
-        <span>Total {{ connection.totalConnection }}</span>
+        <span>总数 {{ connection.totalConnection }}</span>
         <span>RTT {{ connection.averageRttMs.toFixed(0) }} ms</span>
       </div>
     </div>
@@ -46,9 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import DashboardWidget from "./DashboardWidget.vue"
-import type { ConnectionStatistics, ConnectionTrendPoint } from "@/monitoring/types"
+import { computed } from 'vue'
+import DashboardWidget from './DashboardWidget.vue'
+import type { ConnectionStatistics, ConnectionTrendPoint } from '@/monitoring/types'
 
 const props = defineProps<{
   connection: ConnectionStatistics
@@ -64,7 +54,7 @@ const trendPoints = computed(() => {
       const y = 18 + 104 - (point.current / maxValue) * 104
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
-    .join(" ")
+    .join(' ')
 })
 </script>
 

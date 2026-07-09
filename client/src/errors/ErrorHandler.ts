@@ -1,9 +1,9 @@
-import type { App } from "vue"
-import type { EventBus } from "@/events/EventBus"
-import type { LoggerService } from "@/logger/LoggerService"
-import type { NotificationService } from "@/services/NotificationService"
-import type { AppEventMap } from "@/types/application"
-import type { Disposable } from "@/utils/disposable"
+import type { App } from 'vue'
+import type { EventBus } from '@/events/EventBus'
+import type { LoggerService } from '@/logger/LoggerService'
+import type { NotificationService } from '@/services/NotificationService'
+import type { AppEventMap } from '@/types/application'
+import type { Disposable } from '@/utils/disposable'
 
 export interface ErrorHandler extends Disposable {
   capture(error: unknown, context?: string, fatal?: boolean): void
@@ -15,11 +15,11 @@ export class GlobalErrorHandler implements ErrorHandler {
   private started = false
 
   private readonly handleError = (event: ErrorEvent) => {
-    this.capture(event.error ?? event.message, "window.error")
+    this.capture(event.error ?? event.message, 'window.error')
   }
 
   private readonly handleRejection = (event: PromiseRejectionEvent) => {
-    this.capture(event.reason, "window.unhandledrejection")
+    this.capture(event.reason, 'window.unhandledrejection')
   }
 
   constructor(
@@ -29,12 +29,12 @@ export class GlobalErrorHandler implements ErrorHandler {
   ) {}
 
   start() {
-    if (this.started || typeof window === "undefined") {
+    if (this.started || typeof window === 'undefined') {
       return
     }
 
-    window.addEventListener("error", this.handleError)
-    window.addEventListener("unhandledrejection", this.handleRejection)
+    window.addEventListener('error', this.handleError)
+    window.addEventListener('unhandledrejection', this.handleRejection)
     this.started = true
   }
 
@@ -44,11 +44,11 @@ export class GlobalErrorHandler implements ErrorHandler {
     }
   }
 
-  capture(error: unknown, context = "application", fatal = false) {
+  capture(error: unknown, context = 'application', fatal = false) {
     const message = this.toMessage(error)
     this.logger.error(message, { error, context, fatal })
-    this.notifications.error("Application Error", message)
-    void this.events.publish("app:error", {
+    this.notifications.error('应用错误', message)
+    void this.events.publish('app:error', {
       error,
       message,
       context,
@@ -57,12 +57,12 @@ export class GlobalErrorHandler implements ErrorHandler {
   }
 
   dispose() {
-    if (!this.started || typeof window === "undefined") {
+    if (!this.started || typeof window === 'undefined') {
       return
     }
 
-    window.removeEventListener("error", this.handleError)
-    window.removeEventListener("unhandledrejection", this.handleRejection)
+    window.removeEventListener('error', this.handleError)
+    window.removeEventListener('unhandledrejection', this.handleRejection)
     this.started = false
   }
 
@@ -71,10 +71,10 @@ export class GlobalErrorHandler implements ErrorHandler {
       return error.message
     }
 
-    if (typeof error === "string") {
+    if (typeof error === 'string') {
       return error
     }
 
-    return "Unknown application error"
+    return '未知应用错误'
   }
 }

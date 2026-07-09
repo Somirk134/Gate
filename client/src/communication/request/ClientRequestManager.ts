@@ -1,12 +1,5 @@
-import { createCommunicationId } from "../shared/id"
-import type {
-  Command,
-  Message,
-  Request,
-  RequestId,
-  RequestOptions,
-  Response,
-} from "../types"
+import { createCommunicationId } from '../shared/id'
+import type { Command, Message, Request, RequestId, RequestOptions, Response } from '../types'
 
 interface PendingRequest {
   request: Request
@@ -16,17 +9,17 @@ interface PendingRequest {
 }
 
 const createMessage = <TBody>(
-  messageType: "request",
+  messageType: 'request',
   command: Command,
   body: TBody,
-  requestId = createCommunicationId("req"),
+  requestId = createCommunicationId('req'),
 ): Message<TBody> => ({
   header: {
-    protocolVersion: "v1",
+    protocolVersion: 'v1',
     messageType,
     command,
     requestId,
-    traceId: createCommunicationId("trace"),
+    traceId: createCommunicationId('trace'),
     timestamp: Date.now(),
     sequence: 0,
   },
@@ -42,7 +35,7 @@ export class ClientRequestManager {
     body: TBody,
     options: RequestOptions = {},
   ): Request<TBody> {
-    const message = createMessage("request", command, body)
+    const message = createMessage('request', command, body)
 
     return {
       id: message.header.requestId,
@@ -103,7 +96,7 @@ export class ClientRequestManager {
   clear() {
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timeout)
-      pending.reject(new Error("Request manager cleared"))
+      pending.reject(new Error('Request manager cleared'))
     }
 
     this.pending.clear()

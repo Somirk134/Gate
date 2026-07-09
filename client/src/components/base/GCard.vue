@@ -24,12 +24,8 @@
       `g-card--pad-${padding}`,
       { 'g-card--clickable': clickable, 'g-card--hoverable': hoverable },
     ]"
-    :type="clickable ? 'button' : undefined"
-  >
-    <header
-      v-if="$slots.header"
-      class="g-card__header"
-    >
+    :type="clickable ? 'button' : undefined">
+    <header v-if="$slots.header" class="g-card__header">
       <slot name="header" />
     </header>
 
@@ -37,10 +33,7 @@
       <slot />
     </div>
 
-    <footer
-      v-if="$slots.footer"
-      class="g-card__footer"
-    >
+    <footer v-if="$slots.footer" class="g-card__footer">
       <slot name="footer" />
     </footer>
   </component>
@@ -49,14 +42,14 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: "plain" | "outlined" | "elevated" | "interactive"
-    padding?: "none" | "sm" | "md" | "lg"
+    variant?: 'plain' | 'outlined' | 'elevated' | 'interactive'
+    padding?: 'none' | 'sm' | 'md' | 'lg'
     hoverable?: boolean
     clickable?: boolean
   }>(),
   {
-    variant: "plain",
-    padding: "md",
+    variant: 'plain',
+    padding: 'md',
     hoverable: false,
     clickable: false,
   },
@@ -74,7 +67,8 @@ withDefaults(
   color: var(--text-primary);
   text-align: left;
   font-family: var(--font-ui);
-  transition: border-color var(--duration-fast) var(--ease-out),
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
@@ -117,20 +111,44 @@ withDefaults(
 }
 
 /* ── Padding ── */
-.g-card--pad-none .g-card__body { padding: 0; }
-.g-card--pad-sm  .g-card__body { padding: var(--space-3); }
-.g-card--pad-md  .g-card__body { padding: var(--space-4); }
-.g-card--pad-lg  .g-card__body { padding: var(--space-6); }
+.g-card--pad-none .g-card__body {
+  padding: 0;
+}
+.g-card--pad-sm .g-card__body {
+  padding: var(--space-3);
+}
+.g-card--pad-md .g-card__body {
+  padding: var(--space-4);
+}
+.g-card--pad-lg .g-card__body {
+  padding: var(--space-6);
+}
 
-.g-card--pad-none .g-card__header { padding: 0; }
-.g-card--pad-sm  .g-card__header { padding: var(--space-3); }
-.g-card--pad-md  .g-card__header { padding: var(--space-3) var(--space-4); }
-.g-card--pad-lg  .g-card__header { padding: var(--space-4) var(--space-6); }
+.g-card--pad-none .g-card__header {
+  padding: 0;
+}
+.g-card--pad-sm .g-card__header {
+  padding: var(--space-3);
+}
+.g-card--pad-md .g-card__header {
+  padding: var(--space-3) var(--space-4);
+}
+.g-card--pad-lg .g-card__header {
+  padding: var(--space-4) var(--space-6);
+}
 
-.g-card--pad-none .g-card__footer { padding: 0; }
-.g-card--pad-sm  .g-card__footer { padding: var(--space-3); }
-.g-card--pad-md  .g-card__footer { padding: var(--space-3) var(--space-4); }
-.g-card--pad-lg  .g-card__footer { padding: var(--space-4) var(--space-6); }
+.g-card--pad-none .g-card__footer {
+  padding: 0;
+}
+.g-card--pad-sm .g-card__footer {
+  padding: var(--space-3);
+}
+.g-card--pad-md .g-card__footer {
+  padding: var(--space-3) var(--space-4);
+}
+.g-card--pad-lg .g-card__footer {
+  padding: var(--space-4) var(--space-6);
+}
 
 /* ── Header / Footer ── */
 .g-card__header {

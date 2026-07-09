@@ -7,34 +7,21 @@
   <div
     class="tunnel-card"
     :class="[`tunnel-card--${tunnel.status}`, { 'tunnel-card--selected': selected }]"
-    @click="$emit('select', tunnel)"
-  >
+    @click="$emit('select', tunnel)">
     <div class="tunnel-card__bar" />
     <div class="tunnel-card__body">
       <div class="tunnel-card__top">
-        <span
-          class="tunnel-card__status"
-          :class="`tunnel-card__status--${tunnel.status}`"
-        >
+        <span class="tunnel-card__status" :class="`tunnel-card__status--${tunnel.status}`">
           <span class="tunnel-card__dot" />
           {{ statusLabel }}
         </span>
-        <GIconButton
-          name="more-horizontal"
-          size="sm"
-          variant="ghost"
-          @click.stop
-        />
+        <GIconButton name="more-horizontal" size="sm" variant="ghost" @click.stop />
       </div>
       <h3 class="tunnel-card__name">
         {{ tunnel.name }}
       </h3>
       <div class="tunnel-card__protocol">
-        <GBadge
-          variant="primary"
-          type="soft"
-          size="sm"
-        >
+        <GBadge variant="primary" type="soft" size="sm">
           {{ tunnel.protocol.toUpperCase() }}
         </GBadge>
         <span class="tunnel-card__addr">{{ tunnel.localAddr }} → {{ tunnel.remoteAddr }}</span>
@@ -44,22 +31,13 @@
       </div>
       <div class="tunnel-card__metrics">
         <span class="tunnel-card__metric">
-          <GIcon
-            name="arrow-down"
-            :size="11"
-          /> {{ tunnel.downSpeed }}
+          <GIcon name="arrow-down" :size="11" /> {{ tunnel.downSpeed }}
         </span>
         <span class="tunnel-card__metric">
-          <GIcon
-            name="arrow-up"
-            :size="11"
-          /> {{ tunnel.upSpeed }}
+          <GIcon name="arrow-up" :size="11" /> {{ tunnel.upSpeed }}
         </span>
         <span class="tunnel-card__metric">
-          <GIcon
-            name="link"
-            :size="11"
-          /> {{ tunnel.connections }}
+          <GIcon name="link" :size="11" /> {{ tunnel.connections }}
         </span>
       </div>
     </div>
@@ -67,11 +45,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GBadge from "@components/base/GBadge.vue"
-import type { MockTunnel } from "../types"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GBadge from '@components/base/GBadge.vue'
+import type { MockTunnel } from '../types'
 
 const props = defineProps<{
   tunnel: MockTunnel
@@ -82,12 +60,12 @@ defineEmits<{ select: [tunnel: MockTunnel] }>()
 
 const statusLabel = computed(() => {
   const map: Record<string, string> = {
-    online: "在线",
-    offline: "离线",
-    starting: "启动中",
-    error: "错误",
+    online: '在线',
+    offline: '离线',
+    starting: '启动中',
+    error: '错误',
   }
-  return map[props.tunnel.status] ?? "未知"
+  return map[props.tunnel.status] ?? '未知'
 })
 </script>
 
@@ -99,7 +77,8 @@ const statusLabel = computed(() => {
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-out),
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
 }
@@ -120,10 +99,18 @@ const statusLabel = computed(() => {
   flex-shrink: 0;
 }
 
-.tunnel-card--online .tunnel-card__bar { background: var(--color-success); }
-.tunnel-card--offline .tunnel-card__bar { background: var(--status-offline); }
-.tunnel-card--starting .tunnel-card__bar { background: var(--status-starting); }
-.tunnel-card--error .tunnel-card__bar { background: var(--color-error); }
+.tunnel-card--online .tunnel-card__bar {
+  background: var(--color-success);
+}
+.tunnel-card--offline .tunnel-card__bar {
+  background: var(--status-offline);
+}
+.tunnel-card--starting .tunnel-card__bar {
+  background: var(--status-starting);
+}
+.tunnel-card--error .tunnel-card__bar {
+  background: var(--color-error);
+}
 
 .tunnel-card__body {
   flex: 1;
@@ -148,10 +135,22 @@ const statusLabel = computed(() => {
   font-weight: var(--weight-medium);
 }
 
-.tunnel-card__status--online { background: var(--color-success-muted); color: var(--color-success); }
-.tunnel-card__status--offline { background: var(--status-offline-bg); color: var(--status-offline); }
-.tunnel-card__status--starting { background: var(--status-starting-bg); color: var(--status-starting); }
-.tunnel-card__status--error { background: var(--color-error-muted); color: var(--color-error); }
+.tunnel-card__status--online {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+.tunnel-card__status--offline {
+  background: var(--status-offline-bg);
+  color: var(--status-offline);
+}
+.tunnel-card__status--starting {
+  background: var(--status-starting-bg);
+  color: var(--status-starting);
+}
+.tunnel-card__status--error {
+  background: var(--color-error-muted);
+  color: var(--color-error);
+}
 
 .tunnel-card__dot {
   width: 5px;

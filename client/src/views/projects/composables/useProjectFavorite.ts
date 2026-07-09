@@ -5,17 +5,13 @@
    Dashboard 收藏项目自动同步。
    ================================================================== */
 
-import { computed, type Ref } from "vue"
-import type { Project } from "../types"
+import { computed, type Ref } from 'vue'
+import type { Project } from '../types'
 
 export function useProjectFavorite(projects: Ref<Project[]>) {
-  const favoriteList = computed(() =>
-    projects.value.filter((p) => p.favorite),
-  )
+  const favoriteList = computed(() => projects.value.filter((p) => p.favorite))
 
-  const pinnedList = computed(() =>
-    projects.value.filter((p) => p.pinned),
-  )
+  const pinnedList = computed(() => projects.value.filter((p) => p.pinned))
 
   function isFavorite(id: string): boolean {
     return projects.value.some((p) => p.id === id && p.favorite)

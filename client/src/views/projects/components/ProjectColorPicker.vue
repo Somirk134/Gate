@@ -13,22 +13,18 @@
       :class="{ 'project-color-swatch--active': modelValue === color.key }"
       :style="{ background: color.value + '22' }"
       :title="color.label"
-      @click="$emit('update:modelValue', color.key)"
-    >
-      <span
-        class="project-color-swatch__dot"
-        :style="{ background: color.value }"
-      />
+      @click="$emit('update:modelValue', color.key)">
+      <span class="project-color-swatch__dot" :style="{ background: color.value }" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PROJECT_COLORS } from "../utils"
-import type { ProjectColor } from "../types"
+import { PROJECT_COLORS } from '../utils'
+import type { ProjectColor } from '../types'
 
 defineProps<{ modelValue: ProjectColor }>()
-defineEmits<{ "update:modelValue": [value: ProjectColor] }>()
+defineEmits<{ 'update:modelValue': [value: ProjectColor] }>()
 
 const colors = PROJECT_COLORS
 </script>

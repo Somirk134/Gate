@@ -7,28 +7,24 @@
   <span
     class="tunnel-badge"
     :class="[`tunnel-badge--${protocol}`, `tunnel-badge--${size}`]"
-    :style="{ '--badge-color': color }"
-  >
-    <GIcon
-      :name="icon"
-      :size="size === 'sm' ? 11 : 13"
-    />
+    :style="{ '--badge-color': color }">
+    <GIcon :name="icon" :size="size === 'sm' ? 11 : 13" />
     <span class="tunnel-badge__label">{{ label }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { TunnelProtocol } from "../types"
-import { PROTOCOL_MAP } from "../utils"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { TunnelProtocol } from '../types'
+import { PROTOCOL_MAP } from '../utils'
 
 const props = withDefaults(
   defineProps<{
     protocol: TunnelProtocol
-    size?: "sm" | "md"
+    size?: 'sm' | 'md'
   }>(),
-  { size: "sm" },
+  { size: 'sm' },
 )
 
 const preset = computed(() => PROTOCOL_MAP[props.protocol])

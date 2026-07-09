@@ -7,28 +7,24 @@
   <span
     class="server-badge"
     :class="[`server-badge--${kind}`, `server-badge--${size}`]"
-    :style="{ '--badge-color': color }"
-  >
-    <GIcon
-      :name="icon"
-      :size="size === 'sm' ? 11 : 13"
-    />
+    :style="{ '--badge-color': color }">
+    <GIcon :name="icon" :size="size === 'sm' ? 11 : 13" />
     <span class="server-badge__label">{{ label }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { ServerKind } from "../types"
-import { KIND_MAP } from "../utils"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { ServerKind } from '../types'
+import { KIND_MAP } from '../utils'
 
 const props = withDefaults(
   defineProps<{
     kind: ServerKind
-    size?: "sm" | "md"
+    size?: 'sm' | 'md'
   }>(),
-  { size: "sm" },
+  { size: 'sm' },
 )
 
 const preset = computed(() => KIND_MAP[props.kind])

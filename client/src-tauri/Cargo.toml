@@ -27,6 +27,7 @@ uuid.workspace = true
 chrono.workspace = true
 sysinfo.workspace = true
 gate-shared = { path = "../../shared" }
+gate-domain = { path = "../../crates/domain" }
 gate-communication = { path = "../../crates/communication" }
 gate-protocol = { path = "../../crates/protocol" }
 gate-engine = { path = "../../crates/engine" }

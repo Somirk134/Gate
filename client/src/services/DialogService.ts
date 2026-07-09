@@ -1,5 +1,5 @@
-import type { EventBus } from "@/events/EventBus"
-import type { AppEventMap, DialogPayload } from "@/types/application"
+import type { EventBus } from '@/events/EventBus'
+import type { AppEventMap, DialogPayload } from '@/types/application'
 
 export interface DialogService {
   show(dialog: DialogPayload): Promise<unknown>
@@ -13,7 +13,7 @@ export class EventDialogService implements DialogService {
   async show(dialog: DialogPayload) {
     const id = dialog.id ?? `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    await this.events.publish("dialog:show", {
+    await this.events.publish('dialog:show', {
       ...dialog,
       id,
     })
@@ -22,10 +22,10 @@ export class EventDialogService implements DialogService {
   }
 
   alert(title: string, content?: string) {
-    return this.show({ type: "alert", title, content })
+    return this.show({ type: 'alert', title, content })
   }
 
   confirm(title: string, content?: string) {
-    return this.show({ type: "confirm", title, content })
+    return this.show({ type: 'confirm', title, content })
   }
 }

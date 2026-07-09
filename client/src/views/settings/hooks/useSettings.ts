@@ -1,5 +1,5 @@
-import { storeToRefs } from "pinia"
-import { useSettingsStore } from "../stores"
+import { storeToRefs } from 'pinia'
+import { useSettingsStore } from '../stores'
 
 export function useSettings() {
   const store = useSettingsStore()

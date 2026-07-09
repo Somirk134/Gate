@@ -19,36 +19,16 @@
   复用：GCard / GBadge / GStatusBadge / GIconButton / GIcon
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="md"
-  >
+  <GCard variant="plain" padding="md">
     <div class="tunnel-card">
       <div class="tunnel-card__head">
-        <GIcon
-          name="link"
-          :size="16"
-          class="tunnel-card__lead"
-        />
+        <GIcon name="link" :size="16" class="tunnel-card__lead" />
         <span class="tunnel-card__name">{{ name }}</span>
-        <GBadge
-          :variant="protocolVariant"
-          type="solid"
-          size="sm"
-          class="tunnel-card__proto"
-        >
+        <GBadge :variant="protocolVariant" type="solid" size="sm" class="tunnel-card__proto">
           {{ protocol.toUpperCase() }}
         </GBadge>
-        <GStatusBadge
-          :status="status"
-          size="sm"
-          class="tunnel-card__status"
-        />
-        <GIconButton
-          name="more-horizontal"
-          size="sm"
-          @click="emit('action', 'menu')"
-        />
+        <GStatusBadge :status="status" size="sm" class="tunnel-card__status" />
+        <GIconButton name="more-horizontal" size="sm" @click="emit('action', 'menu')" />
       </div>
 
       <div class="tunnel-card__route">
@@ -56,32 +36,19 @@
           <span class="tunnel-card__label">本地</span>
           <span class="tunnel-card__addr">127.0.0.1:{{ localPort }}</span>
         </span>
-        <GIcon
-          name="arrow-right"
-          :size="14"
-          class="tunnel-card__arrow"
-        />
+        <GIcon name="arrow-right" :size="14" class="tunnel-card__arrow" />
         <span class="tunnel-card__endpoint">
           <span class="tunnel-card__label">远程</span>
           <span class="tunnel-card__addr">{{ remoteHost }}:{{ remotePort }}</span>
         </span>
       </div>
 
-      <div
-        v-if="traffic"
-        class="tunnel-card__foot"
-      >
+      <div v-if="traffic" class="tunnel-card__foot">
         <span class="tunnel-card__traffic">
-          <GIcon
-            name="arrow-up"
-            :size="11"
-          /> {{ traffic.up }}
+          <GIcon name="arrow-up" :size="11" /> {{ traffic.up }}
         </span>
         <span class="tunnel-card__traffic">
-          <GIcon
-            name="arrow-down"
-            :size="11"
-          /> {{ traffic.down }}
+          <GIcon name="arrow-down" :size="11" /> {{ traffic.down }}
         </span>
       </div>
     </div>
@@ -89,21 +56,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GBadge from "@components/base/GBadge.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GBadge from '@components/base/GBadge.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
 
 const props = withDefaults(
   defineProps<{
     name: string
-    protocol: "http" | "https" | "tcp" | "udp"
+    protocol: 'http' | 'https' | 'tcp' | 'udp'
     localPort: number
     remoteHost: string
     remotePort: number
-    status: "online" | "offline" | "connecting" | "error" | "warning" | "starting"
+    status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'starting'
     traffic?: { up: string; down: string }
   }>(),
   {},
@@ -113,11 +80,16 @@ const emit = defineEmits<{ click: []; action: [key: string] }>()
 
 const protocolVariant = computed(() => {
   switch (props.protocol) {
-    case "https": return "success"
-    case "http":  return "info"
-    case "tcp":   return "primary"
-    case "udp":   return "warning"
-    default:      return "neutral"
+    case 'https':
+      return 'success'
+    case 'http':
+      return 'info'
+    case 'tcp':
+      return 'primary'
+    case 'udp':
+      return 'warning'
+    default:
+      return 'neutral'
   }
 })
 </script>
@@ -133,7 +105,10 @@ const protocolVariant = computed(() => {
   align-items: center;
   gap: var(--space-2);
 }
-.tunnel-card__lead { color: var(--text-tertiary); flex-shrink: 0; }
+.tunnel-card__lead {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
 .tunnel-card__name {
   flex: 1;
   min-width: 0;

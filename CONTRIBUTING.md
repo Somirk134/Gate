@@ -13,7 +13,7 @@ documentation, tests, examples, CI, security hardening, packaging, and runtime c
 ## Development Setup
 
 ```bash
-git clone https://github.com/lancemorii-git/gate.git
+git clone https://github.com/Somirk134/Gate.git
 cd gate
 
 cargo test --workspace

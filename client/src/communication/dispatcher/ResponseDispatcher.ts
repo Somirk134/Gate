@@ -1,5 +1,5 @@
-import type { Message, Response } from "../types"
-import { ClientRequestManager } from "../request/ClientRequestManager"
+import type { Message, Response } from '../types'
+import { ClientRequestManager } from '../request/ClientRequestManager'
 
 export class ResponseDispatcher {
   constructor(private readonly requests: ClientRequestManager) {}

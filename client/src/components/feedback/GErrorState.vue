@@ -6,32 +6,17 @@
 <template>
   <div class="g-error-state">
     <div class="g-error-state__icon">
-      <GIcon
-        name="alert-circle"
-        :size="32"
-      />
+      <GIcon name="alert-circle" :size="32" />
     </div>
-    <div
-      v-if="title"
-      class="g-error-state__title"
-    >
+    <div v-if="title" class="g-error-state__title">
       {{ title }}
     </div>
     <div class="g-error-state__desc">
       <slot>{{ message }}</slot>
     </div>
-    <div
-      v-if="$slots.action || retry"
-      class="g-error-state__action"
-    >
+    <div v-if="$slots.action || retry" class="g-error-state__action">
       <slot name="action">
-        <GButton
-          v-if="retry"
-          variant="secondary"
-          size="sm"
-          icon="refresh"
-          @click="emit('retry')"
-        >
+        <GButton v-if="retry" variant="secondary" size="sm" icon="refresh" @click="emit('retry')">
           重试
         </GButton>
       </slot>
@@ -40,8 +25,8 @@
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
 
 defineProps<{
   title?: string

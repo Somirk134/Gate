@@ -12,54 +12,34 @@
 <template>
   <div
     class="server-row"
-    :class="[
-      `server-row--${server.status}`,
-      { 'server-row--active': active },
-    ]"
+    :class="[`server-row--${server.status}`, { 'server-row--active': active }]"
     :style="colorVars"
     @click="$emit('select', server)"
     @dblclick="$emit('open', server)"
-    @contextmenu.prevent="$emit('contextmenu', server, $event)"
-  >
-    <span
-      class="server-row__bar"
-      :class="`server-row__bar--${server.status}`"
-    />
+    @contextmenu.prevent="$emit('contextmenu', server, $event)">
+    <span class="server-row__bar" :class="`server-row__bar--${server.status}`" />
 
     <span class="server-row__icon">
-      <GIcon
-        :name="kindPreset.icon"
-        :size="14"
-      />
+      <GIcon :name="kindPreset.icon" :size="14" />
     </span>
 
     <div class="server-row__main">
-      <span
-        class="server-row__name"
-        :title="server.name"
-      >{{ server.name }}</span>
-      <span
-        class="server-row__addr"
-        :title="server.publicIp"
-      >{{ server.publicIp }}</span>
+      <span class="server-row__name" :title="server.name">{{ server.name }}</span>
+      <span class="server-row__addr" :title="server.publicIp">{{ server.publicIp }}</span>
     </div>
 
     <div class="server-row__meta">
-      <GStatusDot
-        :status="dotStatus"
-        :pulse="config.pulse"
-        size="sm"
-      />
+      <GStatusDot :status="dotStatus" :pulse="config.pulse" size="sm" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GStatusDot from "@components/status/GStatusDot.vue"
-import type { Server } from "../types"
-import { SERVER_STATUS_CONFIG, KIND_MAP, serverColorVars } from "../utils"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GStatusDot from '@components/status/GStatusDot.vue'
+import type { Server } from '../types'
+import { SERVER_STATUS_CONFIG, KIND_MAP, serverColorVars } from '../utils'
 
 const props = defineProps<{
   server: Server

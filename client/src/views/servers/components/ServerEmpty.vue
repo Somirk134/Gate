@@ -6,40 +6,28 @@
 <template>
   <div class="server-empty">
     <div class="server-empty__illustration">
-      <GIcon
-        name="servers"
-        :size="48"
-      />
+      <GIcon name="servers" :size="48" />
     </div>
-    <h2 class="server-empty__title">
-      Server Cluster
-    </h2>
-    <p class="server-empty__desc">
-      添加你的第一台 Gate 服务器（个人服务器 / 云服务器 / NAS / Docker），
-      统一管理所有 Tunnel 资源。
-    </p>
+    <h2 class="server-empty__title">{{ t('server.empty') }}</h2>
+    <p class="server-empty__desc">{{ t('server.emptyDesc') }}</p>
     <p class="server-empty__hint">
-      <GIcon
-        name="info-circle"
-        :size="12"
-      />
-      所有 Tunnel 必须绑定一个 Server
+      <GIcon name="info-circle" :size="12" />
+      {{ t('server.emptyGuide') }}
     </p>
     <div class="server-empty__action">
-      <GButton
-        variant="primary"
-        icon="plus"
-        @click="$emit('create')"
-      >
-        Add Server
+      <GButton variant="primary" icon="plus" @click="$emit('create')">
+        {{ t('server.addServer') }}
       </GButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+
+const { t } = useI18n()
 
 defineEmits<{ create: [] }>()
 </script>

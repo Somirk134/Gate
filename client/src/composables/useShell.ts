@@ -1,5 +1,12 @@
 import { computed } from 'vue'
-import { useLayoutStore, useNavigationStore, useThemeStore, useDialogStore, useNotificationStore, useLoadingStore } from '@stores'
+import {
+  useLayoutStore,
+  useNavigationStore,
+  useThemeStore,
+  useDialogStore,
+  useNotificationStore,
+  useLoadingStore,
+} from '@stores'
 
 /* ==================================================================
    useShell — Shell 统一操作 Composable

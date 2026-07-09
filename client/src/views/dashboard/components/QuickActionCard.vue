@@ -4,45 +4,30 @@
   大图标 + 文字 + 快捷键提示，带 hover 动画。
 -->
 <template>
-  <GCard
-    variant="interactive"
-    padding="md"
-    clickable
-    class="quick-action"
-    @click="$emit('click')"
-  >
+  <GCard variant="interactive" padding="md" clickable class="quick-action" @click="$emit('click')">
     <div class="quick-action__inner">
-      <span
-        class="quick-action__icon"
-        :class="`quick-action__icon--${variant}`"
-      >
-        <GIcon
-          :name="icon"
-          :size="22"
-        />
+      <span class="quick-action__icon" :class="`quick-action__icon--${variant}`">
+        <GIcon :name="icon" :size="22" />
       </span>
       <span class="quick-action__label">{{ label }}</span>
-      <span
-        v-if="shortcut"
-        class="quick-action__shortcut"
-      >{{ shortcut }}</span>
+      <span v-if="shortcut" class="quick-action__shortcut">{{ shortcut }}</span>
     </div>
   </GCard>
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 withDefaults(
   defineProps<{
     icon: string
     label: string
     shortcut?: string
-    variant?: "primary" | "success" | "warning" | "info"
+    variant?: 'primary' | 'success' | 'warning' | 'info'
   }>(),
   {
-    variant: "primary",
+    variant: 'primary',
   },
 )
 
@@ -51,7 +36,8 @@ defineEmits<{ click: [] }>()
 
 <style scoped>
 .quick-action {
-  transition: transform var(--duration-base) var(--ease-spring),
+  transition:
+    transform var(--duration-base) var(--ease-spring),
     border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);

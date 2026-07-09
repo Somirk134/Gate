@@ -7,30 +7,30 @@ import { tryGetApplicationContext } from '@/providers/appContext'
 export type SupportedLocale = 'zh-CN' | 'en'
 
 export const locales = [
-    { value: 'zh-CN' as SupportedLocale, label: '简体中文' },
-    { value: 'en' as SupportedLocale, label: 'English' },
+  { value: 'zh-CN' as SupportedLocale, label: '简体中文' },
+  { value: 'en' as SupportedLocale, label: '英文' },
 ]
 
 export function useLocaleSwitcher() {
-    const { locale } = useI18n()
+  const { locale } = useI18n()
 
-    const currentLocale = computed<SupportedLocale>(() => locale.value === 'en' ? 'en' : 'zh-CN')
+  const currentLocale = computed<SupportedLocale>(() => (locale.value === 'en' ? 'en' : 'zh-CN'))
 
-    const localeStore = computed(() => ({
-        naiveLocale: currentLocale.value === 'zh-CN' ? zhCN : enUS as NLocale,
-        naiveDateLocale: currentLocale.value === 'zh-CN' ? dateZhCN : dateEnUS as NDateLocale,
-    }))
+  const localeStore = computed(() => ({
+    naiveLocale: currentLocale.value === 'zh-CN' ? zhCN : (enUS as NLocale),
+    naiveDateLocale: currentLocale.value === 'zh-CN' ? dateZhCN : (dateEnUS as NDateLocale),
+  }))
 
-    function setLocale(newLocale: SupportedLocale) {
-        locale.value = newLocale
-        tryGetApplicationContext()?.configuration.set('locale', newLocale)
-    }
+  function setLocale(newLocale: SupportedLocale) {
+    locale.value = newLocale
+    tryGetApplicationContext()?.configuration.set('locale', newLocale)
+  }
 
-    return {
-        locale,
-        locales,
-        currentLocale,
-        localeStore,
-        setLocale,
-    }
+  return {
+    locale,
+    locales,
+    currentLocale,
+    localeStore,
+    setLocale,
+  }
 }

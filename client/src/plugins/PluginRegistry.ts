@@ -1,4 +1,4 @@
-import type { PluginLifecycle, PluginLifecycleState } from "./lifecycle/PluginLifecycle"
+import type { PluginLifecycle, PluginLifecycleState } from './lifecycle/PluginLifecycle'
 
 export interface PluginManifest {
   id: string
@@ -29,7 +29,7 @@ export class PluginRegistry {
     this.plugins.set(manifest.id, {
       manifest,
       lifecycle,
-      state: "registered",
+      state: 'registered',
     })
   }
 

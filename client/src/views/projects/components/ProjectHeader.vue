@@ -1,60 +1,41 @@
 <!--
   ProjectHeader — 详情页头部
   ------------------------------------------------------------------
-  显示：图标 / 名称 / 描述 / 状态 / Server / Tunnel Count / Running Count / Traffic
-  按钮：启动全部 / 停止全部 / 创建 Tunnel / 编辑 / 更多
+  显示：图标 / 名称 / 描述 / 状态 / 隧道 / 域名 / 证书 / 流量
+  按钮：启动全部 / 停止全部 / 创建隧道 / 编辑 / 更多
 -->
 <template>
-  <div
-    class="project-header"
-    :style="colorVars"
-  >
+  <div class="project-header" :style="colorVars">
     <div class="project-header__top">
       <div class="project-header__left">
         <GIconButton
           name="arrow-left"
           variant="soft"
           size="md"
-          tooltip="返回项目列表"
-          @click="$emit('back')"
-        />
+          :tooltip="t('project.header.backTooltip')"
+          @click="$emit('back')" />
         <span class="project-header__icon">
-          <GIcon
-            :name="project.icon"
-            :size="24"
-          />
+          <GIcon :name="project.icon" :size="24" />
         </span>
         <div class="project-header__info">
           <div class="project-header__title-row">
             <h1 class="project-header__name">
               {{ project.name }}
             </h1>
-            <GStatusBadge
-              :status="statusDotType"
-              :label="statusLabel"
-              size="md"
-            />
+            <GStatusBadge :status="statusDotType" :label="statusLabel" size="md" />
             <button
               class="project-header__quick"
               :class="{ 'project-header__quick--active': project.favorite }"
-              title="收藏"
-              @click="$emit('toggle-favorite', project.id)"
-            >
-              <GIcon
-                :name="project.favorite ? 'star' : 'star-off'"
-                :size="15"
-              />
+              :title="t('project.card.favorite')"
+              @click="$emit('toggle-favorite', project.id)">
+              <GIcon :name="project.favorite ? 'star' : 'star-off'" :size="15" />
             </button>
             <button
               class="project-header__quick"
               :class="{ 'project-header__quick--pinned': project.pinned }"
-              title="固定"
-              @click="$emit('toggle-pin', project.id)"
-            >
-              <GIcon
-                name="pin"
-                :size="15"
-              />
+              :title="t('project.card.pin')"
+              @click="$emit('toggle-pin', project.id)">
+              <GIcon name="pin" :size="15" />
             </button>
           </div>
           <p class="project-header__desc">
@@ -64,85 +45,57 @@
       </div>
 
       <div class="project-header__actions">
-        <GButton
-          v-if="!isRunning"
-          variant="primary"
-          icon="play"
-          @click="$emit('start-all')"
-        >
-          启动全部
+        <GButton v-if="!isRunning" variant="primary" icon="play" @click="$emit('start-all')">
+          {{ t('project.header.startAll') }}
         </GButton>
-        <GButton
-          v-else
-          variant="secondary"
-          icon="stop"
-          @click="$emit('stop-all')"
-        >
-          停止全部
+        <GButton v-else variant="secondary" icon="stop" @click="$emit('stop-all')">
+          {{ t('project.header.stopAll') }}
         </GButton>
-        <GButton
-          variant="secondary"
-          icon="plus"
-          @click="$emit('create-tunnel')"
-        >
-          创建 Tunnel
+        <GButton variant="secondary" icon="plus" @click="$emit('create-tunnel')">
+          {{ t('project.header.createTunnel') }}
         </GButton>
-        <GButton
-          variant="ghost"
-          icon="edit"
-          @click="$emit('edit')"
-        >
-          编辑
+        <GButton variant="ghost" icon="edit" @click="$emit('edit')">
+          {{ t('common.edit') }}
         </GButton>
-        <GIconButton
-          name="more-vertical"
-          variant="soft"
-          @click="$emit('more')"
-        />
+        <GIconButton name="more-vertical" variant="soft" @click="$emit('more')" />
       </div>
     </div>
 
     <!-- 指标条 -->
     <div class="project-header__metrics">
       <div class="project-header__metric">
-        <GIcon
-          name="servers"
-          :size="13"
-        />
-        <span class="project-header__metric-label">服务器</span>
-        <span class="project-header__metric-value">{{ project.serverName }}</span>
+        <GIcon name="globe" :size="13" />
+        <span class="project-header__metric-label">{{ t('project.card.domain') }}</span>
+        <span class="project-header__metric-value">{{ project.domainCount }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon
-          name="link"
-          :size="13"
-        />
-        <span class="project-header__metric-label">Tunnel</span>
+        <GIcon name="link" :size="13" />
+        <span class="project-header__metric-label">{{ t('project.card.tunnel') }}</span>
         <span class="project-header__metric-value">{{ project.tunnelCount }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric project-header__metric--running">
         <span class="project-header__metric-dot" />
-        <span class="project-header__metric-label">运行中</span>
+        <span class="project-header__metric-label">{{ t('project.filters.running') }}</span>
         <span class="project-header__metric-value">{{ project.runningTunnelCount }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon
-          name="cloud"
-          :size="13"
-        />
-        <span class="project-header__metric-label">今日流量</span>
+        <GIcon name="shield-check" :size="13" />
+        <span class="project-header__metric-label">{{ t('project.card.certificate') }}</span>
+        <span class="project-header__metric-value">{{ project.certificateCount }}</span>
+      </div>
+      <span class="project-header__sep" />
+      <div class="project-header__metric">
+        <GIcon name="cloud" :size="13" />
+        <span class="project-header__metric-label">{{ t('project.detail.traffic') }}</span>
         <span class="project-header__metric-value">{{ trafficLabel }}</span>
       </div>
       <span class="project-header__sep" />
       <div class="project-header__metric">
-        <GIcon
-          name="clock"
-          :size="13"
-        />
-        <span class="project-header__metric-label">最后启动</span>
+        <GIcon name="clock" :size="13" />
+        <span class="project-header__metric-label">{{ t('project.header.lastActivity') }}</span>
         <span class="project-header__metric-value">{{ project.lastStartedAt }}</span>
       </div>
     </div>
@@ -150,49 +103,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import type { Project } from "../types"
-import { STATUS_CONFIG, projectColorVars, formatBytes } from "../utils"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import type { Project } from '../types'
+import { projectColorVars, formatBytes } from '../utils'
 
 const props = defineProps<{ project: Project }>()
+const { t } = useI18n()
 
 defineEmits<{
   back: []
-  "start-all": []
-  "stop-all": []
-  "create-tunnel": []
+  'start-all': []
+  'stop-all': []
+  'create-tunnel': []
   edit: []
   more: []
-  "toggle-pin": [id: string]
-  "toggle-favorite": [id: string]
+  'toggle-pin': [id: string]
+  'toggle-favorite': [id: string]
 }>()
 
 const colorVars = computed(() => projectColorVars(props.project.color))
-const statusConfig = computed(() => STATUS_CONFIG[props.project.status])
-const statusLabel = computed(() => statusConfig.value.label)
+const statusLabel = computed(() => t(`project.statusLabels.${props.project.status}`))
 
 const statusDotType = computed(() => {
-  const map: Record<string, "online" | "offline" | "connecting" | "starting" | "error" | "warning"> = {
-    running: "online",
-    partial: "warning",
-    stopped: "offline",
-    starting: "starting",
-    error: "error",
+  const map: Record<
+    string,
+    'online' | 'offline' | 'connecting' | 'starting' | 'error' | 'warning'
+  > = {
+    running: 'online',
+    partial: 'warning',
+    stopped: 'offline',
+    starting: 'starting',
+    error: 'error',
   }
-  return map[props.project.status] ?? "offline"
+  return map[props.project.status] ?? 'offline'
 })
 
 const isRunning = computed(
-  () => props.project.status === "running" || props.project.status === "partial",
+  () => props.project.status === 'running' || props.project.status === 'partial',
 )
 
-const trafficLabel = computed(() =>
-  formatBytes(props.project.statistics.todayTraffic),
-)
+const trafficLabel = computed(() => formatBytes(props.project.statistics.todayTraffic))
 </script>
 
 <style scoped>

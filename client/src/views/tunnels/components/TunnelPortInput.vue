@@ -5,24 +5,20 @@
   支持自定义 placeholder 与 label。
 -->
 <template>
-  <GPortInput
-    :model-value="modelValue"
-    :size="size"
-    :disabled="disabled"
-  />
+  <GPortInput :model-value="modelValue" :size="size" :disabled="disabled" />
 </template>
 
 <script setup lang="ts">
-import GPortInput from "@components/form/GPortInput.vue"
+import GPortInput from '@components/form/GPortInput.vue'
 
 withDefaults(
   defineProps<{
     modelValue?: number | null
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     disabled?: boolean
   }>(),
-  { size: "md", disabled: false },
+  { size: 'md', disabled: false },
 )
 
-defineEmits<{ "update:modelValue": [value: number | null] }>()
+defineEmits<{ 'update:modelValue': [value: number | null] }>()
 </script>

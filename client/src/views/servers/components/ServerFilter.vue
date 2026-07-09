@@ -12,13 +12,8 @@
       type="button"
       class="server-segment__item"
       :class="{ 'server-segment__item--active': modelValue === item.key }"
-      @click="$emit('update:modelValue', item.key)"
-    >
-      <GIcon
-        v-if="item.icon"
-        :name="item.icon"
-        :size="12"
-      />
+      @click="$emit('update:modelValue', item.key)">
+      <GIcon v-if="item.icon" :name="item.icon" :size="12" />
       <span>{{ item.label }}</span>
       <span class="server-segment__count">{{ counts[item.key] ?? 0 }}</span>
     </button>
@@ -26,22 +21,26 @@
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import type { ServerFilterType } from "../types"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import type { ServerFilterType } from '../types'
 
 defineProps<{
   modelValue: ServerFilterType
   counts: Record<ServerFilterType, number>
 }>()
 
-defineEmits<{ "update:modelValue": [value: ServerFilterType] }>()
+defineEmits<{ 'update:modelValue': [value: ServerFilterType] }>()
 
-const items: Array<{ key: ServerFilterType; label: string; icon?: string }> = [
-  { key: "all", label: "全部" },
-  { key: "online", label: "在线", icon: "wifi" },
-  { key: "offline", label: "离线", icon: "wifi-off" },
-  { key: "favorite", label: "收藏", icon: "star" },
-  { key: "recent", label: "最近", icon: "clock" },
-  { key: "unhealthy", label: "异常", icon: "alert-triangle" },
-]
+const { t } = useI18n()
+
+const items = computed<Array<{ key: ServerFilterType; label: string; icon?: string }>>(() => [
+  { key: 'all', label: t('server.filters.all') },
+  { key: 'online', label: t('server.filters.online'), icon: 'wifi' },
+  { key: 'offline', label: t('server.filters.offline'), icon: 'wifi-off' },
+  { key: 'favorite', label: t('server.filters.favorite'), icon: 'star' },
+  { key: 'recent', label: t('server.filters.recent'), icon: 'clock' },
+  { key: 'unhealthy', label: t('server.filters.unhealthy'), icon: 'alert-triangle' },
+])
 </script>

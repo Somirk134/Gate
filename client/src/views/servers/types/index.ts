@@ -13,30 +13,30 @@
 
 /* ── 连接状态（统一全模块） ── */
 export type ServerStatus =
-  | "connected" // 已连接
-  | "disconnected" // 已断开
-  | "connecting" // 连接中
-  | "reconnecting" // 重连中
-  | "offline" // 离线
-  | "maintenance" // 维护中
-  | "error" // 错误
+  | 'connected' // 已连接
+  | 'disconnected' // 已断开
+  | 'connecting' // 连接中
+  | 'reconnecting' // 重连中
+  | 'offline' // 离线
+  | 'maintenance' // 维护中
+  | 'error' // 错误
 
 /* ── 服务器类型 ──
    V1 启用：personal / cloud / nas / company / docker
    未来扩展：kubernetes */
 export type ServerKind =
-  | "personal" // 个人服务器
-  | "cloud" // 云服务器
-  | "nas" // 家庭 NAS
-  | "company" // 公司服务器
-  | "docker" // Docker 部署
-  | "kubernetes" // Kubernetes（未来）
+  | 'personal' // 个人服务器
+  | 'cloud' // 云服务器
+  | 'nas' // 家庭 NAS
+  | 'company' // 公司服务器
+  | 'docker' // Docker 部署
+  | 'kubernetes' // Kubernetes（未来）
 
 /* ── 类型可用性 ── */
-export type KindAvailability = "enabled" | "soon" | "planned"
+export type KindAvailability = 'enabled' | 'soon' | 'planned'
 
 /* ── 连接方式 ── */
-export type ConnectionMethod = "tcp" | "ws" | "wss" | "grpc"
+export type ConnectionMethod = 'tcp' | 'ws' | 'wss' | 'grpc'
 
 /* ── 资源采样点（Mini Chart） ── */
 export interface ServerMonitorPoint {
@@ -62,7 +62,7 @@ export interface ServerResourceMetric {
   percent: number // 当前百分比 0-100
   used: number // 已用（GB / MB）
   total: number // 总量（GB / MB）
-  unit: "GB" | "MB"
+  unit: 'GB' | 'MB'
   history: number[] // 百分比采样（Mock）
 }
 
@@ -118,13 +118,13 @@ export interface ServerConnection {
   clientIp: string
   region: string
   duration: number // 秒
-  status: "active" | "idle" | "closed"
+  status: 'active' | 'idle' | 'closed'
   protocol: string
   startedAt: string // ISO
 }
 
 /* ── 日志等级 ── */
-export type ServerLogLevel = "debug" | "info" | "warn" | "error" | "success"
+export type ServerLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'success'
 
 /* ── 单条日志 ── */
 export interface ServerLog {
@@ -136,7 +136,7 @@ export interface ServerLog {
 }
 
 /* ── 健康检查项 ── */
-export type HealthItemStatus = "pass" | "warn" | "fail" | "pending"
+export type HealthItemStatus = 'pass' | 'warn' | 'fail' | 'pending'
 
 /* ── 健康检查项 ── */
 export interface ServerHealthItem {
@@ -150,7 +150,7 @@ export interface ServerHealthItem {
 
 /* ── 健康报告 ── */
 export interface ServerHealth {
-  overall: "healthy" | "warning" | "critical" | "unknown"
+  overall: 'healthy' | 'warning' | 'critical' | 'unknown'
   score: number // 0-100
   checkedAt: number // epoch ms
   items: ServerHealthItem[]
@@ -219,38 +219,25 @@ export interface Server {
 }
 
 /* ── 筛选类型 ── */
-export type ServerFilterType =
-  | "all"
-  | "online"
-  | "offline"
-  | "favorite"
-  | "recent"
-  | "unhealthy"
+export type ServerFilterType = 'all' | 'online' | 'offline' | 'favorite' | 'recent' | 'unhealthy'
 
 /* ── 排序类型 ── */
-export type ServerSortType =
-  | "name"
-  | "ping"
-  | "cpu"
-  | "memory"
-  | "tunnels"
-  | "projects"
-  | "region"
+export type ServerSortType = 'name' | 'ping' | 'cpu' | 'memory' | 'tunnels' | 'projects' | 'region'
 
 /* ── 排序方向 ── */
-export type SortDirection = "asc" | "desc"
+export type SortDirection = 'asc' | 'desc'
 
 /* ── 工作区标签页 ── */
 export type ServerWorkspaceTab =
-  | "overview"
-  | "monitor"
-  | "health"
-  | "tunnels"
-  | "projects"
-  | "traffic"
-  | "logs"
-  | "statistics"
-  | "settings"
+  | 'overview'
+  | 'monitor'
+  | 'health'
+  | 'tunnels'
+  | 'projects'
+  | 'traffic'
+  | 'logs'
+  | 'statistics'
+  | 'settings'
 
 /* ── 表单数据（创建 / 编辑） ── */
 export interface ServerFormData {
@@ -284,13 +271,13 @@ export interface TagPreset {
 }
 
 /* ── 加载状态 ── */
-export type ServerLoadStatus = "idle" | "loading" | "success" | "error"
+export type ServerLoadStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /* ── 状态配置 ── */
 export interface ServerStatusConfig {
   label: string
-  dotStatus: "online" | "offline" | "connecting" | "error" | "warning"
-  badgeVariant: "success" | "warning" | "error" | "neutral" | "info"
+  dotStatus: 'online' | 'offline' | 'connecting' | 'error' | 'warning'
+  badgeVariant: 'success' | 'warning' | 'error' | 'neutral' | 'info'
   pulse: boolean
   weight: number // 排序权重，越小越靠前
 }

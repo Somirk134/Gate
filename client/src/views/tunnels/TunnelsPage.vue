@@ -2,140 +2,83 @@
   <section class="tunnels-page">
     <header class="tunnels-hero">
       <div>
-        <p>Tunnel Workspace</p>
-        <h1>Tunnels</h1>
-        <span>{{ runningCount }} 个运行中 · {{ tunnels.length }} 个配置 · {{ formatSpeed(totalSpeed) }}</span>
+        <p>{{ t('tunnel.workspace') }}</p>
+        <h1>{{ t('tunnel.title') }}</h1>
+        <span>{{
+          t('tunnel.summary', {
+            running: runningCount,
+            total: tunnels.length,
+            speed: formatSpeed(totalSpeed),
+          })
+        }}</span>
       </div>
       <div class="tunnels-hero__actions">
-        <GButton
-          variant="secondary"
-          icon="globe"
-          @click="router.push('/tunnels/http')"
-        >
+        <GButton variant="secondary" icon="globe" @click="router.push('/tunnels/http')">
           HTTP
         </GButton>
-        <GButton
-          variant="primary"
-          icon="plus"
-          @click="openCreate"
-        >
-          创建 Tunnel
+        <GButton variant="primary" icon="plus" @click="openCreate">
+          {{ t('tunnel.create') }}
         </GButton>
       </div>
     </header>
 
-    <TunnelLoading
-      v-if="isLoading"
-      :count="8"
-    />
+    <TunnelLoading v-if="isLoading" :count="8" />
 
-    <GCard
-      v-else-if="isError"
-      variant="plain"
-      padding="lg"
-    >
+    <GCard v-else-if="isError" variant="plain" padding="lg">
       <GErrorState
-        title="加载失败"
-        :message="error || '无法加载 Tunnel 列表。'"
+        :title="t('tunnel.loadFailed')"
+        :message="error || t('tunnel.loadFailedMessage')"
         retry
-        @retry="retry"
-      />
+        @retry="retry" />
     </GCard>
 
-    <div
-      v-else-if="!hasTunnels"
-      class="tunnel-empty-state"
-    >
+    <div v-else-if="!hasTunnels" class="tunnel-empty-state">
       <div class="empty-illustration">
-        <GIcon
-          name="router"
-          :size="34"
-        />
+        <GIcon name="router" :size="34" />
       </div>
-      <h2>暂无 Tunnel</h2>
-      <p>创建第一个 Tunnel 后，本地服务就能通过公网地址访问。</p>
-      <GButton
-        variant="primary"
-        icon="plus"
-        @click="openCreate"
-      >
-        创建第一个 Tunnel
+      <h2>{{ t('tunnel.emptyTitle') }}</h2>
+      <p>{{ t('tunnel.emptyDesc') }}</p>
+      <GButton variant="primary" icon="plus" @click="openCreate">
+        {{ t('tunnel.createFirst') }}
       </GButton>
     </div>
 
     <template v-else>
       <div class="tunnel-toolbar">
         <label class="toolbar-search">
-          <GIcon
-            name="search"
-            :size="15"
-          />
-          <input
-            v-model.trim="query"
-            placeholder="搜索名称、端口、项目或标签"
-          >
+          <GIcon name="search" :size="15" />
+          <input v-model.trim="query" :placeholder="t('tunnel.searchPlaceholder')" />
         </label>
         <select v-model="filter">
-          <option value="all">
-            全部
-          </option>
-          <option value="running">
-            运行中
-          </option>
-          <option value="stopped">
-            已停止
-          </option>
-          <option value="http">
-            HTTP
-          </option>
-          <option value="tcp">
-            TCP
-          </option>
-          <option value="favorite">
-            收藏
-          </option>
-          <option value="recent">
-            最近更新
-          </option>
+          <option value="all">{{ t('tunnel.filters.all') }}</option>
+          <option value="running">{{ t('tunnel.filters.running') }}</option>
+          <option value="stopped">{{ t('tunnel.filters.stopped') }}</option>
+          <option value="http">HTTP</option>
+          <option value="tcp">TCP</option>
+          <option value="favorite">{{ t('tunnel.filters.favorite') }}</option>
+          <option value="recent">{{ t('tunnel.filters.recent') }}</option>
         </select>
         <select v-model="sortBy">
-          <option value="updatedAt">
-            最近更新
-          </option>
-          <option value="name">
-            名称
-          </option>
-          <option value="status">
-            状态
-          </option>
-          <option value="traffic">
-            流量
-          </option>
-          <option value="connections">
-            连接数
-          </option>
+          <option value="updatedAt">{{ t('tunnel.sort.updatedAt') }}</option>
+          <option value="name">{{ t('tunnel.sort.name') }}</option>
+          <option value="status">{{ t('tunnel.sort.status') }}</option>
+          <option value="traffic">{{ t('tunnel.sort.traffic') }}</option>
+          <option value="connections">{{ t('tunnel.sort.connections') }}</option>
         </select>
         <button
           type="button"
           class="sort-direction"
-          @click="direction = direction === 'asc' ? 'desc' : 'asc'"
-        >
-          <GIcon
-            name="arrow-up-down"
-            :size="15"
-          />
-          {{ direction === "asc" ? "升序" : "降序" }}
+          @click="direction = direction === 'asc' ? 'desc' : 'asc'">
+          <GIcon name="arrow-up-down" :size="15" />
+          {{ direction === 'asc' ? t('tunnel.sort.asc') : t('tunnel.sort.desc') }}
         </button>
       </div>
 
       <div class="tunnel-workspace">
-        <aside
-          class="tunnel-list"
-          aria-label="Tunnel list"
-        >
+        <aside class="tunnel-list" :aria-label="t('tunnel.listAria')">
           <div class="tunnel-list__header">
-            <strong>{{ finalTunnels.length }} results</strong>
-            <span>{{ query ? `for ${query}` : "ready" }}</span>
+            <strong>{{ t('tunnel.resultCount', { count: finalTunnels.length }) }}</strong>
+            <span>{{ query ? t('tunnel.matching', { query }) : t('tunnel.ready') }}</span>
           </div>
 
           <button
@@ -144,38 +87,33 @@
             type="button"
             class="tunnel-row"
             :class="{ active: selectedId === tunnel.id }"
-            @click="selectTunnel(tunnel.id)"
-          >
-            <span
-              class="tunnel-row__status"
-              :class="`is-${statusTone(tunnel.status)}`"
-            />
+            @click="selectTunnel(tunnel.id)">
+            <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
             <div class="tunnel-row__main">
               <strong>{{ tunnel.name }}</strong>
-              <small>{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.localHost }}:{{ tunnel.localPort }}</small>
+              <small
+                >{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.localHost }}:{{
+                  tunnel.localPort
+                }}</small
+              >
             </div>
             <div class="tunnel-row__meta">
-              <span>{{ formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed) }}</span>
-              <small>{{ tunnel.statistics.connections }} conn</small>
+              <span>{{
+                formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed)
+              }}</span>
+              <small>{{
+                t('tunnel.connectionUnit', { count: tunnel.statistics.connections })
+              }}</small>
             </div>
           </button>
 
-          <div
-            v-if="!finalTunnels.length"
-            class="tunnel-list__empty"
-          >
-            <GIcon
-              name="search"
-              :size="24"
-            />
-            <span>没有匹配的 Tunnel</span>
+          <div v-if="!finalTunnels.length" class="tunnel-list__empty">
+            <GIcon name="search" :size="24" />
+            <span>{{ t('tunnel.noMatching') }}</span>
           </div>
         </aside>
 
-        <main
-          class="tunnel-detail"
-          aria-live="polite"
-        >
+        <main class="tunnel-detail" aria-live="polite">
           <template v-if="selectedTunnel">
             <div class="detail-header">
               <div>
@@ -190,81 +128,67 @@
                   v-if="canStart(selectedTunnel.status)"
                   variant="primary"
                   icon="play"
-                  @click="startSelected"
-                >
-                  启动
+                  @click="startSelected">
+                  {{ t('tunnel.start') }}
                 </GButton>
-                <GButton
-                  v-else
-                  variant="secondary"
-                  icon="pause"
-                  @click="stopSelected"
-                >
-                  停止
+                <GButton v-else variant="secondary" icon="pause" @click="stopSelected">
+                  {{ t('tunnel.stop') }}
                 </GButton>
                 <button
                   type="button"
                   class="icon-action"
                   :class="{ active: selectedTunnel.favorite }"
-                  @click="toggleFavorite(selectedTunnel.id)"
-                >
-                  <GIcon
-                    name="star"
-                    :size="16"
-                  />
+                  @click="toggleFavorite(selectedTunnel.id)">
+                  <GIcon name="star" :size="16" />
                 </button>
-                <button
-                  type="button"
-                  class="icon-action"
-                  @click="deleteSelected"
-                >
-                  <GIcon
-                    name="trash"
-                    :size="16"
-                  />
+                <button type="button" class="icon-action" @click="deleteSelected">
+                  <GIcon name="trash" :size="16" />
                 </button>
               </div>
             </div>
 
             <div class="detail-metrics">
               <article>
-                <span>公网地址</span>
+                <span>{{ t('tunnel.detail.publicAddress') }}</span>
                 <strong>{{ selectedTunnel.publicAddr }}</strong>
               </article>
               <article>
-                <span>今日流量</span>
-                <strong>{{ formatBytes(selectedTunnel.traffic.todayUpload + selectedTunnel.traffic.todayDownload) }}</strong>
+                <span>{{ t('tunnel.detail.todayTraffic') }}</span>
+                <strong>{{
+                  formatBytes(
+                    selectedTunnel.traffic.todayUpload + selectedTunnel.traffic.todayDownload,
+                  )
+                }}</strong>
               </article>
               <article>
-                <span>实时速度</span>
-                <strong>{{ formatSpeed(selectedTunnel.traffic.uploadSpeed + selectedTunnel.traffic.downloadSpeed) }}</strong>
+                <span>{{ t('tunnel.detail.realtimeSpeed') }}</span>
+                <strong>{{
+                  formatSpeed(
+                    selectedTunnel.traffic.uploadSpeed + selectedTunnel.traffic.downloadSpeed,
+                  )
+                }}</strong>
               </article>
               <article>
-                <span>运行时间</span>
+                <span>{{ t('tunnel.detail.uptime') }}</span>
                 <strong>{{ formatDuration(selectedTunnel.statistics.uptime) }}</strong>
               </article>
             </div>
 
             <div class="test-url-panel">
               <div>
-                <span>本机测试地址</span>
+                <span>{{ t('tunnel.detail.localTestUrl') }}</span>
                 <strong>{{ testUrl(selectedTunnel) }}</strong>
               </div>
               <div class="test-url-panel__actions">
-                <GButton
-                  variant="secondary"
-                  icon="copy"
-                  @click="copyTestUrl(selectedTunnel)"
-                >
-                  复制
+                <GButton variant="secondary" icon="copy" @click="copyTestUrl(selectedTunnel)">
+                  {{ t('tunnel.detail.copy') }}
                 </GButton>
                 <GButton
                   v-if="canOpenTestUrl(selectedTunnel)"
                   variant="primary"
                   icon="external-link"
-                  @click="openTestUrl(selectedTunnel)"
-                >
-                  打开
+                  @click="openTestUrl(selectedTunnel)">
+                  {{ t('tunnel.detail.open') }}
                 </GButton>
               </div>
             </div>
@@ -272,83 +196,65 @@
             <div class="detail-grid">
               <section class="detail-card">
                 <div class="detail-card__heading">
-                  <h3>路径</h3>
-                  <GIcon
-                    name="link"
-                    :size="16"
-                  />
+                  <h3>{{ t('tunnel.detail.path') }}</h3>
+                  <GIcon name="link" :size="16" />
                 </div>
                 <dl class="path-list">
-                  <div><dt>Local</dt><dd>{{ selectedTunnel.localHost }}:{{ selectedTunnel.localPort }}</dd></div>
-                  <div><dt>Public</dt><dd>{{ selectedTunnel.publicAddr }}</dd></div>
-                  <div><dt>Protocol</dt><dd>{{ selectedTunnel.protocol.toUpperCase() }}</dd></div>
-                  <div><dt>Status</dt><dd>{{ statusLabel(selectedTunnel.status) }}</dd></div>
+                  <div>
+                    <dt>{{ t('tunnel.detail.local') }}</dt>
+                    <dd>{{ selectedTunnel.localHost }}:{{ selectedTunnel.localPort }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('tunnel.detail.public') }}</dt>
+                    <dd>{{ selectedTunnel.publicAddr }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('tunnel.detail.protocol') }}</dt>
+                    <dd>{{ selectedTunnel.protocol.toUpperCase() }}</dd>
+                  </div>
+                  <div>
+                    <dt>{{ t('tunnel.detail.status') }}</dt>
+                    <dd>{{ statusLabel(selectedTunnel.status) }}</dd>
+                  </div>
                 </dl>
               </section>
 
               <section class="detail-card">
                 <div class="detail-card__heading">
-                  <h3>标签</h3>
-                  <GIcon
-                    name="tag"
-                    :size="16"
-                  />
+                  <h3>{{ t('tunnel.detail.tags') }}</h3>
+                  <GIcon name="tag" :size="16" />
                 </div>
                 <div class="tag-list">
-                  <span
-                    v-for="tag in selectedTunnel.tags"
-                    :key="tag"
-                  >{{ tag }}</span>
-                  <span v-if="!selectedTunnel.tags.length">No tags</span>
+                  <span v-for="tag in selectedTunnel.tags" :key="tag">{{ tag }}</span>
+                  <span v-if="!selectedTunnel.tags.length">{{ t('tunnel.detail.noTags') }}</span>
                 </div>
               </section>
             </div>
 
             <section class="detail-card detail-card--logs">
               <div class="detail-card__heading">
-                <h3>最近日志</h3>
-                <button
-                  type="button"
-                  @click="activeLogTunnel = selectedTunnel.id"
-                >
-                  <GIcon
-                    name="refresh"
-                    :size="14"
-                  />
+                <h3>{{ t('tunnel.detail.recentLogs') }}</h3>
+                <button type="button" @click="activeLogTunnel = selectedTunnel.id">
+                  <GIcon name="refresh" :size="14" />
                 </button>
               </div>
               <div class="mini-log-list">
-                <article
-                  v-for="log in selectedTunnel.logs.slice(-6).reverse()"
-                  :key="log.id"
-                >
+                <article v-for="log in selectedTunnel.logs.slice(-6).reverse()" :key="log.id">
                   <span :class="`is-${log.level}`">{{ log.level }}</span>
                   <p>{{ log.message }}</p>
                   <small>{{ formatLogTime(log.timestamp) }}</small>
                 </article>
-                <div
-                  v-if="!selectedTunnel.logs.length"
-                  class="mini-empty"
-                >
-                  <GIcon
-                    name="logs"
-                    :size="22"
-                  />
-                  <span>暂无数据</span>
+                <div v-if="!selectedTunnel.logs.length" class="mini-empty">
+                  <GIcon name="logs" :size="22" />
+                  <span>{{ t('tunnel.detail.noData') }}</span>
                 </div>
               </div>
             </section>
           </template>
 
-          <div
-            v-else
-            class="tunnel-detail__placeholder"
-          >
-            <GIcon
-              name="router"
-              :size="34"
-            />
-            <span>选择一个 Tunnel 查看状态和最近日志</span>
+          <div v-else class="tunnel-detail__placeholder">
+            <GIcon name="router" :size="34" />
+            <span>{{ t('tunnel.selectPrompt') }}</span>
           </div>
         </main>
       </div>
@@ -358,29 +264,39 @@
       v-model:visible="wizardVisible"
       :projects="projectOptions"
       :server-names="serverNames"
-      @submit="handleCreate"
-    />
+      :default-project-id="requestedProjectId"
+      @submit="handleCreate" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
-import { useRoute, useRouter } from "vue-router"
-import { useFeedback } from "@composables/useFeedback"
-import GButton from "@components/base/GButton.vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GErrorState from "@components/feedback/GErrorState.vue"
-import TunnelLoading from "./components/TunnelLoading.vue"
-import TunnelCreateWizard from "./components/TunnelCreateWizard.vue"
-import { useTunnel } from "./composables/useTunnel"
-import { useTunnelMonitor } from "./composables/useTunnelMonitor"
-import { useServerStore } from "@views/servers"
-import type { SortDirection, Tunnel, TunnelFilterType, TunnelFormData, TunnelSortType, TunnelStatus } from "./types"
-import "./styles/tunnel.css"
+import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
+import { useFeedback } from '@composables/useFeedback'
+import GButton from '@components/base/GButton.vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GErrorState from '@components/feedback/GErrorState.vue'
+import TunnelLoading from './components/TunnelLoading.vue'
+import TunnelCreateWizard from './components/TunnelCreateWizard.vue'
+import { useTunnel } from './composables/useTunnel'
+import { useTunnelMonitor } from './composables/useTunnelMonitor'
+import { useServerStore } from '@views/servers'
+import { useProjectStore } from '@views/projects/store/project'
+import type {
+  SortDirection,
+  Tunnel,
+  TunnelFilterType,
+  TunnelFormData,
+  TunnelSortType,
+  TunnelStatus,
+} from './types'
+import './styles/tunnel.css'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
 const { toast, notify, confirm, confirmDanger } = useFeedback()
 const {
   tunnels,
@@ -398,57 +314,73 @@ const {
   store,
 } = useTunnel()
 const serverStore = useServerStore()
+const projectStore = useProjectStore()
 
 useTunnelMonitor(store)
 
-const query = ref("")
-const filter = ref<TunnelFilterType>("all")
-const sortBy = ref<TunnelSortType>("updatedAt")
-const direction = ref<SortDirection>("desc")
+const query = ref('')
+const filter = ref<TunnelFilterType>('all')
+const sortBy = ref<TunnelSortType>('updatedAt')
+const direction = ref<SortDirection>('desc')
 const selectedId = ref<string | null>(null)
 const wizardVisible = ref(false)
-const activeLogTunnel = ref("")
-const projectOptions: Array<{ id: string; name: string }> = []
+const activeLogTunnel = ref('')
+const requestedProjectId = ref('')
+const projectOptions = computed(() =>
+  projectStore.projects.map((project) => ({ id: project.id, name: project.name })),
+)
 const serverNames = computed(() => serverStore.onlineServers.map((server) => server.name))
 
-const runningCount = computed(() => tunnels.value.filter((tunnel) => canStart(tunnel.status) === false).length)
+const runningCount = computed(
+  () => tunnels.value.filter((tunnel) => canStart(tunnel.status) === false).length,
+)
 const totalSpeed = computed(() =>
-  tunnels.value.reduce((sum, tunnel) => sum + tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed, 0),
+  tunnels.value.reduce(
+    (sum, tunnel) => sum + tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed,
+    0,
+  ),
 )
 
 const finalTunnels = computed(() => {
   const keyword = query.value.toLowerCase()
   const filtered = tunnels.value.filter((tunnel) => {
     const matchesFilter =
-      filter.value === "all" ||
+      filter.value === 'all' ||
       tunnel.protocol === filter.value ||
-      (filter.value === "running" && !canStart(tunnel.status)) ||
-      (filter.value === "stopped" && canStart(tunnel.status)) ||
-      (filter.value === "favorite" && tunnel.favorite) ||
-      filter.value === "recent"
+      (filter.value === 'running' && !canStart(tunnel.status)) ||
+      (filter.value === 'stopped' && canStart(tunnel.status)) ||
+      (filter.value === 'favorite' && tunnel.favorite) ||
+      filter.value === 'recent'
     const matchesQuery =
       !keyword ||
-      [tunnel.name, tunnel.protocol, tunnel.projectName, tunnel.serverName, tunnel.publicAddr, ...tunnel.tags]
-        .join(" ")
+      [
+        tunnel.name,
+        tunnel.protocol,
+        tunnel.projectName,
+        tunnel.serverName,
+        tunnel.publicAddr,
+        ...tunnel.tags,
+      ]
+        .join(' ')
         .toLowerCase()
         .includes(keyword)
     return matchesFilter && matchesQuery
   })
 
   const sorted = [...filtered].sort((a, b) => {
-    const modifier = direction.value === "asc" ? 1 : -1
-    if (sortBy.value === "name") return a.name.localeCompare(b.name) * modifier
-    if (sortBy.value === "status") return (statusOrder(a.status) - statusOrder(b.status)) * modifier
-    if (sortBy.value === "traffic") {
+    const modifier = direction.value === 'asc' ? 1 : -1
+    if (sortBy.value === 'name') return a.name.localeCompare(b.name) * modifier
+    if (sortBy.value === 'status') return (statusOrder(a.status) - statusOrder(b.status)) * modifier
+    if (sortBy.value === 'traffic') {
       return (trafficTotal(a) - trafficTotal(b)) * modifier
     }
-    if (sortBy.value === "connections") {
+    if (sortBy.value === 'connections') {
       return (a.statistics.connections - b.statistics.connections) * modifier
     }
     return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * modifier
   })
 
-  return filter.value === "recent" ? sorted.slice(0, 10) : sorted
+  return filter.value === 'recent' ? sorted.slice(0, 10) : sorted
 })
 
 const selectedTunnel = computed(() => (selectedId.value ? getById(selectedId.value) : undefined))
@@ -466,19 +398,27 @@ watch(
 watch(
   () => serverStore.status,
   (status) => {
-    if (status === "idle") {
+    if (status === 'idle') {
       void serverStore.load()
     }
   },
   { immediate: true },
 )
 
+onMounted(() => {
+  if (projectStore.status === 'idle') {
+    void projectStore.load()
+  }
+})
+
 watch(
   () => route.query.create,
   (value) => {
-    if (value === "1") {
-      openCreate()
-      void router.replace({ path: "/tunnels" })
+    if (value === '1') {
+      requestedProjectId.value =
+        typeof route.query.projectId === 'string' ? route.query.projectId : ''
+      void openCreate()
+      void router.replace({ path: '/tunnels' })
     }
   },
   { immediate: true },
@@ -488,10 +428,15 @@ function selectTunnel(id: string) {
   selectedId.value = id
 }
 
-function openCreate() {
+async function openCreate() {
+  if (!projectStore.projects.length) {
+    const shouldContinue = await promptForProject()
+    if (!shouldContinue) return
+  }
+
   if (!serverNames.value.length) {
-    toast.warning("请先添加并连接服务器，然后再创建 Tunnel。")
-    void router.push("/servers")
+    toast.warning(t('tunnel.notifications.needServer'))
+    void router.push('/servers')
     return
   }
   wizardVisible.value = true
@@ -500,20 +445,46 @@ function openCreate() {
 async function handleCreate(form: TunnelFormData) {
   try {
     const created = await create(form)
+    if (form.projectId) {
+      await projectStore.addTunnel(form.projectId, created.id)
+    }
+    requestedProjectId.value = ''
     selectedId.value = created.id
-    toast.success(`Tunnel「${created.name}」已保存`)
+    toast.success(t('tunnel.notifications.saved', { name: created.name }))
   } catch (err) {
-    notify.error("Tunnel 创建失败", errorMessage(err), 10000)
+    notify.error(t('tunnel.notifications.createFailed'), errorMessage(err), 10000)
   }
+}
+
+function promptForProject() {
+  return new Promise<boolean>((resolve) => {
+    confirm({
+      title: t('tunnel.notifications.createProject'),
+      content: t('tunnel.notifications.noProjectPrompt'),
+      confirmText: t('tunnel.notifications.createDefaultProject'),
+      cancelText: t('tunnel.notifications.later'),
+      onConfirm: async () => {
+        try {
+          await projectStore.createDefaultProject()
+          toast.success(t('tunnel.notifications.defaultProjectCreated'))
+          resolve(true)
+        } catch (err) {
+          notify.error(t('tunnel.notifications.defaultProjectFailed'), errorMessage(err), 10000)
+          resolve(false)
+        }
+      },
+      onCancel: () => resolve(true),
+    })
+  })
 }
 
 async function startSelected() {
   if (!selectedTunnel.value) return
   try {
     await start(selectedTunnel.value.id)
-    toast.success(`Tunnel「${selectedTunnel.value.name}」已启动`)
+    toast.success(t('tunnel.notifications.started', { name: selectedTunnel.value.name }))
   } catch (err) {
-    notify.error("Tunnel 启动失败", errorMessage(err), 12000)
+    notify.error(t('tunnel.notifications.startFailed'), errorMessage(err), 12000)
   }
 }
 
@@ -521,15 +492,15 @@ function stopSelected() {
   const tunnel = selectedTunnel.value
   if (!tunnel) return
   confirm({
-    title: "停止 Tunnel",
-    content: `停止「${tunnel.name}」后，公网访问会立即中断。`,
-    confirmText: "停止",
+    title: t('tunnel.notifications.stopTitle'),
+    content: t('tunnel.notifications.stopContent', { name: tunnel.name }),
+    confirmText: t('tunnel.stop'),
     onConfirm: async () => {
       try {
         await stop(tunnel.id)
-        toast.warning(`Tunnel「${tunnel.name}」已停止`)
+        toast.warning(t('tunnel.notifications.stopped', { name: tunnel.name }))
       } catch (err) {
-        notify.error("Tunnel 停止失败", errorMessage(err), 10000)
+        notify.error(t('tunnel.notifications.stopFailed'), errorMessage(err), 10000)
       }
     },
   })
@@ -539,45 +510,36 @@ function deleteSelected() {
   const tunnel = selectedTunnel.value
   if (!tunnel) return
   confirmDanger({
-    title: "删除 Tunnel",
-    content: `删除「${tunnel.name}」后，该配置会从列表中移除。`,
-    confirmText: "删除",
+    title: t('tunnel.notifications.deleteTitle'),
+    content: t('tunnel.notifications.deleteContent', { name: tunnel.name }),
+    confirmText: t('common.delete'),
     onConfirm: async () => {
       try {
         await remove(tunnel.id)
         selectedId.value = finalTunnels.value[0]?.id ?? null
-        toast.success(`Tunnel「${tunnel.name}」已删除`)
+        toast.success(t('tunnel.notifications.deleted', { name: tunnel.name }))
       } catch (err) {
-        notify.error("Tunnel 删除失败", errorMessage(err), 10000)
+        notify.error(t('tunnel.notifications.deleteFailed'), errorMessage(err), 10000)
       }
     },
   })
 }
 
 function canStart(status: TunnelStatus) {
-  return status === "stopped" || status === "offline" || status === "error" || status === "disconnected"
+  return (
+    status === 'stopped' || status === 'offline' || status === 'error' || status === 'disconnected'
+  )
 }
 
 function statusTone(status: TunnelStatus) {
-  if (status === "running") return "online"
-  if (status === "error" || status === "disconnected") return "error"
-  if (status === "stopped" || status === "offline") return "offline"
-  return "warning"
+  if (status === 'running') return 'online'
+  if (status === 'error' || status === 'disconnected') return 'error'
+  if (status === 'stopped' || status === 'offline') return 'offline'
+  return 'warning'
 }
 
 function statusLabel(status: TunnelStatus) {
-  const labels: Record<TunnelStatus, string> = {
-    running: "运行中",
-    stopped: "已停止",
-    starting: "启动中",
-    stopping: "停止中",
-    restarting: "重启中",
-    error: "异常",
-    disconnected: "已断开",
-    connecting: "连接中",
-    offline: "离线",
-  }
-  return labels[status]
+  return t(`tunnel.statusLabels.${status}`)
 }
 
 function statusOrder(status: TunnelStatus) {
@@ -600,37 +562,37 @@ function trafficTotal(tunnel: Tunnel) {
 }
 
 function testUrl(tunnel: Tunnel): string {
-  if (tunnel.protocol === "http") return `http://127.0.0.1:${tunnel.remotePort}/`
-  if (tunnel.protocol === "https") return `https://127.0.0.1:${tunnel.remotePort}/`
+  if (tunnel.protocol === 'http') return `http://127.0.0.1:${tunnel.remotePort}/`
+  if (tunnel.protocol === 'https') return `https://127.0.0.1:${tunnel.remotePort}/`
   return `127.0.0.1:${tunnel.remotePort}`
 }
 
 function canOpenTestUrl(tunnel: Tunnel): boolean {
-  return tunnel.protocol === "http" || tunnel.protocol === "https"
+  return tunnel.protocol === 'http' || tunnel.protocol === 'https'
 }
 
 async function copyTestUrl(tunnel: Tunnel) {
   await navigator.clipboard.writeText(testUrl(tunnel))
-  toast.success("测试地址已复制")
+  toast.success(t('tunnel.notifications.testUrlCopied'))
 }
 
 function openTestUrl(tunnel: Tunnel) {
-  window.open(testUrl(tunnel), "_blank", "noopener,noreferrer")
+  window.open(testUrl(tunnel), '_blank', 'noopener,noreferrer')
 }
 
 function errorMessage(err: unknown): string {
-  if (typeof err === "string") return err
+  if (typeof err === 'string') return err
   if (err instanceof Error && err.message) return err.message
-  if (err && typeof err === "object" && "message" in err) {
+  if (err && typeof err === 'object' && 'message' in err) {
     const message = (err as { message?: unknown }).message
-    if (typeof message === "string" && message.trim()) return message
+    if (typeof message === 'string' && message.trim()) return message
   }
-  return "请检查服务器连接、本地服务端口和 Tunnel 配置。"
+  return t('tunnel.notifications.configCheck')
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B"
-  const units = ["B", "KB", "MB", "GB", "TB"]
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
   const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
   const value = bytes / 1024 ** index
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
@@ -641,7 +603,7 @@ function formatSpeed(bytesPerSecond: number): string {
 }
 
 function formatDuration(seconds: number): string {
-  if (seconds <= 0) return "-"
+  if (seconds <= 0) return '-'
   const day = Math.floor(seconds / 86400)
   const hour = Math.floor((seconds % 86400) / 3600)
   const minute = Math.floor((seconds % 3600) / 60)
@@ -651,10 +613,10 @@ function formatDuration(seconds: number): string {
 }
 
 function formatLogTime(timestamp: number): string {
-  return new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   }).format(timestamp)
 }
 </script>
@@ -827,10 +789,22 @@ function formatLogTime(timestamp: number): string {
   background: var(--status-offline);
 }
 
-.is-online { background: var(--status-online); color: var(--status-online); }
-.is-warning { background: var(--status-warning); color: var(--status-warning); }
-.is-error { background: var(--status-error); color: var(--status-error); }
-.is-offline { background: var(--status-offline); color: var(--status-offline); }
+.is-online {
+  background: var(--status-online);
+  color: var(--status-online);
+}
+.is-warning {
+  background: var(--status-warning);
+  color: var(--status-warning);
+}
+.is-error {
+  background: var(--status-error);
+  color: var(--status-error);
+}
+.is-offline {
+  background: var(--status-offline);
+  color: var(--status-offline);
+}
 
 .tunnel-row__main {
   min-width: 0;
@@ -1139,10 +1113,18 @@ function formatLogTime(timestamp: number): string {
 }
 
 .mini-log-list span.is-info,
-.mini-log-list span.is-success { color: var(--color-info); }
-.mini-log-list span.is-warn { color: var(--color-warning); }
-.mini-log-list span.is-error { color: var(--color-error); }
-.mini-log-list span.is-debug { color: var(--text-tertiary); }
+.mini-log-list span.is-success {
+  color: var(--color-info);
+}
+.mini-log-list span.is-warn {
+  color: var(--color-warning);
+}
+.mini-log-list span.is-error {
+  color: var(--color-error);
+}
+.mini-log-list span.is-debug {
+  color: var(--text-tertiary);
+}
 
 .mini-log-list p {
   min-width: 0;

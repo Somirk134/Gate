@@ -1,4 +1,4 @@
-import type { Disposable } from "@/utils/disposable"
+import type { Disposable } from '@/utils/disposable'
 
 export interface ServiceToken<T> {
   readonly id: symbol
@@ -103,7 +103,7 @@ export class ServiceRegistry implements Disposable {
     const instances = Array.from(this.entries.values())
       .map((entry) => entry.instance)
       .filter((instance): instance is Disposable => {
-        return Boolean(instance && typeof (instance as Disposable).dispose === "function")
+        return Boolean(instance && typeof (instance as Disposable).dispose === 'function')
       })
 
     for (const instance of instances.reverse()) {

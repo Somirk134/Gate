@@ -1,72 +1,146 @@
 /* Gate motion system. Keep transitions subtle, fast, and consistent. */
 @keyframes g-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes g-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes g-slide-in-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes g-slide-in-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes g-slide-in-right {
-  from { opacity: 0; transform: translateX(18px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes g-scale-in {
-  from { opacity: 0; transform: scale(0.97) translateY(6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes g-dialog-in {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes g-toast-in {
-  from { opacity: 0; transform: translateX(18px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes g-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes g-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.42; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
 }
 
 @keyframes g-ping {
-  0% { opacity: 0.8; transform: scale(1); }
-  100% { opacity: 0; transform: scale(2.1); }
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
 }
 
 @keyframes g-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
-.g-anim-fade-in { animation: g-fade-in var(--duration-base) var(--ease-out) both; }
-.g-anim-slide-up { animation: g-slide-in-up var(--duration-base) var(--ease-out) both; }
-.g-anim-slide-down { animation: g-slide-in-down var(--duration-base) var(--ease-out) both; }
-.g-anim-scale-in { animation: g-scale-in var(--duration-base) var(--ease-spring) both; }
-.g-anim-spin { animation: g-spin 700ms var(--ease-linear) infinite; }
-.g-anim-pulse { animation: g-pulse 1.5s var(--ease-in-out) infinite; }
+.g-anim-fade-in {
+  animation: g-fade-in var(--duration-base) var(--ease-out) both;
+}
+.g-anim-slide-up {
+  animation: g-slide-in-up var(--duration-base) var(--ease-out) both;
+}
+.g-anim-slide-down {
+  animation: g-slide-in-down var(--duration-base) var(--ease-out) both;
+}
+.g-anim-scale-in {
+  animation: g-scale-in var(--duration-base) var(--ease-spring) both;
+}
+.g-anim-spin {
+  animation: g-spin 700ms var(--ease-linear) infinite;
+}
+.g-anim-pulse {
+  animation: g-pulse 1.5s var(--ease-in-out) infinite;
+}
 
 .g-transition {
-  transition: background-color var(--transition-fast),
+  transition:
+    background-color var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast),
     box-shadow var(--transition-fast),
@@ -75,7 +149,8 @@
 }
 
 .g-transition-colors {
-  transition: background-color var(--transition-fast),
+  transition:
+    background-color var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast);
 }
@@ -88,7 +163,8 @@
 .g-page-leave-active,
 .page-enter-active,
 .page-leave-active {
-  transition: opacity var(--duration-base) var(--ease-out),
+  transition:
+    opacity var(--duration-base) var(--ease-out),
     transform var(--duration-base) var(--ease-out);
 }
 

@@ -7,25 +7,26 @@
 <template>
   <GStatusBadge
     :status="config.dotStatus"
-    :label="label ?? config.label"
-    :size="size"
-  />
+    :label="label ?? t(`tunnel.statusLabels.${status}`)"
+    :size="size" />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import type { TunnelStatus } from "../types"
-import { TUNNEL_STATUS_CONFIG } from "../utils"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import type { TunnelStatus } from '../types'
+import { TUNNEL_STATUS_CONFIG } from '../utils'
 
 const props = withDefaults(
   defineProps<{
     status: TunnelStatus
     label?: string
-    size?: "sm" | "md"
+    size?: 'sm' | 'md'
   }>(),
-  { size: "md" },
+  { size: 'md' },
 )
 
+const { t } = useI18n()
 const config = computed(() => TUNNEL_STATUS_CONFIG[props.status])
 </script>

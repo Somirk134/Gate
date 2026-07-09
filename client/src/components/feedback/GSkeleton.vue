@@ -16,30 +16,32 @@
         v-for="i in rows"
         :key="i"
         class="g-skeleton g-skeleton--text"
-        :style="{ width: i === rows && rows > 1 ? '60%' : width, height: height ?? '12px', borderRadius: '2px' }"
-      />
+        :style="{
+          width: i === rows && rows > 1 ? '60%' : width,
+          height: height ?? '12px',
+          borderRadius: '2px',
+        }" />
     </template>
     <div
       v-else
       class="g-skeleton"
       :class="`g-skeleton--${variant}`"
-      :style="{ width, height, borderRadius: rounded }"
-    />
+      :style="{ width, height, borderRadius: rounded }" />
   </div>
 </template>
 
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: "text" | "rect" | "circle"
+    variant?: 'text' | 'rect' | 'circle'
     width?: string
     height?: string
     rows?: number
     rounded?: string
   }>(),
   {
-    variant: "rect",
-    width: "100%",
+    variant: 'rect',
+    width: '100%',
     rows: 1,
   },
 )

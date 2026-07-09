@@ -2,130 +2,92 @@
   <section class="http-page">
     <header class="http-page__header">
       <div>
-        <p>HTTP Tunnel</p>
-        <h1>HTTP routes</h1>
-        <span>{{ httpTunnels.length }} route(s) · {{ totalRequests }} request(s)</span>
+        <p>HTTP 隧道</p>
+        <h1>HTTP 路由</h1>
+        <span>{{ httpTunnels.length }} 条路由 · {{ totalRequests }} 次请求</span>
       </div>
       <div class="http-page__actions">
-        <GButton
-          variant="secondary"
-          icon="refresh"
-          :loading="loading"
-          @click="refresh"
-        >
-          Refresh
+        <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
+          刷新
         </GButton>
-        <GButton
-          variant="primary"
-          icon="plus"
-          @click="router.push('/tunnels?create=1')"
-        >
-          Create
+        <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
+          创建
         </GButton>
       </div>
     </header>
 
     <div class="http-summary">
       <article>
-        <span>Requests</span>
+        <span>请求数</span>
         <strong>{{ totalRequests }}</strong>
       </article>
       <article>
-        <span>Success rate</span>
+        <span>成功率</span>
         <strong>{{ formatPercent(averageSuccessRate) }}</strong>
       </article>
       <article>
-        <span>Average response</span>
+        <span>平均响应</span>
         <strong>{{ Math.round(averageLatency) }}ms</strong>
       </article>
       <article>
-        <span>Traffic</span>
+        <span>流量</span>
         <strong>{{ formatSpeed(totalSpeed) }}</strong>
       </article>
     </div>
 
-    <div
-      v-if="!httpTunnels.length"
-      class="http-empty"
-    >
-      <GIcon
-        name="globe"
-        :size="32"
-      />
-      <strong>No HTTP tunnels</strong>
-      <span>Create a tunnel with protocol HTTP to start routing by Host and Path.</span>
+    <div v-if="!httpTunnels.length" class="http-empty">
+      <GIcon name="globe" :size="32" />
+      <strong>暂无 HTTP 隧道</strong>
+      <span>创建 HTTP 协议隧道后，即可按 Host 和 Path 转发。</span>
     </div>
 
-    <div
-      v-else
-      class="http-layout"
-    >
-      <section
-        class="http-route-list"
-        aria-label="HTTP tunnel routes"
-      >
-        <article
-          v-for="tunnel in httpTunnels"
-          :key="tunnel.id"
-          class="http-route"
-        >
+    <div v-else class="http-layout">
+      <section class="http-route-list" aria-label="HTTP 隧道路由">
+        <article v-for="tunnel in httpTunnels" :key="tunnel.id" class="http-route">
           <div class="http-route__title">
             <span :class="`is-${statusTone(tunnel.status)}`" />
             <div>
               <strong>{{ tunnel.name }}</strong>
-              <small>{{ tunnel.localHost ?? "127.0.0.1" }}:{{ tunnel.localPort ?? "-" }}</small>
+              <small>{{ tunnel.localHost ?? '127.0.0.1' }}:{{ tunnel.localPort ?? '-' }}</small>
             </div>
           </div>
 
           <dl>
             <div>
-              <dt>Host</dt>
-              <dd>{{ tunnel.host || "any" }}</dd>
+              <dt>主机</dt>
+              <dd>{{ tunnel.host || '任意' }}</dd>
             </div>
             <div>
-              <dt>Path</dt>
-              <dd>{{ tunnel.path || "/" }}</dd>
+              <dt>路径</dt>
+              <dd>{{ tunnel.path || '/' }}</dd>
             </div>
             <div>
-              <dt>Requests</dt>
+              <dt>请求数</dt>
               <dd>{{ tunnel.requestCount ?? 0 }}</dd>
             </div>
             <div>
-              <dt>Success</dt>
+              <dt>成功率</dt>
               <dd>{{ formatPercent(tunnel.successRate ?? 0) }}</dd>
             </div>
             <div>
-              <dt>Avg response</dt>
+              <dt>平均响应</dt>
               <dd>{{ Math.round(tunnel.averageResponseTimeMs ?? 0) }}ms</dd>
             </div>
           </dl>
         </article>
       </section>
 
-      <section
-        class="http-recent"
-        aria-label="Recent HTTP requests"
-      >
+      <section class="http-recent" aria-label="最近 HTTP 请求">
         <div class="http-recent__heading">
           <div>
-            <p>Recent requests</p>
-            <h2>Live log</h2>
+            <p>最近请求</p>
+            <h2>实时日志</h2>
           </div>
-          <GIcon
-            name="logs"
-            :size="18"
-          />
+          <GIcon name="logs" :size="18" />
         </div>
 
-        <div
-          v-if="recentRequests.length"
-          class="request-table"
-        >
-          <article
-            v-for="request in recentRequests"
-            :key="request.key"
-            class="request-row"
-          >
+        <div v-if="recentRequests.length" class="request-table">
+          <article v-for="request in recentRequests" :key="request.key" class="request-row">
             <span>{{ request.method }}</span>
             <p>{{ request.host }}{{ request.url }}</p>
             <strong :class="{ failed: request.status >= 400 }">{{ request.status }}</strong>
@@ -133,41 +95,32 @@
           </article>
         </div>
 
-        <div
-          v-else
-          class="http-empty http-empty--compact"
-        >
-          <GIcon
-            name="activity"
-            :size="24"
-          />
-          <span>Waiting for HTTP traffic</span>
+        <div v-else class="http-empty http-empty--compact">
+          <GIcon name="activity" :size="24" />
+          <span>等待 HTTP 流量</span>
         </div>
       </section>
     </div>
 
-    <p
-      v-if="error"
-      class="http-error"
-    >
+    <p v-if="error" class="http-error">
       {{ error }}
     </p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { useRouter } from "vue-router"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import { useMonitoringDashboard } from "@/monitoring/composables/useMonitoringDashboard"
-import type { DashboardTunnel, HttpRequestRecord } from "@/monitoring/types"
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+import type { DashboardTunnel, HttpRequestRecord } from '@/monitoring/types'
 
 const router = useRouter()
 const { dashboard, loading, error, refresh } = useMonitoringDashboard()
 
 const httpTunnels = computed(() =>
-  dashboard.value.tunnels.filter((tunnel) => tunnel.protocol === "http"),
+  dashboard.value.tunnels.filter((tunnel) => tunnel.protocol === 'http'),
 )
 
 const totalRequests = computed(() =>
@@ -182,7 +135,10 @@ const averageSuccessRate = computed(() => {
 
 const averageLatency = computed(() => {
   if (!httpTunnels.value.length) return 0
-  const total = httpTunnels.value.reduce((sum, tunnel) => sum + (tunnel.averageResponseTimeMs ?? 0), 0)
+  const total = httpTunnels.value.reduce(
+    (sum, tunnel) => sum + (tunnel.averageResponseTimeMs ?? 0),
+    0,
+  )
   return total / httpTunnels.value.length
 })
 
@@ -209,10 +165,10 @@ function mapRequest(tunnel: DashboardTunnel, request: HttpRequestRecord) {
   }
 }
 
-function statusTone(status: DashboardTunnel["status"]) {
-  if (status === "running") return "online"
-  if (status === "warning") return "warning"
-  return "offline"
+function statusTone(status: DashboardTunnel['status']) {
+  if (status === 'running') return 'online'
+  if (status === 'warning') return 'warning'
+  return 'offline'
 }
 
 function formatPercent(value: number): string {
@@ -220,8 +176,8 @@ function formatPercent(value: number): string {
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B"
-  const units = ["B", "KB", "MB", "GB", "TB"]
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
   const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
   const value = bytes / 1024 ** index
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
@@ -458,9 +414,15 @@ function formatSpeed(bytesPerSecond: number): string {
   color: var(--color-error);
 }
 
-.is-online { background: var(--status-online) !important; }
-.is-warning { background: var(--status-warning) !important; }
-.is-offline { background: var(--status-offline) !important; }
+.is-online {
+  background: var(--status-online) !important;
+}
+.is-warning {
+  background: var(--status-warning) !important;
+}
+.is-offline {
+  background: var(--status-offline) !important;
+}
 
 @media (max-width: 980px) {
   .http-summary,

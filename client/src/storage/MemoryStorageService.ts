@@ -1,4 +1,4 @@
-import type { StorageOptions, StorageService } from "./StorageService"
+import type { StorageOptions, StorageService } from './StorageService'
 
 interface MemoryRecord<T> {
   value: T
@@ -35,7 +35,7 @@ export class MemoryStorageService implements StorageService {
     this.records.delete(this.toStorageKey(key, options.namespace))
   }
 
-  clear(namespace = "memory") {
+  clear(namespace = 'memory') {
     const prefix = `${namespace}:`
 
     for (const key of this.records.keys()) {
@@ -45,7 +45,7 @@ export class MemoryStorageService implements StorageService {
     }
   }
 
-  keys(namespace = "memory") {
+  keys(namespace = 'memory') {
     const prefix = `${namespace}:`
 
     return Array.from(this.records.keys())
@@ -53,7 +53,7 @@ export class MemoryStorageService implements StorageService {
       .map((key) => key.slice(prefix.length))
   }
 
-  private toStorageKey(key: string, namespace = "memory") {
+  private toStorageKey(key: string, namespace = 'memory') {
     return `${namespace}:${key}`
   }
 }

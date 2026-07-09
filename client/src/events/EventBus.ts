@@ -5,7 +5,7 @@ import type {
   EventPayload,
   SubscribeOptions,
   Unsubscribe,
-} from "./types"
+} from './types'
 
 interface Listener<TPayload = EventPayload> {
   id: number
@@ -39,7 +39,7 @@ export class EventBus<TEvents extends object = Record<string, EventPayload>> {
 
     const unsubscribe = () => this.unsubscribe(name, listener.id)
 
-    options.signal?.addEventListener("abort", unsubscribe, { once: true })
+    options.signal?.addEventListener('abort', unsubscribe, { once: true })
 
     return unsubscribe
   }

@@ -1,11 +1,11 @@
-import type { EventBus } from "@/events/EventBus"
-import type { StorageService } from "@/storage/StorageService"
-import type { AppEventMap } from "@/types/application"
-import type { Disposable } from "@/utils/disposable"
+import type { EventBus } from '@/events/EventBus'
+import type { StorageOptions, StorageService } from '@/storage/StorageService'
+import type { AppEventMap } from '@/types/application'
+import type { Disposable } from '@/utils/disposable'
 
 export interface AppConfiguration {
   appearance: {
-    theme: "dark" | "light" | "auto"
+    theme: 'dark' | 'light' | 'auto'
   }
   locale: string
   shortcuts: Record<string, string>
@@ -20,10 +20,7 @@ export interface AppConfiguration {
   }
 }
 
-export type ConfigurationWatcher = (
-  value: unknown,
-  previousValue: unknown,
-) => void | Promise<void>
+export type ConfigurationWatcher = (value: unknown, previousValue: unknown) => void | Promise<void>
 
 export interface ConfigurationService {
   readonly defaults: AppConfiguration
@@ -36,18 +33,52 @@ export interface ConfigurationService {
 
 export const defaultConfiguration: AppConfiguration = {
   appearance: {
-    theme: "dark",
+    theme: 'dark',
   },
-  locale: "zh-CN",
+  locale: 'zh-CN',
   shortcuts: {
-    "app.commandPalette.toggle": "Ctrl+K",
-    "project.create": "Ctrl+N",
-    "project.quickOpen": "Ctrl+P",
-    "settings.open": "Ctrl+,",
+    'app.commandPalette.toggle': 'Ctrl+K',
+    'project.create': 'Ctrl+N',
+    'project.quickOpen': 'Ctrl+P',
+    'settings.open': 'Ctrl+,',
   },
   window: {
-    title: "Gate",
+    title: 'Gate',
   },
+}
+
+const configurationStorageOptions: StorageOptions<AppConfiguration> = {
+  namespace: 'configuration',
+  version: 2,
+  cache: true,
+  migrations: [
+    {
+      fromVersion: 1,
+      toVersion: 2,
+      migrate(value) {
+        return {
+          ...defaultConfiguration,
+          ...value,
+          appearance: {
+            ...defaultConfiguration.appearance,
+            ...value.appearance,
+          },
+          shortcuts: {
+            ...defaultConfiguration.shortcuts,
+            ...value.shortcuts,
+          },
+          window: {
+            ...defaultConfiguration.window,
+            ...value.window,
+          },
+          locale:
+            value.locale === 'en'
+              ? defaultConfiguration.locale
+              : value.locale || defaultConfiguration.locale,
+        }
+      },
+    },
+  ],
 }
 
 export class DefaultConfigurationService implements ConfigurationService {
@@ -60,11 +91,9 @@ export class DefaultConfigurationService implements ConfigurationService {
     private readonly storage: StorageService,
     private readonly events: EventBus<AppEventMap>,
   ) {
-    this.config = this.storage.get<AppConfiguration>("app", {
-      namespace: "configuration",
-      version: 1,
-      cache: true,
-    }) ?? this.clone(defaultConfiguration)
+    this.config =
+      this.storage.get<AppConfiguration>('app', configurationStorageOptions) ??
+      this.clone(defaultConfiguration)
   }
 
   get<T = unknown>(key: string): T | undefined {
@@ -95,7 +124,7 @@ export class DefaultConfigurationService implements ConfigurationService {
       const previousValue = this.config
       this.config = this.clone(defaultConfiguration)
       this.persist()
-      this.notify("*", this.config, previousValue)
+      this.notify('*', this.config, previousValue)
       return
     }
 
@@ -108,22 +137,18 @@ export class DefaultConfigurationService implements ConfigurationService {
   }
 
   private persist() {
-    this.storage.set("app", this.config, {
-      namespace: "configuration",
-      version: 1,
-      cache: true,
-    })
+    this.storage.set('app', this.config, configurationStorageOptions)
   }
 
   private notify(key: string, value: unknown, previousValue: unknown) {
     const exactWatchers = this.watchers.get(key) ?? new Set<ConfigurationWatcher>()
-    const globalWatchers = this.watchers.get("*") ?? new Set<ConfigurationWatcher>()
+    const globalWatchers = this.watchers.get('*') ?? new Set<ConfigurationWatcher>()
 
     for (const watcher of [...exactWatchers, ...globalWatchers]) {
       void watcher(value, previousValue)
     }
 
-    void this.events.publish("configuration:changed", {
+    void this.events.publish('configuration:changed', {
       key,
       value,
       previousValue,
@@ -131,11 +156,11 @@ export class DefaultConfigurationService implements ConfigurationService {
   }
 
   private readPath(source: unknown, key: string): unknown {
-    if (key === "*") {
+    if (key === '*') {
       return source
     }
 
-    return key.split(".").reduce<unknown>((current, segment) => {
+    return key.split('.').reduce<unknown>((current, segment) => {
       if (!this.isRecord(current)) {
         return undefined
       }
@@ -146,7 +171,7 @@ export class DefaultConfigurationService implements ConfigurationService {
 
   private writePath<T>(source: AppConfiguration, key: string, value: T): AppConfiguration {
     const next = this.clone(source) as unknown as Record<string, unknown>
-    const segments = key.split(".")
+    const segments = key.split('.')
     let cursor: Record<string, unknown> = next
 
     for (const segment of segments.slice(0, -1)) {
@@ -165,6 +190,6 @@ export class DefaultConfigurationService implements ConfigurationService {
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value && typeof value === "object" && !Array.isArray(value))
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
   }
 }

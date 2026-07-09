@@ -4,25 +4,19 @@
    从服务器集合派生汇总统计，供工具栏 / 概览 / Dashboard 复用。
    ================================================================== */
 
-import { computed, type Ref } from "vue"
-import type { Server } from "../types"
-import { isOnlineStatus } from "../utils"
+import { computed, type Ref } from 'vue'
+import type { Server } from '../types'
+import { isOnlineStatus } from '../utils'
 
 export function useServerStatistics(servers: Ref<Server[]>) {
   const total = computed(() => servers.value.length)
-  const online = computed(() =>
-    servers.value.filter((s) => isOnlineStatus(s.status)),
-  )
+  const online = computed(() => servers.value.filter((s) => isOnlineStatus(s.status)))
   const offline = computed(() =>
-    servers.value.filter(
-      (s) => s.status === "offline" || s.status === "disconnected",
-    ),
+    servers.value.filter((s) => s.status === 'offline' || s.status === 'disconnected'),
   )
-  const errorCount = computed(() =>
-    servers.value.filter((s) => s.status === "error").length,
-  )
+  const errorCount = computed(() => servers.value.filter((s) => s.status === 'error').length)
   const unhealthyCount = computed(
-    () => servers.value.filter((s) => s.health.overall !== "healthy").length,
+    () => servers.value.filter((s) => s.health.overall !== 'healthy').length,
   )
 
   const onlineCount = computed(() => online.value.length)
@@ -38,10 +32,7 @@ export function useServerStatistics(servers: Ref<Server[]>) {
     servers.value.reduce((sum, s) => sum + s.monitor.connections.active, 0),
   )
   const totalTraffic = computed(() =>
-    servers.value.reduce(
-      (sum, s) => sum + s.traffic.totalUpload + s.traffic.totalDownload,
-      0,
-    ),
+    servers.value.reduce((sum, s) => sum + s.traffic.totalUpload + s.traffic.totalDownload, 0),
   )
   const totalUploadSpeed = computed(() =>
     servers.value.reduce((sum, s) => sum + s.traffic.uploadSpeed, 0),
@@ -57,8 +48,7 @@ export function useServerStatistics(servers: Ref<Server[]>) {
   const avgHealth = computed(() => {
     if (servers.value.length === 0) return 0
     return Math.round(
-      servers.value.reduce((sum, s) => sum + s.health.score, 0) /
-        servers.value.length,
+      servers.value.reduce((sum, s) => sum + s.health.score, 0) / servers.value.length,
     )
   })
 
@@ -77,9 +67,9 @@ export function useServerStatistics(servers: Ref<Server[]>) {
 
   /** 状态分布 */
   const statusDistribution = computed(() => [
-    { key: "online", label: "在线", value: onlineCount.value, color: "#22C55E" },
-    { key: "offline", label: "离线", value: offlineCount.value, color: "#6B6B72" },
-    { key: "error", label: "异常", value: errorCount.value, color: "#EF4444" },
+    { key: 'online', label: '在线', value: onlineCount.value, color: '#22C55E' },
+    { key: 'offline', label: '离线', value: offlineCount.value, color: '#6B6B72' },
+    { key: 'error', label: '异常', value: errorCount.value, color: '#EF4444' },
   ])
 
   return {

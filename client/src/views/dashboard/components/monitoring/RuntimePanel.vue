@@ -1,20 +1,10 @@
 <template>
-  <DashboardWidget
-    title="Runtime Status"
-    icon="circuit-board"
-  >
+  <DashboardWidget title="运行时状态" icon="circuit-board">
     <div class="runtime-panel">
-      <div
-        v-for="item in items"
-        :key="item.label"
-        class="runtime-panel__row"
-      >
+      <div v-for="item in items" :key="item.label" class="runtime-panel__row">
         <span>{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
-        <div
-          class="runtime-panel__bar"
-          :aria-label="item.label"
-        >
+        <div class="runtime-panel__bar" :aria-label="item.label">
           <i :style="{ width: `${item.percent}%` }" />
         </div>
       </div>
@@ -23,20 +13,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import DashboardWidget from "./DashboardWidget.vue"
-import type { RuntimeStatistics } from "@/monitoring/types"
+import { computed } from 'vue'
+import DashboardWidget from './DashboardWidget.vue'
+import type { RuntimeStatistics } from '@/monitoring/types'
 
 const props = defineProps<{
   runtime: RuntimeStatistics
 }>()
 
 const items = computed(() => [
-  { label: "Running Task", value: props.runtime.runningTask, percent: Math.min(100, props.runtime.runningTask) },
-  { label: "Worker Count", value: props.runtime.workerCount, percent: Math.min(100, props.runtime.workerCount * 8) },
-  { label: "Scheduler Queue", value: props.runtime.schedulerQueue, percent: Math.min(100, props.runtime.schedulerQueue * 2) },
-  { label: "Buffer Usage", value: `${props.runtime.bufferUsage.toFixed(0)}%`, percent: props.runtime.bufferUsage },
-  { label: "Session Count", value: props.runtime.sessionCount, percent: Math.min(100, props.runtime.sessionCount * 1.6) },
+  {
+    label: '运行任务',
+    value: props.runtime.runningTask,
+    percent: Math.min(100, props.runtime.runningTask),
+  },
+  {
+    label: '工作线程',
+    value: props.runtime.workerCount,
+    percent: Math.min(100, props.runtime.workerCount * 8),
+  },
+  {
+    label: '调度队列',
+    value: props.runtime.schedulerQueue,
+    percent: Math.min(100, props.runtime.schedulerQueue * 2),
+  },
+  {
+    label: '缓冲区使用率',
+    value: `${props.runtime.bufferUsage.toFixed(0)}%`,
+    percent: props.runtime.bufferUsage,
+  },
+  {
+    label: '会话数量',
+    value: props.runtime.sessionCount,
+    percent: Math.min(100, props.runtime.sessionCount * 1.6),
+  },
 ])
 </script>
 

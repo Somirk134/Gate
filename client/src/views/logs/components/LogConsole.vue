@@ -1,40 +1,20 @@
 <template>
-  <main
-    ref="containerRef"
-    class="log-console"
-    @scroll="onScroll"
-  >
+  <main ref="containerRef" class="log-console" @scroll="onScroll">
     <div class="log-console__head">
-      <span>Time</span>
-      <span>Level</span>
-      <span>Source</span>
-      <span>Module</span>
-      <span>Message</span>
-      <span>TraceId</span>
-      <span>RequestId</span>
+      <span>{{ t('logs.columns.time') }}</span>
+      <span>{{ t('logs.columns.level') }}</span>
+      <span>{{ t('logs.columns.source') }}</span>
+      <span>{{ t('logs.columns.module') }}</span>
+      <span>{{ t('logs.columns.message') }}</span>
+      <span>{{ t('logs.columns.traceId') }}</span>
+      <span>{{ t('logs.columns.requestId') }}</span>
     </div>
 
-    <div
-      v-if="rows.length"
-      class="log-console__viewport"
-      :style="{ height: `${totalHeight}px` }"
-    >
-      <div
-        class="log-console__window"
-        :style="{ transform: `translateY(${offsetY}px)` }"
-      >
-        <template
-          v-for="row in visibleRows"
-          :key="row.key"
-        >
-          <div
-            v-if="row.kind === 'header'"
-            class="log-console__group"
-          >
-            <GIcon
-              :name="row.icon"
-              :size="13"
-            />
+    <div v-if="rows.length" class="log-console__viewport" :style="{ height: `${totalHeight}px` }">
+      <div class="log-console__window" :style="{ transform: `translateY(${offsetY}px)` }">
+        <template v-for="row in visibleRows" :key="row.key">
+          <div v-if="row.kind === 'header'" class="log-console__group">
+            <GIcon :name="row.icon" :size="13" />
             <span>{{ row.label }}</span>
             <strong>{{ row.count }}</strong>
           </div>
@@ -44,41 +24,35 @@
             :keyword="keyword"
             :active="selectedId === row.log.id"
             @select="$emit('select', $event)"
-            @contextmenu="$emit('contextmenu-log', $event, row.log)"
-          />
+            @contextmenu="$emit('contextmenu-log', $event, row.log)" />
         </template>
       </div>
     </div>
 
-    <div
-      v-else
-      class="log-console__empty-inline"
-    >
-      <GIcon
-        name="search"
-        :size="18"
-      />
-      <span>No matching logs</span>
+    <div v-else class="log-console__empty-inline">
+      <GIcon name="search" :size="18" />
+      <span>{{ t('logs.empty') }}</span>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import LogLine from "./LogLine.vue"
-import type { LogGroupBy, LogItem } from "../types"
-import { formatLogDate } from "../utils"
+import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import LogLine from './LogLine.vue'
+import type { LogGroupBy, LogItem } from '../types'
+import { formatLogDate } from '../utils'
 
 type HeaderRow = {
-  kind: "header"
+  kind: 'header'
   key: string
   label: string
   icon: string
   count: number
 }
 type ItemRow = {
-  kind: "item"
+  kind: 'item'
   key: string
   log: LogItem
 }
@@ -94,33 +68,34 @@ const props = withDefaults(
   }>(),
   {
     selectedId: null,
-    groupBy: "none",
+    groupBy: 'none',
     autoScroll: true,
   },
 )
 
 defineEmits<{
   select: [log: LogItem]
-  "contextmenu-log": [event: MouseEvent, log: LogItem]
+  'contextmenu-log': [event: MouseEvent, log: LogItem]
 }>()
 
 const rowHeight = 28
 const overscan = 12
+const { t } = useI18n()
 const containerRef = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
 const viewportHeight = ref(0)
 
 const rows = computed<ConsoleRow[]>(() => {
-  if (props.groupBy === "none") {
-    return props.logs.map((log) => ({ kind: "item", key: log.id, log }))
+  if (props.groupBy === 'none') {
+    return props.logs.map((log) => ({ kind: 'item', key: log.id, log }))
   }
 
   const grouped = new Map<string, LogItem[]>()
   for (const log of props.logs) {
     const key =
-      props.groupBy === "time"
+      props.groupBy === 'time'
         ? formatLogDate(log.timestamp)
-        : props.groupBy === "source"
+        : props.groupBy === 'source'
           ? log.source
           : log.level
     const list = grouped.get(key) ?? []
@@ -131,13 +106,14 @@ const rows = computed<ConsoleRow[]>(() => {
   const output: ConsoleRow[] = []
   for (const [label, items] of grouped.entries()) {
     output.push({
-      kind: "header",
+      kind: 'header',
       key: `header-${props.groupBy}-${label}`,
-      label,
-      icon: props.groupBy === "time" ? "calendar" : props.groupBy === "source" ? "layers" : "filter",
+      label: formatGroupLabel(label),
+      icon:
+        props.groupBy === 'time' ? 'calendar' : props.groupBy === 'source' ? 'layers' : 'filter',
       count: items.length,
     })
-    output.push(...items.map((log) => ({ kind: "item" as const, key: log.id, log })))
+    output.push(...items.map((log) => ({ kind: 'item' as const, key: log.id, log })))
   }
   return output
 })
@@ -145,10 +121,19 @@ const rows = computed<ConsoleRow[]>(() => {
 const totalHeight = computed(() => rows.value.length * rowHeight)
 const startIndex = computed(() => Math.max(0, Math.floor(scrollTop.value / rowHeight) - overscan))
 const endIndex = computed(() =>
-  Math.min(rows.value.length, Math.ceil((scrollTop.value + viewportHeight.value) / rowHeight) + overscan),
+  Math.min(
+    rows.value.length,
+    Math.ceil((scrollTop.value + viewportHeight.value) / rowHeight) + overscan,
+  ),
 )
 const visibleRows = computed(() => rows.value.slice(startIndex.value, endIndex.value))
 const offsetY = computed(() => startIndex.value * rowHeight)
+
+function formatGroupLabel(label: string): string {
+  if (props.groupBy === 'source') return t(`logs.source.${label.toLowerCase()}`)
+  if (props.groupBy === 'level') return t(`logs.level.${label.toLowerCase()}`)
+  return label
+}
 
 function onScroll() {
   if (!containerRef.value) return
@@ -181,7 +166,7 @@ watch(
     }
     clampScrollTop()
   },
-  { flush: "post" },
+  { flush: 'post' },
 )
 
 watch(containerRef, () => {

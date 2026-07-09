@@ -1,1 +1,1 @@
-export * from "./CacheManager"
+export * from './CacheManager'

@@ -14,31 +14,14 @@
   属业务卡片基类，可被 StatisticsCard 等复用。
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="md"
-  >
+  <GCard variant="plain" padding="md">
     <div class="g-stat-card">
       <div class="g-stat-card__head">
-        <span
-          class="g-stat-card__icon"
-          :class="`g-stat-card__icon--${variant}`"
-        >
-          <GIcon
-            v-if="icon"
-            :name="icon"
-            :size="18"
-          />
+        <span class="g-stat-card__icon" :class="`g-stat-card__icon--${variant}`">
+          <GIcon v-if="icon" :name="icon" :size="18" />
         </span>
-        <span
-          v-if="trend"
-          class="g-stat-card__trend"
-          :class="`g-stat-card__trend--${trendDir}`"
-        >
-          <GIcon
-            :name="trendDir === 'up' ? 'trending-up' : 'trending-down'"
-            :size="12"
-          />
+        <span v-if="trend" class="g-stat-card__trend" :class="`g-stat-card__trend--${trendDir}`">
+          <GIcon :name="trendDir === 'up' ? 'trending-up' : 'trending-down'" :size="12" />
           {{ trend }}
         </span>
       </div>
@@ -53,24 +36,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     label: string
     value?: string | number
     icon?: string
-    variant?: "neutral" | "primary" | "success" | "warning" | "error" | "info"
+    variant?: 'neutral' | 'primary' | 'success' | 'warning' | 'error' | 'info'
     trend?: string
   }>(),
   {
-    variant: "neutral",
+    variant: 'neutral',
   },
 )
 
-const trendDir = computed(() => (props.trend?.startsWith("-") ? "down" : "up"))
+const trendDir = computed(() => (props.trend?.startsWith('-') ? 'down' : 'up'))
 </script>
 
 <style scoped>
@@ -95,11 +78,26 @@ const trendDir = computed(() => (props.trend?.startsWith("-") ? "down" : "up"))
   background: var(--bg-surface-hover);
   color: var(--text-tertiary);
 }
-.g-stat-card__icon--primary { background: var(--color-primary-muted); color: var(--color-primary); }
-.g-stat-card__icon--success { background: var(--color-success-muted); color: var(--color-success); }
-.g-stat-card__icon--warning { background: var(--color-warning-muted); color: var(--color-warning); }
-.g-stat-card__icon--error   { background: var(--color-error-muted);   color: var(--color-error); }
-.g-stat-card__icon--info    { background: var(--color-info-muted);    color: var(--color-info); }
+.g-stat-card__icon--primary {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+.g-stat-card__icon--success {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+.g-stat-card__icon--warning {
+  background: var(--color-warning-muted);
+  color: var(--color-warning);
+}
+.g-stat-card__icon--error {
+  background: var(--color-error-muted);
+  color: var(--color-error);
+}
+.g-stat-card__icon--info {
+  background: var(--color-info-muted);
+  color: var(--color-info);
+}
 
 .g-stat-card__value {
   font-size: var(--text-2xl);
@@ -121,6 +119,10 @@ const trendDir = computed(() => (props.trend?.startsWith("-") ? "down" : "up"))
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
 }
-.g-stat-card__trend--up { color: var(--color-success); }
-.g-stat-card__trend--down { color: var(--color-error); }
+.g-stat-card__trend--up {
+  color: var(--color-success);
+}
+.g-stat-card__trend--down {
+  color: var(--color-error);
+}
 </style>

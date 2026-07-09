@@ -1,17 +1,14 @@
 /* ==================================================================
    useProjectSearch — 项目模糊搜索组合式函数
    ------------------------------------------------------------------
-   搜索范围：名称 / 标签 / 服务器 / 状态文本
+   搜索范围：名称 / 标签 / Domain / Certificate / 模板 / 状态文本
    ================================================================== */
 
-import { computed, type Ref } from "vue"
-import type { Project } from "../types"
-import { STATUS_CONFIG } from "../utils"
+import { computed, type Ref } from 'vue'
+import type { Project } from '../types'
+import { STATUS_CONFIG } from '../utils'
 
-export function useProjectSearch(
-  projects: Ref<Project[]>,
-  query: Ref<string>,
-) {
+export function useProjectSearch(projects: Ref<Project[]>, query: Ref<string>) {
   const normalizedQuery = computed(() => query.value.trim().toLowerCase())
 
   const results = computed(() => {
@@ -24,8 +21,9 @@ export function useProjectSearch(
       if (p.description.toLowerCase().includes(q)) return true
       // 标签
       if (p.tags.some((t) => t.toLowerCase().includes(q))) return true
-      // 服务器
-      if (p.serverName.toLowerCase().includes(q)) return true
+      if (p.domains.some((domain) => domain.toLowerCase().includes(q))) return true
+      if (p.certificateIds.some((certificate) => certificate.toLowerCase().includes(q))) return true
+      if (p.template.toLowerCase().includes(q)) return true
       // 状态文本
       if (STATUS_CONFIG[p.status].label.toLowerCase().includes(q)) return true
       return false

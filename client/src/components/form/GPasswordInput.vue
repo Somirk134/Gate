@@ -13,50 +13,45 @@
     :state="state"
     :autocomplete="autocomplete"
     :prefix="lockIcon ? 'lock' : undefined"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
+    @update:model-value="emit('update:modelValue', $event)">
     <template #suffix>
       <button
         type="button"
         class="g-password__toggle"
         :title="visible ? '隐藏' : '显示'"
-        @click="visible = !visible"
-      >
-        <GIcon
-          :name="visible ? 'eye-off' : 'eye'"
-          :size="iconSize"
-        />
+        @click="visible = !visible">
+        <GIcon :name="visible ? 'eye-off' : 'eye'" :size="iconSize" />
       </button>
     </template>
   </GInput>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue"
-import GInput from "./GInput.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { ref, computed } from 'vue'
+import GInput from './GInput.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     disabled?: boolean
-    state?: "normal" | "error" | "success"
+    state?: 'normal' | 'error' | 'success'
     autocomplete?: string
     lockIcon?: boolean
   }>(),
   {
-    size: "md",
+    size: 'md',
     disabled: false,
-    state: "normal",
+    state: 'normal',
     lockIcon: true,
   },
 )
 
-const emit = defineEmits<{ "update:modelValue": [value: string] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const visible = ref(false)
-const iconSize = computed(() => (props.size === "sm" ? 14 : props.size === "lg" ? 18 : 16))
+const iconSize = computed(() => (props.size === 'sm' ? 14 : props.size === 'lg' ? 18 : 16))
 </script>
 
 <style scoped>
@@ -71,7 +66,9 @@ const iconSize = computed(() => (props.size === "sm" ? 14 : props.size === "lg" 
   padding: 2px;
   border-radius: var(--radius-sm);
   margin-right: var(--space-2);
-  transition: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .g-password__toggle:hover {
   color: var(--text-primary);

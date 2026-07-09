@@ -1,21 +1,12 @@
 <template>
   <footer class="app-statusbar">
     <div class="statusbar-left">
-      <div
-        class="status-item"
-        :class="statusClass"
-      >
+      <div class="status-item" :class="statusClass">
         <span class="status-dot" />
         <span class="status-label">{{ t(statusLabelKey) }}</span>
       </div>
-      <div
-        v-if="connectionStatus"
-        class="status-item"
-      >
-        <GIcon
-          name="wifi"
-          :size="12"
-        />
+      <div v-if="connectionStatus" class="status-item">
+        <GIcon name="wifi" :size="12" />
         <span class="status-label">{{ t('common.connected') }}</span>
       </div>
     </div>

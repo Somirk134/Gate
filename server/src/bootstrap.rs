@@ -1,18 +1,14 @@
-use chrono::Utc;
-use gate_protocol::{
-    Body, Command, Frame, FrameEncoder, Message, MessageType, Metadata, ProtocolBuilder,
-    ProtocolManager,
+use crate::gateway::{
+    err, json_body, ok, read_message, response_for, write_message, TunnelGateway,
 };
+use chrono::Utc;
+use gate_protocol::{Command, ProtocolBuilder};
 use gate_shared::error::{AppError, NetworkError};
 use gate_shared::lifecycle::ServerState;
 use serde_json::{json, Value};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-};
+use tokio::net::{TcpListener, TcpStream};
 use tracing::{error, info, warn};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ServerBootstrap {
@@ -46,6 +42,7 @@ impl ServerBootstrap {
 
         let listener = TcpListener::bind(addr).await.map_err(network_error)?;
         let bound_addr = listener.local_addr().map_err(network_error)?;
+        let gateway = TunnelGateway::new();
 
         info!(
             target: "gate_server",
@@ -73,8 +70,9 @@ impl ServerBootstrap {
                                 "Server Accept"
                             );
                             let token = token.clone();
+                            let gateway = gateway.clone();
                             tokio::spawn(async move {
-                                if let Err(source) = handle_connection(stream, token).await {
+                                if let Err(source) = handle_connection(stream, token, gateway).await {
                                     error!(
                                         target: "gate_server",
                                         error = %source,
@@ -99,7 +97,11 @@ impl ServerBootstrap {
     }
 }
 
-async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Result<()> {
+async fn handle_connection(
+    mut stream: TcpStream,
+    token: String,
+    gateway: TunnelGateway,
+) -> anyhow::Result<()> {
     let protocol = ProtocolBuilder::new().build();
     let mut authenticated = false;
     let mut session_id: Option<String> = None;
@@ -113,12 +115,77 @@ async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Resu
         request_total += 1;
 
         match message.header.command {
+            Command::TunnelRelayConnect => {
+                let body = json_body(&message);
+                let relay_token = body.get("token").and_then(Value::as_str);
+                let relay_session_id = body.get("sessionId").and_then(Value::as_str);
+                let relay_tunnel_id = body
+                    .get("tunnelId")
+                    .or_else(|| body.get("id"))
+                    .and_then(Value::as_str);
+
+                let (Some(relay_session_id), Some(relay_tunnel_id)) =
+                    (relay_session_id, relay_tunnel_id)
+                else {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(
+                            &message,
+                            err("RELAY_INVALID", "relay sessionId and tunnelId are required"),
+                        ),
+                    )
+                    .await?;
+                    break;
+                };
+
+                if relay_token != Some(token.as_str()) {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(&message, err("AUTH_FAILED", "invalid token")),
+                    )
+                    .await?;
+                    break;
+                }
+
+                if let Err(source) = gateway
+                    .validate_relay_worker(relay_tunnel_id, relay_session_id)
+                    .await
+                {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(&message, err("RELAY_REJECTED", &source.to_string())),
+                    )
+                    .await?;
+                    break;
+                }
+
+                write_message(
+                    &mut stream,
+                    &protocol,
+                    &response_for(
+                        &message,
+                        ok(json!({
+                            "waiting": true,
+                            "sessionId": relay_session_id,
+                            "tunnelId": relay_tunnel_id
+                        })),
+                    ),
+                )
+                .await?;
+                gateway
+                    .attach_relay_worker(relay_tunnel_id, relay_session_id, stream)
+                    .await?;
+                return Ok(());
+            }
             Command::AuthLogin => {
                 info!(target: "gate_server", "Authenticate");
                 let body = json_body(&message);
                 if body.get("token").and_then(Value::as_str) == Some(token.as_str()) {
                     authenticated = true;
-                    let id = Uuid::new_v4().to_string();
+                    let id = gateway.create_session().await;
                     session_id = Some(id.clone());
                     write_message(
                         &mut stream,
@@ -140,6 +207,9 @@ async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Resu
             }
             Command::HeartbeatPing if authenticated => {
                 heartbeat_total += 1;
+                if let Some(session_id) = session_id.as_deref() {
+                    gateway.touch_session(session_id).await;
+                }
                 write_message(
                     &mut stream,
                     &protocol,
@@ -154,7 +224,72 @@ async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Resu
                 )
                 .await?;
             }
+            Command::TunnelCreate | Command::TunnelRegister | Command::TunnelStart
+                if authenticated =>
+            {
+                let Some(session_id) = session_id.as_deref() else {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(&message, err("SESSION_REQUIRED", "session is missing")),
+                    )
+                    .await?;
+                    continue;
+                };
+
+                match gateway
+                    .register_tunnel(session_id, &json_body(&message))
+                    .await
+                {
+                    Ok(data) => {
+                        write_message(&mut stream, &protocol, &response_for(&message, ok(data)))
+                            .await?;
+                    }
+                    Err(source) => {
+                        write_message(
+                            &mut stream,
+                            &protocol,
+                            &response_for(
+                                &message,
+                                err("TUNNEL_REGISTER_FAILED", &source.to_string()),
+                            ),
+                        )
+                        .await?;
+                    }
+                }
+            }
+            Command::TunnelStop if authenticated => {
+                let body = json_body(&message);
+                let tunnel_id = body
+                    .get("id")
+                    .or_else(|| body.get("tunnelId"))
+                    .and_then(Value::as_str);
+                let Some(tunnel_id) = tunnel_id else {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(&message, err("TUNNEL_INVALID", "tunnel id is required")),
+                    )
+                    .await?;
+                    continue;
+                };
+
+                let stopped = gateway.stop_tunnel(tunnel_id).await?;
+                write_message(
+                    &mut stream,
+                    &protocol,
+                    &response_for(
+                        &message,
+                        ok(json!({
+                            "tunnelId": tunnel_id,
+                            "stopped": stopped
+                        })),
+                    ),
+                )
+                .await?;
+            }
             Command::StatisticsQuery if authenticated => {
+                let gateway_statistics = gateway.statistics().await;
                 write_message(
                     &mut stream,
                     &protocol,
@@ -163,7 +298,8 @@ async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Resu
                         ok(json!({
                             "requestTotal": request_total,
                             "heartbeatTotal": heartbeat_total,
-                            "authenticated": authenticated
+                            "authenticated": authenticated,
+                            "gateway": gateway_statistics
                         })),
                     ),
                 )
@@ -198,69 +334,11 @@ async fn handle_connection(mut stream: TcpStream, token: String) -> anyhow::Resu
         }
     }
 
-    Ok(())
-}
-
-async fn read_message(
-    stream: &mut TcpStream,
-    protocol: &ProtocolManager,
-) -> anyhow::Result<Option<Message>> {
-    let mut length = [0_u8; 4];
-    match stream.read_exact(&mut length).await {
-        Ok(_) => {}
-        Err(source) if source.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-        Err(source) => return Err(source.into()),
+    if let Some(session_id) = session_id {
+        gateway.close_session(&session_id).await;
     }
 
-    let length = u32::from_be_bytes(length) as usize;
-    let mut payload = vec![0_u8; length];
-    stream.read_exact(&mut payload).await?;
-    Ok(Some(protocol.decode(&payload)?))
-}
-
-async fn write_message(
-    stream: &mut TcpStream,
-    protocol: &ProtocolManager,
-    message: &Message,
-) -> anyhow::Result<()> {
-    let payload = protocol.encode(message)?;
-    let frame = Frame::new(payload)?;
-    let bytes = FrameEncoder::encode(&frame);
-    stream.write_all(&bytes).await?;
-    stream.flush().await?;
     Ok(())
-}
-
-fn response_for(request: &Message, body: Value) -> Message {
-    let mut response = Message::new(
-        MessageType::Response,
-        request.header.command.clone(),
-        Body::Json(body),
-        Metadata::default(),
-    );
-    response.header.request_id = request.header.request_id;
-    response
-}
-
-fn json_body(message: &Message) -> Value {
-    match &message.body {
-        Body::Json(value) => value.clone(),
-        _ => Value::Null,
-    }
-}
-
-fn ok(data: Value) -> Value {
-    json!({ "ok": true, "data": data })
-}
-
-fn err(code: &str, message: &str) -> Value {
-    json!({
-        "ok": false,
-        "error": {
-            "code": code,
-            "message": message
-        }
-    })
 }
 
 fn network_error(source: std::io::Error) -> AppError {

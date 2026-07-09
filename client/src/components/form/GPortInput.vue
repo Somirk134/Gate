@@ -12,38 +12,37 @@
     :state="state"
     :disabled="disabled"
     prefix="plug"
-    @update:model-value="onInput"
-  />
+    @update:model-value="onInput" />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GInput from "./GInput.vue"
+import { computed } from 'vue'
+import GInput from './GInput.vue'
 
 const props = withDefaults(
   defineProps<{
     modelValue?: number | null
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     disabled?: boolean
   }>(),
   {
-    size: "md",
+    size: 'md',
     disabled: false,
   },
 )
 
-const emit = defineEmits<{ "update:modelValue": [value: number | null] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: number | null] }>()
 
-const state = computed<"normal" | "error" | "success">(() => {
-  if (props.modelValue == null || props.modelValue === 0) return "normal"
-  if (props.modelValue < 1 || props.modelValue > 65535) return "error"
-  return "success"
+const state = computed<'normal' | 'error' | 'success'>(() => {
+  if (props.modelValue == null || props.modelValue === 0) return 'normal'
+  if (props.modelValue < 1 || props.modelValue > 65535) return 'error'
+  return 'success'
 })
 
 function onInput(val: string) {
-  if (val === "") return emit("update:modelValue", null)
+  if (val === '') return emit('update:modelValue', null)
   const n = parseInt(val, 10)
-  emit("update:modelValue", Number.isNaN(n) ? null : n)
+  emit('update:modelValue', Number.isNaN(n) ? null : n)
 }
 </script>
 

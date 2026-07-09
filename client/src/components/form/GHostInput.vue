@@ -12,31 +12,30 @@
     :disabled="disabled"
     :clearable="clearable"
     prefix="globe"
-    @update:model-value="emit('update:modelValue', $event)"
-  />
+    @update:model-value="emit('update:modelValue', $event)" />
 </template>
 
 <script setup lang="ts">
-import GInput from "./GInput.vue"
+import GInput from './GInput.vue'
 
 withDefaults(
   defineProps<{
     modelValue?: string
-    size?: "sm" | "md" | "lg"
+    size?: 'sm' | 'md' | 'lg'
     placeholder?: string
     disabled?: boolean
-    state?: "normal" | "error" | "success"
+    state?: 'normal' | 'error' | 'success'
     clearable?: boolean
   }>(),
   {
-    size: "md",
+    size: 'md',
     disabled: false,
-    state: "normal",
+    state: 'normal',
     clearable: true,
   },
 )
 
-const emit = defineEmits<{ "update:modelValue": [value: string] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 </script>
 
 <style scoped>

@@ -1,16 +1,7 @@
 <template>
-  <div
-    class="health-indicator"
-    :class="`health-indicator--${status}`"
-  >
-    <span
-      class="health-indicator__icon"
-      :title="statusLabel"
-    >
-      <GIcon
-        :name="icon"
-        :size="16"
-      />
+  <div class="health-indicator" :class="`health-indicator--${status}`">
+    <span class="health-indicator__icon" :title="statusLabel">
+      <GIcon :name="icon" :size="16" />
     </span>
     <span class="health-indicator__main">
       <strong>{{ label }}</strong>
@@ -21,9 +12,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { HealthStatus } from "@/monitoring/types"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import type { HealthStatus } from '@/monitoring/types'
 
 const props = defineProps<{
   label: string
@@ -33,17 +24,17 @@ const props = defineProps<{
 }>()
 
 const icon = computed(() => {
-  if (props.status === "healthy") return "check-circle"
-  if (props.status === "warning") return "alert-triangle"
-  if (props.status === "critical") return "alert-circle"
-  return "wifi-off"
+  if (props.status === 'healthy') return 'check-circle'
+  if (props.status === 'warning') return 'alert-triangle'
+  if (props.status === 'critical') return 'alert-circle'
+  return 'wifi-off'
 })
 
 const statusLabel = computed(() => {
-  if (props.status === "healthy") return "Healthy"
-  if (props.status === "warning") return "Warning"
-  if (props.status === "critical") return "Critical"
-  return "Offline"
+  if (props.status === 'healthy') return 'Healthy'
+  if (props.status === 'warning') return 'Warning'
+  if (props.status === 'critical') return 'Critical'
+  return 'Offline'
 })
 </script>
 
@@ -69,10 +60,22 @@ const statusLabel = computed(() => {
   border-radius: var(--radius-sm);
 }
 
-.health-indicator--healthy .health-indicator__icon { color: var(--color-success); background: var(--color-success-muted); }
-.health-indicator--warning .health-indicator__icon { color: var(--color-warning); background: var(--color-warning-muted); }
-.health-indicator--critical .health-indicator__icon { color: var(--color-error); background: var(--color-error-muted); }
-.health-indicator--offline .health-indicator__icon { color: var(--text-tertiary); background: var(--bg-surface-hover); }
+.health-indicator--healthy .health-indicator__icon {
+  color: var(--color-success);
+  background: var(--color-success-muted);
+}
+.health-indicator--warning .health-indicator__icon {
+  color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+.health-indicator--critical .health-indicator__icon {
+  color: var(--color-error);
+  background: var(--color-error-muted);
+}
+.health-indicator--offline .health-indicator__icon {
+  color: var(--text-tertiary);
+  background: var(--bg-surface-hover);
+}
 
 .health-indicator__main {
   display: flex;

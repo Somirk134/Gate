@@ -1,6 +1,6 @@
-import { computed, onMounted, onUnmounted, shallowRef, ref } from "vue"
-import { createEmptyDashboardData, dashboardService } from "../services"
-import type { DashboardData } from "../types"
+import { computed, onMounted, onUnmounted, shallowRef, ref } from 'vue'
+import { createEmptyDashboardData, dashboardService } from '../services'
+import type { DashboardData } from '../types'
 
 export function useMonitoringDashboard() {
   const data = shallowRef<DashboardData>(createEmptyDashboardData())
@@ -18,7 +18,7 @@ export function useMonitoringDashboard() {
     try {
       data.value = await dashboardService.getDashboard()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to refresh monitoring data"
+      error.value = err instanceof Error ? err.message : 'Failed to refresh monitoring data'
     } finally {
       loading.value = false
     }

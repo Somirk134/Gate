@@ -1,4 +1,4 @@
-export type RequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export interface RequestOptions<TBody = unknown> {
   method: RequestMethod
@@ -34,14 +34,14 @@ export class FetchRequestClient implements RequestClient {
       const response = await fetch(options.url, {
         method: options.method,
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           ...options.headers,
         },
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: options.signal ?? controller.signal,
       })
-      const contentType = response.headers.get("content-type") ?? ""
-      const data = contentType.includes("application/json")
+      const contentType = response.headers.get('content-type') ?? ''
+      const data = contentType.includes('application/json')
         ? ((await response.json()) as TData)
         : ((await response.text()) as TData)
       const headers: Record<string, string> = {}

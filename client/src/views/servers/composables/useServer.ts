@@ -5,10 +5,10 @@
    组件层只需调用本 hook，无需直接操作 store 状态机。
    ================================================================== */
 
-import { onMounted } from "vue"
-import { storeToRefs } from "pinia"
-import { useServerStore } from "../store/server"
-import type { ServerFormData } from "../types"
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useServerStore } from '../store/server'
+import type { ServerFormData } from '../types'
 
 export function useServer() {
   const store = useServerStore()
@@ -84,7 +84,7 @@ export function useServer() {
   }
 
   onMounted(() => {
-    if (store.status === "idle") {
+    if (store.status === 'idle') {
       loadData()
     }
   })

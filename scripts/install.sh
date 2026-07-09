@@ -8,7 +8,7 @@ CONFIG_DIR="${GATE_CONFIG_DIR:-/etc/gate}"
 DATA_DIR="${GATE_DATA_DIR:-/var/lib/gate}"
 LOG_DIR="${GATE_LOG_DIR:-/var/log/gate}"
 VERSION="${GATE_VERSION:-latest}"
-RELEASE_BASE="${GATE_RELEASE_BASE:-https://github.com/gate-project/gate/releases/download}"
+RELEASE_BASE="${GATE_RELEASE_BASE:-https://github.com/Somirk134/Gate/releases/download}"
 ARCH="$(uname -m)"
 OS_ID=""
 
@@ -65,7 +65,7 @@ download_release() {
   else
     TARGET="$(release_arch)"
     if [ "$VERSION" = "latest" ]; then
-      RELEASE_URL="https://github.com/gate-project/gate/releases/latest/download/gate-server-${TARGET}.tar.gz"
+      RELEASE_URL="https://github.com/Somirk134/Gate/releases/latest/download/gate-server-${TARGET}.tar.gz"
     else
       RELEASE_URL="${RELEASE_BASE}/${VERSION}/gate-server-${TARGET}.tar.gz"
     fi

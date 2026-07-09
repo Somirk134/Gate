@@ -1,6 +1,6 @@
-import { CommandRegistry } from "@/commands/CommandRegistry"
-import { ServiceRegistry } from "@/registry/ServiceRegistry"
-import { AppInitializerRegistry, type AppInitializer } from "./AppInitializer"
+import { CommandRegistry } from '@/commands/CommandRegistry'
+import { ServiceRegistry } from '@/registry/ServiceRegistry'
+import { AppInitializerRegistry, type AppInitializer } from './AppInitializer'
 
 export class AppRegistry {
   readonly services = new ServiceRegistry()

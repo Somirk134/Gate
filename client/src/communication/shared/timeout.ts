@@ -1,4 +1,4 @@
-import type { TimeoutConfig } from "../types"
+import type { TimeoutConfig } from '../types'
 
 export const defaultTimeoutConfig: TimeoutConfig = {
   requestTimeoutMs: 30_000,
@@ -8,9 +8,7 @@ export const defaultTimeoutConfig: TimeoutConfig = {
   writeTimeoutMs: 30_000,
 }
 
-export const mergeTimeoutConfig = (
-  timeoutConfig: Partial<TimeoutConfig> = {},
-): TimeoutConfig => ({
+export const mergeTimeoutConfig = (timeoutConfig: Partial<TimeoutConfig> = {}): TimeoutConfig => ({
   ...defaultTimeoutConfig,
   ...timeoutConfig,
 })

@@ -1,7 +1,7 @@
-import type { Ref } from "vue"
-import { computed } from "vue"
-import type { LogFilter, LogItem } from "../types"
-import { getTimeRangeStart } from "../utils"
+import type { Ref } from 'vue'
+import { computed } from 'vue'
+import type { LogFilter, LogItem } from '../types'
+import { getTimeRangeStart } from '../utils'
 
 export function useLogFilter(logs: Ref<LogItem[]>, filter: Ref<LogFilter>) {
   const results = computed(() => {

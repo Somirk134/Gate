@@ -4,16 +4,9 @@
   用途：统一表单标签样式与必填标记。
 -->
 <template>
-  <label
-    class="g-label"
-    :class="{ 'g-label--required': required, 'g-label--disabled': disabled }"
-  >
+  <label class="g-label" :class="{ 'g-label--required': required, 'g-label--disabled': disabled }">
     <slot />
-    <span
-      v-if="required"
-      class="g-label__required"
-      aria-hidden="true"
-    >*</span>
+    <span v-if="required" class="g-label__required" aria-hidden="true">*</span>
   </label>
 </template>
 

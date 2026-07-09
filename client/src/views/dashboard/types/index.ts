@@ -6,25 +6,13 @@
    ================================================================== */
 
 // ── 运行态 ──
-export type TunnelStatus =
-  | "online"
-  | "offline"
-  | "connecting"
-  | "starting"
-  | "error"
+export type TunnelStatus = 'online' | 'offline' | 'connecting' | 'starting' | 'error'
 
-export type ServerStatus = "online" | "offline" | "connecting"
+export type ServerStatus = 'online' | 'offline' | 'connecting'
 
-export type Protocol = "tcp" | "udp" | "http" | "https"
+export type Protocol = 'tcp' | 'udp' | 'http' | 'https'
 
-export type ActivityType =
-  | "create"
-  | "start"
-  | "stop"
-  | "config"
-  | "connect"
-  | "update"
-  | "delete"
+export type ActivityType = 'create' | 'start' | 'stop' | 'config' | 'connect' | 'update' | 'delete'
 
 // ── 项目 ──
 export interface DashboardProject {
@@ -56,12 +44,7 @@ export interface DashboardTunnel {
   https?: DashboardHttpsTunnel
 }
 
-export type CertificateStatus =
-  | "active"
-  | "expiring_soon"
-  | "expired"
-  | "missing"
-  | "error"
+export type CertificateStatus = 'active' | 'expiring_soon' | 'expired' | 'missing' | 'error'
 
 export interface DashboardHttpsTunnel {
   certificateStatus: CertificateStatus
@@ -119,7 +102,7 @@ export interface DashboardResource {
 // ── 资讯 ──
 export interface DashboardNews {
   id: string
-  type: "release" | "github" | "changelog"
+  type: 'release' | 'github' | 'changelog'
   title: string
   version?: string
   date: string
@@ -133,8 +116,8 @@ export interface DashboardQuickAction {
   icon: string
   label: string
   shortcut: string
-  variant: "primary" | "success" | "warning" | "info"
+  variant: 'primary' | 'success' | 'warning' | 'info'
 }
 
 // ── 加载状态 ──
-export type DashboardLoadStatus = "idle" | "loading" | "success" | "error"
+export type DashboardLoadStatus = 'idle' | 'loading' | 'success' | 'error'

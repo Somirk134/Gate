@@ -1,9 +1,9 @@
-import type { CommandRegistry } from "@/commands/CommandRegistry"
-import type { AppContext } from "@/core/AppContext"
-import type { EventBus } from "@/events/EventBus"
-import type { ServiceRegistry } from "@/registry/ServiceRegistry"
-import type { ConfigurationService } from "@/services/ConfigurationService"
-import type { AppEventMap } from "@/types/application"
+import type { CommandRegistry } from '@/commands/CommandRegistry'
+import type { AppContext } from '@/core/AppContext'
+import type { EventBus } from '@/events/EventBus'
+import type { ServiceRegistry } from '@/registry/ServiceRegistry'
+import type { ConfigurationService } from '@/services/ConfigurationService'
+import type { AppEventMap } from '@/types/application'
 
 export interface PluginAPI {
   readonly app: AppContext

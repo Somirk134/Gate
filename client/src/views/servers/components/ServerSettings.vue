@@ -8,62 +8,44 @@
 <template>
   <div class="server-settings">
     <!-- 名称 -->
-    <GFormField
-      :error="errors.name"
-      required
-    >
-      <template #label>
-        Server Name
-      </template>
+    <GFormField :error="errors.name" required>
+      <template #label> 服务器名称 </template>
       <GInput
         v-model="form.name"
         placeholder="例如：Tokyo Edge"
         :state="errors.name ? 'error' : 'normal'"
         :maxlength="40"
         clearable
-        @update:model-value="validateField('name')"
-      />
+        @update:model-value="validateField('name')" />
     </GFormField>
 
     <!-- Host / Port -->
     <div class="server-port-row">
-      <GFormField
-        :error="errors.host"
-        required
-      >
-        <template #label>
-          Host
-        </template>
+      <GFormField :error="errors.host" required>
+        <template #label> 主机 </template>
         <GInput
           v-model="form.host"
           placeholder="IP 或域名"
           prefix="plug"
           :state="errors.host ? 'error' : 'normal'"
-          @update:model-value="validateField('host')"
-        />
+          @update:model-value="validateField('host')" />
       </GFormField>
-      <GFormField
-        :error="errors.port"
-        required
-      >
-        <template #label>
-          Port
-        </template>
+      <GFormField :error="errors.port" required>
+        <template #label> 端口 </template>
         <GPortInput
           :model-value="form.port"
-          @update:model-value="(v) => { form.port = v; validateField('port') }"
-        />
+          @update:model-value="
+            (v) => {
+              form.port = v
+              validateField('port')
+            }
+          " />
       </GFormField>
     </div>
 
     <!-- Token -->
-    <GFormField
-      :error="errors.token"
-      required
-    >
-      <template #label>
-        Token
-      </template>
+    <GFormField :error="errors.token" required>
+      <template #label> Token </template>
       <GInput
         v-model="form.token"
         placeholder="服务器访问令牌"
@@ -71,94 +53,75 @@
         :state="errors.token ? 'error' : 'normal'"
         :type="showToken ? 'text' : 'password'"
         clearable
-        @update:model-value="validateField('token')"
-      >
+        @update:model-value="validateField('token')">
         <template #suffix>
           <GIconButton
             :name="showToken ? 'eye-off' : 'eye'"
             size="sm"
             variant="ghost"
             :tooltip="showToken ? '隐藏' : '显示'"
-            @click="showToken = !showToken"
-          />
+            @click="showToken = !showToken" />
         </template>
       </GInput>
     </GFormField>
 
     <!-- 备注 -->
     <GFormField>
-      <template #label>
-        Remark
-      </template>
+      <template #label> 备注 </template>
       <GTextarea
         v-model="form.remark"
         placeholder="内部备注，仅自己可见…"
         :rows="2"
         :maxlength="200"
-        resizable
-      />
+        resizable />
     </GFormField>
 
     <!-- 心跳间隔 / 重连间隔 -->
     <div class="server-port-row">
       <GFormField :error="errors.heartbeatInterval">
-        <template #label>
-          Heartbeat Interval (秒)
-        </template>
+        <template #label> 心跳间隔 (秒) </template>
         <GInput
           v-model.number="form.heartbeatInterval"
           type="number"
           placeholder="30"
           :state="errors.heartbeatInterval ? 'error' : 'normal'"
-          @update:model-value="validateField('heartbeatInterval')"
-        />
+          @update:model-value="validateField('heartbeatInterval')" />
       </GFormField>
       <GFormField :error="errors.reconnectInterval">
-        <template #label>
-          Reconnect Interval (秒)
-        </template>
+        <template #label> 重连间隔 (秒) </template>
         <GInput
           v-model.number="form.reconnectInterval"
           type="number"
           placeholder="5"
           :state="errors.reconnectInterval ? 'error' : 'normal'"
-          @update:model-value="validateField('reconnectInterval')"
-        />
+          @update:model-value="validateField('reconnectInterval')" />
       </GFormField>
     </div>
 
     <!-- 自动连接 -->
     <div class="server-settings__row">
       <div class="server-settings__row-text">
-        <span class="server-settings__row-label">Auto Connect</span>
+        <span class="server-settings__row-label">自动连接</span>
         <span class="server-settings__row-hint">应用启动时自动连接该服务器</span>
       </div>
       <button
         type="button"
         class="server-toggle"
         :class="{ 'server-toggle--on': form.autoConnect }"
-        @click="form.autoConnect = !form.autoConnect"
-      >
+        @click="form.autoConnect = !form.autoConnect">
         <span class="server-toggle__thumb" />
       </button>
     </div>
 
     <!-- 保存按钮 -->
     <div class="server-settings__actions">
-      <GButton
-        variant="ghost"
-        icon="refresh"
-        @click="reset"
-      >
-        重置
-      </GButton>
+      <GButton variant="ghost" icon="refresh" @click="reset"> 重置 </GButton>
       <GButton
         variant="primary"
         icon="save"
         :loading="saving"
         :disabled="!isValid || !dirty"
-        @click="handleSave"
-      >
+        @click="handleSave">
         保存设置
       </GButton>
     </div>
@@ -166,16 +129,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue"
-import GButton from "@components/base/GButton.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GInput from "@components/form/GInput.vue"
-import GPortInput from "@components/form/GPortInput.vue"
-import GTextarea from "@components/form/GTextarea.vue"
-import GFormField from "@components/form/GFormField.vue"
-import type { Server, ServerFormData } from "../types"
-import { isValidHost, isValidPort, isValidToken } from "../utils"
-import { useFeedback } from "@composables/useFeedback"
+import { computed, reactive, ref, watch } from 'vue'
+import GButton from '@components/base/GButton.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GInput from '@components/form/GInput.vue'
+import GPortInput from '@components/form/GPortInput.vue'
+import GTextarea from '@components/form/GTextarea.vue'
+import GFormField from '@components/form/GFormField.vue'
+import type { Server, ServerFormData } from '../types'
+import { isValidHost, isValidPort, isValidToken } from '../utils'
+import { useFeedback } from '@composables/useFeedback'
 
 const props = defineProps<{ server: Server }>()
 
@@ -195,11 +158,11 @@ interface SettingsForm {
 }
 
 const form = reactive<SettingsForm>({
-  name: "",
-  host: "",
+  name: '',
+  host: '',
   port: null,
-  token: "",
-  remark: "",
+  token: '',
+  remark: '',
   heartbeatInterval: 30,
   reconnectInterval: 5,
   autoConnect: false,
@@ -216,7 +179,7 @@ const errors = reactive<{
 
 const saving = ref(false)
 const showToken = ref(false)
-let snapshot = ""
+let snapshot = ''
 
 function syncForm() {
   form.name = props.server.settings.name
@@ -236,7 +199,11 @@ function syncForm() {
   errors.reconnectInterval = undefined
 }
 
-watch(() => props.server.id, () => syncForm(), { immediate: true })
+watch(
+  () => props.server.id,
+  () => syncForm(),
+  { immediate: true },
+)
 
 const dirty = computed(() => JSON.stringify(form) !== snapshot)
 
@@ -257,54 +224,54 @@ const isValid = computed(
 )
 
 function validateField(field: keyof typeof errors) {
-  if (field === "name") {
+  if (field === 'name') {
     const v = form.name.trim()
-    if (v.length === 0) errors.name = "名称不能为空"
-    else if (v.length < 2) errors.name = "名称至少 2 个字符"
-    else if (v.length > 40) errors.name = "名称不能超过 40 个字符"
+    if (v.length === 0) errors.name = '名称不能为空'
+    else if (v.length < 2) errors.name = '名称至少 2 个字符'
+    else if (v.length > 40) errors.name = '名称不能超过 40 个字符'
     else errors.name = undefined
   }
-  if (field === "host") {
-    if (!form.host.trim()) errors.host = "主机不能为空"
-    else if (!isValidHost(form.host)) errors.host = "无效的 IP 或域名"
+  if (field === 'host') {
+    if (!form.host.trim()) errors.host = '主机不能为空'
+    else if (!isValidHost(form.host)) errors.host = '无效的 IP 或域名'
     else errors.host = undefined
   }
-  if (field === "port") {
-    if (!isValidPort(form.port)) errors.port = "端口范围 1-65535"
+  if (field === 'port') {
+    if (!isValidPort(form.port)) errors.port = '端口范围 1-65535'
     else errors.port = undefined
   }
-  if (field === "token") {
-    if (!form.token.trim()) errors.token = "Token 不能为空"
-    else if (!isValidToken(form.token)) errors.token = "Token 至少 8 个字符"
+  if (field === 'token') {
+    if (!form.token.trim()) errors.token = 'Token 不能为空'
+    else if (!isValidToken(form.token)) errors.token = 'Token 至少 8 个字符'
     else errors.token = undefined
   }
-  if (field === "heartbeatInterval") {
-    if (form.heartbeatInterval < 1) errors.heartbeatInterval = "至少 1 秒"
-    else if (form.heartbeatInterval > 300) errors.heartbeatInterval = "不能超过 300 秒"
+  if (field === 'heartbeatInterval') {
+    if (form.heartbeatInterval < 1) errors.heartbeatInterval = '至少 1 秒'
+    else if (form.heartbeatInterval > 300) errors.heartbeatInterval = '不能超过 300 秒'
     else errors.heartbeatInterval = undefined
   }
-  if (field === "reconnectInterval") {
-    if (form.reconnectInterval < 1) errors.reconnectInterval = "至少 1 秒"
-    else if (form.reconnectInterval > 60) errors.reconnectInterval = "不能超过 60 秒"
+  if (field === 'reconnectInterval') {
+    if (form.reconnectInterval < 1) errors.reconnectInterval = '至少 1 秒'
+    else if (form.reconnectInterval > 60) errors.reconnectInterval = '不能超过 60 秒'
     else errors.reconnectInterval = undefined
   }
 }
 
 function reset() {
   syncForm()
-  toast.info("已重置未保存的更改")
+  toast.info('已重置未保存的更改')
 }
 
 function handleSave() {
-  validateField("name")
-  validateField("host")
-  validateField("port")
-  validateField("token")
-  validateField("heartbeatInterval")
-  validateField("reconnectInterval")
+  validateField('name')
+  validateField('host')
+  validateField('port')
+  validateField('token')
+  validateField('heartbeatInterval')
+  validateField('reconnectInterval')
   if (!isValid.value) return
   saving.value = false
-  emit("save", props.server.id, {
+  emit('save', props.server.id, {
     name: form.name,
     host: form.host,
     port: form.port,

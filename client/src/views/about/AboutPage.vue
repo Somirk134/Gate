@@ -3,7 +3,7 @@
     <div class="about-hero-grid">
       <article class="about-product">
         <div class="about-logo" aria-hidden="true">
-          <GIcon name="home" :size="36" :stroke-width="1.9" />
+          <img :src="appLogoUrl" alt="" />
         </div>
 
         <div class="about-product__content">
@@ -40,9 +40,9 @@
       </article>
 
       <aside class="about-author" :aria-label="t('about.authorCardLabel')">
-        <div class="about-author__avatar" aria-hidden="true">
-          <span>G</span>
-          <i />
+        <div class="about-author__avatar">
+          <img :src="authorAvatarUrl" :alt="t('about.authorName')" />
+          <i aria-hidden="true" />
         </div>
 
         <h2>{{ t('about.authorName') }}</h2>
@@ -59,8 +59,17 @@
             :key="link.href"
             :href="link.href"
             target="_blank"
-            rel="noopener noreferrer">
-            <GIcon :name="link.icon" :size="14" />
+            rel="noopener noreferrer"
+            :title="link.label">
+            <svg
+              v-if="link.icon === 'gitee-brand'"
+              class="about-author__brand-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true">
+              <path
+                d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.15a.592.592 0 0 1-.592-.592v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296Z" />
+            </svg>
+            <GIcon v-else :name="link.icon" :size="14" />
             <span>{{ link.label }}</span>
           </a>
         </div>
@@ -131,10 +140,7 @@
         <p>{{ t('about.stageLabel') }}</p>
         <strong>{{ t('about.stageValue') }}</strong>
         <small>{{ t('about.stageDescription') }}</small>
-        <a
-          href="https://github.com/gate/gate/blob/main/ROADMAP.md"
-          target="_blank"
-          rel="noopener noreferrer">
+        <a :href="GITHUB_ROADMAP_URL" target="_blank" rel="noopener noreferrer">
           {{ t('about.roadmap') }}
         </a>
       </aside>
@@ -151,6 +157,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
+import appLogoUrl from '@repo-assets/logo/logo-ui.png'
+import authorAvatarUrl from '@repo-assets/icon/头像.jpg'
+import {
+  GITEE_REPOSITORY_URL,
+  GITHUB_LICENSE_URL,
+  GITHUB_REPOSITORY_URL,
+  GITHUB_ROADMAP_URL,
+} from '@/constants'
 
 const APP_VERSION = '0.1.0'
 const BUILD_NUMBER = '2026.0704.1'
@@ -162,7 +176,7 @@ const versionBadge = computed(() => t('about.heroBadge', { version: APP_VERSION 
 const productLinks = computed(() => [
   {
     label: t('common.github'),
-    href: 'https://github.com/gate/gate',
+    href: GITHUB_REPOSITORY_URL,
     icon: 'github',
     primary: true,
   },
@@ -174,7 +188,7 @@ const productLinks = computed(() => [
   },
   {
     label: t('common.license'),
-    href: 'https://github.com/gate/gate/blob/main/LICENSE',
+    href: GITHUB_LICENSE_URL,
     icon: 'file-code',
     primary: false,
   },
@@ -183,12 +197,17 @@ const productLinks = computed(() => [
 const authorLinks = computed(() => [
   {
     label: t('common.github'),
-    href: 'https://github.com/gate/gate',
+    href: GITHUB_REPOSITORY_URL,
     icon: 'github',
   },
   {
+    label: t('common.gitee'),
+    href: GITEE_REPOSITORY_URL,
+    icon: 'gitee-brand',
+  },
+  {
     label: t('about.email'),
-    href: 'mailto:hello@gate.dev',
+    href: 'mailto:15035267995@163.com',
     icon: 'mail',
   },
 ])
@@ -264,7 +283,8 @@ const releaseNotes = computed(() => [
 
 .about-hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(240px, 0.86fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
   gap: var(--space-5);
 }
 
@@ -284,8 +304,10 @@ const releaseNotes = computed(() => [
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
   gap: var(--space-5);
+  min-height: 384px;
   padding: var(--space-6);
   overflow: hidden;
   background:
@@ -294,16 +316,23 @@ const releaseNotes = computed(() => [
 }
 
 .about-logo {
-  width: 78px;
+  width: 104px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(91, 141, 239, 0.34);
-  border-radius: var(--radius-md);
+  border: 0;
+  border-radius: 0;
   background:
-    linear-gradient(145deg, rgba(91, 141, 239, 0.2), rgba(15, 16, 19, 0.76)), var(--bg-input);
-  color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    radial-gradient(circle at 52% 44%, rgba(56, 189, 248, 0.2), transparent 58%),
+    radial-gradient(circle at 42% 62%, rgba(167, 243, 208, 0.12), transparent 60%);
+}
+
+.about-logo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 26px rgba(56, 189, 248, 0.16));
 }
 
 .about-product__content,
@@ -354,7 +383,7 @@ const releaseNotes = computed(() => [
 }
 
 .about-product__lead {
-  max-width: 650px;
+  max-width: 560px;
   margin-top: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--text-md);
@@ -416,9 +445,11 @@ const releaseNotes = computed(() => [
 
 .about-author {
   min-width: 0;
+  min-height: 384px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: var(--space-5);
   text-align: center;
   background:
@@ -431,13 +462,18 @@ const releaseNotes = computed(() => [
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border: 1px solid rgba(91, 141, 239, 0.3);
   border-radius: var(--radius-full);
   background:
     linear-gradient(145deg, rgba(91, 141, 239, 0.26), rgba(47, 209, 124, 0.16)), var(--bg-input);
-  color: var(--text-primary);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
+}
+
+.about-author__avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .about-author__avatar i {
@@ -477,16 +513,25 @@ const releaseNotes = computed(() => [
 
 .about-author__links {
   width: 100%;
+  max-width: 520px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
-  margin-top: auto;
-  padding-top: var(--space-5);
+  margin-top: var(--space-5);
+  padding-top: 0;
 }
 
 .about-author__links a {
   min-width: 0;
+  min-height: 36px;
   padding: 0 var(--space-2);
+}
+
+.about-author__brand-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  fill: #c71d23;
 }
 
 .about-author__links span,
@@ -779,6 +824,11 @@ const releaseNotes = computed(() => [
   .about-hero-grid,
   .about-release-grid {
     grid-template-columns: 1fr;
+  }
+
+  .about-product,
+  .about-author {
+    min-height: auto;
   }
 
   .about-stage {

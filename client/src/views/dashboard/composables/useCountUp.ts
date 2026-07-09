@@ -5,7 +5,7 @@
    返回响应式的当前显示值，支持 easing。
    ================================================================== */
 
-import { ref, watch, onUnmounted, type Ref } from "vue"
+import { ref, watch, onUnmounted, type Ref } from 'vue'
 
 const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4)
 

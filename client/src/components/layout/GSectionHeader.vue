@@ -6,25 +6,17 @@
 <template>
   <div class="g-section-header">
     <div class="g-section-header__title">
-      <GIcon
-        v-if="icon"
-        :name="icon"
-        :size="16"
-        class="g-section-header__icon"
-      />
+      <GIcon v-if="icon" :name="icon" :size="16" class="g-section-header__icon" />
       <slot />
     </div>
-    <div
-      v-if="$slots.actions"
-      class="g-section-header__actions"
-    >
+    <div v-if="$slots.actions" class="g-section-header__actions">
       <slot name="actions" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
+import GIcon from '@components/icons/GIcon.vue'
 
 defineProps<{ icon?: string }>()
 </script>

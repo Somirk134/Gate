@@ -1,11 +1,11 @@
-import { ClientConnection } from "./connection/ClientConnection"
-import { ClientDispatcher } from "./dispatcher/ClientDispatcher"
-import { ClientEventManager } from "./event/ClientEventManager"
-import { ClientRequestManager } from "./request/ClientRequestManager"
-import { ClientSession } from "./session/ClientSession"
-import { createCommunicationId } from "./shared/id"
-import { mergeTimeoutConfig } from "./shared/timeout"
-import { ClientTransport } from "./transport/Transport"
+import { ClientConnection } from './connection/ClientConnection'
+import { ClientDispatcher } from './dispatcher/ClientDispatcher'
+import { ClientEventManager } from './event/ClientEventManager'
+import { ClientRequestManager } from './request/ClientRequestManager'
+import { ClientSession } from './session/ClientSession'
+import { createCommunicationId } from './shared/id'
+import { mergeTimeoutConfig } from './shared/timeout'
+import { ClientTransport } from './transport/Transport'
 import type {
   Command,
   Connection,
@@ -18,7 +18,7 @@ import type {
   Transport,
   TransportEndpoint,
   Unsubscribe,
-} from "./types"
+} from './types'
 
 export interface CommunicationServiceOptions {
   transport: Transport
@@ -44,20 +44,20 @@ export class CommunicationService {
     this.connection = new ClientConnection({
       endpoint: endpoint.url ?? endpoint.value ?? endpoint.host,
       transport: endpoint.kind,
-      protocolVersion: "v1",
+      protocolVersion: 'v1',
     })
-    this.connection.transition("connecting")
+    this.connection.transition('connecting')
 
     await this.transport.connect(endpoint)
 
-    this.connection.transition("connected")
+    this.connection.transition('connected')
     this.session.attach(this.connection.id)
     return this.connection
   }
 
   async disconnect() {
     await this.transport.disconnect()
-    this.connection?.transition("disconnected")
+    this.connection?.transition('disconnected')
     this.session.close()
     this.requests.clear()
   }
@@ -82,17 +82,15 @@ export class CommunicationService {
       throw error
     }
 
-    options.signal?.addEventListener(
-      "abort",
-      () => this.requests.cancel(request.id),
-      { once: true },
-    )
+    options.signal?.addEventListener('abort', () => this.requests.cancel(request.id), {
+      once: true,
+    })
 
     return response
   }
 
   async notify<TBody = unknown>(command: Command, body: TBody) {
-    await this.transport.send(this.createMessage("notification", command, body))
+    await this.transport.send(this.createMessage('notification', command, body))
     this.connection?.recordSend()
   }
 
@@ -122,17 +120,17 @@ export class CommunicationService {
   }
 
   private createMessage<TBody>(
-    messageType: Message<TBody>["header"]["messageType"],
+    messageType: Message<TBody>['header']['messageType'],
     command: Command,
     body: TBody,
   ): Message<TBody> {
     return {
       header: {
-        protocolVersion: "v1",
+        protocolVersion: 'v1',
         messageType,
         command,
-        requestId: createCommunicationId("req"),
-        traceId: createCommunicationId("trace"),
+        requestId: createCommunicationId('req'),
+        traceId: createCommunicationId('trace'),
         timestamp: Date.now(),
         sequence: 0,
       },

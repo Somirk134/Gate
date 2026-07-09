@@ -5,31 +5,20 @@
   基于 GCard interactive，点击触发 action。
 -->
 <template>
-  <GCard
-    variant="interactive"
-    padding="md"
-    clickable
-    @click="$emit('click')"
-  >
+  <GCard variant="interactive" padding="md" clickable @click="$emit('click')">
     <div class="g-action-card">
       <span class="g-action-card__icon">
-        <GIcon
-          :name="icon"
-          :size="24"
-        />
+        <GIcon :name="icon" :size="24" />
       </span>
       <span class="g-action-card__label">{{ label }}</span>
-      <span
-        v-if="shortcut"
-        class="g-action-card__shortcut"
-      >{{ shortcut }}</span>
+      <span v-if="shortcut" class="g-action-card__shortcut">{{ shortcut }}</span>
     </div>
   </GCard>
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 defineProps<{
   icon: string

@@ -1,10 +1,5 @@
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue }
+  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
 export type Command = string
 export type RequestId = string
@@ -13,51 +8,45 @@ export type SessionId = string
 export type EventName = string
 
 export type MessageType =
-  | "request"
-  | "response"
-  | "event"
-  | "heartbeat"
-  | "notification"
-  | "broadcast"
-  | "error"
-  | "ack"
-  | "plugin"
+  | 'request'
+  | 'response'
+  | 'event'
+  | 'heartbeat'
+  | 'notification'
+  | 'broadcast'
+  | 'error'
+  | 'ack'
+  | 'plugin'
 
 export type ConnectionState =
-  | "created"
-  | "connecting"
-  | "connected"
-  | "authenticated"
-  | "running"
-  | "reconnecting"
-  | "disconnected"
-  | "closed"
-  | "failed"
+  | 'created'
+  | 'connecting'
+  | 'connected'
+  | 'authenticated'
+  | 'running'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'closed'
+  | 'failed'
 
 export type ClientState = ConnectionState
 
-export type ServerState =
-  | "created"
-  | "starting"
-  | "running"
-  | "draining"
-  | "stopped"
-  | "failed"
+export type ServerState = 'created' | 'starting' | 'running' | 'draining' | 'stopped' | 'failed'
 
 export type TransportState =
-  | "created"
-  | "connecting"
-  | "connected"
-  | "running"
-  | "reconnecting"
-  | "disconnecting"
-  | "disconnected"
-  | "closed"
-  | "failed"
+  | 'created'
+  | 'connecting'
+  | 'connected'
+  | 'running'
+  | 'reconnecting'
+  | 'disconnecting'
+  | 'disconnected'
+  | 'closed'
+  | 'failed'
 
-export type SessionState = "created" | "active" | "suspended" | "closed"
+export type SessionState = 'created' | 'active' | 'suspended' | 'closed'
 
-export type TransportKind = "tcp" | "websocket" | "quic" | "custom"
+export type TransportKind = 'tcp' | 'websocket' | 'quic' | 'custom'
 
 export interface TransportEndpoint {
   kind: TransportKind
@@ -101,21 +90,21 @@ export interface Message<TBody = unknown> {
 }
 
 export type RetryPolicyConfig =
-  | { kind: "none" }
+  | { kind: 'none' }
   | {
-      kind: "linear"
+      kind: 'linear'
       initialDelayMs: number
       maxDelayMs: number
       maxAttempts: number
     }
   | {
-      kind: "exponential"
+      kind: 'exponential'
       baseDelayMs: number
       maxDelayMs: number
       factor: number
       maxAttempts: number
     }
-  | { kind: "custom"; delaysMs: number[] }
+  | { kind: 'custom'; delaysMs: number[] }
 
 export interface RequestOptions {
   timeoutMs?: number
@@ -153,9 +142,7 @@ export interface Event<TPayload = unknown> {
   timestamp: number
 }
 
-export type EventHandler<TPayload = unknown> = (
-  event: Event<TPayload>,
-) => void | Promise<void>
+export type EventHandler<TPayload = unknown> = (event: Event<TPayload>) => void | Promise<void>
 
 export interface SubscribeOptions {
   once?: boolean

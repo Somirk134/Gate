@@ -1,2 +1,2 @@
-export * from "./search"
-export * from "./settings"
+export * from './search'
+export * from './settings'

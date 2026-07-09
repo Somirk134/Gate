@@ -13,8 +13,7 @@
         size="sm"
         placeholder="过滤日志…"
         class="tunnel-logs__search"
-        @update:model-value="search = $event"
-      />
+        @update:model-value="search = $event" />
 
       <div class="tunnel-logs__levels">
         <button
@@ -26,8 +25,7 @@
             `tunnel-logs__level-btn--${lv.key}`,
             { 'tunnel-logs__level-btn--active': activeLevels.has(lv.key) },
           ]"
-          @click="toggleLevel(lv.key)"
-        >
+          @click="toggleLevel(lv.key)">
           {{ lv.label }}
         </button>
       </div>
@@ -40,58 +38,32 @@
         variant="ghost"
         :active="autoScroll"
         :tooltip="autoScroll ? '自动滚动：开' : '自动滚动：关'"
-        @click="autoScroll = !autoScroll"
-      />
+        @click="autoScroll = !autoScroll" />
       <GIconButton
         :name="paused ? 'play' : 'pause'"
         size="sm"
         variant="ghost"
         :active="paused"
         :tooltip="paused ? '已暂停滚动' : '点击暂停滚动'"
-        @click="paused = !paused"
-      />
+        @click="paused = !paused" />
       <GIconButton
         name="download"
         size="sm"
         variant="ghost"
         tooltip="导出日志（预留）"
-        @click="$emit('export')"
-      />
-      <GIconButton
-        name="trash"
-        size="sm"
-        variant="ghost"
-        tooltip="清空"
-        @click="$emit('clear')"
-      />
+        @click="$emit('export')" />
+      <GIconButton name="trash" size="sm" variant="ghost" tooltip="清空" @click="$emit('clear')" />
     </div>
 
     <!-- 日志体 -->
-    <div
-      ref="bodyRef"
-      class="tunnel-logs__body"
-      @scroll="onScroll"
-    >
-      <div
-        v-if="filteredLogs.length === 0"
-        class="tunnel-logs__empty"
-      >
-        <GIcon
-          name="file-text"
-          :size="20"
-        />
+    <div ref="bodyRef" class="tunnel-logs__body" @scroll="onScroll">
+      <div v-if="filteredLogs.length === 0" class="tunnel-logs__empty">
+        <GIcon name="file-text" :size="20" />
         <span>无匹配日志</span>
       </div>
-      <div
-        v-for="log in filteredLogs"
-        :key="log.id"
-        class="tunnel-log-line"
-      >
+      <div v-for="log in filteredLogs" :key="log.id" class="tunnel-log-line">
         <span class="tunnel-log-line__time">{{ formatLogTime(log.timestamp) }}</span>
-        <span
-          class="tunnel-log-line__level"
-          :class="`tunnel-log-line__level--${log.level}`"
-        >
+        <span class="tunnel-log-line__level" :class="`tunnel-log-line__level--${log.level}`">
           {{ log.level }}
         </span>
         <span class="tunnel-log-line__source">[{{ log.source }}]</span>
@@ -102,24 +74,12 @@
     <!-- 状态栏 -->
     <div class="tunnel-logs__statusbar">
       <span>{{ filteredLogs.length }} / {{ tunnel.logs.length }} 条</span>
-      <span
-        v-if="paused"
-        class="tunnel-logs__paused"
-      >
-        <GIcon
-          name="pause"
-          :size="10"
-        />
+      <span v-if="paused" class="tunnel-logs__paused">
+        <GIcon name="pause" :size="10" />
         已暂停
       </span>
-      <span
-        v-else
-        class="tunnel-logs__live"
-      >
-        <GIcon
-          name="circle"
-          :size="8"
-        />
+      <span v-else class="tunnel-logs__live">
+        <GIcon name="circle" :size="8" />
         实时
       </span>
     </div>
@@ -127,12 +87,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GSearchInput from "@components/form/GSearchInput.vue"
-import type { Tunnel, TunnelLogLevel } from "../types"
-import { formatLogTime } from "../utils"
+import { computed, nextTick, ref, watch } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GSearchInput from '@components/form/GSearchInput.vue'
+import type { Tunnel, TunnelLogLevel } from '../types'
+import { formatLogTime } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
 
@@ -142,14 +102,14 @@ defineEmits<{
 }>()
 
 const levels: Array<{ key: TunnelLogLevel; label: string }> = [
-  { key: "debug", label: "DEBUG" },
-  { key: "info", label: "INFO" },
-  { key: "success", label: "OK" },
-  { key: "warn", label: "WARN" },
-  { key: "error", label: "ERROR" },
+  { key: 'debug', label: 'DEBUG' },
+  { key: 'info', label: 'INFO' },
+  { key: 'success', label: 'OK' },
+  { key: 'warn', label: 'WARN' },
+  { key: 'error', label: 'ERROR' },
 ]
 
-const search = ref("")
+const search = ref('')
 const activeLevels = ref<Set<TunnelLogLevel>>(new Set(levels.map((l) => l.key)))
 const autoScroll = ref(true)
 const paused = ref(false)
@@ -195,13 +155,19 @@ function onScroll() {
   }
 }
 
-watch(() => props.tunnel.logs.length, () => {
-  if (!paused.value) scrollToBottom()
-})
+watch(
+  () => props.tunnel.logs.length,
+  () => {
+    if (!paused.value) scrollToBottom()
+  },
+)
 
-watch(() => props.tunnel.id, () => {
-  scrollToBottom()
-})
+watch(
+  () => props.tunnel.id,
+  () => {
+    scrollToBottom()
+  },
+)
 
 scrollToBottom()
 </script>
@@ -239,11 +205,21 @@ scrollToBottom()
   border-color: currentColor;
 }
 
-.tunnel-logs__level-btn--debug.tunnel-logs__level-btn--active { color: var(--text-tertiary); }
-.tunnel-logs__level-btn--info.tunnel-logs__level-btn--active { color: var(--color-info); }
-.tunnel-logs__level-btn--success.tunnel-logs__level-btn--active { color: var(--color-success); }
-.tunnel-logs__level-btn--warn.tunnel-logs__level-btn--active { color: var(--color-warning); }
-.tunnel-logs__level-btn--error.tunnel-logs__level-btn--active { color: var(--color-error); }
+.tunnel-logs__level-btn--debug.tunnel-logs__level-btn--active {
+  color: var(--text-tertiary);
+}
+.tunnel-logs__level-btn--info.tunnel-logs__level-btn--active {
+  color: var(--color-info);
+}
+.tunnel-logs__level-btn--success.tunnel-logs__level-btn--active {
+  color: var(--color-success);
+}
+.tunnel-logs__level-btn--warn.tunnel-logs__level-btn--active {
+  color: var(--color-warning);
+}
+.tunnel-logs__level-btn--error.tunnel-logs__level-btn--active {
+  color: var(--color-error);
+}
 
 .tunnel-logs__spacer {
   flex: 1;

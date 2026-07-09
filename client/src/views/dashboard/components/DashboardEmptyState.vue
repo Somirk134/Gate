@@ -4,17 +4,10 @@
   无项目时的引导插画与操作入口。
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="lg"
-    class="dash-empty"
-  >
+  <GCard variant="plain" padding="lg" class="dash-empty">
     <div class="dash-empty__inner">
       <div class="dash-empty__art">
-        <GIcon
-          name="rocket"
-          :size="40"
-        />
+        <GIcon name="rocket" :size="40" />
         <span class="dash-empty__art-ring" />
         <span class="dash-empty__art-ring dash-empty__art-ring--2" />
       </div>
@@ -25,18 +18,10 @@
         {{ description }}
       </p>
       <div class="dash-empty__actions">
-        <GButton
-          variant="primary"
-          icon="plus"
-          @click="$emit('create')"
-        >
+        <GButton variant="primary" icon="plus" @click="$emit('create')">
           {{ createText }}
         </GButton>
-        <GButton
-          variant="secondary"
-          icon="plug"
-          @click="$emit('connect')"
-        >
+        <GButton variant="secondary" icon="plug" @click="$emit('connect')">
           {{ connectText }}
         </GButton>
       </div>
@@ -45,9 +30,9 @@
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import GCard from '@components/base/GCard.vue'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 withDefaults(
   defineProps<{
@@ -57,10 +42,10 @@ withDefaults(
     connectText?: string
   }>(),
   {
-    title: "开启你的第一个项目",
-    description: "Gate 让你一键将本地服务暴露到公网。创建项目或连接服务器，即刻开始。",
-    createText: "创建第一个项目",
-    connectText: "连接服务器",
+    title: '开启你的第一个项目',
+    description: 'Gate 让你一键将本地服务暴露到公网。创建项目或连接服务器，即刻开始。',
+    createText: '创建第一个项目',
+    connectText: '连接服务器',
   },
 )
 

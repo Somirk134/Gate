@@ -5,15 +5,9 @@
   非 Tunnel 详情，而是项目级别的 Inspector。
 -->
 <template>
-  <div
-    class="project-inspector"
-    :style="colorVars"
-  >
+  <div class="project-inspector" :style="colorVars">
     <header class="project-inspector__header">
-      <GIcon
-        name="info-circle"
-        :size="14"
-      />
+      <GIcon name="info-circle" :size="14" />
       <span>项目信息</span>
     </header>
 
@@ -21,26 +15,17 @@
       <!-- 项目图标预览 -->
       <div class="project-inspector__hero">
         <span class="project-inspector__hero-icon">
-          <GIcon
-            :name="project.icon"
-            :size="28"
-          />
+          <GIcon :name="project.icon" :size="28" />
         </span>
         <div class="project-inspector__hero-text">
           <span class="project-inspector__hero-name">{{ project.name }}</span>
-          <GStatusBadge
-            :status="statusDotType"
-            :label="statusLabel"
-            size="sm"
-          />
+          <GStatusBadge :status="statusDotType" :label="statusLabel" size="sm" />
         </div>
       </div>
 
       <!-- 基础信息 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">
-          基础信息
-        </div>
+        <div class="project-inspector__group-title">基础信息</div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">项目 ID</span>
           <span class="project-inspector__value mono">{{ project.id }}</span>
@@ -55,9 +40,8 @@
             <GIcon
               :name="project.autoStart ? 'check' : 'close'"
               :size="12"
-              :class="project.autoStart ? 'on' : 'off'"
-            />
-            {{ project.autoStart ? "已启用" : "未启用" }}
+              :class="project.autoStart ? 'on' : 'off'" />
+            {{ project.autoStart ? '已启用' : '未启用' }}
           </span>
         </div>
         <div class="project-inspector__row">
@@ -71,38 +55,33 @@
       </div>
 
       <!-- 标签 -->
-      <div
-        v-if="project.tags.length"
-        class="project-inspector__group"
-      >
-        <div class="project-inspector__group-title">
-          标签
-        </div>
+      <div v-if="project.tags.length" class="project-inspector__group">
+        <div class="project-inspector__group-title">标签</div>
         <div class="project-inspector__tags">
-          <ProjectTag
-            v-for="tag in project.tags"
-            :key="tag"
-            :name="tag"
-          />
+          <ProjectTag v-for="tag in project.tags" :key="tag" :name="tag" />
         </div>
       </div>
 
       <!-- 统计 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">
-          运行统计
-        </div>
+        <div class="project-inspector__group-title">运行统计</div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">今日流量</span>
-          <span class="project-inspector__value mono">{{ formatBytes(project.statistics.todayTraffic) }}</span>
+          <span class="project-inspector__value mono">{{
+            formatBytes(project.statistics.todayTraffic)
+          }}</span>
         </div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">累计流量</span>
-          <span class="project-inspector__value mono">{{ formatBytes(project.statistics.totalTraffic) }}</span>
+          <span class="project-inspector__value mono">{{
+            formatBytes(project.statistics.totalTraffic)
+          }}</span>
         </div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">运行时间</span>
-          <span class="project-inspector__value mono">{{ formatDuration(project.statistics.uptime) }}</span>
+          <span class="project-inspector__value mono">{{
+            formatDuration(project.statistics.uptime)
+          }}</span>
         </div>
         <div class="project-inspector__row">
           <span class="project-inspector__label">连接数</span>
@@ -111,13 +90,8 @@
       </div>
 
       <!-- 备注 -->
-      <div
-        v-if="project.remark"
-        class="project-inspector__group"
-      >
-        <div class="project-inspector__group-title">
-          备注
-        </div>
+      <div v-if="project.remark" class="project-inspector__group">
+        <div class="project-inspector__group-title">备注</div>
         <p class="project-inspector__remark">
           {{ project.remark }}
         </p>
@@ -130,48 +104,27 @@
           variant="primary"
           icon="play"
           block
-          @click="$emit('start', project.id)"
-        >
+          @click="$emit('start', project.id)">
           启动项目
         </GButton>
-        <GButton
-          v-else
-          variant="secondary"
-          icon="stop"
-          block
-          @click="$emit('stop', project.id)"
-        >
+        <GButton v-else variant="secondary" icon="stop" block @click="$emit('stop', project.id)">
           停止项目
         </GButton>
-        <GButton
-          variant="ghost"
-          icon="edit"
-          block
-          @click="$emit('edit')"
-        >
-          编辑项目
-        </GButton>
-        <GButton
-          variant="ghost"
-          icon="trash"
-          block
-          @click="$emit('delete')"
-        >
-          删除项目
-        </GButton>
+        <GButton variant="ghost" icon="edit" block @click="$emit('edit')"> 编辑项目 </GButton>
+        <GButton variant="ghost" icon="trash" block @click="$emit('delete')"> 删除项目 </GButton>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import ProjectTag from "./ProjectTag.vue"
-import type { Project } from "../types"
-import { STATUS_CONFIG, projectColorVars, formatBytes, formatDuration } from "../utils"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import ProjectTag from './ProjectTag.vue'
+import type { Project } from '../types'
+import { STATUS_CONFIG, projectColorVars, formatBytes, formatDuration } from '../utils'
 
 const props = defineProps<{ project: Project }>()
 
@@ -187,23 +140,26 @@ const statusConfig = computed(() => STATUS_CONFIG[props.project.status])
 const statusLabel = computed(() => statusConfig.value.label)
 
 const statusDotType = computed(() => {
-  const map: Record<string, "online" | "offline" | "connecting" | "starting" | "error" | "warning"> = {
-    running: "online",
-    partial: "warning",
-    stopped: "offline",
-    starting: "starting",
-    error: "error",
+  const map: Record<
+    string,
+    'online' | 'offline' | 'connecting' | 'starting' | 'error' | 'warning'
+  > = {
+    running: 'online',
+    partial: 'warning',
+    stopped: 'offline',
+    starting: 'starting',
+    error: 'error',
   }
-  return map[props.project.status] ?? "offline"
+  return map[props.project.status] ?? 'offline'
 })
 
 const isRunning = computed(
-  () => props.project.status === "running" || props.project.status === "partial",
+  () => props.project.status === 'running' || props.project.status === 'partial',
 )
 
-function dateLabel(iso: string): string {
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+function dateLabel(value: string | number): string {
+  const d = new Date(value)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 </script>
 
@@ -320,8 +276,12 @@ function dateLabel(iso: string): string {
   font-size: var(--text-xs);
 }
 
-.project-inspector__value :deep(.on) { color: var(--color-success); }
-.project-inspector__value :deep(.off) { color: var(--text-tertiary); }
+.project-inspector__value :deep(.on) {
+  color: var(--color-success);
+}
+.project-inspector__value :deep(.off) {
+  color: var(--text-tertiary);
+}
 
 .project-inspector__tags {
   display: flex;

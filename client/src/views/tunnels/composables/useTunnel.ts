@@ -5,10 +5,10 @@
    组件层只需调用本 hook，无需直接操作 store 状态机。
    ================================================================== */
 
-import { onMounted } from "vue"
-import { storeToRefs } from "pinia"
-import { useTunnelStore } from "../store/tunnel"
-import type { TunnelFormData } from "../types"
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useTunnelStore } from '../store/tunnel'
+import type { TunnelFormData } from '../types'
 
 export function useTunnel() {
   const store = useTunnelStore()
@@ -87,7 +87,7 @@ export function useTunnel() {
   }
 
   onMounted(() => {
-    if (store.status === "idle") {
+    if (store.status === 'idle') {
       loadData()
     }
   })

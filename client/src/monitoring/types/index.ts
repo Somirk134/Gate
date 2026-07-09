@@ -1,30 +1,22 @@
 /** Metric instrument kind supported by Gate Monitoring Center. */
 export type MetricKind =
-  | "counter"
-  | "gauge"
-  | "histogram"
-  | "summary"
-  | "rate"
-  | "average"
-  | "peak"
-  | "min"
-  | "max"
+  'counter' | 'gauge' | 'histogram' | 'summary' | 'rate' | 'average' | 'peak' | 'min' | 'max'
 
 /** Logical metric scope. */
 export type MetricScope =
-  | "tunnel"
-  | "project"
-  | "server"
-  | "connection"
-  | "heartbeat"
-  | "authentication"
-  | "runtime"
-  | "system"
-  | "network"
-  | "client"
+  | 'tunnel'
+  | 'project'
+  | 'server'
+  | 'connection'
+  | 'heartbeat'
+  | 'authentication'
+  | 'runtime'
+  | 'system'
+  | 'network'
+  | 'client'
 
 /** Health status emitted by the HealthCenter. */
-export type HealthStatus = "healthy" | "warning" | "critical" | "offline"
+export type HealthStatus = 'healthy' | 'warning' | 'critical' | 'offline'
 
 /** Metric label map. */
 export interface MetricLabel {
@@ -133,7 +125,7 @@ export interface Statistics {
 
 /** Health signal from one subsystem. */
 export interface HealthSignal {
-  target: "tunnel" | "connection" | "runtime" | "heartbeat" | "server" | "system"
+  target: 'tunnel' | 'connection' | 'runtime' | 'heartbeat' | 'server' | 'system'
   status: HealthStatus
   message: string
   score: number
@@ -185,8 +177,8 @@ export interface HttpRequestRecord {
 export interface DashboardTunnel {
   id: string
   name: string
-  protocol: "tcp" | "udp" | "http" | "https"
-  status: "running" | "stopped" | "warning"
+  protocol: 'tcp' | 'udp' | 'http' | 'https'
+  status: 'running' | 'stopped' | 'warning'
   localHost?: string
   localPort?: number
   remotePort?: number

@@ -1,8 +1,8 @@
-import type { CommandRegistry } from "@/commands/CommandRegistry"
-import type { EventBus } from "@/events/EventBus"
-import type { LoggerService } from "@/logger/LoggerService"
-import type { AppEventMap } from "@/types/application"
-import type { Disposable } from "@/utils/disposable"
+import type { CommandRegistry } from '@/commands/CommandRegistry'
+import type { EventBus } from '@/events/EventBus'
+import type { LoggerService } from '@/logger/LoggerService'
+import type { AppEventMap } from '@/types/application'
+import type { Disposable } from '@/utils/disposable'
 
 export interface ShortcutBinding {
   id: string
@@ -35,17 +35,19 @@ export class BrowserShortcutService implements ShortcutService {
     }
 
     event.preventDefault()
-    void this.events.publish("shortcut:triggered", {
+    void this.events.publish('shortcut:triggered', {
       id: binding.id,
       commandId: binding.commandId,
       shortcut: binding.shortcut,
     })
 
-    void this.commands.execute(binding.commandId, {
-      source: "shortcut",
-    }).catch((error) => {
-      this.logger.error(`Shortcut command failed: ${binding.commandId}`, error)
-    })
+    void this.commands
+      .execute(binding.commandId, {
+        source: 'shortcut',
+      })
+      .catch((error) => {
+        this.logger.error(`Shortcut command failed: ${binding.commandId}`, error)
+      })
   }
 
   constructor(
@@ -75,20 +77,20 @@ export class BrowserShortcutService implements ShortcutService {
   }
 
   start() {
-    if (this.started || typeof document === "undefined") {
+    if (this.started || typeof document === 'undefined') {
       return
     }
 
-    document.addEventListener("keydown", this.handleKeydown)
+    document.addEventListener('keydown', this.handleKeydown)
     this.started = true
   }
 
   stop() {
-    if (!this.started || typeof document === "undefined") {
+    if (!this.started || typeof document === 'undefined') {
       return
     }
 
-    document.removeEventListener("keydown", this.handleKeydown)
+    document.removeEventListener('keydown', this.handleKeydown)
     this.started = false
   }
 
@@ -106,12 +108,15 @@ export class BrowserShortcutService implements ShortcutService {
   }
 
   private matches(shortcut: string, event: KeyboardEvent) {
-    const parts = shortcut.toLowerCase().split("+").map((part) => part.trim())
+    const parts = shortcut
+      .toLowerCase()
+      .split('+')
+      .map((part) => part.trim())
     const key = parts[parts.length - 1]
-    const wantsCtrl = parts.includes("ctrl")
-    const wantsMeta = parts.includes("meta") || parts.includes("cmd")
-    const wantsShift = parts.includes("shift")
-    const wantsAlt = parts.includes("alt")
+    const wantsCtrl = parts.includes('ctrl')
+    const wantsMeta = parts.includes('meta') || parts.includes('cmd')
+    const wantsShift = parts.includes('shift')
+    const wantsAlt = parts.includes('alt')
     const modPressed = event.ctrlKey || event.metaKey
 
     if (wantsCtrl && !modPressed) {
@@ -139,6 +144,6 @@ export class BrowserShortcutService implements ShortcutService {
     }
 
     const tag = target.tagName.toLowerCase()
-    return tag === "input" || tag === "textarea" || target.isContentEditable
+    return tag === 'input' || tag === 'textarea' || target.isContentEditable
   }
 }

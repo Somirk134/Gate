@@ -11,14 +11,8 @@
     error    错误提示（出现时自动替换 hint 并标红）
 -->
 <template>
-  <div
-    class="g-form-field"
-    :class="{ 'g-form-field--error': !!error }"
-  >
-    <div
-      v-if="$slots.label"
-      class="g-form-field__label"
-    >
+  <div class="g-form-field" :class="{ 'g-form-field--error': !!error }">
+    <div v-if="$slots.label" class="g-form-field__label">
       <GLabel :required="required">
         <slot name="label" />
       </GLabel>
@@ -28,28 +22,19 @@
       <slot />
     </div>
 
-    <div
-      v-if="error"
-      class="g-form-field__message g-form-field__message--error"
-    >
-      <GIcon
-        name="alert-circle"
-        :size="12"
-      />
+    <div v-if="error" class="g-form-field__message g-form-field__message--error">
+      <GIcon name="alert-circle" :size="12" />
       <span>{{ error }}</span>
     </div>
-    <div
-      v-else-if="$slots.hint"
-      class="g-form-field__message"
-    >
+    <div v-else-if="$slots.hint" class="g-form-field__message">
       <slot name="hint" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import GLabel from "./GLabel.vue"
+import GIcon from '@components/icons/GIcon.vue'
+import GLabel from './GLabel.vue'
 
 defineProps<{
   required?: boolean

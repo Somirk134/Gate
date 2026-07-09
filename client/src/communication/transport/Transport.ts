@@ -1,4 +1,4 @@
-import type { Message, Transport, TransportEndpoint } from "../types"
+import type { Message, Transport, TransportEndpoint } from '../types'
 
 export class ClientTransport {
   constructor(private readonly inner: Transport) {}

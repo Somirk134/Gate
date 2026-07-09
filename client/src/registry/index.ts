@@ -1,1 +1,1 @@
-export * from "./ServiceRegistry"
+export * from './ServiceRegistry'

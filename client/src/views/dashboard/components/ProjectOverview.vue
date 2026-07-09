@@ -7,22 +7,12 @@
   <section class="dashboard-section">
     <div class="dashboard-section__head">
       <div class="dashboard-section__title">
-        <GIcon
-          name="projects"
-          :size="16"
-          class="dashboard-section__title-icon"
-        />
+        <GIcon name="projects" :size="16" class="dashboard-section__title-icon" />
         <span>{{ title }}</span>
       </div>
-      <button
-        class="dashboard-section__more"
-        @click="$emit('viewAll')"
-      >
+      <button class="dashboard-section__more" @click="$emit('viewAll')">
         查看全部
-        <GIcon
-          name="chevron-right"
-          :size="12"
-        />
+        <GIcon name="chevron-right" :size="12" />
       </button>
     </div>
 
@@ -35,44 +25,29 @@
         clickable
         class="project-overview__card dashboard-card-lift"
         :class="`stagger-${(i % 6) + 1}`"
-        @click="$emit('open', project)"
-      >
+        @click="$emit('open', project)">
         <div class="project-overview__head">
           <span class="project-overview__icon">
-            <GIcon
-              :name="project.icon"
-              :size="18"
-            />
+            <GIcon :name="project.icon" :size="18" />
           </span>
           <div class="project-overview__title-wrap">
             <span class="project-overview__name">{{ project.name }}</span>
-            <GStatusBadge
-              :status="project.status"
-              size="sm"
-            />
+            <GStatusBadge :status="project.status" size="sm" />
           </div>
           <div class="project-overview__actions">
             <button
               class="project-overview__pin"
               :class="{ 'project-overview__pin--active': project.favorite }"
               title="收藏"
-              @click.stop="$emit('toggleFavorite', project.id)"
-            >
-              <GIcon
-                :name="project.favorite ? 'star' : 'star-off'"
-                :size="14"
-              />
+              @click.stop="$emit('toggleFavorite', project.id)">
+              <GIcon :name="project.favorite ? 'star' : 'star-off'" :size="14" />
             </button>
             <button
               class="project-overview__pin"
               :class="{ 'project-overview__pin--active': project.pinned }"
               title="固定"
-              @click.stop="$emit('togglePin', project.id)"
-            >
-              <GIcon
-                name="pin"
-                :size="14"
-              />
+              @click.stop="$emit('togglePin', project.id)">
+              <GIcon name="pin" :size="14" />
             </button>
           </div>
         </div>
@@ -83,24 +58,15 @@
 
         <div class="project-overview__meta">
           <span class="project-overview__meta-item">
-            <GIcon
-              name="link"
-              :size="12"
-            />
+            <GIcon name="link" :size="12" />
             {{ project.tunnelCount }} 隧道
           </span>
           <span class="project-overview__meta-item project-overview__meta-item--online">
-            <GStatusDot
-              status="online"
-              size="xs"
-            />
+            <GStatusDot status="online" size="xs" />
             {{ project.runningCount }} 运行
           </span>
           <span class="project-overview__meta-item">
-            <GIcon
-              name="clock"
-              :size="12"
-            />
+            <GIcon name="clock" :size="12" />
             {{ project.lastStartedAt }}
           </span>
         </div>
@@ -110,16 +76,14 @@
             size="sm"
             :variant="project.runningCount > 0 ? 'ghost' : 'primary'"
             :icon="project.runningCount > 0 ? 'stop' : 'play'"
-            @click.stop="onToggleRun(project)"
-          >
+            @click.stop="onToggleRun(project)">
             {{ project.runningCount > 0 ? '停止' : '启动' }}
           </GButton>
           <GButton
             size="sm"
             variant="ghost"
             trailing-icon="arrow-right"
-            @click.stop="$emit('open', project)"
-          >
+            @click.stop="$emit('open', project)">
             进入
           </GButton>
         </div>
@@ -129,13 +93,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import GStatusDot from "@components/status/GStatusDot.vue"
-import type { DashboardProject } from "../types"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import GStatusDot from '@components/status/GStatusDot.vue'
+import type { DashboardProject } from '../types'
 
 const props = withDefaults(
   defineProps<{
@@ -143,7 +107,7 @@ const props = withDefaults(
     title?: string
   }>(),
   {
-    title: "项目概览",
+    title: '项目概览',
   },
 )
 
@@ -167,9 +131,9 @@ const emit = defineEmits<{
 
 function onToggleRun(project: DashboardProject) {
   if (project.runningCount > 0) {
-    emit("stop", project)
+    emit('stop', project)
   } else {
-    emit("start", project)
+    emit('start', project)
   }
 }
 </script>

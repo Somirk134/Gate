@@ -1,63 +1,35 @@
 <template>
   <aside class="log-source-tree">
     <div class="log-source-tree__header">
-      <span>Sources</span>
+      <span>{{ t('logs.sources') }}</span>
       <strong>{{ total }}</strong>
     </div>
 
     <div class="log-source-tree__nodes">
-      <div
-        v-for="root in sources"
-        :key="root.id"
-        class="log-source-tree__group"
-      >
-        <div
-          class="log-source-node"
-          :class="{ 'log-source-node--active': selected === root.id }"
-        >
-          <button
-            type="button"
-            class="log-source-node__toggle"
-            @click.stop="expanded = !expanded"
-          >
-            <GIcon
-              :name="expanded ? 'chevron-down' : 'chevron-right'"
-              :size="13"
-            />
+      <div v-for="root in sources" :key="root.id" class="log-source-tree__group">
+        <div class="log-source-node" :class="{ 'log-source-node--active': selected === root.id }">
+          <button type="button" class="log-source-node__toggle" @click.stop="expanded = !expanded">
+            <GIcon :name="expanded ? 'chevron-down' : 'chevron-right'" :size="13" />
           </button>
-          <button
-            type="button"
-            class="log-source-node__label"
-            @click="$emit('select', root.id)"
-          >
-            <GIcon
-              :name="root.icon"
-              :size="15"
-            />
-            <span>{{ root.label }}</span>
+          <button type="button" class="log-source-node__label" @click="$emit('select', root.id)">
+            <GIcon :name="root.icon" :size="15" />
+            <span>{{ rootLabel(root) }}</span>
             <strong>{{ total }}</strong>
           </button>
         </div>
 
-        <div
-          v-if="expanded"
-          class="log-source-tree__children"
-        >
+        <div v-if="expanded" class="log-source-tree__children">
           <button
             v-for="child in root.children"
             :key="child.id"
             type="button"
             class="log-source-node log-source-node--child"
             :class="{ 'log-source-node--active': selected === child.id }"
-            @click="$emit('select', child.id)"
-          >
+            @click="$emit('select', child.id)">
             <span class="log-source-node__toggle" />
-            <GIcon
-              :name="child.icon"
-              :size="14"
-            />
-            <span>{{ child.label }}</span>
-            <em v-if="child.reserved">soon</em>
+            <GIcon :name="child.icon" :size="14" />
+            <span>{{ sourceLabel(child.id) }}</span>
+            <em v-if="child.reserved">{{ t('logs.source.soon') }}</em>
             <strong>{{ getCount(child.id) }}</strong>
           </button>
         </div>
@@ -67,22 +39,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import type { LogSource, LogSourceNode } from "../types"
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import type { LogSource, LogSourceNode } from '../types'
 
 const props = defineProps<{
   sources: LogSourceNode[]
-  selected: LogSource | "ALL"
+  selected: LogSource | 'ALL'
   counts: Record<LogSource, number>
   total: number
 }>()
 
-defineEmits<{ select: [value: LogSource | "ALL"] }>()
+defineEmits<{ select: [value: LogSource | 'ALL'] }>()
 
 const expanded = ref(true)
+const { t } = useI18n()
 
-function getCount(source: LogSource | "ALL"): number {
-  return source === "ALL" ? props.total : props.counts[source] ?? 0
+function getCount(source: LogSource | 'ALL'): number {
+  return source === 'ALL' ? props.total : (props.counts[source] ?? 0)
+}
+
+function rootLabel(source: LogSourceNode): string {
+  return source.id === 'ALL' ? t('logs.allLogs') : source.label
+}
+
+function sourceLabel(source: LogSource | 'ALL'): string {
+  if (source === 'ALL') return t('logs.allLogs')
+  return t(`logs.source.${source.toLowerCase()}`)
 }
 </script>

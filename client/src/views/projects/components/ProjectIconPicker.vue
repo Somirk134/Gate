@@ -12,22 +12,18 @@
       class="project-icon-cell"
       :class="{ 'project-icon-cell--active': modelValue === icon.key }"
       :title="icon.label"
-      @click="$emit('update:modelValue', icon.key)"
-    >
-      <GIcon
-        :name="icon.key"
-        :size="16"
-      />
+      @click="$emit('update:modelValue', icon.key)">
+      <GIcon :name="icon.key" :size="16" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
-import { PROJECT_ICONS } from "../utils"
+import GIcon from '@components/icons/GIcon.vue'
+import { PROJECT_ICONS } from '../utils'
 
 defineProps<{ modelValue: string }>()
-defineEmits<{ "update:modelValue": [value: string] }>()
+defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const icons = PROJECT_ICONS
 </script>

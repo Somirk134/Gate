@@ -8,7 +8,13 @@ description = "Gate domain model boundaries"
 [dependencies]
 gate-shared = { path = "../../shared" }
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 tracing.workspace = true
+rusqlite = { workspace = true, features = ["bundled"] }
+
+[dev-dependencies]
+anyhow.workspace = true
+tempfile.workspace = true

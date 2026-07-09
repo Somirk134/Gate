@@ -1,9 +1,9 @@
-import { defineStore } from "pinia"
-import { computed, ref } from "vue"
-import { TauriIpcClient } from "@/ipc"
-import { buildLogStatistics } from "../constants"
-import type { LogFilter, LogItem, LogLevel, LogLoadStatus, LogSource } from "../types"
-import { getTimeRangeStart, normalizeText } from "../utils"
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { TauriIpcClient } from '@/ipc'
+import { buildLogStatistics } from '../constants'
+import type { LogFilter, LogItem, LogLevel, LogLoadStatus, LogSource } from '../types'
+import { getTimeRangeStart, normalizeText } from '../utils'
 
 interface RuntimeLogRecord {
   level: string
@@ -22,9 +22,9 @@ export const defaultLogFilter: LogFilter = {
   modules: [],
   projects: [],
   tunnels: [],
-  timeRange: "all",
-  keyword: "",
-  groupBy: "none",
+  timeRange: 'all',
+  keyword: '',
+  groupBy: 'none',
   fuzzy: true,
 }
 
@@ -45,29 +45,27 @@ function matchKeyword(log: LogItem, keyword: string, fuzzy: boolean): boolean {
       log.raw,
     ]
       .filter(Boolean)
-      .join(" "),
+      .join(' '),
   )
 
   if (haystack.includes(query)) return true
   if (!fuzzy) return false
 
-  return haystack
-    .split(/[\s/._:-]+/)
-    .some((token) => {
-      let cursor = 0
-      for (const char of query) {
-        cursor = token.indexOf(char, cursor)
-        if (cursor === -1) return false
-        cursor += 1
-      }
-      return true
-    })
+  return haystack.split(/[\s/._:-]+/).some((token) => {
+    let cursor = 0
+    for (const char of query) {
+      cursor = token.indexOf(char, cursor)
+      if (cursor === -1) return false
+      cursor += 1
+    }
+    return true
+  })
 }
 
-export const useLogStore = defineStore("log-center", () => {
+export const useLogStore = defineStore('log-center', () => {
   const logs = ref<LogItem[]>([])
-  const status = ref<LogLoadStatus>("idle")
-  const error = ref("")
+  const status = ref<LogLoadStatus>('idle')
+  const error = ref('')
   const filter = ref<LogFilter>({ ...defaultLogFilter })
   const paused = ref(false)
   const autoScroll = ref(true)
@@ -76,9 +74,9 @@ export const useLogStore = defineStore("log-center", () => {
   const droppedCount = ref(0)
   const maxRetained = ref(100_000)
 
-  const isLoading = computed(() => status.value === "loading")
-  const isError = computed(() => status.value === "error")
-  const isReady = computed(() => status.value === "success")
+  const isLoading = computed(() => status.value === 'loading')
+  const isError = computed(() => status.value === 'error')
+  const isReady = computed(() => status.value === 'success')
   const hasLogs = computed(() => logs.value.length > 0)
   const statistics = computed(() => buildLogStatistics(logs.value))
 
@@ -86,7 +84,9 @@ export const useLogStore = defineStore("log-center", () => {
     Array.from(new Set(logs.value.map((log) => log.module))).sort(),
   )
   const availableProjects = computed(() =>
-    Array.from(new Set(logs.value.map((log) => log.projectName).filter(Boolean) as string[])).sort(),
+    Array.from(
+      new Set(logs.value.map((log) => log.projectName).filter(Boolean) as string[]),
+    ).sort(),
   )
   const availableTunnels = computed(() =>
     Array.from(new Set(logs.value.map((log) => log.tunnelName).filter(Boolean) as string[])).sort(),
@@ -94,7 +94,7 @@ export const useLogStore = defineStore("log-center", () => {
 
   const filteredLogs = computed(() => filterLogs(logs.value, filter.value))
   const selectedLog = computed(() =>
-    selectedId.value ? logs.value.find((log) => log.id === selectedId.value) ?? null : null,
+    selectedId.value ? (logs.value.find((log) => log.id === selectedId.value) ?? null) : null,
   )
   const filteredStatistics = computed(() => buildLogStatistics(filteredLogs.value))
 
@@ -105,26 +105,27 @@ export const useLogStore = defineStore("log-center", () => {
       if (current.sources.length && !current.sources.includes(log.source)) return false
       if (current.modules.length && !current.modules.includes(log.module)) return false
       if (current.projects.length && !log.projectName) return false
-      if (current.projects.length && !current.projects.includes(log.projectName ?? "")) return false
+      if (current.projects.length && !current.projects.includes(log.projectName ?? '')) return false
       if (current.tunnels.length && !log.tunnelName) return false
-      if (current.tunnels.length && !current.tunnels.includes(log.tunnelName ?? "")) return false
+      if (current.tunnels.length && !current.tunnels.includes(log.tunnelName ?? '')) return false
       if (start && log.timestamp < start) return false
       return matchKeyword(log, current.keyword, current.fuzzy)
     })
   }
 
   async function load(): Promise<void> {
-    status.value = "loading"
-    error.value = ""
+    status.value = 'loading'
+    error.value = ''
     try {
-      const runtimeLogs = await ipc.invoke<RuntimeLogRecord[]>("runtime_get_logs")
+      const runtimeLogs = await ipc.invoke<RuntimeLogRecord[]>('runtime_get_logs')
       logs.value = runtimeLogs.map(mapRuntimeLog)
-      status.value = "success"
+      status.value = 'success'
       lastUpdated.value = Date.now()
-      if (!selectedId.value && logs.value.length) selectedId.value = logs.value[logs.value.length - 1].id
+      if (!selectedId.value && logs.value.length)
+        selectedId.value = logs.value[logs.value.length - 1].id
     } catch (e) {
-      status.value = "error"
-      error.value = e instanceof Error ? e.message : "Failed to load logs"
+      status.value = 'error'
+      error.value = e instanceof Error ? e.message : '日志加载失败'
     }
   }
 
@@ -205,8 +206,8 @@ export const useLogStore = defineStore("log-center", () => {
     setFilter({ levels: Array.from(next) })
   }
 
-  function setSource(source: LogSource | "ALL"): void {
-    setFilter({ sources: source === "ALL" ? [] : [source] })
+  function setSource(source: LogSource | 'ALL'): void {
+    setFilter({ sources: source === 'ALL' ? [] : [source] })
   }
 
   return {
@@ -261,16 +262,16 @@ function mapRuntimeLog(log: RuntimeLogRecord): LogItem {
     timestamp: log.timestamp,
     level,
     source,
-    module: log.source || "runtime",
+    module: log.source || 'runtime',
     message: log.message,
     tunnelId,
     tunnelName: tunnelId,
     context: {
-      environment: "desktop",
-      host: "local",
+      environment: 'desktop',
+      host: 'local',
       processId: 0,
-      thread: "runtime",
-      sessionId: "",
+      thread: 'runtime',
+      sessionId: '',
     },
     metadata: {
       tags: [log.source, tunnelId].filter(Boolean) as string[],
@@ -281,19 +282,32 @@ function mapRuntimeLog(log: RuntimeLogRecord): LogItem {
 
 function normalizeLevel(level: string): LogLevel {
   const value = level.toUpperCase()
-  if (value === "TRACE" || value === "DEBUG" || value === "INFO" || value === "WARN" || value === "ERROR" || value === "FATAL") {
+  if (
+    value === 'TRACE' ||
+    value === 'DEBUG' ||
+    value === 'INFO' ||
+    value === 'WARN' ||
+    value === 'ERROR' ||
+    value === 'FATAL'
+  ) {
     return value
   }
-  return "INFO"
+  return 'INFO'
 }
 
 function normalizeSource(source: string): LogSource {
   const value = source.toLowerCase()
-  if (value.includes("tunnel")) return "TUNNEL"
-  if (value.includes("server")) return "SERVER"
-  if (value.includes("stat") || value.includes("metric")) return "STATISTICS"
-  if (value.includes("update")) return "UPDATE"
-  if (value.includes("project")) return "PROJECT"
-  if (value.includes("client") || value.includes("connection") || value.includes("auth") || value.includes("heartbeat")) return "CLIENT"
-  return "SYSTEM"
+  if (value.includes('tunnel')) return 'TUNNEL'
+  if (value.includes('server')) return 'SERVER'
+  if (value.includes('stat') || value.includes('metric')) return 'STATISTICS'
+  if (value.includes('update')) return 'UPDATE'
+  if (value.includes('project')) return 'PROJECT'
+  if (
+    value.includes('client') ||
+    value.includes('connection') ||
+    value.includes('auth') ||
+    value.includes('heartbeat')
+  )
+    return 'CLIENT'
+  return 'SYSTEM'
 }

@@ -3,56 +3,56 @@ import { ref } from 'vue'
 import { tunnelService } from '@/services/tunnel.service'
 
 export interface Tunnel {
-    id: string
-    localPort: number
-    remotePort: number
-    protocol: string
-    status: string
+  id: string
+  localPort: number
+  remotePort: number
+  protocol: string
+  status: string
 }
 
 export const useTunnelStore = defineStore('tunnel', () => {
-    const tunnels = ref<Tunnel[]>([])
-    const loading = ref(false)
-    const error = ref('')
+  const tunnels = ref<Tunnel[]>([])
+  const loading = ref(false)
+  const error = ref('')
 
-    async function fetchTunnels() {
-        loading.value = true
-        error.value = ''
-        try {
-            tunnels.value = (await tunnelService.list()).map((tunnel) => ({
-                id: tunnel.id,
-                localPort: tunnel.localPort ?? 0,
-                remotePort: tunnel.remotePort ?? 0,
-                protocol: tunnel.protocol,
-                status: tunnel.status,
-            }))
-        } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Failed to load tunnels'
-        } finally {
-            loading.value = false
-        }
+  async function fetchTunnels() {
+    loading.value = true
+    error.value = ''
+    try {
+      tunnels.value = (await tunnelService.list()).map((tunnel) => ({
+        id: tunnel.id,
+        localPort: tunnel.localPort ?? 0,
+        remotePort: tunnel.remotePort ?? 0,
+        protocol: tunnel.protocol,
+        status: tunnel.status,
+      }))
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '隧道加载失败'
+    } finally {
+      loading.value = false
     }
+  }
 
-    async function addTunnel(tunnel: Tunnel) {
-        await tunnelService.create({
-            localPort: tunnel.localPort,
-            remotePort: tunnel.remotePort,
-            protocol: tunnel.protocol,
-        })
-        await fetchTunnels()
-    }
+  async function addTunnel(tunnel: Tunnel) {
+    await tunnelService.create({
+      localPort: tunnel.localPort,
+      remotePort: tunnel.remotePort,
+      protocol: tunnel.protocol,
+    })
+    await fetchTunnels()
+  }
 
-    async function removeTunnel(id: string) {
-        await tunnelService.delete(id)
-        await fetchTunnels()
-    }
+  async function removeTunnel(id: string) {
+    await tunnelService.delete(id)
+    await fetchTunnels()
+  }
 
-    return {
-        tunnels,
-        loading,
-        error,
-        fetchTunnels,
-        addTunnel,
-        removeTunnel,
-    }
+  return {
+    tunnels,
+    loading,
+    error,
+    fetchTunnels,
+    addTunnel,
+    removeTunnel,
+  }
 })

@@ -5,8 +5,7 @@
       class="settings-import-input"
       type="file"
       accept="application/json,.json"
-      @change="handleImportFile"
-    >
+      @change="handleImportFile" />
 
     <header class="settings-hero">
       <div>
@@ -14,47 +13,28 @@
         <h1>{{ t('settings.title') }}</h1>
       </div>
       <label class="settings-hero__search">
-        <GIcon
-          name="search"
-          :size="15"
-        />
-        <input
-          v-model.trim="query"
-          :placeholder="t('settings.searchPlaceholder')"
-        >
+        <GIcon name="search" :size="15" />
+        <input v-model.trim="query" :placeholder="t('settings.searchPlaceholder')" />
       </label>
     </header>
 
     <div class="settings-layout">
-      <aside
-        class="settings-nav"
-        :aria-label="t('settings.categories')"
-      >
+      <aside class="settings-nav" :aria-label="t('settings.categories')">
         <button
           v-for="category in visibleCategories"
           :key="category.id"
           type="button"
           :class="{ active: activeCategory === category.id }"
-          @click="activeCategory = category.id"
-        >
-          <GIcon
-            :name="category.icon"
-            :size="16"
-          />
+          @click="activeCategory = category.id">
+          <GIcon :name="category.icon" :size="16" />
           <span>{{ localize(category.label) }}</span>
         </button>
       </aside>
 
       <main class="settings-panel">
-        <section
-          v-if="selectedCategory"
-          class="settings-category-panel"
-        >
+        <section v-if="selectedCategory" class="settings-category-panel">
           <div class="settings-category-panel__heading">
-            <span><GIcon
-              :name="selectedCategory.icon"
-              :size="20"
-            /></span>
+            <span><GIcon :name="selectedCategory.icon" :size="20" /></span>
             <div>
               <p>{{ localize(selectedCategory.kicker) }}</p>
               <h2>{{ localize(selectedCategory.label) }}</h2>
@@ -66,8 +46,7 @@
             <article
               v-for="(group, groupIndex) in selectedCategory.groups"
               :key="`${selectedCategory.id}-${groupIndex}`"
-              class="settings-group-card"
-            >
+              class="settings-group-card">
               <header>
                 <div>
                   <h3>{{ localize(group.title) }}</h3>
@@ -80,8 +59,7 @@
                   v-for="item in group.items"
                   :key="item.key"
                   class="settings-row"
-                  :class="{ 'settings-row--action': item.control === 'action' }"
-                >
+                  :class="{ 'settings-row--action': item.control === 'action' }">
                   <div>
                     <strong>{{ localize(item.label) }}</strong>
                     <span>{{ localize(item.description) }}</span>
@@ -93,20 +71,15 @@
                     class="settings-switch"
                     :class="{ active: values[item.key] }"
                     :aria-pressed="Boolean(values[item.key])"
-                    @click="values[item.key] = !values[item.key]"
-                  >
+                    @click="values[item.key] = !values[item.key]">
                     <i />
                   </button>
 
-                  <select
-                    v-else-if="item.control === 'select'"
-                    v-model="values[item.key]"
-                  >
+                  <select v-else-if="item.control === 'select'" v-model="values[item.key]">
                     <option
                       v-for="option in normalizeOptions(item.options)"
                       :key="String(option.value)"
-                      :value="option.value"
-                    >
+                      :value="option.value">
                       {{ localize(option.label) }}
                     </option>
                   </select>
@@ -115,15 +88,13 @@
                     v-else-if="item.control === 'number'"
                     v-model.number="values[item.key]"
                     type="number"
-                    min="1"
-                  >
+                    min="1" />
 
                   <GButton
                     v-else-if="item.control === 'action'"
                     variant="secondary"
                     :icon="item.icon"
-                    @click="runSettingAction(item.action)"
-                  >
+                    @click="runSettingAction(item.action)">
                     {{ localize(item.buttonText ?? '执行') }}
                   </GButton>
 
@@ -134,14 +105,8 @@
           </div>
         </section>
 
-        <div
-          v-else
-          class="settings-empty"
-        >
-          <GIcon
-            name="search"
-            :size="28"
-          />
+        <div v-else class="settings-empty">
+          <GIcon name="search" :size="28" />
           <h2>{{ t('settings.noMatches') }}</h2>
           <p>{{ t('settings.noMatchesHint') }}</p>
         </div>
@@ -309,7 +274,7 @@ const categories: SettingCategory[] = [
             key: 'confirmBeforeStop',
             label: L('停止前确认', 'Confirm before stopping'),
             description: L(
-              '停止 Tunnel 或项目时使用统一确认对话框。',
+              '停止隧道或项目时使用统一确认对话框。',
               'Ask before stopping a tunnel or project.',
             ),
             control: 'switch',
@@ -373,7 +338,7 @@ const categories: SettingCategory[] = [
       {
         title: L('默认服务器', 'Default Server'),
         description: L(
-          '让创建 Tunnel 时默认选择更合理。',
+          '让创建隧道时默认选择更合理。',
           'Make tunnel creation defaults more convenient.',
         ),
         items: [

@@ -11,35 +11,23 @@
   <div class="g-empty-state">
     <div class="g-empty-state__icon">
       <slot name="icon">
-        <GIcon
-          name="inbox"
-          :size="32"
-        />
+        <GIcon name="inbox" :size="32" />
       </slot>
     </div>
-    <div
-      v-if="title"
-      class="g-empty-state__title"
-    >
+    <div v-if="title" class="g-empty-state__title">
       {{ title }}
     </div>
-    <div
-      v-if="$slots.default || description"
-      class="g-empty-state__desc"
-    >
+    <div v-if="$slots.default || description" class="g-empty-state__desc">
       <slot>{{ description }}</slot>
     </div>
-    <div
-      v-if="$slots.action"
-      class="g-empty-state__action"
-    >
+    <div v-if="$slots.action" class="g-empty-state__action">
       <slot name="action" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import GIcon from "@components/icons/GIcon.vue"
+import GIcon from '@components/icons/GIcon.vue'
 
 // inbox 图标占位：若 registry 无则回退 info。补充到 registry 可省此处判断
 defineProps<{

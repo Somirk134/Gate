@@ -5,12 +5,11 @@
     size="sm"
     :disabled="!modified"
     :tooltip="modified ? '重置此设置' : '当前为默认值'"
-    @click="emit('reset')"
-  />
+    @click="emit('reset')" />
 </template>
 
 <script setup lang="ts">
-import GIconButton from "@components/base/GIconButton.vue"
+import GIconButton from '@components/base/GIconButton.vue'
 
 defineProps<{
   modified: boolean

@@ -1,39 +1,35 @@
 <template>
   <section class="overview-panel">
     <StatisticsCard
-      label="Running Tunnels"
+      label="运行中的隧道"
       :value="String(data.runningTunnel)"
       icon="router"
-      :meta="`${data.tunnelCount} total`"
-      tone="success"
-    />
+      :meta="`共 ${data.tunnelCount} 个`"
+      tone="success" />
     <StatisticsCard
-      label="Connections"
+      label="当前连接"
       :value="String(data.currentConnection)"
       icon="plug-zap"
-      :meta="`${data.averageRttMs.toFixed(0)} ms avg RTT`"
-      tone="primary"
-    />
+      :meta="`${data.averageRttMs.toFixed(0)} ms 平均 RTT`"
+      tone="primary" />
     <StatisticsCard
-      label="Today Traffic"
+      label="今日流量"
       :value="formatBytes(data.todayTraffic)"
       icon="arrow-right-left"
-      :meta="`${formatBytes(data.totalTraffic)} total`"
-      tone="info"
-    />
+      :meta="`累计 ${formatBytes(data.totalTraffic)}`"
+      tone="info" />
     <StatisticsCard
-      label="Health Score"
+      label="健康评分"
       :value="String(Math.round(data.healthScore))"
       icon="shield-check"
       :meta="formatDuration(data.runtimeUptimeSeconds)"
-      :tone="data.healthScore > 80 ? 'success' : 'warning'"
-    />
+      :tone="data.healthScore > 80 ? 'success' : 'warning'" />
   </section>
 </template>
 
 <script setup lang="ts">
-import StatisticsCard from "./StatisticsCard.vue"
-import type { OverviewStatistics } from "@/monitoring/types"
+import StatisticsCard from './StatisticsCard.vue'
+import type { OverviewStatistics } from '@/monitoring/types'
 
 defineProps<{
   data: OverviewStatistics
@@ -48,7 +44,7 @@ function formatBytes(value: number) {
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  return `${hours}h ${minutes}m uptime`
+  return `${hours} 小时 ${minutes} 分钟运行`
 }
 </script>
 

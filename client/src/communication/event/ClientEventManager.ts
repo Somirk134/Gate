@@ -1,11 +1,11 @@
-import { createCommunicationId } from "../shared/id"
+import { createCommunicationId } from '../shared/id'
 import type {
   Event as CommunicationEvent,
   EventHandler,
   EventName,
   SubscribeOptions,
   Unsubscribe,
-} from "../types"
+} from '../types'
 
 interface Listener<TPayload = unknown> {
   id: string
@@ -23,7 +23,7 @@ export class ClientEventManager {
     options: SubscribeOptions = {},
   ): Unsubscribe {
     const listener: Listener<TPayload> = {
-      id: createCommunicationId("sub"),
+      id: createCommunicationId('sub'),
       handler,
       once: Boolean(options.once),
       priority: options.priority ?? 0,
@@ -35,7 +35,7 @@ export class ClientEventManager {
     this.listeners.set(name, listeners)
 
     const unsubscribe = () => this.unsubscribe(name, listener.id)
-    options.signal?.addEventListener("abort", unsubscribe, { once: true })
+    options.signal?.addEventListener('abort', unsubscribe, { once: true })
 
     return unsubscribe
   }

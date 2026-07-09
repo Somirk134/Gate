@@ -17,32 +17,27 @@
     :disabled="disabled"
     :title="tooltip"
     type="button"
-    @click="handleClick"
-  >
-    <GIcon
-      :name="name"
-      :size="iconSize"
-      :disabled="disabled"
-    />
+    @click="handleClick">
+    <GIcon :name="name" :size="iconSize" :disabled="disabled" />
   </button>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
   defineProps<{
     name: string
-    variant?: "ghost" | "soft" | "solid" | "outline"
-    size?: "sm" | "md" | "lg"
+    variant?: 'ghost' | 'soft' | 'solid' | 'outline'
+    size?: 'sm' | 'md' | 'lg'
     disabled?: boolean
     active?: boolean
     tooltip?: string
   }>(),
   {
-    variant: "ghost",
-    size: "md",
+    variant: 'ghost',
+    size: 'md',
     disabled: false,
     active: false,
   },
@@ -50,13 +45,11 @@ const props = withDefaults(
 
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
-const iconSize = computed(() =>
-  props.size === "sm" ? 14 : props.size === "lg" ? 18 : 16,
-)
+const iconSize = computed(() => (props.size === 'sm' ? 14 : props.size === 'lg' ? 18 : 16))
 
 function handleClick(e: MouseEvent) {
   if (props.disabled) return
-  emit("click", e)
+  emit('click', e)
 }
 </script>
 
@@ -71,18 +64,33 @@ function handleClick(e: MouseEvent) {
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color var(--duration-fast) var(--ease-out),
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
 }
 
-.g-icon-btn--sm { width: var(--control-height-sm); height: var(--control-height-sm); }
-.g-icon-btn--md { width: var(--control-height-md); height: var(--control-height-md); }
-.g-icon-btn--lg { width: var(--control-height-lg); height: var(--control-height-lg); }
+.g-icon-btn--sm {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+}
+.g-icon-btn--md {
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+}
+.g-icon-btn--lg {
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+}
 
-.g-icon-btn:active:not(:disabled) { transform: scale(0.92); }
-.g-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.g-icon-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.g-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ── ghost ── */
 .g-icon-btn--ghost:hover:not(:disabled) {

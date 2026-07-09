@@ -17,49 +17,28 @@
   复用：GCard / GIcon / GStatusBadge / GIconButton / GCircleProgress
 -->
 <template>
-  <GCard
-    variant="plain"
-    padding="md"
-  >
+  <GCard variant="plain" padding="md">
     <div class="server-card">
       <div class="server-card__head">
         <span class="server-card__icon">
-          <GIcon
-            name="server"
-            :size="18"
-          />
+          <GIcon name="server" :size="18" />
         </span>
         <div class="server-card__title-wrap">
           <span class="server-card__name">{{ name }}</span>
           <span class="server-card__host">{{ host }}</span>
         </div>
-        <GStatusBadge
-          :status="status"
-          size="sm"
-        />
-        <GIconButton
-          name="more-horizontal"
-          size="sm"
-          @click="emit('action', 'menu')"
-        />
+        <GStatusBadge :status="status" size="sm" />
+        <GIconButton name="more-horizontal" size="sm" @click="emit('action', 'menu')" />
       </div>
 
       <div class="server-card__metrics">
         <div class="server-card__metric">
           <span class="server-card__metric-label">延迟</span>
-          <span
-            class="server-card__metric-value"
-            :class="latencyClass"
-          >{{ latency }}ms</span>
+          <span class="server-card__metric-value" :class="latencyClass">{{ latency }}ms</span>
         </div>
         <div class="server-card__metric">
           <span class="server-card__metric-label">负载</span>
-          <GCircleProgress
-            :value="load"
-            :size="36"
-            :stroke="3"
-            :variant="loadVariant"
-          />
+          <GCircleProgress :value="load" :size="36" :stroke="3" :variant="loadVariant" />
         </div>
         <div class="server-card__metric">
           <span class="server-card__metric-label">隧道</span>
@@ -71,12 +50,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import GCircleProgress from "@components/feedback/GCircleProgress.vue"
+import { computed } from 'vue'
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import GCircleProgress from '@components/feedback/GCircleProgress.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -85,7 +64,7 @@ const props = withDefaults(
     latency: number
     load: number
     tunnelCount: number
-    status: "online" | "offline" | "connecting" | "error" | "warning" | "maintenance"
+    status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'maintenance'
   }>(),
   {},
 )
@@ -93,15 +72,15 @@ const props = withDefaults(
 const emit = defineEmits<{ click: []; action: [key: string] }>()
 
 const latencyClass = computed(() => {
-  if (props.latency < 100) return "server-card__metric-value--good"
-  if (props.latency < 300) return "server-card__metric-value--warn"
-  return "server-card__metric-value--bad"
+  if (props.latency < 100) return 'server-card__metric-value--good'
+  if (props.latency < 300) return 'server-card__metric-value--warn'
+  return 'server-card__metric-value--bad'
 })
 
-const loadVariant = computed<"success" | "warning" | "error">(() => {
-  if (props.load < 60) return "success"
-  if (props.load < 85) return "warning"
-  return "error"
+const loadVariant = computed<'success' | 'warning' | 'error'>(() => {
+  if (props.load < 60) return 'success'
+  if (props.load < 85) return 'warning'
+  return 'error'
 })
 </script>
 
@@ -171,7 +150,13 @@ const loadVariant = computed<"success" | "warning" | "error">(() => {
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
-.server-card__metric-value--good { color: var(--color-success); }
-.server-card__metric-value--warn { color: var(--color-warning); }
-.server-card__metric-value--bad  { color: var(--color-error); }
+.server-card__metric-value--good {
+  color: var(--color-success);
+}
+.server-card__metric-value--warn {
+  color: var(--color-warning);
+}
+.server-card__metric-value--bad {
+  color: var(--color-error);
+}
 </style>

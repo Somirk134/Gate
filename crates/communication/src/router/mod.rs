@@ -71,10 +71,13 @@ impl MessageRouter {
 
         let tunnel = Arc::new(TunnelHandler);
         self.register(Command::TunnelCreate, tunnel.clone());
+        self.register(Command::TunnelRegister, tunnel.clone());
         self.register(Command::TunnelStart, tunnel.clone());
         self.register(Command::TunnelStop, tunnel.clone());
         self.register(Command::TunnelRestart, tunnel.clone());
-        self.register(Command::TunnelStatistics, tunnel);
+        self.register(Command::TunnelStatistics, tunnel.clone());
+        self.register(Command::TunnelRelayConnect, tunnel.clone());
+        self.register(Command::TunnelRelayStart, tunnel);
 
         let server = Arc::new(ServerHandler);
         self.register(Command::ServerConnect, server.clone());

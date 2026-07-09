@@ -6,24 +6,23 @@
 <template>
   <GSearchInput
     :model-value="modelValue"
-    :placeholder="placeholder"
+    :placeholder="placeholderText"
     size="sm"
-    @update:model-value="$emit('update:modelValue', $event)"
-  />
+    @update:model-value="$emit('update:modelValue', $event)" />
 </template>
 
 <script setup lang="ts">
-import GSearchInput from "@components/form/GSearchInput.vue"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GSearchInput from '@components/form/GSearchInput.vue'
 
-withDefaults(
-  defineProps<{
-    modelValue: string
-    placeholder?: string
-  }>(),
-  {
-    placeholder: "搜索名称、地区、IP、状态…",
-  },
-)
+const props = defineProps<{
+  modelValue: string
+  placeholder?: string
+}>()
 
-defineEmits<{ "update:modelValue": [value: string] }>()
+defineEmits<{ 'update:modelValue': [value: string] }>()
+
+const { t } = useI18n()
+const placeholderText = computed(() => props.placeholder ?? t('server.searchPlaceholder'))
 </script>

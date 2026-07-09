@@ -22,20 +22,19 @@
     :size="numericSize"
     :stroke-width="strokeWidth"
     :aria-hidden="decorative ? 'true' : undefined"
-    :role="decorative ? undefined : 'img'"
-  />
+    :role="decorative ? undefined : 'img'" />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { resolveIcon } from "./registry"
+import { computed } from 'vue'
+import { resolveIcon } from './registry'
 
 const props = withDefaults(
   defineProps<{
     /** 图标名称，见 registry.ts */
     name: string
     /** 尺寸：预设档位或像素数字 */
-    size?: number | "xs" | "sm" | "md" | "lg" | "xl"
+    size?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
     /** 描边宽度，默认 1.75 */
     strokeWidth?: number
     /** 是否旋转动画（loading 等） */
@@ -46,7 +45,7 @@ const props = withDefaults(
     decorative?: boolean
   }>(),
   {
-    size: "md",
+    size: 'md',
     strokeWidth: 1.75,
     spin: false,
     disabled: false,
@@ -65,7 +64,7 @@ const sizeMap: Record<string, number> = {
 }
 
 const numericSize = computed(() =>
-  typeof props.size === "number" ? props.size : sizeMap[props.size] ?? 16,
+  typeof props.size === 'number' ? props.size : (sizeMap[props.size] ?? 16),
 )
 
 const sizeClass = computed(() => `g-icon--${props.size}`)

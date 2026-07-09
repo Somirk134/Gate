@@ -1,4 +1,4 @@
-import type { Connection, ConnectionId } from "../types"
+import type { Connection, ConnectionId } from '../types'
 
 /** Reserved client-side pool for future multi-connection workflows. */
 export class ConnectionPool {

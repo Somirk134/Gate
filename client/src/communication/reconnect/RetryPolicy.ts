@@ -1,11 +1,11 @@
-import type { RetryPolicyConfig } from "../types"
+import type { RetryPolicyConfig } from '../types'
 
 export class RetryPolicy {
   constructor(private readonly config: RetryPolicyConfig = RetryPolicy.defaultConfig()) {}
 
   static defaultConfig(): RetryPolicyConfig {
     return {
-      kind: "exponential",
+      kind: 'exponential',
       baseDelayMs: 500,
       maxDelayMs: 30_000,
       factor: 2,
@@ -19,15 +19,15 @@ export class RetryPolicy {
     }
 
     switch (this.config.kind) {
-      case "none":
+      case 'none':
         return undefined
-      case "linear":
+      case 'linear':
         if (attempt > this.config.maxAttempts) {
           return undefined
         }
 
         return Math.min(this.config.initialDelayMs, this.config.maxDelayMs)
-      case "exponential":
+      case 'exponential':
         if (attempt > this.config.maxAttempts) {
           return undefined
         }
@@ -36,7 +36,7 @@ export class RetryPolicy {
           this.config.baseDelayMs * this.config.factor ** (attempt - 1),
           this.config.maxDelayMs,
         )
-      case "custom":
+      case 'custom':
         return this.config.delaysMs[attempt - 1]
     }
   }

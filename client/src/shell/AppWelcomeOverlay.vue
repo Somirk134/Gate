@@ -1,41 +1,24 @@
 <template>
   <Transition name="smart-wizard">
-    <div
-      v-if="visible"
-      class="smart-onboarding"
-      @keydown.esc="closeForLater"
-    >
+    <div v-if="visible" class="smart-onboarding" @keydown.esc="closeForLater">
       <section
         class="wizard-shell"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="smart-wizard-title"
-      >
+        aria-labelledby="smart-wizard-title">
         <aside class="wizard-rail">
           <div class="rail-brand">
-            <span><GIcon
-              name="router"
-              :size="24"
-            /></span>
+            <span><GIcon name="router" :size="24" /></span>
             <div>
               <strong>Gate</strong>
-              <small>Smart Onboarding</small>
+              <small>智能引导</small>
             </div>
           </div>
 
-          <div
-            class="rail-illustration"
-            aria-hidden="true"
-          >
-            <div class="node local">
-              Local
-            </div>
-            <div class="node server">
-              Server
-            </div>
-            <div class="node public">
-              Public
-            </div>
+          <div class="rail-illustration" aria-hidden="true">
+            <div class="node local">本地</div>
+            <div class="node server">服务器</div>
+            <div class="node public">公网</div>
             <span class="line line-a" />
             <span class="line line-b" />
           </div>
@@ -43,23 +26,14 @@
           <div class="path-panel">
             <p>当前路径</p>
             <div class="path-list">
-              <span
-                v-for="item in pathItems"
-                :key="item"
-              >{{ item }}</span>
+              <span v-for="item in pathItems" :key="item">{{ item }}</span>
             </div>
           </div>
 
           <div class="knowledge-panel">
             <p>知识卡片</p>
-            <article
-              v-for="card in visibleKnowledgeCards"
-              :key="card.id"
-            >
-              <GIcon
-                :name="card.icon"
-                :size="16"
-              />
+            <article v-for="card in visibleKnowledgeCards" :key="card.id">
+              <GIcon :name="card.icon" :size="16" />
               <div>
                 <strong>{{ card.title }}</strong>
                 <span>{{ card.body }}</span>
@@ -81,114 +55,68 @@
                 v-if="screen !== 'welcome'"
                 type="button"
                 class="text-action"
-                @click="restartWizard"
-              >
+                @click="restartWizard">
                 重新开始
               </button>
-              <button
-                type="button"
-                class="text-action"
-                @click="skipWizard"
-              >
-                跳过
-              </button>
+              <button type="button" class="text-action" @click="skipWizard">跳过</button>
               <button
                 type="button"
                 class="icon-action"
                 aria-label="稍后继续"
-                @click="closeForLater"
-              >
-                <GIcon
-                  name="close"
-                  :size="16"
-                />
+                @click="closeForLater">
+                <GIcon name="close" :size="16" />
               </button>
             </div>
           </header>
 
-          <div
-            class="wizard-progress"
-            aria-hidden="true"
-          >
+          <div class="wizard-progress" aria-hidden="true">
             <span :style="{ width: `${progressPercent}%` }" />
           </div>
 
-          <section
-            ref="wizardContentRef"
-            class="wizard-content"
-          >
-            <div
-              v-if="screen === 'welcome'"
-              ref="activePanelRef"
-              class="welcome-screen"
-            >
+          <section ref="wizardContentRef" class="wizard-content">
+            <div v-if="screen === 'welcome'" ref="activePanelRef" class="welcome-screen">
               <div class="welcome-mark">
-                <GIcon
-                  name="sparkles"
-                  :size="32"
-                />
+                <GIcon name="sparkles" :size="32" />
               </div>
               <h2>像聊天一样完成 Gate 配置</h2>
               <p>
-                我会问几个简单问题，然后自动推荐 Tunnel 类型、协议、端口、域名和证书策略。
-                预计 3-5 分钟完成。
+                我会问几个简单问题，然后自动推荐隧道类型、协议、端口、域名和证书策略。 预计 3-5
+                分钟完成。
               </p>
 
               <div class="welcome-points">
                 <article>
-                  <GIcon
-                    name="message"
-                    :size="18"
-                  />
+                  <GIcon name="message" :size="18" />
                   <strong>不填复杂表单</strong>
                   <span>每次只回答一个问题。</span>
                 </article>
                 <article>
-                  <GIcon
-                    name="sparkles"
-                    :size="18"
-                  />
+                  <GIcon name="sparkles" :size="18" />
                   <strong>自动生成配置</strong>
                   <span>根据场景推荐协议和端口。</span>
                 </article>
                 <article>
-                  <GIcon
-                    name="circle-help"
-                    :size="18"
-                  />
+                  <GIcon name="circle-help" :size="18" />
                   <strong>随时解释概念</strong>
                   <span>用简单语言说明为什么。</span>
                 </article>
               </div>
 
               <label class="never-show">
-                <input
-                  v-model="neverShowChoice"
-                  type="checkbox"
-                >
+                <input v-model="neverShowChoice" type="checkbox" />
                 <span>以后不再显示</span>
               </label>
             </div>
 
             <template v-else>
-              <div
-                class="chat-log"
-                aria-live="polite"
-              >
+              <div class="chat-log" aria-live="polite">
                 <article
                   v-for="message in conversation"
                   :key="message.id"
                   class="chat-message"
-                  :class="`is-${message.role}`"
-                >
-                  <span
-                    v-if="message.role === 'gate'"
-                    class="avatar"
-                  >
-                    <GIcon
-                      name="sparkles"
-                      :size="14"
-                    />
+                  :class="`is-${message.role}`">
+                  <span v-if="message.role === 'gate'" class="avatar">
+                    <GIcon name="sparkles" :size="14" />
                   </span>
                   <div>
                     <strong v-if="message.title">{{ message.title }}</strong>
@@ -200,19 +128,14 @@
               <section
                 v-if="screen === 'server-question'"
                 ref="activePanelRef"
-                class="question-panel"
-              >
+                class="question-panel">
                 <button
                   v-for="option in serverOwnershipOptions"
                   :key="option.value"
                   type="button"
                   class="choice-card"
-                  @click="chooseServerOwnership(option.value)"
-                >
-                  <GIcon
-                    :name="option.icon"
-                    :size="20"
-                  />
+                  @click="chooseServerOwnership(option.value)">
+                  <GIcon :name="option.icon" :size="20" />
                   <strong>{{ option.label }}</strong>
                   <span>{{ option.description }}</span>
                 </button>
@@ -221,13 +144,9 @@
               <section
                 v-else-if="screen === 'server-education'"
                 ref="activePanelRef"
-                class="education-panel"
-              >
+                class="education-panel">
                 <div class="explain-card">
-                  <GIcon
-                    name="servers"
-                    :size="22"
-                  />
+                  <GIcon name="servers" :size="22" />
                   <div>
                     <strong>为什么需要公网服务器？</strong>
                     <p>
@@ -241,21 +160,17 @@
                   <article
                     v-for="provider in cloudProviders"
                     :key="provider.id"
-                    :class="`tone-${provider.tone}`"
-                  >
+                    :class="`tone-${provider.tone}`">
                     <strong>{{ provider.name }}</strong>
                     <span>{{ provider.note }}</span>
                   </article>
                 </div>
 
                 <div class="reserved-deploy">
-                  <GIcon
-                    name="rocket"
-                    :size="18"
-                  />
+                  <GIcon name="rocket" :size="18" />
                   <div>
                     <strong>一键部署已预留</strong>
-                    <span>未来会在这里直接选择云厂商并自动部署 Gate Server。</span>
+                    <span>未来会在这里直接选择云厂商并自动部署 Gate 服务端。</span>
                   </div>
                 </div>
 
@@ -263,8 +178,7 @@
                   <GButton
                     variant="secondary"
                     icon="servers"
-                    @click="switchToEnvironmentFromEducation"
-                  >
+                    @click="switchToEnvironmentFromEducation">
                     我已经准备好服务器
                   </GButton>
                 </div>
@@ -273,15 +187,13 @@
               <section
                 v-else-if="screen === 'environment'"
                 ref="activePanelRef"
-                class="environment-panel"
-              >
+                class="environment-panel">
                 <label class="chat-input">
                   <span>服务器地址</span>
                   <input
                     v-model.trim="answers.serverAddress"
                     autocomplete="off"
-                    placeholder="例如 203.0.113.10 或 gate.example.com"
-                  >
+                    placeholder="例如 203.0.113.10 或 gate.example.com" />
                 </label>
 
                 <div class="environment-grid">
@@ -290,14 +202,13 @@
                     :key="environment.id"
                     type="button"
                     class="environment-card"
-                    :class="{ active: answers.serverEnvironment === environment.id, reserved: environment.reserved }"
+                    :class="{
+                      active: answers.serverEnvironment === environment.id,
+                      reserved: environment.reserved,
+                    }"
                     :disabled="environment.reserved"
-                    @click="chooseEnvironment(environment.id)"
-                  >
-                    <GIcon
-                      :name="environment.icon"
-                      :size="18"
-                    />
+                    @click="chooseEnvironment(environment.id)">
+                    <GIcon :name="environment.icon" :size="18" />
                     <strong>{{ environment.title }}</strong>
                     <span>{{ environment.description }}</span>
                     <small>{{ environment.recommendedDeploy }}</small>
@@ -305,11 +216,7 @@
                 </div>
               </section>
 
-              <section
-                v-else-if="screen === 'domain'"
-                ref="activePanelRef"
-                class="domain-panel"
-              >
+              <section v-else-if="screen === 'domain'" ref="activePanelRef" class="domain-panel">
                 <div class="choice-row">
                   <button
                     v-for="option in domainOptions"
@@ -317,46 +224,33 @@
                     type="button"
                     class="choice-card"
                     :class="{ active: answers.domainMode === option.value }"
-                    @click="chooseDomainMode(option.value)"
-                  >
-                    <GIcon
-                      :name="option.icon"
-                      :size="20"
-                    />
+                    @click="chooseDomainMode(option.value)">
+                    <GIcon :name="option.icon" :size="20" />
                     <strong>{{ option.label }}</strong>
                     <span>{{ option.description }}</span>
                   </button>
                 </div>
 
-                <label
-                  v-if="answers.domainMode === 'has-domain'"
-                  class="chat-input"
-                >
+                <label v-if="answers.domainMode === 'has-domain'" class="chat-input">
                   <span>域名</span>
                   <input
                     v-model.trim="answers.domainName"
                     autocomplete="off"
-                    placeholder="api.example.com"
-                  >
+                    placeholder="api.example.com" />
                 </label>
 
                 <div
                   v-if="answers.domainMode && answers.domainMode !== 'has-domain'"
-                  class="plain-note"
-                >
-                  <GIcon
-                    name="info-circle"
-                    :size="17"
-                  />
-                  <span>没有域名也可以正常使用，Gate 会推荐 IP + Port 的访问方式。</span>
+                  class="plain-note">
+                  <GIcon name="info-circle" :size="17" />
+                  <span>没有域名也可以正常使用，Gate 会推荐 IP + 端口的访问方式。</span>
                 </div>
               </section>
 
               <section
                 v-else-if="screen === 'scenario'"
                 ref="activePanelRef"
-                class="scenario-panel"
-              >
+                class="scenario-panel">
                 <div class="scenario-grid">
                   <button
                     v-for="scenario in scenarioRecommendations"
@@ -364,26 +258,24 @@
                     type="button"
                     class="scenario-card"
                     :class="{ active: answers.scenarioId === scenario.id }"
-                    @click="chooseScenario(scenario.id)"
-                  >
-                    <GIcon
-                      :name="scenario.icon"
-                      :size="18"
-                    />
+                    @click="chooseScenario(scenario.id)">
+                    <GIcon :name="scenario.icon" :size="18" />
                     <strong>{{ scenario.title }}</strong>
                     <span>{{ scenario.description }}</span>
-                    <small>{{ scenario.protocol.toUpperCase() }} · {{ scenario.localPort }} → {{ scenario.remotePort }}</small>
+                    <small
+                      >{{ scenario.protocol.toUpperCase() }} · {{ scenario.localPort }} →
+                      {{ scenario.remotePort }}</small
+                    >
                   </button>
                 </div>
 
                 <div class="quick-adjust">
                   <label>
-                    <span>Tunnel 名称</span>
+                    <span>隧道名称</span>
                     <input
                       v-model.trim="answers.customName"
                       autocomplete="off"
-                      :placeholder="selectedScenario.defaultName"
-                    >
+                      :placeholder="selectedScenario.defaultName" />
                   </label>
                   <label>
                     <span>本地端口</span>
@@ -391,17 +283,12 @@
                       v-model.number="answers.customLocalPort"
                       inputmode="numeric"
                       type="number"
-                      :placeholder="String(selectedScenario.localPort)"
-                    >
+                      :placeholder="String(selectedScenario.localPort)" />
                   </label>
                 </div>
               </section>
 
-              <section
-                v-else
-                ref="activePanelRef"
-                class="review-panel"
-              >
+              <section v-else ref="activePanelRef" class="review-panel">
                 <div class="recommendation-card">
                   <header>
                     <div>
@@ -413,27 +300,27 @@
 
                   <dl class="config-list">
                     <div>
-                      <dt>Server</dt>
+                      <dt>服务器</dt>
                       <dd>{{ recommendation.server }}</dd>
                     </div>
                     <div>
-                      <dt>Protocol</dt>
+                      <dt>协议</dt>
                       <dd>{{ recommendation.protocol.toUpperCase() }}</dd>
                     </div>
                     <div>
-                      <dt>Local</dt>
+                      <dt>本地</dt>
                       <dd>{{ recommendation.local }}</dd>
                     </div>
                     <div>
-                      <dt>Remote</dt>
+                      <dt>远程端口</dt>
                       <dd>{{ recommendation.remote }}</dd>
                     </div>
                     <div>
-                      <dt>Domain</dt>
+                      <dt>域名</dt>
                       <dd>{{ recommendation.domain }}</dd>
                     </div>
                     <div>
-                      <dt>Certificate</dt>
+                      <dt>证书</dt>
                       <dd>{{ recommendation.certificate }}</dd>
                     </div>
                   </dl>
@@ -445,17 +332,11 @@
                 </div>
 
                 <div class="why-card">
-                  <GIcon
-                    name="circle-help"
-                    :size="18"
-                  />
+                  <GIcon name="circle-help" :size="18" />
                   <div>
                     <strong>为什么推荐这样配置？</strong>
                     <ul>
-                      <li
-                        v-for="reason in recommendation.reasonList"
-                        :key="reason"
-                      >
+                      <li v-for="reason in recommendation.reasonList" :key="reason">
                         {{ reason }}
                       </li>
                     </ul>
@@ -466,20 +347,10 @@
           </section>
 
           <footer class="wizard-footer">
-            <GButton
-              v-if="screen === 'welcome'"
-              variant="ghost"
-              @click="skipWizard"
-            >
+            <GButton v-if="screen === 'welcome'" variant="ghost" @click="skipWizard">
               跳过
             </GButton>
-            <GButton
-              v-else
-              variant="ghost"
-              @click="goBack"
-            >
-              返回
-            </GButton>
+            <GButton v-else variant="ghost" @click="goBack"> 返回 </GButton>
 
             <span class="inline-error">{{ inlineError }}</span>
 
@@ -487,40 +358,35 @@
               v-if="screen === 'welcome'"
               variant="primary"
               trailing-icon="arrow-right"
-              @click="startWizard"
-            >
+              @click="startWizard">
               开始配置
             </GButton>
             <GButton
               v-else-if="screen === 'server-education'"
               variant="primary"
               trailing-icon="arrow-right"
-              @click="continueWithoutServer"
-            >
+              @click="continueWithoutServer">
               我先了解，继续
             </GButton>
             <GButton
               v-else-if="screen === 'environment'"
               variant="primary"
               trailing-icon="arrow-right"
-              @click="continueFromEnvironment"
-            >
+              @click="continueFromEnvironment">
               继续
             </GButton>
             <GButton
               v-else-if="screen === 'domain'"
               variant="primary"
               trailing-icon="arrow-right"
-              @click="continueFromDomain"
-            >
+              @click="continueFromDomain">
               继续
             </GButton>
             <GButton
               v-else-if="screen === 'scenario'"
               variant="primary"
               trailing-icon="arrow-right"
-              @click="continueFromScenario"
-            >
+              @click="continueFromScenario">
               生成推荐配置
             </GButton>
             <GButton
@@ -528,8 +394,7 @@
               variant="primary"
               icon="plus"
               :loading="creating"
-              @click="createFirstTunnel"
-            >
+              @click="createFirstTunnel">
               确认并创建
             </GButton>
           </footer>
@@ -539,34 +404,17 @@
   </Transition>
 
   <Transition name="tour">
-    <div
-      v-if="tourVisible"
-      class="tour-overlay"
-    >
-      <div
-        class="tour-scrim"
-        @click="finishTour"
-      />
-      <div
-        v-if="spotlightRect"
-        class="tour-ring"
-        :style="spotlightStyle"
-      />
-      <article
-        class="tour-card"
-        :style="tourCardStyle"
-      >
+    <div v-if="tourVisible" class="tour-overlay">
+      <div class="tour-scrim" @click="finishTour" />
+      <div v-if="spotlightRect" class="tour-ring" :style="spotlightStyle" />
+      <article class="tour-card" :style="tourCardStyle">
         <p>快速认识 Gate</p>
         <h2>{{ currentTour.title }}</h2>
         <span>{{ currentTour.body }}</span>
         <footer>
           <small>{{ tourIndex + 1 }} / {{ tourItems.length }}</small>
-          <GButton
-            variant="primary"
-            size="sm"
-            @click="nextTour"
-          >
-            {{ tourIndex === tourItems.length - 1 ? "完成" : "下一处" }}
+          <GButton variant="primary" size="sm" @click="nextTour">
+            {{ tourIndex === tourItems.length - 1 ? '完成' : '下一处' }}
           </GButton>
         </footer>
       </article>
@@ -575,10 +423,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
-import { useRouter } from "vue-router"
-import GButton from "@components/base/GButton.vue"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import GButton from '@components/base/GButton.vue'
+import GIcon from '@components/icons/GIcon.vue'
 import {
   buildSmartRecommendation,
   cloudProviders,
@@ -592,21 +440,21 @@ import {
   type ServerEnvironmentId,
   type ServerOwnership,
   type SmartWizardAnswers,
-} from "@/onboarding/smartWizard"
-import { useTunnelStore } from "@/views/tunnels/store/tunnel"
+} from '@/onboarding/smartWizard'
+import { useTunnelStore } from '@/views/tunnels/store/tunnel'
 
 type WizardScreen =
-  | "welcome"
-  | "server-question"
-  | "server-education"
-  | "environment"
-  | "domain"
-  | "scenario"
-  | "review"
+  | 'welcome'
+  | 'server-question'
+  | 'server-education'
+  | 'environment'
+  | 'domain'
+  | 'scenario'
+  | 'review'
 
 interface ChatMessage {
   id: string
-  role: "gate" | "user"
+  role: 'gate' | 'user'
   title?: string
   body: string
 }
@@ -622,13 +470,13 @@ const router = useRouter()
 const tunnelStore = useTunnelStore()
 
 const visible = ref(false)
-const screen = ref<WizardScreen>("welcome")
+const screen = ref<WizardScreen>('welcome')
 const screenHistory = ref<WizardScreen[]>([])
 const conversation = ref<ChatMessage[]>([])
 const neverShowChoice = ref(false)
-const inlineError = ref("")
+const inlineError = ref('')
 const creating = ref(false)
-const createdTunnelName = ref("")
+const createdTunnelName = ref('')
 const wizardContentRef = ref<HTMLElement | null>(null)
 const activePanelRef = ref<HTMLElement | null>(null)
 const answers = reactive<SmartWizardAnswers>(createDefaultAnswers())
@@ -644,22 +492,22 @@ const serverOwnershipOptions: Array<{
   icon: string
 }> = [
   {
-    value: "has-server",
-    label: "我有服务器",
-    description: "继续选择服务器环境和部署方式。",
-    icon: "servers",
+    value: 'has-server',
+    label: '我有服务器',
+    description: '继续选择服务器环境和部署方式。',
+    icon: 'servers',
   },
   {
-    value: "no-server",
-    label: "我没有服务器",
-    description: "先了解为什么需要，再看推荐平台。",
-    icon: "cloud",
+    value: 'no-server',
+    label: '我没有服务器',
+    description: '先了解为什么需要，再看推荐平台。',
+    icon: 'cloud',
   },
   {
-    value: "unknown-server",
-    label: "我不知道什么是公网服务器",
-    description: "用最简单的话解释，不讲术语。",
-    icon: "circle-help",
+    value: 'unknown-server',
+    label: '我不知道什么是公网服务器',
+    description: '用最简单的话解释，不讲术语。',
+    icon: 'circle-help',
   },
 ]
 
@@ -670,45 +518,45 @@ const domainOptions: Array<{
   icon: string
 }> = [
   {
-    value: "has-domain",
-    label: "有",
-    description: "推荐 HTTPS 和自动证书。",
-    icon: "globe",
+    value: 'has-domain',
+    label: '有',
+    description: '推荐 HTTPS 和自动证书。',
+    icon: 'globe',
   },
   {
-    value: "no-domain",
-    label: "没有",
-    description: "仍然可以使用 IP + Port。",
-    icon: "network",
+    value: 'no-domain',
+    label: '没有',
+    description: '仍然可以使用 IP + 端口。',
+    icon: 'network',
   },
   {
-    value: "skip-domain",
-    label: "暂时不用",
-    description: "先完成 Tunnel，之后再绑定域名。",
-    icon: "clock",
+    value: 'skip-domain',
+    label: '暂时不用',
+    description: '先完成隧道，之后再绑定域名。',
+    icon: 'clock',
   },
 ]
 
 const tourItems = [
   {
-    target: "dashboard",
-    title: "Dashboard",
-    body: "这里看整体状态、运行情况和最近活动。",
+    target: 'dashboard',
+    title: '首页',
+    body: '这里看整体状态、运行情况和最近活动。',
   },
   {
-    target: "tunnels",
-    title: "Tunnel",
-    body: "这里管理刚创建的 Tunnel，启动、停止和查看访问地址。",
+    target: 'tunnels',
+    title: '隧道',
+    body: '这里管理刚创建的隧道，启动、停止和查看访问地址。',
   },
   {
-    target: "logs",
-    title: "Log",
-    body: "连接失败或回调异常时，先到这里看发生了什么。",
+    target: 'logs',
+    title: 'Log',
+    body: '连接失败或回调异常时，先到这里看发生了什么。',
   },
   {
-    target: "settings",
-    title: "Settings",
-    body: "需要重新打开新手引导、调整主题或清理本地缓存时来这里。",
+    target: 'settings',
+    title: '设置',
+    body: '需要重新打开新手引导、调整主题或清理本地缓存时来这里。',
   },
 ]
 
@@ -716,37 +564,38 @@ const selectedScenario = computed(() => findScenario(answers.scenarioId))
 const recommendation = computed(() => buildSmartRecommendation(answers))
 const currentTour = computed(() => tourItems[tourIndex.value])
 const visibleKnowledgeCards = computed(() => {
-  if (screen.value === "server-question" || screen.value === "server-education") {
-    return knowledgeCards.filter((card) => ["public-server", "tunnel", "domain"].includes(card.id))
+  if (screen.value === 'server-question' || screen.value === 'server-education') {
+    return knowledgeCards.filter((card) => ['public-server', 'tunnel', 'domain'].includes(card.id))
   }
-  if (screen.value === "domain" || screen.value === "review") {
-    return knowledgeCards.filter((card) => ["domain", "https", "certificate"].includes(card.id))
+  if (screen.value === 'domain' || screen.value === 'review') {
+    return knowledgeCards.filter((card) => ['domain', 'https', 'certificate'].includes(card.id))
   }
   return knowledgeCards.slice(0, 3)
 })
 
 const screenTitle = computed(() => {
   const titles: Record<WizardScreen, string> = {
-    welcome: "欢迎使用 Gate",
-    "server-question": "你已经拥有公网服务器了吗？",
-    "server-education": answers.serverOwnership === "unknown-server" ? "先理解公网服务器" : "没有服务器也没关系",
-    environment: "你的服务器是什么环境？",
-    domain: "你拥有域名吗？",
-    scenario: "你想用 Gate 做什么？",
-    review: "推荐配置已生成",
+    welcome: '欢迎使用 Gate',
+    'server-question': '你已经拥有公网服务器了吗？',
+    'server-education':
+      answers.serverOwnership === 'unknown-server' ? '先理解公网服务器' : '没有服务器也没关系',
+    environment: '你的服务器是什么环境？',
+    domain: '你拥有域名吗？',
+    scenario: '你想用 Gate 做什么？',
+    review: '推荐配置已生成',
   }
   return titles[screen.value]
 })
 
 const screenCaption = computed(() => {
   const captions: Record<WizardScreen, string> = {
-    welcome: "约 3-5 分钟",
-    "server-question": "第一个关键判断",
-    "server-education": "基础概念",
-    environment: "部署方式推荐",
-    domain: "访问地址",
-    scenario: "使用场景",
-    review: "确认即可创建",
+    welcome: '约 3-5 分钟',
+    'server-question': '第一个关键判断',
+    'server-education': '基础概念',
+    environment: '部署方式推荐',
+    domain: '访问地址',
+    scenario: '使用场景',
+    review: '确认即可创建',
   }
   return captions[screen.value]
 })
@@ -754,8 +603,8 @@ const screenCaption = computed(() => {
 const progressPercent = computed(() => {
   const progress: Record<WizardScreen, number> = {
     welcome: 8,
-    "server-question": 18,
-    "server-education": 36,
+    'server-question': 18,
+    'server-education': 36,
     environment: 36,
     domain: 56,
     scenario: 76,
@@ -765,20 +614,22 @@ const progressPercent = computed(() => {
 })
 
 const pathItems = computed(() => {
-  const list = ["欢迎"]
+  const list = ['欢迎']
   if (answers.serverOwnership) {
     const option = serverOwnershipOptions.find((item) => item.value === answers.serverOwnership)
-    list.push(option?.label ?? "服务器")
+    list.push(option?.label ?? '服务器')
   }
   if (answers.serverEnvironment) {
-    const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
-    list.push(environment?.title ?? "环境")
+    const environment = serverEnvironmentOptions.find(
+      (item) => item.id === answers.serverEnvironment,
+    )
+    list.push(environment?.title ?? '环境')
   }
   if (answers.domainMode) {
     const option = domainOptions.find((item) => item.value === answers.domainMode)
-    list.push(option?.label ?? "域名")
+    list.push(option?.label ?? '域名')
   }
-  if (answers.scenarioId && (screen.value === "scenario" || screen.value === "review")) {
+  if (answers.scenarioId && (screen.value === 'scenario' || screen.value === 'review')) {
     list.push(selectedScenario.value.title)
   }
   return list
@@ -796,7 +647,7 @@ const spotlightStyle = computed(() => {
 
 const tourCardStyle = computed(() => {
   if (!spotlightRect.value) {
-    return { left: "260px", top: "96px" }
+    return { left: '260px', top: '96px' }
   }
   const top = Math.min(window.innerHeight - 180, Math.max(24, spotlightRect.value.top - 18))
   return {
@@ -808,7 +659,7 @@ const tourCardStyle = computed(() => {
 watch(
   [screen, () => ({ ...answers }), conversation, screenHistory],
   () => {
-    if (!visible.value || screen.value === "welcome") return
+    if (!visible.value || screen.value === 'welcome') return
     saveDraft()
   },
   { deep: true },
@@ -819,19 +670,19 @@ watch(screen, () => {
 })
 
 onMounted(() => {
-  window.addEventListener("gate:onboarding:open", handleOpenEvent as EventListener)
-  window.addEventListener("resize", updateSpotlight)
+  window.addEventListener('gate:onboarding:open', handleOpenEvent as EventListener)
+  window.addEventListener('resize', updateSpotlight)
   openOnFirstLaunch()
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener("gate:onboarding:open", handleOpenEvent as EventListener)
-  window.removeEventListener("resize", updateSpotlight)
+  window.removeEventListener('gate:onboarding:open', handleOpenEvent as EventListener)
+  window.removeEventListener('resize', updateSpotlight)
 })
 
 function openOnFirstLaunch() {
-  const completed = localStorage.getItem(smartOnboardingKeys.completed) === "true"
-  const neverShow = localStorage.getItem(smartOnboardingKeys.neverShow) === "true"
+  const completed = localStorage.getItem(smartOnboardingKeys.completed) === 'true'
+  const neverShow = localStorage.getItem(smartOnboardingKeys.neverShow) === 'true'
   if (!completed && !neverShow) {
     openWizard(false)
   }
@@ -842,7 +693,7 @@ function handleOpenEvent(event: CustomEvent<{ restart?: boolean }>) {
 }
 
 function openWizard(restart: boolean) {
-  inlineError.value = ""
+  inlineError.value = ''
   visible.value = true
   if (restart) {
     resetWizard()
@@ -852,7 +703,9 @@ function openWizard(restart: boolean) {
   if (draft) {
     Object.assign(answers, draft.answers)
     screen.value = draft.screen
-    conversation.value = draft.conversation.length ? draft.conversation : createOpeningConversation()
+    conversation.value = draft.conversation.length
+      ? draft.conversation
+      : createOpeningConversation()
     screenHistory.value = draft.history
   } else {
     resetWizard()
@@ -861,11 +714,11 @@ function openWizard(restart: boolean) {
 
 function resetWizard() {
   Object.assign(answers, createDefaultAnswers())
-  screen.value = "welcome"
+  screen.value = 'welcome'
   screenHistory.value = []
   conversation.value = []
-  inlineError.value = ""
-  createdTunnelName.value = ""
+  inlineError.value = ''
+  createdTunnelName.value = ''
   localStorage.removeItem(smartOnboardingKeys.draft)
 }
 
@@ -876,94 +729,96 @@ function restartWizard() {
 
 function startWizard() {
   conversation.value = createOpeningConversation()
-  navigateTo("server-question")
+  navigateTo('server-question')
 }
 
 function createOpeningConversation(): ChatMessage[] {
   return [
     {
       id: makeId(),
-      role: "gate",
-      title: "我们先从最关键的问题开始",
-      body: "Gate 需要一个公网入口。你不用懂网络，我会根据你的回答继续问。",
+      role: 'gate',
+      title: '我们先从最关键的问题开始',
+      body: 'Gate 需要一个公网入口。你不用懂网络，我会根据你的回答继续问。',
     },
   ]
 }
 
 function chooseServerOwnership(value: ServerOwnership) {
-  inlineError.value = ""
+  inlineError.value = ''
   answers.serverOwnership = value
   const option = serverOwnershipOptions.find((item) => item.value === value)
   pushUser(option?.label ?? value)
-  if (value === "has-server") {
-    pushGate("太好了。接下来我只需要知道服务器环境，这样能推荐最省心的部署方式。")
-    navigateTo("environment")
+  if (value === 'has-server') {
+    pushGate('太好了。接下来我只需要知道服务器环境，这样能推荐最省心的部署方式。')
+    navigateTo('environment')
     return
   }
   pushGate(
-    value === "unknown-server"
-      ? "没关系，我们先把公网服务器讲清楚。你可以先了解，再继续生成配置。"
-      : "没有服务器也可以先走完配置思路。拿到服务器后，可以从 Settings 重新打开引导补齐。",
+    value === 'unknown-server'
+      ? '没关系，我们先把公网服务器讲清楚。你可以先了解，再继续生成配置。'
+      : '没有服务器也可以先走完配置思路。拿到服务器后，可以从设置里重新打开引导补齐。',
   )
-  navigateTo("server-education")
+  navigateTo('server-education')
 }
 
 function continueWithoutServer() {
-  pushUser("我先了解，继续")
-  pushGate("好的。下一步看域名。即使没有域名，也可以先用 IP 加端口访问。")
-  navigateTo("domain")
+  pushUser('我先了解，继续')
+  pushGate('好的。下一步看域名。即使没有域名，也可以先用 IP 加端口访问。')
+  navigateTo('domain')
 }
 
 function switchToEnvironmentFromEducation() {
-  answers.serverOwnership = "has-server"
-  pushUser("我已经准备好服务器")
-  pushGate("很好。选择服务器环境后，我会推荐部署方式。")
-  navigateTo("environment")
+  answers.serverOwnership = 'has-server'
+  pushUser('我已经准备好服务器')
+  pushGate('很好。选择服务器环境后，我会推荐部署方式。')
+  navigateTo('environment')
 }
 
 function chooseEnvironment(id: ServerEnvironmentId) {
   const environment = serverEnvironmentOptions.find((item) => item.id === id)
   if (!environment || environment.reserved) return
   answers.serverEnvironment = id
-  inlineError.value = ""
+  inlineError.value = ''
 }
 
 function continueFromEnvironment() {
-  inlineError.value = ""
+  inlineError.value = ''
   if (!answers.serverAddress.trim()) {
-    inlineError.value = "请填写服务器 IP 或域名。"
+    inlineError.value = '请填写服务器 IP 或域名。'
     return
   }
   if (!answers.serverEnvironment) {
-    inlineError.value = "请选择服务器环境。"
+    inlineError.value = '请选择服务器环境。'
     return
   }
   const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
-  pushUser(`${answers.serverAddress}，${environment?.title ?? "服务器"}`)
-  pushGate(`${environment?.recommendedDeploy ?? "已记录服务器环境"} 接下来选择是否使用域名。`)
-  navigateTo("domain")
+  pushUser(`${answers.serverAddress}，${environment?.title ?? '服务器'}`)
+  pushGate(`${environment?.recommendedDeploy ?? '已记录服务器环境'} 接下来选择是否使用域名。`)
+  navigateTo('domain')
 }
 
 function chooseDomainMode(value: DomainMode) {
   answers.domainMode = value
-  if (value !== "has-domain") answers.domainName = ""
-  inlineError.value = ""
+  if (value !== 'has-domain') answers.domainName = ''
+  inlineError.value = ''
 }
 
 function continueFromDomain() {
-  inlineError.value = ""
+  inlineError.value = ''
   if (!answers.domainMode) {
-    inlineError.value = "请选择域名状态。"
+    inlineError.value = '请选择域名状态。'
     return
   }
-  if (answers.domainMode === "has-domain" && !answers.domainName.trim()) {
-    inlineError.value = "请填写域名，例如 api.example.com。"
+  if (answers.domainMode === 'has-domain' && !answers.domainName.trim()) {
+    inlineError.value = '请填写域名，例如 api.example.com。'
     return
   }
   const option = domainOptions.find((item) => item.value === answers.domainMode)
-  pushUser(answers.domainMode === "has-domain" ? answers.domainName : option?.label ?? "暂不使用域名")
-  pushGate("收到。现在告诉我你的使用场景，我会自动选择 Tunnel 类型和默认端口。")
-  navigateTo("scenario")
+  pushUser(
+    answers.domainMode === 'has-domain' ? answers.domainName : (option?.label ?? '暂不使用域名'),
+  )
+  pushGate('收到。现在告诉我你的使用场景，我会自动选择隧道类型和默认端口。')
+  navigateTo('scenario')
 }
 
 function chooseScenario(id: string) {
@@ -971,34 +826,34 @@ function chooseScenario(id: string) {
   answers.scenarioId = scenario.id
   answers.customName = scenario.defaultName
   answers.customLocalPort = scenario.localPort
-  inlineError.value = ""
+  inlineError.value = ''
 }
 
 function continueFromScenario() {
-  inlineError.value = ""
+  inlineError.value = ''
   const port = answers.customLocalPort ?? selectedScenario.value.localPort
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    inlineError.value = "本地端口必须在 1-65535 之间。"
+    inlineError.value = '本地端口必须在 1-65535 之间。'
     return
   }
   pushUser(`${selectedScenario.value.title}，本地端口 ${port}`)
-  pushGate("我已经生成推荐配置。你只需要确认；下面也会解释为什么这样选。")
-  navigateTo("review")
+  pushGate('我已经生成推荐配置。你只需要确认；下面也会解释为什么这样选。')
+  navigateTo('review')
 }
 
 async function createFirstTunnel() {
-  inlineError.value = ""
+  inlineError.value = ''
   creating.value = true
   try {
     const created = await tunnelStore.createTunnel(recommendation.value.form)
     createdTunnelName.value = created.name
     markComplete()
     visible.value = false
-    await router.push("/")
+    await router.push('/')
     await nextTick()
     startTour()
   } catch (error) {
-    inlineError.value = error instanceof Error ? error.message : "创建 Tunnel 失败，请稍后重试。"
+    inlineError.value = error instanceof Error ? error.message : '创建隧道失败，请稍后重试。'
   } finally {
     creating.value = false
   }
@@ -1012,13 +867,13 @@ function navigateTo(nextScreen: WizardScreen) {
 }
 
 function goBack() {
-  inlineError.value = ""
+  inlineError.value = ''
   const previous = screenHistory.value.pop()
   if (previous) {
     screen.value = previous
     return
   }
-  screen.value = "welcome"
+  screen.value = 'welcome'
 }
 
 async function scrollActivePanelIntoView() {
@@ -1029,25 +884,25 @@ async function scrollActivePanelIntoView() {
   const containerRect = container.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
   const top = container.scrollTop + targetRect.top - containerRect.top
-  container.scrollTo({ top: Math.max(0, top), behavior: "smooth" })
+  container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
 }
 
 function closeForLater() {
-  if (screen.value !== "welcome") saveDraft()
+  if (screen.value !== 'welcome') saveDraft()
   visible.value = false
 }
 
 function skipWizard() {
   markComplete()
   visible.value = false
-  void router.push("/")
+  void router.push('/')
 }
 
 function markComplete() {
-  localStorage.setItem(smartOnboardingKeys.completed, "true")
-  localStorage.setItem(smartOnboardingKeys.oldCompleted, "true")
+  localStorage.setItem(smartOnboardingKeys.completed, 'true')
+  localStorage.setItem(smartOnboardingKeys.oldCompleted, 'true')
   if (neverShowChoice.value) {
-    localStorage.setItem(smartOnboardingKeys.neverShow, "true")
+    localStorage.setItem(smartOnboardingKeys.neverShow, 'true')
   }
   localStorage.removeItem(smartOnboardingKeys.draft)
 }
@@ -1072,11 +927,11 @@ function readDraft(): WizardDraft | null {
 }
 
 function pushGate(body: string, title?: string) {
-  conversation.value.push({ id: makeId(), role: "gate", title, body })
+  conversation.value.push({ id: makeId(), role: 'gate', title, body })
 }
 
 function pushUser(body: string) {
-  conversation.value.push({ id: makeId(), role: "user", body })
+  conversation.value.push({ id: makeId(), role: 'user', body })
 }
 
 function makeId() {
@@ -1105,7 +960,9 @@ function finishTour() {
 
 function updateSpotlight() {
   if (!tourVisible.value) return
-  const target = document.querySelector<HTMLElement>(`[data-onboarding-target="${currentTour.value.target}"]`)
+  const target = document.querySelector<HTMLElement>(
+    `[data-onboarding-target="${currentTour.value.target}"]`,
+  )
   spotlightRect.value = target?.getBoundingClientRect() ?? null
 }
 </script>
@@ -1120,8 +977,7 @@ function updateSpotlight() {
   padding: var(--space-5);
   background:
     linear-gradient(135deg, rgba(91, 141, 239, 0.18), transparent 34%),
-    linear-gradient(315deg, rgba(47, 209, 124, 0.12), transparent 38%),
-    var(--bg-app);
+    linear-gradient(315deg, rgba(47, 209, 124, 0.12), transparent 38%), var(--bg-app);
 }
 
 .wizard-shell {
@@ -1143,9 +999,7 @@ function updateSpotlight() {
   gap: var(--space-4);
   padding: var(--space-5);
   border-right: 1px solid var(--border-subtle);
-  background:
-    linear-gradient(180deg, rgba(95, 179, 255, 0.08), transparent 42%),
-    var(--bg-sidebar);
+  background: linear-gradient(180deg, rgba(95, 179, 255, 0.08), transparent 42%), var(--bg-sidebar);
 }
 
 .rail-brand {
@@ -1226,7 +1080,13 @@ function updateSpotlight() {
 .line {
   position: absolute;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-success), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-primary),
+    var(--color-success),
+    transparent
+  );
   transform-origin: left center;
   animation: tunnelPulse 2.4s var(--ease-out) infinite;
 }
@@ -1695,9 +1555,7 @@ button.environment-card {
   gap: var(--space-3);
   padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
-  background:
-    linear-gradient(90deg, rgba(91, 141, 239, 0.14), transparent),
-    var(--bg-surface);
+  background: linear-gradient(90deg, rgba(91, 141, 239, 0.14), transparent), var(--bg-surface);
 }
 
 .recommendation-card header p {
@@ -1809,7 +1667,9 @@ button.environment-card {
   z-index: 1;
   border: 2px solid var(--color-primary);
   border-radius: var(--radius-md);
-  box-shadow: 0 0 0 4px var(--color-primary-muted), 0 0 38px rgba(91, 141, 239, 0.46);
+  box-shadow:
+    0 0 0 4px var(--color-primary-muted),
+    0 0 38px rgba(91, 141, 239, 0.46);
   pointer-events: none;
   transition: all var(--duration-base) var(--ease-out);
 }
@@ -1875,7 +1735,9 @@ button.environment-card {
 
 .smart-wizard-enter-active .wizard-shell,
 .smart-wizard-leave-active .wizard-shell {
-  transition: transform var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out);
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
 }
 
 .smart-wizard-enter-from .wizard-shell,

@@ -1,4 +1,4 @@
-import type { AppContext } from "./AppContext"
+import type { AppContext } from './AppContext'
 
 export interface AppInitializer {
   id: string

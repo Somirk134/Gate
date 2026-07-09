@@ -1,4 +1,4 @@
-export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error'
 
 export interface LogEntry {
   level: LogLevel
@@ -23,23 +23,23 @@ export interface LoggerService {
 
 export class ConsoleLogSink implements LogSink {
   write(entry: LogEntry) {
-    const prefix = `[${entry.level.toUpperCase()}]${entry.scope ? ` [${entry.scope}]` : ""}`
+    const prefix = `[${entry.level.toUpperCase()}]${entry.scope ? ` [${entry.scope}]` : ''}`
 
-    if (entry.level === "error") {
-      console.error(prefix, entry.message, entry.data ?? "")
+    if (entry.level === 'error') {
+      console.error(prefix, entry.message, entry.data ?? '')
       return
     }
 
-    if (entry.level === "warn") {
-      console.warn(prefix, entry.message, entry.data ?? "")
+    if (entry.level === 'warn') {
+      console.warn(prefix, entry.message, entry.data ?? '')
       return
     }
 
-    if (entry.level === "debug" || entry.level === "trace") {
+    if (entry.level === 'debug' || entry.level === 'trace') {
       return
     }
 
-    console.info(prefix, entry.message, entry.data ?? "")
+    console.info(prefix, entry.message, entry.data ?? '')
   }
 }
 
@@ -50,23 +50,23 @@ export class DefaultLoggerService implements LoggerService {
   ) {}
 
   trace(message: string, data?: unknown) {
-    this.write("trace", message, data)
+    this.write('trace', message, data)
   }
 
   debug(message: string, data?: unknown) {
-    this.write("debug", message, data)
+    this.write('debug', message, data)
   }
 
   info(message: string, data?: unknown) {
-    this.write("info", message, data)
+    this.write('info', message, data)
   }
 
   warn(message: string, data?: unknown) {
-    this.write("warn", message, data)
+    this.write('warn', message, data)
   }
 
   error(message: string, data?: unknown) {
-    this.write("error", message, data)
+    this.write('error', message, data)
   }
 
   child(scope: string): LoggerService {

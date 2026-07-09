@@ -30,7 +30,7 @@ The launch GIF should show the full first-run path in 30 seconds or less.
 ### 1. Download And Start
 
 ```bash
-git clone https://github.com/lancemorii-git/gate.git
+git clone https://github.com/Somirk134/Gate.git
 cd gate
 GATE_SERVER_ADDR=127.0.0.1:7000 GATE_AUTH_TOKEN=gate-alpha-token cargo run -p gate-server
 ```

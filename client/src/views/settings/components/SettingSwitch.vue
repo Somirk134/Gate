@@ -6,8 +6,7 @@
     :aria-checked="modelValue"
     :disabled="disabled"
     :class="{ 'setting-switch--on': modelValue }"
-    @click="emit('update:modelValue', !modelValue)"
-  >
+    @click="emit('update:modelValue', !modelValue)">
     <span class="setting-switch__thumb" />
   </button>
 </template>
@@ -24,6 +23,6 @@ withDefaults(
 )
 
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean]
+  'update:modelValue': [value: boolean]
 }>()
 </script>

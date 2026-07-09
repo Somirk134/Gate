@@ -7,11 +7,7 @@
   <div class="dashboard-header">
     <div class="dashboard-header__main">
       <h1 class="dashboard-header__title">
-        <GIcon
-          name="layout-grid"
-          :size="22"
-          class="dashboard-header__icon"
-        />
+        <GIcon name="layout-grid" :size="22" class="dashboard-header__icon" />
         {{ title }}
       </h1>
       <p class="dashboard-header__desc">
@@ -19,14 +15,8 @@
       </p>
     </div>
     <div class="dashboard-header__actions">
-      <span
-        v-if="lastUpdated"
-        class="dashboard-header__updated"
-      >
-        <GIcon
-          name="clock"
-          :size="12"
-        />
+      <span v-if="lastUpdated" class="dashboard-header__updated">
+        <GIcon name="clock" :size="12" />
         {{ updatedText }}
       </span>
       <GIconButton
@@ -34,16 +24,15 @@
         size="sm"
         variant="soft"
         :tooltip="$t('common.loading')"
-        @click="$emit('refresh')"
-      />
+        @click="$emit('refresh')" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
+import { computed } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
 
 const props = defineProps<{
   title: string
@@ -55,7 +44,7 @@ const props = defineProps<{
 defineEmits<{ refresh: [] }>()
 
 const updatedText = computed(() => {
-  if (!props.lastUpdated) return ""
+  if (!props.lastUpdated) return ''
   const diff = Date.now() - props.lastUpdated
   const sec = Math.floor(diff / 1000)
   if (sec < 60) return `${sec} 秒前更新`

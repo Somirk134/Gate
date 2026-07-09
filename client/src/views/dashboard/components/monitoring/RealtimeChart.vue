@@ -1,55 +1,38 @@
 <template>
-  <DashboardWidget
-    title="Realtime Speed"
-    icon="activity"
-  >
+  <DashboardWidget title="实时速度" icon="activity">
     <GEmptyState
       v-if="!points.length"
       title="暂无数据"
-      description="暂无实时速度样本。真实流量产生后将在这里显示。"
-    />
-    <div
-      v-else
-      class="realtime-chart"
-    >
+      description="暂无实时速度样本。真实流量产生后将在这里显示。" />
+    <div v-else class="realtime-chart">
       <div class="realtime-chart__speed">
         <div>
-          <span>Upload</span>
+          <span>上传</span>
           <strong>{{ formatSpeed(latestUpload) }}</strong>
         </div>
         <div>
-          <span>Download</span>
+          <span>下载</span>
           <strong>{{ formatSpeed(latestDownload) }}</strong>
         </div>
       </div>
-      <svg
-        class="realtime-chart__svg"
-        viewBox="0 0 420 180"
-        role="img"
-        aria-label="Realtime speed"
-      >
-        <path
-          class="realtime-chart__grid"
-          d="M24 28H400M24 72H400M24 116H400M24 160H400"
-        />
+      <svg class="realtime-chart__svg" viewBox="0 0 420 180" role="img" aria-label="实时速度">
+        <path class="realtime-chart__grid" d="M24 28H400M24 72H400M24 116H400M24 160H400" />
         <polyline
           class="realtime-chart__line realtime-chart__line--upload"
-          :points="uploadPoints"
-        />
+          :points="uploadPoints" />
         <polyline
           class="realtime-chart__line realtime-chart__line--download"
-          :points="downloadPoints"
-        />
+          :points="downloadPoints" />
       </svg>
     </div>
   </DashboardWidget>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import GEmptyState from "@components/feedback/GEmptyState.vue"
-import DashboardWidget from "./DashboardWidget.vue"
-import type { RealtimeSpeedPoint } from "@/monitoring/types"
+import { computed } from 'vue'
+import GEmptyState from '@components/feedback/GEmptyState.vue'
+import DashboardWidget from './DashboardWidget.vue'
+import type { RealtimeSpeedPoint } from '@/monitoring/types'
 
 const props = defineProps<{
   points: RealtimeSpeedPoint[]
@@ -61,10 +44,10 @@ const maxValue = computed(() =>
 const latest = computed(() => props.points[props.points.length - 1])
 const latestUpload = computed(() => latest.value?.uploadBps ?? 0)
 const latestDownload = computed(() => latest.value?.downloadBps ?? 0)
-const uploadPoints = computed(() => linePoints("uploadBps"))
-const downloadPoints = computed(() => linePoints("downloadBps"))
+const uploadPoints = computed(() => linePoints('uploadBps'))
+const downloadPoints = computed(() => linePoints('downloadBps'))
 
-function linePoints(key: "uploadBps" | "downloadBps") {
+function linePoints(key: 'uploadBps' | 'downloadBps') {
   const width = 376
   const height = 140
   const lastIndex = Math.max(1, props.points.length - 1)
@@ -74,7 +57,7 @@ function linePoints(key: "uploadBps" | "downloadBps") {
       const y = 20 + height - (point[key] / maxValue.value) * height
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
-    .join(" ")
+    .join(' ')
 }
 
 function formatSpeed(value: number) {
@@ -140,6 +123,10 @@ function formatSpeed(value: number) {
   stroke-width: 3;
 }
 
-.realtime-chart__line--upload { stroke: var(--color-success); }
-.realtime-chart__line--download { stroke: var(--color-info); }
+.realtime-chart__line--upload {
+  stroke: var(--color-success);
+}
+.realtime-chart__line--download {
+  stroke: var(--color-info);
+}
 </style>

@@ -1,6 +1,6 @@
-import type { AppContext } from "@/core/AppContext"
-import type { Disposable } from "@/utils/disposable"
-import type { Command, CommandId, ExecuteCommandOptions } from "./types"
+import type { AppContext } from '@/core/AppContext'
+import type { Disposable } from '@/utils/disposable'
+import type { Command, CommandId, ExecuteCommandOptions } from './types'
 
 export class CommandRegistry implements Disposable {
   private readonly commands = new Map<CommandId, Command>()
@@ -10,9 +10,7 @@ export class CommandRegistry implements Disposable {
     this.context = context
   }
 
-  register<TArgs = unknown, TResult = unknown>(
-    command: Command<TArgs, TResult>,
-  ): Disposable {
+  register<TArgs = unknown, TResult = unknown>(command: Command<TArgs, TResult>): Disposable {
     if (this.commands.has(command.id)) {
       throw new Error(`Command already registered: ${command.id}`)
     }
@@ -70,14 +68,14 @@ export class CommandRegistry implements Disposable {
         source: options.source,
       })
 
-      await this.context.events.publish("command:executed", {
+      await this.context.events.publish('command:executed', {
         id,
         source: options.source,
       })
 
       return result
     } catch (error) {
-      await this.context.events.publish("command:failed", {
+      await this.context.events.publish('command:failed', {
         id,
         source: options.source,
         error,

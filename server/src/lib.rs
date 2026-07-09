@@ -1,4 +1,5 @@
 pub mod bootstrap;
+pub mod gateway;
 pub mod runtime;
 
 pub use bootstrap::ServerBootstrap;

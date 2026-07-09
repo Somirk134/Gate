@@ -1,8 +1,5 @@
 <template>
-  <section
-    :id="`settings-group-${group.id}`"
-    class="setting-group"
-  >
+  <section :id="`settings-group-${group.id}`" class="setting-group">
     <header class="setting-group__header">
       <div>
         <h3>{{ group.label }}</h3>
@@ -27,15 +24,14 @@
         @select="emit('select', item)"
         @reset="emit('reset', item)"
         @run-action="emit('run-action', $event)"
-        @update:value="emit('update:value', item, $event)"
-      />
+        @update:value="emit('update:value', item, $event)" />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import type { SettingActionStatus, SettingGroup, SettingItem, SettingValue } from "../types"
-import SettingItemView from "./SettingItem.vue"
+import type { SettingActionStatus, SettingGroup, SettingItem, SettingValue } from '../types'
+import SettingItemView from './SettingItem.vue'
 
 defineProps<{
   group: SettingGroup
@@ -48,9 +44,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  "update:value": [item: SettingItem, value: SettingValue]
+  'update:value': [item: SettingItem, value: SettingValue]
   select: [item: SettingItem]
   reset: [item: SettingItem]
-  "run-action": [actionId: string]
+  'run-action': [actionId: string]
 }>()
 </script>

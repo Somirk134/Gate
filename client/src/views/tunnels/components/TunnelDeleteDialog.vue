@@ -5,30 +5,14 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div
-      v-if="visible"
-      class="tunnel-dialog__overlay"
-      @click.self="handleClose"
-    >
-      <Transition
-        name="dialog-pop"
-        appear
-      >
-        <div
-          v-if="visible"
-          class="tunnel-delete"
-          @click.stop
-        >
+    <div v-if="visible" class="tunnel-dialog__overlay" @click.self="handleClose">
+      <Transition name="dialog-pop" appear>
+        <div v-if="visible" class="tunnel-delete" @click.stop>
           <header class="tunnel-delete__header">
             <span class="tunnel-delete__icon">
-              <GIcon
-                name="alert-triangle"
-                :size="22"
-              />
+              <GIcon name="alert-triangle" :size="22" />
             </span>
-            <h3 class="tunnel-delete__title">
-              删除隧道
-            </h3>
+            <h3 class="tunnel-delete__title">删除隧道</h3>
           </header>
 
           <div class="tunnel-delete__body">
@@ -51,25 +35,18 @@
                 v-model="confirmText"
                 placeholder="输入隧道名称"
                 :state="confirmText && confirmText !== tunnel?.name ? 'error' : 'normal'"
-                clearable
-              />
+                clearable />
             </div>
           </div>
 
           <footer class="tunnel-delete__footer">
-            <GButton
-              variant="ghost"
-              @click="handleClose"
-            >
-              取消
-            </GButton>
+            <GButton variant="ghost" @click="handleClose"> 取消 </GButton>
             <GButton
               variant="danger"
               icon="trash"
               :loading="deleting"
               :disabled="confirmText !== tunnel?.name"
-              @click="handleDelete"
-            >
+              @click="handleDelete">
               确认删除
             </GButton>
           </footer>
@@ -80,11 +57,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
-import GInput from "@components/form/GInput.vue"
-import type { Tunnel } from "../types"
+import { ref, watch } from 'vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+import GInput from '@components/form/GInput.vue'
+import type { Tunnel } from '../types'
 
 const props = defineProps<{
   visible: boolean
@@ -92,32 +69,32 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  "update:visible": [value: boolean]
+  'update:visible': [value: boolean]
   confirm: [tunnel: Tunnel]
 }>()
 
-const confirmText = ref("")
+const confirmText = ref('')
 const deleting = ref(false)
 
 watch(
   () => props.visible,
   (v) => {
     if (v) {
-      confirmText.value = ""
+      confirmText.value = ''
       deleting.value = false
     }
   },
 )
 
 function handleClose() {
-  emit("update:visible", false)
+  emit('update:visible', false)
 }
 
 function handleDelete() {
   if (confirmText.value !== props.tunnel?.name) return
   deleting.value = false
-  if (props.tunnel) emit("confirm", props.tunnel)
-  emit("update:visible", false)
+  if (props.tunnel) emit('confirm', props.tunnel)
+  emit('update:visible', false)
 }
 </script>
 
@@ -194,7 +171,7 @@ function handleDelete() {
 }
 
 .tunnel-delete__list li::before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: var(--space-1);
   color: var(--color-error);

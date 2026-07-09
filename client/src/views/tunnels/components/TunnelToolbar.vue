@@ -5,43 +5,35 @@
 -->
 <template>
   <div class="tunnel-list__toolbar">
-    <TunnelSearch
-      :model-value="query"
-      @update:model-value="$emit('update:query', $event)"
-    />
+    <TunnelSearch :model-value="query" @update:model-value="$emit('update:query', $event)" />
 
     <div class="tunnel-toolbar__row">
       <TunnelFilter
         :model-value="filter"
         :counts="counts"
-        @update:model-value="$emit('update:filter', $event)"
-      />
+        @update:model-value="$emit('update:filter', $event)" />
       <TunnelSort
         :model-value="sortBy"
         :direction="direction"
         @update:model-value="$emit('update:sortBy', $event)"
-        @update:direction="$emit('update:direction', $event)"
-      />
+        @update:direction="$emit('update:direction', $event)" />
     </div>
 
-    <GButton
-      variant="primary"
-      size="sm"
-      icon="plus"
-      block
-      @click="$emit('create')"
-    >
-      New Tunnel
+    <GButton variant="primary" size="sm" icon="plus" block @click="$emit('create')">
+      {{ t('tunnel.create') }}
     </GButton>
   </div>
 </template>
 
 <script setup lang="ts">
-import GButton from "@components/base/GButton.vue"
-import TunnelSearch from "./TunnelSearch.vue"
-import TunnelFilter from "./TunnelFilter.vue"
-import TunnelSort from "./TunnelSort.vue"
-import type { TunnelFilterType, TunnelSortType, SortDirection } from "../types"
+import GButton from '@components/base/GButton.vue'
+import { useI18n } from 'vue-i18n'
+import TunnelSearch from './TunnelSearch.vue'
+import TunnelFilter from './TunnelFilter.vue'
+import TunnelSort from './TunnelSort.vue'
+import type { TunnelFilterType, TunnelSortType, SortDirection } from '../types'
+
+const { t } = useI18n()
 
 defineProps<{
   query: string
@@ -52,10 +44,10 @@ defineProps<{
 }>()
 
 defineEmits<{
-  "update:query": [value: string]
-  "update:filter": [value: TunnelFilterType]
-  "update:sortBy": [value: TunnelSortType]
-  "update:direction": [value: SortDirection]
+  'update:query': [value: string]
+  'update:filter': [value: TunnelFilterType]
+  'update:sortBy': [value: TunnelSortType]
+  'update:direction': [value: SortDirection]
   create: []
 }>()
 </script>

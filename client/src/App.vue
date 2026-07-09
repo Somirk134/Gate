@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-import AppProvider from "./providers/AppProvider.vue"
+import AppProvider from './providers/AppProvider.vue'
 </script>

@@ -1,7 +1,7 @@
-import { onUnmounted } from "vue"
-import { useAppContext } from "@/providers/appContext"
-import type { EventHandler, SubscribeOptions } from "@/events/types"
-import type { AppEventMap } from "@/types/application"
+import { onUnmounted } from 'vue'
+import { useAppContext } from '@/providers/appContext'
+import type { EventHandler, SubscribeOptions } from '@/events/types'
+import type { AppEventMap } from '@/types/application'
 
 export function useEventBus() {
   const context = useAppContext()

@@ -5,71 +5,79 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div
-      v-if="visible"
-      class="project-delete__overlay"
-      @click.self="handleClose"
-    >
-      <Transition
-        name="dialog-pop"
-        appear
-      >
-        <div
-          v-if="visible"
-          class="project-delete"
-          @click.stop
-        >
+    <div v-if="visible" class="project-delete__overlay" @click.self="handleClose">
+      <Transition name="dialog-pop" appear>
+        <div v-if="visible" class="project-delete" @click.stop>
           <header class="project-delete__header">
             <span class="project-delete__icon">
-              <GIcon
-                name="alert-triangle"
-                :size="22"
-              />
+              <GIcon name="alert-triangle" :size="22" />
             </span>
-            <h3 class="project-delete__title">
-              删除项目
-            </h3>
+            <h3 class="project-delete__title">{{ t('project.deleteDialog.title') }}</h3>
           </header>
 
           <div class="project-delete__body">
             <p class="project-delete__warning">
-              你即将删除项目
+              {{ t('project.deleteDialog.warning') }}
               <strong class="project-delete__name">「{{ project?.name }}」</strong>
             </p>
             <ul class="project-delete__list">
-              <li>该项目下的 {{ project?.tunnelCount ?? 0 }} 个 Tunnel 将全部停止并移除</li>
-              <li>所有流量统计与运行记录将被清除</li>
-              <li>此操作<b>不可撤销</b></li>
+              <li>
+                {{ t('project.deleteDialog.tunnelRefs', { count: project?.tunnelCount ?? 0 }) }}
+              </li>
+              <li>
+                {{ t('project.deleteDialog.domainRefs', { count: project?.domainCount ?? 0 }) }}
+              </li>
+              <li>
+                {{
+                  t('project.deleteDialog.certificateRefs', {
+                    count: project?.certificateCount ?? 0,
+                  })
+                }}
+              </li>
             </ul>
+
+            <div class="project-delete__mode">
+              <button
+                type="button"
+                :class="{ active: mode === 'projectOnly' }"
+                @click="mode = 'projectOnly'">
+                <strong>{{ t('project.deleteDialog.projectOnly') }}</strong>
+                <span>{{ t('project.deleteDialog.projectOnlyDesc') }}</span>
+              </button>
+              <button
+                type="button"
+                :class="{ active: mode === 'cascadeResources' }"
+                @click="mode = 'cascadeResources'">
+                <strong>{{ t('project.deleteDialog.cascadeResources') }}</strong>
+                <span>{{ t('project.deleteDialog.cascadeResourcesDesc') }}</span>
+              </button>
+            </div>
 
             <div class="project-delete__confirm-box">
               <p class="project-delete__confirm-text">
-                请输入项目名称 <code>{{ project?.name }}</code> 以确认：
+                {{ t('project.deleteDialog.confirmText', { name: project?.name ?? '' }) }}
               </p>
               <GInput
                 v-model="confirmText"
-                placeholder="输入项目名称"
+                :placeholder="t('project.deleteDialog.placeholder')"
                 :state="confirmText && confirmText !== project?.name ? 'error' : 'normal'"
-                clearable
-              />
+                clearable />
             </div>
           </div>
 
           <footer class="project-delete__footer">
-            <GButton
-              variant="ghost"
-              @click="handleClose"
-            >
-              取消
-            </GButton>
+            <GButton variant="ghost" @click="handleClose"> {{ t('common.cancel') }} </GButton>
             <GButton
               variant="danger"
               icon="trash"
               :loading="deleting"
               :disabled="confirmText !== project?.name"
-              @click="handleDelete"
-            >
-              确认删除
+              @click="handleDelete">
+              {{
+                mode === 'projectOnly'
+                  ? t('project.deleteDialog.title')
+                  : t('project.deleteDialog.cascadeResources')
+              }}
             </GButton>
           </footer>
         </div>
@@ -79,11 +87,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GButton from "@components/base/GButton.vue"
-import GInput from "@components/form/GInput.vue"
-import type { Project } from "../types"
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
+import GButton from '@components/base/GButton.vue'
+import GInput from '@components/form/GInput.vue'
+import type { Project, ProjectDeleteMode } from '../types'
 
 const props = defineProps<{
   visible: boolean
@@ -91,32 +100,35 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  "update:visible": [value: boolean]
-  confirm: [project: Project]
+  'update:visible': [value: boolean]
+  confirm: [project: Project, mode: ProjectDeleteMode]
 }>()
 
-const confirmText = ref("")
+const confirmText = ref('')
 const deleting = ref(false)
+const mode = ref<ProjectDeleteMode>('projectOnly')
+const { t } = useI18n()
 
 watch(
   () => props.visible,
   (v) => {
     if (v) {
-      confirmText.value = ""
+      confirmText.value = ''
       deleting.value = false
+      mode.value = 'projectOnly'
     }
   },
 )
 
 function handleClose() {
-  emit("update:visible", false)
+  emit('update:visible', false)
 }
 
 function handleDelete() {
   if (confirmText.value !== props.project?.name) return
   deleting.value = false
-  if (props.project) emit("confirm", props.project)
-  emit("update:visible", false)
+  if (props.project) emit('confirm', props.project, mode.value)
+  emit('update:visible', false)
 }
 </script>
 
@@ -204,7 +216,7 @@ function handleDelete() {
 }
 
 .project-delete__list li::before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: var(--space-1);
   color: var(--color-error);
@@ -218,6 +230,41 @@ function handleDelete() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.project-delete__mode {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.project-delete__mode button {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-delete__mode button:hover,
+.project-delete__mode button.active {
+  border-color: var(--color-error);
+  background: var(--color-error-muted);
+}
+
+.project-delete__mode strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.project-delete__mode span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
 }
 
 .project-delete__confirm-text {
@@ -253,11 +300,13 @@ function handleDelete() {
 }
 
 .dialog-pop-enter-active {
-  transition: transform var(--duration-slow) var(--ease-spring),
+  transition:
+    transform var(--duration-slow) var(--ease-spring),
     opacity var(--duration-base) var(--ease-out);
 }
 .dialog-pop-leave-active {
-  transition: transform var(--duration-fast) var(--ease-in),
+  transition:
+    transform var(--duration-fast) var(--ease-in),
     opacity var(--duration-fast) var(--ease-in);
 }
 .dialog-pop-enter-from {

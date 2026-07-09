@@ -3,20 +3,10 @@
     class="nav-item"
     :class="{ active, collapsed }"
     :title="collapsed ? item.label : undefined"
-    @click="$emit('click')"
-  >
-    <span
-      class="nav-icon"
-      v-html="getIcon(item.icon)"
-    />
-    <span
-      v-show="!collapsed"
-      class="nav-label"
-    >{{ item.label }}</span>
-    <span
-      v-if="item.badge && !collapsed"
-      class="nav-badge"
-    >{{ item.badge }}</span>
+    @click="$emit('click')">
+    <span class="nav-icon" v-html="getIcon(item.icon)" />
+    <span v-show="!collapsed" class="nav-label">{{ item.label }}</span>
+    <span v-if="item.badge && !collapsed" class="nav-badge">{{ item.badge }}</span>
   </button>
 </template>
 
@@ -33,14 +23,21 @@ defineEmits<{
 
 function getIcon(name: string): string {
   const icons: Record<string, string> = {
-    dashboard: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="7" rx="1"/><rect x="11" y="1" width="6" height="5" rx="1"/><rect x="1" y="12" width="6" height="5" rx="1"/><rect x="11" y="10" width="6" height="7" rx="1"/></svg>',
-    projects: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6l2 3h6v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/></svg>',
-    servers: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="14" height="5" rx="1"/><rect x="2" y="9" width="14" height="5" rx="1"/><circle cx="5" cy="4.5" r="0.8" fill="currentColor"/><circle cx="5" cy="11.5" r="0.8" fill="currentColor"/></svg>',
+    dashboard:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="7" rx="1"/><rect x="11" y="1" width="6" height="5" rx="1"/><rect x="1" y="12" width="6" height="5" rx="1"/><rect x="11" y="10" width="6" height="7" rx="1"/></svg>',
+    projects:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6l2 3h6v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/></svg>',
+    servers:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="14" height="5" rx="1"/><rect x="2" y="9" width="14" height="5" rx="1"/><circle cx="5" cy="4.5" r="0.8" fill="currentColor"/><circle cx="5" cy="11.5" r="0.8" fill="currentColor"/></svg>',
     logs: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 6 8 10 12 6"/><line x1="8" y1="10" x2="8" y2="14"/><rect x="2" y="2" width="14" height="14" rx="2"/></svg>',
-    settings: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="2.5"/><path d="M9 1.5v2M9 14.5v2M14.3 3.7l-1.4 1.4M5.1 12.9l-1.4 1.4M16.5 9h-2M3.5 9h-2M14.3 14.3l-1.4-1.4M5.1 5.1L3.7 3.7"/></svg>',
-    about: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7"/><line x1="9" y1="5" x2="9" y2="5.01"/><line x1="9" y1="8" x2="9" y2="13"/></svg>',
-    connection: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7"/><polyline points="5 10 8 13 13 8"/></svg>',
-    tunnel: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h12M3 13h12M3 3h12"/></svg>',
+    settings:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="2.5"/><path d="M9 1.5v2M9 14.5v2M14.3 3.7l-1.4 1.4M5.1 12.9l-1.4 1.4M16.5 9h-2M3.5 9h-2M14.3 14.3l-1.4-1.4M5.1 5.1L3.7 3.7"/></svg>',
+    about:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7"/><line x1="9" y1="5" x2="9" y2="5.01"/><line x1="9" y1="8" x2="9" y2="13"/></svg>',
+    connection:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7"/><polyline points="5 10 8 13 13 8"/></svg>',
+    tunnel:
+      '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h12M3 13h12M3 3h12"/></svg>',
   }
   return icons[name] || icons.dashboard
 }
@@ -78,7 +75,7 @@ function getIcon(name: string): string {
 }
 
 .nav-item.active::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 4px;

@@ -21,62 +21,34 @@
   复用：GCard / GIcon / GStatusBadge / GButton
 -->
 <template>
-  <GCard
-    variant="interactive"
-    padding="md"
-    clickable
-    @click="emit('click')"
-  >
+  <GCard variant="interactive" padding="md" clickable @click="emit('click')">
     <div class="project-card">
       <div class="project-card__head">
         <span class="project-card__icon">
-          <GIcon
-            :name="icon"
-            :size="18"
-          />
+          <GIcon :name="icon" :size="18" />
         </span>
         <div class="project-card__title-wrap">
           <span class="project-card__name">{{ name }}</span>
-          <GStatusBadge
-            v-if="status"
-            :status="status"
-            size="sm"
-          />
+          <GStatusBadge v-if="status" :status="status" size="sm" />
         </div>
-        <GIconButton
-          name="more-horizontal"
-          size="sm"
-          @click.stop="emit('action', 'menu')"
-        />
+        <GIconButton name="more-horizontal" size="sm" @click.stop="emit('action', 'menu')" />
       </div>
 
-      <p
-        v-if="description"
-        class="project-card__desc"
-      >
+      <p v-if="description" class="project-card__desc">
         {{ description }}
       </p>
 
       <div class="project-card__meta">
         <span class="project-card__meta-item">
-          <GIcon
-            name="link"
-            :size="12"
-          />
+          <GIcon name="link" :size="12" />
           {{ tunnelCount }} 隧道
         </span>
         <span class="project-card__meta-item project-card__meta-item--online">
-          <GStatusDot
-            status="online"
-            size="xs"
-          />
+          <GStatusDot status="online" size="xs" />
           {{ onlineCount }} 在线
         </span>
         <span class="project-card__meta-item project-card__meta-item--time">
-          <GIcon
-            name="clock"
-            :size="12"
-          />
+          <GIcon name="clock" :size="12" />
           {{ lastActive }}
         </span>
       </div>
@@ -85,11 +57,11 @@
 </template>
 
 <script setup lang="ts">
-import GCard from "@components/base/GCard.vue"
-import GIcon from "@components/icons/GIcon.vue"
-import GIconButton from "@components/base/GIconButton.vue"
-import GStatusBadge from "@components/status/GStatusBadge.vue"
-import GStatusDot from "@components/status/GStatusDot.vue"
+import GCard from '@components/base/GCard.vue'
+import GIcon from '@components/icons/GIcon.vue'
+import GIconButton from '@components/base/GIconButton.vue'
+import GStatusBadge from '@components/status/GStatusBadge.vue'
+import GStatusDot from '@components/status/GStatusDot.vue'
 
 withDefaults(
   defineProps<{
@@ -99,13 +71,13 @@ withDefaults(
     tunnelCount?: number
     onlineCount?: number
     lastActive?: string
-    status?: "online" | "offline" | "connecting" | "error" | "warning" | "maintenance"
+    status?: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'maintenance'
   }>(),
   {
-    icon: "package",
+    icon: 'package',
     tunnelCount: 0,
     onlineCount: 0,
-    lastActive: "",
+    lastActive: '',
   },
 )
 
@@ -174,5 +146,7 @@ const emit = defineEmits<{
   font-size: var(--text-xs);
   color: var(--text-tertiary);
 }
-.project-card__meta-item--online { color: var(--color-success); }
+.project-card__meta-item--online {
+  color: var(--color-success);
+}
 </style>

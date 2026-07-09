@@ -1,6 +1,6 @@
-import type { Ref } from "vue"
-import type { LogItem } from "../types"
-import { downloadLogs, serializeLogs, type LogExportFormat } from "../utils"
+import type { Ref } from 'vue'
+import type { LogItem } from '../types'
+import { downloadLogs, serializeLogs, type LogExportFormat } from '../utils'
 
 export function useLogExport(logs: Ref<LogItem[]>) {
   function exportLogs(format: LogExportFormat): void {

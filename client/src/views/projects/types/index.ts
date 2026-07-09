@@ -1,133 +1,225 @@
-/* ==================================================================
-   Project 模块类型系统
-   ------------------------------------------------------------------
-   所有 Project 业务实体的类型定义。后续替换为真实接口时，
-   仅需保持类型契约不变即可无缝迁移。
-   ================================================================== */
+export type ProjectStatus = 'running' | 'partial' | 'stopped' | 'starting' | 'error'
 
-// ── 运行状态 ──
-export type ProjectStatus =
-  | "running" // 运行中（全部 Tunnel 在线）
-  | "partial" // 部分运行（部分 Tunnel 在线）
-  | "stopped" // 已停止（无 Tunnel 在线）
-  | "starting" // 启动中
-  | "error" // 异常
-
-// ── 颜色预设键 ──
 export type ProjectColor =
-  | "blue"
-  | "green"
-  | "purple"
-  | "orange"
-  | "red"
-  | "cyan"
-  | "pink"
-  | "indigo"
-  | "teal"
-  | "amber"
-  | "slate"
+  | 'blue'
+  | 'green'
+  | 'purple'
+  | 'orange'
+  | 'red'
+  | 'cyan'
+  | 'pink'
+  | 'indigo'
+  | 'teal'
+  | 'amber'
+  | 'slate'
 
-// ── 标签 ──
+export type ProjectTemplate =
+  | 'blank'
+  | 'springBoot'
+  | 'vue'
+  | 'node'
+  | 'python'
+  | 'docker'
+  | 'mcpServer'
+  | 'aiAgent'
+  | 'nas'
+  | 'ssh'
+  | 'git'
+  | 'webhook'
+  | 'custom'
+
+export interface ProjectEnvironmentVariable {
+  key: string
+  value: string
+  secret: boolean
+}
+
+export interface ProjectEnvironment {
+  id: string
+  name: string
+  variables: ProjectEnvironmentVariable[]
+}
+
+export interface ProjectNote {
+  id: string
+  title: string
+  content: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ProjectRecord {
+  id: string
+  name: string
+  description: string
+  icon: string
+  color: ProjectColor
+  template: ProjectTemplate
+  tunnelIds: string[]
+  domains: string[]
+  certificateIds: string[]
+  tags: string[]
+  environments: ProjectEnvironment[]
+  notes: ProjectNote[]
+  favorite: boolean
+  pinned: boolean
+  autoStart: boolean
+  startupPolicy?: string | null
+  lastActivityAt: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface TunnelRecommendation {
+  id: string
+  name: string
+  protocol: 'tcp' | 'http' | 'https' | string
+  localHost: string
+  localPort: number
+  remotePort: number
+  description: string
+  tags: string[]
+}
+
+export interface ProjectTemplateProfile {
+  key: ProjectTemplate
+  label: string
+  icon: string
+  color: ProjectColor
+  description: string
+  tags: string[]
+  recommendations: TunnelRecommendation[]
+}
+
 export interface ProjectTag {
   id: string
   name: string
 }
 
-// ── 项目统计 ──
+export interface ProjectLogEntry {
+  id: string
+  level: 'debug' | 'info' | 'warn' | 'error' | 'success' | string
+  source: string
+  message: string
+  timestamp: number
+  tunnelId?: string | null
+}
+
 export interface ProjectStatistics {
-  todayTraffic: number // bytes
-  totalTraffic: number // bytes
-  uptime: number // seconds
+  todayTraffic: number
+  totalTraffic: number
+  uptime: number
   connections: number
   tunnelCount: number
   runningTunnelCount: number
+  httpsCount: number
+  tcpCount: number
+  requestCount: number
+  tlsSessionCount: number
+  errorCount: number
+  averageLatencyMs: number
+  bandwidthBps: number
+  cpuUsage: number
+  memoryUsage: number
 }
 
-// ── 项目核心接口 ──
 export interface Project {
   id: string
   name: string
   description: string
-  icon: string // Lucide 图标名
+  icon: string
   color: ProjectColor
+  template: ProjectTemplate
   tags: string[]
   serverName: string
   autoStart: boolean
-  remark?: string // 备注
+  startupPolicy?: string | null
+  remark?: string
   status: ProjectStatus
   pinned: boolean
   favorite: boolean
-  lastUsedAt: number // epoch ms，最近使用时间
+  lastUsedAt: number
+  lastActivityAt: number
+  tunnelIds: string[]
+  domains: string[]
+  certificateIds: string[]
+  environments: ProjectEnvironment[]
+  notes: ProjectNote[]
   tunnelCount: number
   runningTunnelCount: number
+  domainCount: number
+  certificateCount: number
   statistics: ProjectStatistics
-  lastStartedAt: string // 人类可读的相对时间
-  createdAt: string // ISO 时间字符串
-  updatedAt: string // ISO 时间字符串
+  recentLogs: ProjectLogEntry[]
+  recentErrors: ProjectLogEntry[]
+  certificateStatus: 'healthy' | 'warning' | 'missing' | 'unknown'
+  lastStartedAt: string
+  createdAt: number
+  updatedAt: number
 }
 
-// ── 筛选类型 ──
-export type ProjectFilterType =
-  | "all"
-  | "running"
-  | "stopped"
-  | "favorite"
-  | "recent"
+export type ProjectFilterType = 'all' | 'running' | 'stopped' | 'favorite' | 'recent'
 
-// ── 排序类型 ──
-export type ProjectSortType =
-  | "name"
-  | "createdAt"
-  | "updatedAt"
-  | "status"
-  | "tunnelCount"
+export type ProjectSortType = 'name' | 'createdAt' | 'updatedAt' | 'status' | 'tunnelCount'
 
-// ── 排序方向 ──
-export type SortDirection = "asc" | "desc"
+export type SortDirection = 'asc' | 'desc'
 
-// ── 表单数据 ──
 export interface ProjectFormData {
   name: string
   icon: string
   color: ProjectColor
+  template: ProjectTemplate
   description: string
   serverName: string
   autoStart: boolean
   tags: string[]
   remark: string
+  environments: ProjectEnvironment[]
+  startupPolicy?: string | null
 }
 
-// ── 颜色预设 ──
 export interface ColorPreset {
   key: ProjectColor
   label: string
-  value: string // hex
+  value: string
 }
 
-// ── 图标预设 ──
 export interface IconPreset {
   key: string
   label: string
 }
 
-// ── 预置标签 ──
 export interface TagPreset {
   name: string
   color: string
 }
 
-// ── 加载状态 ──
-export type ProjectLoadStatus = "idle" | "loading" | "success" | "error"
+export interface ProjectDeleteImpact {
+  tunnelCount: number
+  domainCount: number
+  certificateCount: number
+  hasReferences: boolean
+}
 
-// ── Mock Tunnel（详情页占位，不开发真实 Tunnel） ──
+export type ProjectDeleteMode = 'projectOnly' | 'cascadeResources'
+
+export interface ProjectDeleteResponse {
+  projectId: string
+  impact: ProjectDeleteImpact
+  deletedTunnelIds: string[]
+  failedTunnelIds: string[]
+}
+
+export type ProjectLoadStatus = 'idle' | 'loading' | 'success' | 'error'
+
 export interface MockTunnel {
   id: string
   name: string
-  protocol: "tcp" | "http" | "https"
+  protocol: 'tcp' | 'http' | 'https'
   localAddr: string
   remoteAddr: string
   publicAddr: string
-  status: "online" | "offline" | "starting" | "error"
+  status: 'online' | 'offline' | 'starting' | 'error'
   downSpeed: string
   upSpeed: string
   connections: number

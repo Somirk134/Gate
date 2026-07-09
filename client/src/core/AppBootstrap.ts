@@ -1,16 +1,16 @@
-import type { App } from "vue"
-import type { Router } from "vue-router"
-import { EventBus } from "@/events/EventBus"
-import type { AppEnvironment, AppEventMap } from "@/types/application"
-import type { ConfigurationService } from "@/services/ConfigurationService"
-import { CONFIGURATION_SERVICE } from "@/services/tokens"
-import { registerBuiltinCommands } from "@/commands/registerBuiltinCommands"
-import { AppRegistry } from "./AppRegistry"
-import { ApplicationService } from "./ApplicationService"
-import type { AppContext } from "./AppContext"
-import { AppLifecycle } from "./lifecycle"
-import { registerApplicationInitializers } from "./registerApplicationInitializers"
-import { registerApplicationServices } from "./registerApplicationServices"
+import type { App } from 'vue'
+import type { Router } from 'vue-router'
+import { EventBus } from '@/events/EventBus'
+import type { AppEnvironment, AppEventMap } from '@/types/application'
+import type { ConfigurationService } from '@/services/ConfigurationService'
+import { CONFIGURATION_SERVICE } from '@/services/tokens'
+import { registerBuiltinCommands } from '@/commands/registerBuiltinCommands'
+import { AppRegistry } from './AppRegistry'
+import { ApplicationService } from './ApplicationService'
+import type { AppContext } from './AppContext'
+import { AppLifecycle } from './lifecycle'
+import { registerApplicationInitializers } from './registerApplicationInitializers'
+import { registerApplicationServices } from './registerApplicationServices'
 
 export interface AppBootstrapOptions {
   app: App
@@ -52,15 +52,17 @@ export class AppBootstrap {
 
   private static createEnvironment(environment: Partial<AppEnvironment> = {}): AppEnvironment {
     return {
-      name: environment.name ?? "Gate",
-      version: environment.version ?? "0.1.0",
-      runtime: environment.runtime ?? "desktop",
-      dev: environment.dev ?? Boolean((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV),
+      name: environment.name ?? 'Gate',
+      version: environment.version ?? '0.1.0',
+      runtime: environment.runtime ?? 'desktop',
+      dev:
+        environment.dev ??
+        Boolean((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV),
     }
   }
 
   private static createAppId() {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
       return crypto.randomUUID()
     }
 

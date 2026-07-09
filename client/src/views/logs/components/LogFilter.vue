@@ -8,8 +8,7 @@
         class="log-filter__chip"
         :class="{ 'log-filter__chip--active': filter.levels.includes(item.level) }"
         :style="{ '--level-color': item.color }"
-        @click="toggleLevel(item.level)"
-      >
+        @click="toggleLevel(item.level)">
         {{ item.level }}
       </button>
     </div>
@@ -17,58 +16,51 @@
     <select
       class="log-select"
       :value="primarySource"
-      @change="setSource(($event.target as HTMLSelectElement).value)"
-    >
+      @change="setSource(($event.target as HTMLSelectElement).value)">
       <option value="">
-        All Sources
+        {{ t('logs.allSources') }}
       </option>
-      <option
-        v-for="source in sources"
-        :key="source"
-        :value="source"
-      >
-        {{ sourceLabels[source] }}
+      <option v-for="source in sources" :key="source" :value="source">
+        {{ sourceLabel(source) }}
       </option>
     </select>
 
     <select
       class="log-select"
       :value="filter.timeRange"
-      @change="patch({ timeRange: ($event.target as HTMLSelectElement).value as LogTimeRange })"
-    >
+      @change="patch({ timeRange: ($event.target as HTMLSelectElement).value as LogTimeRange })">
       <option value="all">
-        Any Time
+        {{ t('logs.anyTime') }}
       </option>
       <option value="15m">
-        Last 15 min
+        {{ t('logs.last15m') }}
       </option>
       <option value="1h">
-        Last hour
+        {{ t('logs.lastHour') }}
       </option>
       <option value="24h">
-        Last 24 hours
+        {{ t('logs.last24h') }}
       </option>
       <option value="today">
-        Today
+        {{ t('logs.today') }}
       </option>
     </select>
 
     <select
       class="log-select"
       :value="filter.groupBy"
-      @change="patch({ groupBy: ($event.target as HTMLSelectElement).value as LogGroupBy })"
-    >
+      @change="patch({ groupBy: ($event.target as HTMLSelectElement).value as LogGroupBy })">
       <option value="none">
-        No Group
+        {{ t('logs.noGroup') }}
       </option>
       <option value="time">
-        Group by Time
+        {{ t('logs.groupByTime') }}
       </option>
       <option value="source">
-        Group by Source
+        {{ t('logs.groupBySource') }}
       </option>
       <option value="level">
-        Group by Level
+        {{ t('logs.groupByLevel') }}
       </option>
     </select>
 
@@ -76,31 +68,37 @@
       type="button"
       class="log-filter__toggle"
       :class="{ 'log-filter__toggle--active': filter.fuzzy }"
-      @click="patch({ fuzzy: !filter.fuzzy })"
-    >
-      Fuzzy
+      @click="patch({ fuzzy: !filter.fuzzy })">
+      {{ t('logs.fuzzy') }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import type { LogFilter as LogFilterState, LogGroupBy, LogLevel, LogSource, LogTimeRange } from "../types"
-import { LOG_LEVELS, LOG_SOURCE_LABELS, LOG_SOURCE_LIST } from "../constants"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import type {
+  LogFilter as LogFilterState,
+  LogGroupBy,
+  LogLevel,
+  LogSource,
+  LogTimeRange,
+} from '../types'
+import { LOG_LEVELS, LOG_SOURCE_LIST } from '../constants'
 
 const props = defineProps<{
   filter: LogFilterState
 }>()
 
-const emit = defineEmits<{ "update:filter": [value: LogFilterState] }>()
+const emit = defineEmits<{ 'update:filter': [value: LogFilterState] }>()
 
+const { t } = useI18n()
 const levelOptions = LOG_LEVELS
 const sources = LOG_SOURCE_LIST
-const sourceLabels = LOG_SOURCE_LABELS
-const primarySource = computed(() => props.filter.sources[0] ?? "")
+const primarySource = computed(() => props.filter.sources[0] ?? '')
 
 function patch(value: Partial<LogFilterState>) {
-  emit("update:filter", { ...props.filter, ...value })
+  emit('update:filter', { ...props.filter, ...value })
 }
 
 function toggleLevel(level: LogLevel) {
@@ -112,5 +110,9 @@ function toggleLevel(level: LogLevel) {
 
 function setSource(value: string) {
   patch({ sources: value ? [value as LogSource] : [] })
+}
+
+function sourceLabel(source: LogSource): string {
+  return t(`logs.source.${source.toLowerCase()}`)
 }
 </script>
