@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-1.78%2B-orange?logo=rust" /></a>
+  <a href="https://www.rust-lang.org"><img alt="Rust" src="https://img.shields.io/badge/Rust-1.88%2B-orange?logo=rust" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue" /></a>
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-yellow" />
   <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9" />

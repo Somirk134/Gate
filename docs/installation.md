@@ -6,7 +6,7 @@ Gate can be used from source today. Native installers and signed releases are pa
 
 | Tool | Version | Notes |
 | --- | --- | --- |
-| Rust | 1.78+ | Workspace builds and server runtime |
+| Rust | 1.88+ | Workspace builds and server runtime |
 | Node.js | 20+ | Desktop frontend development |
 | npm | 10+ | Client dependency installation |
 | Tauri prerequisites | Platform-specific | Needed for desktop app development |

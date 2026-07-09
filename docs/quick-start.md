@@ -4,7 +4,7 @@ This guide gets Gate running locally: verify the Rust workspace, start the alpha
 
 ## Prerequisites
 
-- Rust 1.78 or newer.
+- Rust 1.88 or newer.
 - Node.js 20 or newer.
 - npm 10 or newer.
 - Platform-specific Tauri prerequisites.
