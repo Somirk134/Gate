@@ -167,7 +167,7 @@ impl ProtocolManager {
     pub fn protocol(&self) -> Result<Arc<dyn Protocol>, ProtocolError> {
         self.registry
             .get(self.active_version)
-            .ok_or_else(|| crate::error::VersionError::UnsupportedVersion {
+            .ok_or(crate::error::VersionError::UnsupportedVersion {
                 requested: self.active_version,
             })
             .map_err(ProtocolError::from)

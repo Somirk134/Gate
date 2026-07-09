@@ -93,7 +93,7 @@ impl Header {
 }
 
 /// Supported body envelope. Binary and plugin payloads are reserved wire shapes.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(tag = "kind", content = "value")]
 pub enum Body {
     Json(Value),
@@ -103,6 +103,7 @@ pub enum Body {
         content_type: Option<String>,
         payload: Vec<u8>,
     },
+    #[default]
     Empty,
 }
 
@@ -116,12 +117,6 @@ impl Body {
             Self::PluginPayload { payload, .. } => payload.len() as u64,
             Self::Empty => 0,
         }
-    }
-}
-
-impl Default for Body {
-    fn default() -> Self {
-        Self::Empty
     }
 }
 
@@ -151,29 +146,19 @@ pub enum MessageType {
 }
 
 /// Compression marker. Algorithms are negotiated outside V1 payload logic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Compression {
+    #[default]
     None,
     Gzip,
     Zstd,
 }
 
-impl Default for Compression {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// Encryption marker. Actual TLS/AES setup belongs to transport/security layers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum Encryption {
+    #[default]
     None,
     Tls,
     Aes,
-}
-
-impl Default for Encryption {
-    fn default() -> Self {
-        Self::None
-    }
 }

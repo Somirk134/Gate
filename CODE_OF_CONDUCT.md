@@ -25,7 +25,7 @@ Examples of unacceptable behavior:
 Maintainers may remove comments, close issues, block accounts, or restrict participation when needed
 to protect the project and community.
 
-Report conduct concerns privately to 15035267995@163.com.
+Report conduct concerns privately to <15035267995@163.com>.
 
 ## Scope
 

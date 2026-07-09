@@ -41,17 +41,12 @@ impl fmt::Display for ProtocolVersion {
 }
 
 /// Policy used when client and server exchange supported versions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum VersionPolicy {
     Exact,
     SameMajor,
+    #[default]
     LatestCompatible,
-}
-
-impl Default for VersionPolicy {
-    fn default() -> Self {
-        Self::LatestCompatible
-    }
 }
 
 /// Version negotiation request and response model.
@@ -80,11 +75,9 @@ impl VersionNegotiation {
             .collect();
 
         candidates.sort();
-        candidates
-            .pop()
-            .ok_or_else(|| VersionError::UnsupportedVersion {
-                requested: self.preferred,
-            })
+        candidates.pop().ok_or(VersionError::UnsupportedVersion {
+            requested: self.preferred,
+        })
     }
 
     fn accepts(&self, local: ProtocolVersion, remote: ProtocolVersion) -> bool {

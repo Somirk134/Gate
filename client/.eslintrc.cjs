@@ -19,6 +19,10 @@ module.exports = {
     ],
     rules: {
         'vue/multi-word-component-names': 'off',
+        'vue/no-parsing-error': 'off',
+        'no-undef': 'off',
+        '@typescript-eslint/no-empty-object-type': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
 }

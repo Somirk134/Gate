@@ -9,6 +9,7 @@
         "preview": "vite preview",
         "tauri": "tauri",
         "lint": "eslint . --ext .vue,.ts,.tsx --fix",
+        "lint:check": "eslint . --ext .vue,.ts,.tsx --quiet",
         "typecheck": "vue-tsc --noEmit",
         "format": "prettier --write \"src/**/*.{vue,ts,tsx,css,scss}\""
     },

@@ -14,10 +14,10 @@
     @update:model-value="onInput">
     <template #suffix>
       <div class="g-number__stepper">
-        <button type="button" class="g-number__btn" :disabled="disabled || atMax" @click="step(1)">
+        <button type="button" class="g-number__btn" :disabled="disabled || atMax" @click="applyStep(1)">
           <GIcon name="chevron-up" :size="12" />
         </button>
-        <button type="button" class="g-number__btn" :disabled="disabled || atMin" @click="step(-1)">
+        <button type="button" class="g-number__btn" :disabled="disabled || atMin" @click="applyStep(-1)">
           <GIcon name="chevron-down" :size="12" />
         </button>
       </div>
@@ -62,7 +62,7 @@ function onInput(val: string) {
   emit('update:modelValue', Number.isNaN(n) ? null : n)
 }
 
-function step(dir: 1 | -1) {
+function applyStep(dir: 1 | -1) {
   if (props.disabled) return
   const base = props.modelValue ?? 0
   let next = base + dir * props.step
