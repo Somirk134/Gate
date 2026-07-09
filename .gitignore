@@ -11,6 +11,7 @@ client/dist/
 client/src-tauri/target/
 
 # IDE
+.run/
 .idea/
 .vscode/
 *.swp
