@@ -1,6 +1,6 @@
 <template>
   <Transition name="wizard">
-    <div v-if="visible" class="wizard-backdrop" @click.self="close" @keydown.esc="close">
+    <div v-if="visible" class="wizard-backdrop" @keydown.esc="close">
       <section
         class="wizard"
         role="dialog"

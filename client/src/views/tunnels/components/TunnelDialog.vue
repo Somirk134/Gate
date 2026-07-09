@@ -7,7 +7,7 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="tunnel-dialog__overlay" @click.self="handleClose">
+    <div v-if="visible" class="tunnel-dialog__overlay">
       <Transition name="dialog-pop" appear>
         <div v-if="visible" class="tunnel-dialog" @click.stop>
           <!-- 头部 -->

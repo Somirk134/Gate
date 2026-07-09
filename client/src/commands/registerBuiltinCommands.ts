@@ -6,8 +6,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
   const commands: Command[] = [
     {
       id: 'app.commandPalette.open',
-      title: '打开命令面板',
+      title: 'Open command palette',
+      titleKey: 'commands.openCommandPalette',
       category: 'application',
+      categoryKey: 'commands.category.application',
       icon: 'search',
       keywords: ['command', 'palette', 'search'],
       handler: async ({ context: app }) => {
@@ -16,8 +18,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
     },
     {
       id: 'app.commandPalette.toggle',
-      title: '切换命令面板',
+      title: 'Toggle command palette',
+      titleKey: 'commands.toggleCommandPalette',
       category: 'application',
+      categoryKey: 'commands.category.application',
       icon: 'search',
       shortcut: 'Ctrl+K',
       keywords: ['command', 'palette', 'search'],
@@ -27,8 +31,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
     },
     {
       id: 'settings.open',
-      title: '打开设置',
+      title: 'Open Settings',
+      titleKey: 'commands.openSettings',
       category: 'settings',
+      categoryKey: 'commands.category.settings',
       icon: 'settings',
       shortcut: 'Ctrl+,',
       keywords: ['settings', 'preferences', 'configuration'],
@@ -36,46 +42,49 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
         await router.push('/settings')
       },
     },
-    navigate(router, 'navigation.dashboard', '打开首页', 'Dashboard', '/', 'dashboard', [
-      '首页',
+    navigate(router, 'navigation.dashboard', 'commands.navigation.dashboard', '/', 'dashboard', [
       'home',
       'dashboard',
     ]),
-    navigate(router, 'navigation.projects', '打开项目', 'Projects', '/projects', 'projects', [
-      '项目',
+    navigate(router, 'navigation.projects', 'commands.navigation.projects', '/projects', 'projects', [
       'project',
+      'workspace',
     ]),
-    navigate(router, 'navigation.tunnels', '打开隧道', 'Tunnels', '/tunnels', 'router', [
-      '隧道',
+    navigate(router, 'navigation.tunnels', 'commands.navigation.tunnels', '/tunnels', 'router', [
       'tunnel',
+      'runtime',
     ]),
-    navigate(router, 'navigation.servers', '打开服务器', 'Servers', '/servers', 'servers', [
-      '服务器',
+    navigate(router, 'navigation.servers', 'commands.navigation.servers', '/servers', 'servers', [
       'server',
+      'gateway',
     ]),
-    navigate(router, 'navigation.logs', '打开日志', 'Logs', '/logs', 'logs', ['日志', 'log']),
-    navigate(router, 'navigation.settings', '打开设置', 'Settings', '/settings', 'settings', [
-      '设置',
+    navigate(router, 'navigation.logs', 'commands.navigation.logs', '/logs', 'logs', ['log']),
+    navigate(router, 'navigation.settings', 'commands.navigation.settings', '/settings', 'settings', [
       'settings',
     ]),
-    navigate(router, 'navigation.about', '打开关于', 'About', '/about', 'about', ['关于', 'about']),
-    navigate(router, 'navigation.help', '打开帮助', 'Help', '/help', 'help', ['帮助', 'help']),
+    navigate(router, 'navigation.about', 'commands.navigation.about', '/about', 'about', ['about']),
+    navigate(router, 'navigation.help', 'commands.navigation.help', '/help', 'help', ['help']),
     {
       id: 'tunnel.create',
-      title: '创建隧道',
-      description: '打开隧道创建向导',
+      title: 'Create Tunnel',
+      titleKey: 'commands.createTunnel',
+      description: 'Open the tunnel creation wizard',
+      descriptionKey: 'commands.createTunnelDescription',
       category: 'tunnel',
+      categoryKey: 'commands.category.tunnel',
       icon: 'plus',
       shortcut: 'Ctrl+N',
-      keywords: ['隧道', '创建', 'create', 'tunnel', 'new'],
+      keywords: ['create', 'tunnel', 'new'],
       handler: async () => {
         await router.push('/tunnels?create=1')
       },
     },
     {
       id: 'app.sidebar.toggle',
-      title: '切换侧边栏',
+      title: 'Toggle sidebar',
+      titleKey: 'commands.toggleSidebar',
       category: 'application',
+      categoryKey: 'commands.category.application',
       icon: 'sidebar',
       shortcut: 'Ctrl+\\',
       keywords: ['sidebar', 'navigation'],
@@ -85,8 +94,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
     },
     {
       id: 'app.inspector.toggle',
-      title: '切换检查器',
+      title: 'Toggle inspector',
+      titleKey: 'commands.toggleInspector',
       category: 'application',
+      categoryKey: 'commands.category.application',
       icon: 'inspector',
       shortcut: 'Ctrl+Shift+I',
       keywords: ['inspector', 'panel'],
@@ -96,8 +107,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
     },
     {
       id: 'app.globalSearch.toggle',
-      title: '切换全局搜索',
+      title: 'Toggle global search',
+      titleKey: 'commands.toggleGlobalSearch',
       category: 'application',
+      categoryKey: 'commands.category.application',
       icon: 'search',
       shortcut: 'Ctrl+Shift+K',
       keywords: ['global', 'search'],
@@ -107,8 +120,10 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
     },
     {
       id: 'project.quickOpen',
-      title: '快速打开项目',
+      title: 'Quick open project',
+      titleKey: 'commands.quickOpenProject',
       category: 'project',
+      categoryKey: 'commands.category.project',
       icon: 'projects',
       shortcut: 'Ctrl+P',
       keywords: ['project', 'open', 'quick'],
@@ -118,11 +133,11 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
         })
       },
     },
-    reserved('project.create', '创建项目', 'project', 'projects'),
-    reserved('project.delete', '删除项目', 'project', 'trash'),
-    reserved('tunnel.start', '启动隧道', 'tunnel', 'play'),
-    reserved('tunnel.stop', '停止隧道', 'tunnel', 'stop'),
-    reserved('server.connect', '连接服务器', 'server', 'servers'),
+    reserved('project.create', 'commands.reserved.createProject', 'project', 'projects'),
+    reserved('project.delete', 'commands.reserved.deleteProject', 'project', 'trash'),
+    reserved('tunnel.start', 'commands.reserved.startTunnel', 'tunnel', 'play'),
+    reserved('tunnel.stop', 'commands.reserved.stopTunnel', 'tunnel', 'stop'),
+    reserved('server.connect', 'commands.reserved.connectServer', 'server', 'servers'),
   ]
 
   for (const command of commands) {
@@ -132,19 +147,14 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
   }
 }
 
-function reserved(
-  id: string,
-  title: string,
-  category: string,
-  icon: string,
-  shortcut?: string,
-): Command {
+function reserved(id: string, titleKey: string, category: string, icon: string): Command {
   return {
     id,
-    title,
+    title: id,
+    titleKey,
     category,
+    categoryKey: `commands.category.${category}`,
     icon,
-    shortcut,
     handler: async ({ context, args }) => {
       await context.events.publish('command:reserved', { id, args })
     },
@@ -154,17 +164,19 @@ function reserved(
 function navigate(
   router: Router,
   id: string,
-  title: string,
-  description: string,
+  titleKey: string,
   path: string,
   icon: string,
   keywords: string[],
 ): Command {
   return {
     id,
-    title,
-    description,
+    title: id,
+    titleKey,
+    description: path,
+    descriptionKey: titleKey.replace('commands.navigation.', 'commands.navigationDescription.'),
     category: 'navigation',
+    categoryKey: 'commands.category.navigation',
     icon,
     keywords,
     handler: async () => {

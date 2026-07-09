@@ -712,7 +712,7 @@ function environmentToText(value: Project) {
 }
 
 function formatLogTime(timestamp: number) {
-  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',

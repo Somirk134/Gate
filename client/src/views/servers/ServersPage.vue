@@ -209,7 +209,7 @@
     </div>
 
     <Transition name="server-dialog">
-      <div v-if="dialogVisible" class="server-dialog-backdrop" @click.self="closeDialog">
+      <div v-if="dialogVisible" class="server-dialog-backdrop">
         <form class="server-dialog" @submit.prevent="submitForm">
           <header>
             <div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="command-palette-overlay" @click.self="close">
+  <div class="command-palette-overlay">
     <div class="command-palette">
       <div class="command-palette-input">
         <GIcon name="search" :size="16" />

@@ -1,7 +1,6 @@
-﻿import { createApp } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
-import { createI18n } from 'vue-i18n'
 
 import App from './App.vue'
 import routes from './router'
@@ -11,9 +10,7 @@ import { AppBootstrap } from './core'
 import { designSystemPlugin } from './plugins/designSystem'
 import { APP_CONTEXT_KEY, setApplicationContext } from './providers/appContext'
 import { initAppearancePreferences } from './composables/useAppearancePreferences'
-
-import en from './locales/en'
-import zhCN from './locales/zh-CN'
+import { i18n, persistRuntimeLocale, resolveInitialLocale } from './i18n'
 
 const app = createApp(App)
 
@@ -22,16 +19,6 @@ initAppearancePreferences()
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  fallbackLocale: 'en',
-  messages: {
-    en,
-    'zh-CN': zhCN,
-  },
 })
 
 const pinia = createPinia()
@@ -43,8 +30,10 @@ const application = await AppBootstrap.create({
 
 setApplicationContext(application.context)
 app.provide(APP_CONTEXT_KEY, application.context)
-const configuredLocale = application.context.configuration.get<'zh-CN' | 'en'>('locale')
-i18n.global.locale.value = configuredLocale === 'en' ? 'en' : 'zh-CN'
+const configuredLocale = await resolveInitialLocale(application.context.configuration.get('locale'))
+i18n.global.locale.value = configuredLocale
+application.context.configuration.set('locale', configuredLocale)
+void persistRuntimeLocale(configuredLocale)
 
 app.use(router)
 app.use(i18n)

@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useLayoutStore } from '@stores'
 import { useAppContext } from '@/providers/appContext'
 import type { CommandItem } from '@/types/shell'
@@ -6,6 +7,7 @@ import type { CommandItem } from '@/types/shell'
 export function useCommandPalette() {
   const context = useAppContext()
   const layoutStore = useLayoutStore()
+  const { t } = useI18n()
 
   const query = ref('')
   const selectedIndex = ref(0)
@@ -16,11 +18,11 @@ export function useCommandPalette() {
   const allCommands = computed<CommandItem[]>(() => {
     return context.commands.list().map((command) => ({
       id: command.id,
-      title: command.title,
-      subtitle: command.description,
+      title: command.titleKey ? t(command.titleKey) : command.title,
+      subtitle: command.descriptionKey ? t(command.descriptionKey) : command.description,
       icon: command.icon,
       shortcut: command.shortcut,
-      category: command.category,
+      category: command.categoryKey ? t(command.categoryKey) : command.category,
       action: async () => {
         await context.commands.execute(command.id, { source: 'command-palette' })
       },

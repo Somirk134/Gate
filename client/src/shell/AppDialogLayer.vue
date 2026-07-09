@@ -5,7 +5,7 @@
         v-for="dialog in dialogStore.activeDialogs"
         :key="dialog.id"
         class="dialog-overlay"
-        @click.self="dialogStore.dismissDialog(dialog.id)">
+        >
         <div
           class="dialog-container"
           :class="`type-${dialog.type}`"

@@ -13,7 +13,7 @@ export function useLocaleSetting() {
   const stopSettingToLocale = watch(
     () => settingsStore.read('general.language'),
     (value) => {
-      if (value !== 'zh-CN' && value !== 'en') return
+      if (value !== 'zh-CN' && value !== 'en-US') return
       if (currentLocale.value === value) return
       setLocale(value as SupportedLocale)
     },

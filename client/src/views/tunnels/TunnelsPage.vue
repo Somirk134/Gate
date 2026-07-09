@@ -626,7 +626,7 @@ function formatDuration(seconds: number): string {
 }
 
 function formatLogTime(timestamp: number): string {
-  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

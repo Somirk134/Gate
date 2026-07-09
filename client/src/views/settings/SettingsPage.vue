@@ -118,7 +118,7 @@
         v-if="restorePreview"
         class="settings-restore-backdrop"
         role="presentation"
-        @click.self="closeRestorePreview">
+        >
         <article
           class="settings-restore-dialog"
           role="dialog"
@@ -298,7 +298,10 @@ const categories: SettingCategory[] = [
               en: 'Change the interface language. Applies immediately.',
             },
             control: 'select',
-            options: [O('简体中文', 'Simplified Chinese', 'zh-CN'), O('英文', 'English', 'en')],
+            options: [
+              O('简体中文', 'Simplified Chinese', 'zh-CN'),
+              O('English', 'English', 'en-US'),
+            ],
             value: 'zh-CN',
           },
           {
@@ -775,6 +778,7 @@ async function hydrateSettingsFromRuntime() {
       if (saved[key] === undefined) continue
       values[key] = parseSettingValue(saved[key], values[key])
     }
+    if (values.language === 'en') values.language = 'en-US'
     applyRuntimePreferences()
   } catch (err) {
     toast.error(err instanceof Error ? err.message : '设置加载失败')
@@ -971,7 +975,7 @@ async function clearRuntimeLogs() {
 }
 
 function applyRuntimePreferences() {
-  if (values.language === 'zh-CN' || values.language === 'en') {
+  if (values.language === 'zh-CN' || values.language === 'en-US') {
     setLocale(values.language)
   }
 
@@ -997,7 +1001,7 @@ function getCurrentThemeSetting() {
 
 function localize(text: LocalizedText) {
   if (typeof text === 'string') return text
-  return locale.value === 'en' ? text.en : text.zh
+  return locale.value === 'en-US' ? text.en : text.zh
 }
 
 function normalizeOptions(options: SettingOption[] = []) {
@@ -1010,7 +1014,7 @@ function normalizeOptions(options: SettingOption[] = []) {
 function formatBackupDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date)

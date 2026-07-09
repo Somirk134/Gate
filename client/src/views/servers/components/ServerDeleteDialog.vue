@@ -5,7 +5,7 @@
 -->
 <template>
   <Transition name="dialog-fade">
-    <div v-if="visible" class="server-dialog__overlay" @click.self="handleClose">
+    <div v-if="visible" class="server-dialog__overlay">
       <Transition name="dialog-pop" appear>
         <div v-if="visible" class="server-delete" @click.stop>
           <header class="server-delete__header">

@@ -41,7 +41,7 @@ const settingsCategories: SettingCategory[] = [
               type: 'select',
               options: [
                 { label: '简体中文', value: 'zh-CN' },
-                { label: '英文', value: 'en' },
+                { label: 'English', value: 'en-US' },
               ],
             },
             defaultValue: 'zh-CN',

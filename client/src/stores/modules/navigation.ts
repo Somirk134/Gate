@@ -38,7 +38,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   function setCurrentRoute(route: RouteLocationNormalized) {
     currentRoute.value = route
-    pageTitle.value = (route.meta?.title as string) || ''
+    pageTitle.value = (route.meta?.titleKey as string) || ''
     pageIcon.value = (route.meta?.icon as string) || ''
   }
 

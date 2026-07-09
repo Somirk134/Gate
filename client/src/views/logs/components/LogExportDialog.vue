@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="log-dialog-backdrop" @click.self="$emit('close')">
+  <div v-if="visible" class="log-dialog-backdrop">
     <section class="log-export-dialog">
       <header>
         <h2>{{ t('logs.exportLogs') }}</h2>

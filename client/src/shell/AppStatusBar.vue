@@ -40,7 +40,7 @@ let timer: number
 
 function updateTime() {
   const now = new Date()
-  currentTime.value = now.toLocaleTimeString(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+  currentTime.value = now.toLocaleTimeString(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

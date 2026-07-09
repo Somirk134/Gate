@@ -654,7 +654,7 @@ impl ClientRuntimeState {
                 }
             }
             inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
-            inner.log("info", "backup", "恢复备份前已停止 Runtime");
+            inner.log("info", "backup", "BACKUP_RUNTIME_STOPPED");
             let transport = inner.transport.take();
             persist_runtime(&self.storage_path, &inner)?;
             transport
@@ -680,7 +680,7 @@ impl ClientRuntimeState {
 
         let mut restored = RuntimeInner::from_stored(stored);
         mark_restored_runtime_inactive(&mut restored);
-        restored.log("info", "backup", "已从备份恢复配置，等待用户手动重新连接");
+        restored.log("info", "backup", "BACKUP_RESTORED_MANUAL_RECONNECT");
         persist_runtime(&self.storage_path, &restored)?;
 
         let mut inner = self.inner.lock().await;
@@ -1175,7 +1175,7 @@ impl ClientRuntimeState {
                 server.status = "recovering".to_string();
                 server.updated_at = Utc::now().timestamp_millis();
             }
-            inner.log("info", "reconnect", "开始恢复控制连接");
+            inner.log("info", "reconnect", "RECONNECT_CONTROL_STARTED");
             persist_runtime(&self.storage_path, &inner)?;
             (
                 server_id,
@@ -1232,7 +1232,7 @@ impl ClientRuntimeState {
         {
             let mut inner = self.inner.lock().await;
             inner.counters.recovery_failure = inner.counters.recovery_failure.saturating_add(1);
-            inner.log("error", "reconnect", "控制连接恢复失败");
+            inner.log("error", "reconnect", "RECONNECT_CONTROL_FAILED");
             let _ = persist_runtime(&self.storage_path, &inner);
         }
 
@@ -1277,7 +1277,7 @@ impl ClientRuntimeState {
                 .counters
                 .total_recovery_time_ms
                 .saturating_add(recovery_time_ms);
-            inner.log("info", "reconnect", "控制连接恢复成功");
+            inner.log("info", "reconnect", "RECONNECT_CONTROL_SUCCEEDED");
             persist_runtime(&self.storage_path, &inner)?;
         }
 
@@ -3062,6 +3062,14 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
         .values()
         .filter(|tunnel| tunnel.status == "running")
         .count() as u64;
+    let warning_tunnel = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| is_attention_tunnel_status(&tunnel.status))
+        .count() as u64;
+    let stopped_tunnel = tunnel_count
+        .saturating_sub(running_tunnel)
+        .saturating_sub(warning_tunnel);
     let upload_speed_bps = inner
         .tunnels
         .values()
@@ -3126,7 +3134,8 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
         } else {
             json!([
                 { "label": "running", "count": running_tunnel },
-                { "label": "stopped", "count": tunnel_count.saturating_sub(running_tunnel) }
+                { "label": "warning", "count": warning_tunnel },
+                { "label": "stopped", "count": stopped_tunnel }
             ])
         },
         "serverStatus": if has_connection_data {
@@ -3188,8 +3197,155 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
             "category": &log.source,
             "timestamp": log.timestamp
         })).collect::<Vec<_>>(),
+        "visualSummary": dashboard_visual_summary(
+            inner,
+            now,
+            tunnel_count,
+            running_tunnel,
+            warning_tunnel,
+            stopped_tunnel
+        ),
         "generatedAt": now
     })
+}
+
+fn dashboard_visual_summary(
+    inner: &RuntimeInner,
+    now: i64,
+    tunnel_count: u64,
+    running_tunnel: u64,
+    warning_tunnel: u64,
+    stopped_tunnel: u64,
+) -> Value {
+    let (request_buckets, error_buckets, request_total, error_total) =
+        dashboard_request_summary(inner, now);
+
+    json!({
+        "metricCards": [
+            { "key": "totalTunnels", "icon": "router", "tone": "primary" },
+            { "key": "onlineTunnels", "icon": "check-circle", "tone": "success" },
+            { "key": "activeConnections", "icon": "users", "tone": "secondary" },
+            { "key": "traffic", "icon": "activity", "tone": "info" },
+            { "key": "latency", "icon": "clock", "tone": "warning" },
+            { "key": "runtimeUptime", "icon": "shield-check", "tone": "healthy" }
+        ],
+        "tunnelState": {
+            "running": running_tunnel,
+            "warning": warning_tunnel,
+            "stopped": stopped_tunnel,
+            "runningRate": dashboard_percent(running_tunnel, tunnel_count),
+            "warningRate": dashboard_percent(warning_tunnel, tunnel_count),
+            "stoppedRate": dashboard_percent(stopped_tunnel, tunnel_count)
+        },
+        "protocolDistribution": dashboard_protocol_distribution(inner, tunnel_count),
+        "requestBuckets": request_buckets,
+        "errorBuckets": error_buckets,
+        "requestTotal": request_total,
+        "errorTotal": error_total
+    })
+}
+
+fn dashboard_protocol_distribution(inner: &RuntimeInner, tunnel_count: u64) -> Value {
+    let protocol_order = ["tcp", "http", "https", "udp"];
+    let mut counts = BTreeMap::<String, u64>::new();
+    for tunnel in inner.tunnels.values() {
+        *counts.entry(tunnel.protocol.clone()).or_insert(0) += 1;
+    }
+
+    let mut rows = protocol_order
+        .iter()
+        .map(|protocol| {
+            let count = counts.get(*protocol).copied().unwrap_or(0);
+            json!({
+                "protocol": protocol,
+                "count": count,
+                "percent": dashboard_percent(count, tunnel_count)
+            })
+        })
+        .collect::<Vec<_>>();
+
+    for (protocol, count) in counts {
+        if !protocol_order.contains(&protocol.as_str()) && count > 0 {
+            rows.push(json!({
+                "protocol": protocol,
+                "count": count,
+                "percent": dashboard_percent(count, tunnel_count)
+            }));
+        }
+    }
+
+    json!(rows)
+}
+
+fn dashboard_request_summary(inner: &RuntimeInner, now: i64) -> (Vec<u64>, Vec<u64>, u64, u64) {
+    let request_total = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| tunnel.request_count)
+        .sum::<u64>();
+    let aggregate_error_total = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| tunnel.request_count.saturating_sub(tunnel.success_count))
+        .sum::<u64>();
+    let recent_error_total = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .flat_map(|tunnel| tunnel.recent_requests.iter())
+        .filter(|request| request.status >= 400)
+        .count() as u64;
+
+    (
+        dashboard_request_buckets(inner, now, false),
+        dashboard_request_buckets(inner, now, true),
+        request_total,
+        aggregate_error_total.max(recent_error_total),
+    )
+}
+
+fn dashboard_request_buckets(inner: &RuntimeInner, now: i64, errors_only: bool) -> Vec<u64> {
+    const BUCKET_COUNT: usize = 18;
+    const WINDOW_MS: i64 = 24 * 60 * 60 * 1000;
+
+    let bucket_ms = WINDOW_MS / BUCKET_COUNT as i64;
+    let mut buckets = vec![0_u64; BUCKET_COUNT];
+
+    for request in inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .flat_map(|tunnel| tunnel.recent_requests.iter())
+    {
+        if errors_only && request.status < 400 {
+            continue;
+        }
+
+        let age = now - request.timestamp;
+        if age < 0 || age > WINDOW_MS {
+            continue;
+        }
+
+        let source_index = (age / bucket_ms).clamp(0, BUCKET_COUNT as i64 - 1) as usize;
+        let bucket_index = BUCKET_COUNT - 1 - source_index;
+        buckets[bucket_index] = buckets[bucket_index].saturating_add(1);
+    }
+
+    buckets
+}
+
+fn dashboard_percent(value: u64, total: u64) -> f64 {
+    if total == 0 {
+        0.0
+    } else {
+        (value as f64 / total as f64) * 100.0
+    }
+}
+
+fn is_attention_tunnel_status(status: &str) -> bool {
+    !matches!(status, "running" | "stopped")
 }
 
 fn health_json(inner: &RuntimeInner) -> Value {

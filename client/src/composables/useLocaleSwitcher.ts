@@ -1,20 +1,21 @@
-﻿import { computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { zhCN, dateZhCN, enUS, dateEnUS } from 'naive-ui'
 import type { NLocale, NDateLocale } from 'naive-ui/es/locales'
 import { tryGetApplicationContext } from '@/providers/appContext'
+import { normalizeLocale, persistRuntimeLocale, type SupportedLocale } from '@/i18n'
 
-export type SupportedLocale = 'zh-CN' | 'en'
+export type { SupportedLocale } from '@/i18n'
 
 export const locales = [
-  { value: 'zh-CN' as SupportedLocale, label: '简体中文' },
-  { value: 'en' as SupportedLocale, label: '英文' },
+  { value: 'zh-CN' as SupportedLocale, label: '中文' },
+  { value: 'en-US' as SupportedLocale, label: 'English' },
 ]
 
 export function useLocaleSwitcher() {
   const { locale } = useI18n()
 
-  const currentLocale = computed<SupportedLocale>(() => (locale.value === 'en' ? 'en' : 'zh-CN'))
+  const currentLocale = computed<SupportedLocale>(() => normalizeLocale(locale.value))
 
   const localeStore = computed(() => ({
     naiveLocale: currentLocale.value === 'zh-CN' ? zhCN : (enUS as NLocale),
@@ -22,12 +23,14 @@ export function useLocaleSwitcher() {
   }))
 
   function setLocale(newLocale: SupportedLocale) {
-    locale.value = newLocale
-    tryGetApplicationContext()?.configuration.set('locale', newLocale)
+    const nextLocale = normalizeLocale(newLocale)
+    locale.value = nextLocale
+    tryGetApplicationContext()?.configuration.set('locale', nextLocale)
+    void persistRuntimeLocale(nextLocale)
   }
 
   return {
-    locale,
+    locale: currentLocale,
     locales,
     currentLocale,
     localeStore,

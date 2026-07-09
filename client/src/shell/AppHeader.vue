@@ -2,7 +2,11 @@
   <header class="app-header">
     <div class="header-left">
       <!-- Toggle Sidebar -->
-      <button class="header-btn" type="button" title="切换侧边栏" @click="layout.toggleSidebar">
+      <button
+        class="header-btn"
+        type="button"
+        :title="t('common.toggleSidebar')"
+        @click="layout.toggleSidebar">
         <GIcon name="menu" :size="16" />
       </button>
 
@@ -73,7 +77,7 @@
               class="notification-clear"
               type="button"
               @click="notificationStore.clearAll">
-              清空
+              {{ t('common.clear') }}
             </button>
           </div>
 
@@ -93,7 +97,7 @@
                 v-if="item.closable"
                 class="notification-dismiss"
                 type="button"
-                title="关闭通知"
+                :title="t('common.closeNotification')"
                 @click="notificationStore.dismiss(item.id)">
                 <GIcon name="close" :size="14" />
               </button>
@@ -102,10 +106,12 @@
 
           <div v-else class="notification-empty">
             <GIcon name="bell" :size="20" />
-            <span>暂无通知</span>
+            <span>{{ t('common.noNotifications') }}</span>
           </div>
         </div>
       </div>
+
+      <LangSwitch />
     </div>
   </header>
 </template>
@@ -116,6 +122,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLayoutStore, useNavigationStore, useNotificationStore, useThemeStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
+import LangSwitch from '@components/common/LangSwitch.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -129,15 +136,18 @@ const notificationOpen = ref(false)
 const routeTitleMap: Record<string, string> = {
   dashboard: 'nav.dashboard',
   projects: 'nav.projects',
-  'project-detail': 'nav.projects',
+  'project-detail': 'nav.projectDetail',
   tunnels: 'nav.tunnels',
+  'http-tunnels': 'nav.httpTunnels',
   'tunnel-detail': 'nav.tunnels',
   servers: 'nav.servers',
-  'server-detail': 'nav.servers',
+  'server-detail': 'nav.serverDetail',
   logs: 'nav.logs',
+  certificates: 'nav.certificates',
   help: 'nav.help',
   settings: 'nav.settings',
   about: 'nav.about',
+  'not-found': 'nav.notFound',
 }
 
 const routeSegmentMap: Record<string, string> = {
@@ -155,7 +165,7 @@ const pageTitle = computed(() => {
   const routeName = typeof route.name === 'string' ? route.name : ''
   const titleKey = routeTitleMap[routeName]
   if (titleKey) return t(titleKey)
-  return navStore.pageTitle
+  return navStore.pageTitle ? t(navStore.pageTitle) : ''
 })
 
 const breadcrumbs = computed(() => {
@@ -176,14 +186,14 @@ function toggleNotifications() {
 }
 
 function notificationTypeLabel(type: string) {
-  if (type === 'success') return '成功'
-  if (type === 'error') return '错误'
-  if (type === 'warning') return '警告'
-  return '消息'
+  if (type === 'success') return t('common.notificationType.success')
+  if (type === 'error') return t('common.notificationType.error')
+  if (type === 'warning') return t('common.notificationType.warning')
+  return t('common.notificationType.info')
 }
 
 function formatNotificationTime(timestamp: number) {
-  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

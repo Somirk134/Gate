@@ -1,4 +1,5 @@
 import { TauriIpcClient } from '@/ipc'
+import { isTauri } from '@tauri-apps/api/core'
 import type { DashboardData, HealthReport, Metric, Statistics, TrafficStatistics } from '../types'
 
 const ipc = new TauriIpcClient()
@@ -134,12 +135,39 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
     },
     tunnels: [],
     recentActivity: [],
+    visualSummary: {
+      metricCards: [
+        { key: 'totalTunnels', icon: 'router', tone: 'primary' },
+        { key: 'onlineTunnels', icon: 'check-circle', tone: 'success' },
+        { key: 'activeConnections', icon: 'users', tone: 'secondary' },
+        { key: 'traffic', icon: 'activity', tone: 'info' },
+        { key: 'latency', icon: 'clock', tone: 'warning' },
+        { key: 'runtimeUptime', icon: 'shield-check', tone: 'healthy' },
+      ],
+      tunnelState: {
+        running: 0,
+        warning: 0,
+        stopped: 0,
+        runningRate: 0,
+        warningRate: 0,
+        stoppedRate: 0,
+      },
+      protocolDistribution: [],
+      requestBuckets: [],
+      errorBuckets: [],
+      requestTotal: 0,
+      errorTotal: 0,
+    },
     generatedAt: now,
   }
 }
 
 class RuntimeStatisticsService implements StatisticsService {
   async getStatistics() {
+    if (!isTauri()) {
+      return createEmptyDashboardData().statistics
+    }
+
     return ipc.invoke<Statistics>('runtime_get_statistics')
   }
 
@@ -150,12 +178,20 @@ class RuntimeStatisticsService implements StatisticsService {
 
 class RuntimeMetricsService implements MetricsService {
   async collect() {
+    if (!isTauri()) {
+      return []
+    }
+
     return ipc.invoke<Metric[]>('runtime_collect_metrics')
   }
 }
 
 class RuntimeHealthService implements HealthService {
   async getHealthReport() {
+    if (!isTauri()) {
+      return createEmptyDashboardData().systemHealth
+    }
+
     return ipc.invoke<HealthReport>('runtime_get_health')
   }
 }
@@ -165,6 +201,10 @@ class RuntimeDashboardService implements DashboardService {
   private timer: number | undefined
 
   async getDashboard() {
+    if (!isTauri()) {
+      return createEmptyDashboardData()
+    }
+
     return ipc.invoke<DashboardData>('runtime_get_dashboard')
   }
 

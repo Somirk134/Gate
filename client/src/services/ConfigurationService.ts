@@ -71,10 +71,7 @@ const configurationStorageOptions: StorageOptions<AppConfiguration> = {
             ...defaultConfiguration.window,
             ...value.window,
           },
-          locale:
-            value.locale === 'en'
-              ? defaultConfiguration.locale
-              : value.locale || defaultConfiguration.locale,
+          locale: value.locale === 'en' ? 'en-US' : value.locale || defaultConfiguration.locale,
         }
       },
     },
@@ -94,6 +91,10 @@ export class DefaultConfigurationService implements ConfigurationService {
     this.config =
       this.storage.get<AppConfiguration>('app', configurationStorageOptions) ??
       this.clone(defaultConfiguration)
+    if (this.config.locale === 'en') {
+      this.config.locale = 'en-US'
+      this.persist()
+    }
   }
 
   get<T = unknown>(key: string): T | undefined {

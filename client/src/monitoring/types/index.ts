@@ -177,6 +177,19 @@ export interface TrafficTrendPoint {
   downloadBytes: number
 }
 
+export type DashboardTunnelProtocol = 'tcp' | 'udp' | 'http' | 'https' | 'unknown'
+
+export type DashboardTunnelStatus =
+  | 'running'
+  | 'stopped'
+  | 'warning'
+  | 'starting'
+  | 'stopping'
+  | 'restarting'
+  | 'recovering'
+  | 'error'
+  | 'unknown'
+
 /** Dashboard tunnel row. */
 export interface HttpRequestRecord {
   method: string
@@ -192,8 +205,8 @@ export interface HttpRequestRecord {
 export interface DashboardTunnel {
   id: string
   name: string
-  protocol: 'tcp' | 'udp' | 'http' | 'https'
-  status: 'running' | 'stopped' | 'warning'
+  protocol: DashboardTunnelProtocol
+  status: DashboardTunnelStatus
   localHost?: string
   localPort?: number
   remotePort?: number
@@ -245,6 +258,37 @@ export interface OverviewStatistics {
   healthScore: number
 }
 
+export interface DashboardMetricCardMeta {
+  key: string
+  icon: string
+  tone: string
+}
+
+export interface DashboardTunnelStateSummary {
+  running: number
+  warning: number
+  stopped: number
+  runningRate: number
+  warningRate: number
+  stoppedRate: number
+}
+
+export interface DashboardProtocolDistribution {
+  protocol: DashboardTunnelProtocol
+  count: number
+  percent: number
+}
+
+export interface DashboardVisualSummary {
+  metricCards: DashboardMetricCardMeta[]
+  tunnelState: DashboardTunnelStateSummary
+  protocolDistribution: DashboardProtocolDistribution[]
+  requestBuckets: number[]
+  errorBuckets: number[]
+  requestTotal: number
+  errorTotal: number
+}
+
 /** Unified dashboard payload consumed by Vue components. */
 export interface DashboardData {
   overview: OverviewStatistics
@@ -257,5 +301,6 @@ export interface DashboardData {
   systemHealth: HealthReport
   tunnels: DashboardTunnel[]
   recentActivity: RecentActivity[]
+  visualSummary?: DashboardVisualSummary
   generatedAt: number
 }
