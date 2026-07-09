@@ -108,7 +108,7 @@ export const diagnosticsService = {
   },
 
   async collectSystemInfo(): Promise<SystemInfoReport> {
-    // 系统状态禁止使用 Mock，必须直接读取桌面运行时返回的数据。
+    // 系统状态必须直接读取桌面运行时返回的数据，避免展示测试数据。
     return ipc.invoke<SystemInfoReport>('diagnostics_collect_system_info')
   },
 

@@ -35,6 +35,24 @@
               <GIcon :name="link.icon" :size="15" />
               <span>{{ link.label }}</span>
             </a>
+          </nav>
+        </div>
+
+        <div class="about-update" :class="`about-update--${updateStatusTone}`" aria-live="polite">
+          <div class="about-update__state">
+            <span
+              class="about-update__indicator"
+              :class="{ 'about-update__indicator--busy': isUpdateBusy }">
+              <GIcon :name="updateStateIcon" :size="18" :spin="isUpdateBusy" />
+            </span>
+            <div class="about-update__copy">
+              <strong>{{ updateStateTitle }}</strong>
+              <p>{{ updateStatusText }}</p>
+              <small>{{ updateMetaText }}</small>
+            </div>
+          </div>
+
+          <div class="about-update__actions">
             <button
               type="button"
               class="about-action about-update-action"
@@ -71,14 +89,9 @@
               <GIcon name="external-link" :size="15" />
               <span>{{ t('about.update.openRelease') }}</span>
             </a>
-          </nav>
+          </div>
 
-          <p
-            class="about-update-status"
-            :class="`about-update-status--${updateStatusTone}`"
-            aria-live="polite">
-            {{ updateStatusText }}
-          </p>
+          <i v-if="isUpdateBusy" class="about-update__activity" aria-hidden="true" />
         </div>
       </article>
 
@@ -201,6 +214,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
+import { useFeedback } from '@composables/useFeedback'
 import authorAvatarUrl from '@repo-assets/icon/头像.jpg'
 import { useService } from '@/composables/useService'
 import {
@@ -216,6 +230,7 @@ const APP_VERSION = '0.1.0'
 const BUILD_NUMBER = '2026.0704.1'
 
 const { t } = useI18n()
+const { toast } = useFeedback()
 const updateService = useService(UPDATE_SERVICE)
 const currentYear = new Date().getFullYear()
 const versionBadge = computed(() => t('about.heroBadge', { version: APP_VERSION }))
@@ -243,15 +258,36 @@ const updateActionIcon = computed(() => {
   if (updateInfo.value?.available) return 'check-circle'
   return 'refresh'
 })
+const updateStateIcon = computed(() => {
+  if (isUpdateBusy.value) return 'loader'
+  if (updateStatus.value === 'error') return 'alert-circle'
+  if (['ready', 'installed'].includes(updateStatus.value)) return 'check-circle'
+  if (updateInfo.value?.available) return 'sparkles'
+  if (updateInfo.value && !updateInfo.value.available) return 'shield-check'
+  return 'info-circle'
+})
 const updateActionLabel = computed(() => {
   if (updateStatus.value === 'checking') return t('about.update.checking')
   if (updateStatus.value === 'downloading') return t('about.update.downloading')
   if (updateStatus.value === 'installing') return t('about.update.installing')
   return t('about.update.check')
 })
+const updateStateTitle = computed(() => {
+  if (updateStatus.value === 'checking') return t('about.update.stateChecking')
+  if (updateStatus.value === 'downloading') return t('about.update.stateDownloading')
+  if (updateStatus.value === 'ready') return t('about.update.stateReady')
+  if (updateStatus.value === 'installing') return t('about.update.stateInstalling')
+  if (updateStatus.value === 'installed') return t('about.update.stateInstalled')
+  if (updateStatus.value === 'error') return t('about.update.stateFailed')
+  if (updateInfo.value?.available) return t('about.update.stateAvailable')
+  if (updateInfo.value && !updateInfo.value.available) return t('about.update.stateLatest')
+  return t('about.update.stateIdle')
+})
 const updateStatusTone = computed(() => {
   if (updateStatus.value === 'error') return 'error'
-  if (updateInfo.value?.available) return 'success'
+  if (['ready', 'installed'].includes(updateStatus.value) || updateInfo.value?.available) {
+    return 'success'
+  }
   if (updateInfo.value && !updateInfo.value.available) return 'muted'
   return 'info'
 })
@@ -261,6 +297,8 @@ const updateStatusText = computed(() => {
   if (updateStatus.value === 'downloading') return t('about.update.statusDownloading')
   if (updateStatus.value === 'ready') return t('about.update.statusReady')
   if (updateStatus.value === 'installing') return t('about.update.statusInstalling')
+  if (updateStatus.value === 'installed') return t('about.update.statusInstalled')
+  if (updateStatus.value === 'error') return t('about.update.statusFailed')
 
   if (updateInfo.value?.available) {
     return t('about.update.statusAvailable', {
@@ -273,6 +311,24 @@ const updateStatusText = computed(() => {
   }
 
   return t('about.update.statusIdle')
+})
+const updateMetaText = computed(() => {
+  if (updateStatus.value === 'checking') return t('about.update.metaChecking')
+  if (updateStatus.value === 'downloading') return t('about.update.metaDownloading')
+  if (updateStatus.value === 'ready') return t('about.update.metaReady')
+  if (updateStatus.value === 'installing') return t('about.update.metaInstalling')
+  if (updateStatus.value === 'installed') return t('about.update.metaInstalled')
+  if (updateStatus.value === 'error') return t('about.update.metaError')
+
+  if (updateInfo.value?.available) {
+    return t('about.update.metaAvailable', {
+      version: updateInfo.value.version ?? t('about.update.unknownVersion'),
+    })
+  }
+
+  return t('about.update.metaCurrent', {
+    version: updateInfo.value?.currentVersion ?? APP_VERSION,
+  })
 })
 
 const productLinks = computed(() => [
@@ -373,12 +429,24 @@ const releaseNotes = computed(() => [
 
 async function handleCheckUpdate() {
   updateError.value = ''
+  // 点击后立即同步状态，确保按钮、进度条和状态图标在网络请求期间有可见反馈。
+  updateStatus.value = 'checking'
 
   try {
     updateInfo.value = await updateService.check()
+    if (updateInfo.value.available) {
+      toast.success(
+        t('about.update.toastAvailable', {
+          version: updateInfo.value.version ?? t('about.update.unknownVersion'),
+        }),
+      )
+    } else {
+      toast.success(t('about.update.toastLatest'))
+    }
   } catch (error) {
     updateInfo.value = null
     updateError.value = getUpdateErrorMessage(error)
+    toast.error(updateError.value)
   } finally {
     updateStatus.value = updateService.getStatus()
   }
@@ -390,8 +458,10 @@ async function handleDownloadUpdate() {
 
   try {
     await updateService.download()
+    toast.success(t('about.update.toastReady'))
   } catch (error) {
     updateError.value = getUpdateErrorMessage(error)
+    toast.error(updateError.value)
   } finally {
     updateStatus.value = updateService.getStatus()
   }
@@ -403,9 +473,12 @@ async function handleInstallUpdate() {
 
   try {
     await updateService.install()
+    updateStatus.value = updateService.getStatus()
+    toast.success(t('about.update.toastInstalled'))
     await updateService.restart()
   } catch (error) {
     updateError.value = getUpdateErrorMessage(error)
+    toast.error(updateError.value)
     updateStatus.value = updateService.getStatus()
   }
 }
@@ -537,11 +610,138 @@ function getUpdateErrorMessage(error: unknown) {
   line-height: var(--leading-relaxed);
 }
 
+.about-update {
+  position: relative;
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: 0;
+  padding: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: rgba(17, 19, 24, 0.52);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+.about-update--success {
+  background: rgba(31, 48, 39, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(47, 209, 124, 0.18);
+}
+
+.about-update--error {
+  background: rgba(56, 30, 32, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(255, 95, 109, 0.18);
+}
+
+.about-update--muted {
+  background: rgba(17, 19, 24, 0.4);
+}
+
+.about-update__state {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.about-update__indicator {
+  position: relative;
+  width: 38px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(91, 141, 239, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(91, 141, 239, 0.1);
+  color: var(--color-primary-hover);
+}
+
+.about-update__indicator--busy::after {
+  position: absolute;
+  inset: -3px;
+  border: 1px solid currentColor;
+  border-radius: inherit;
+  content: '';
+  opacity: 0;
+  animation: g-ping 1.1s var(--ease-out) infinite;
+}
+
+.about-update--success .about-update__indicator {
+  border-color: rgba(47, 209, 124, 0.28);
+  background: rgba(47, 209, 124, 0.12);
+  color: var(--color-success);
+}
+
+.about-update--error .about-update__indicator {
+  border-color: rgba(255, 95, 109, 0.3);
+  background: rgba(255, 95, 109, 0.12);
+  color: var(--color-error);
+}
+
+.about-update__copy {
+  min-width: 0;
+}
+
+.about-update__copy strong,
+.about-update__copy p,
+.about-update__copy small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.about-update__copy strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+}
+
+.about-update__copy p {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.about-update__copy small {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+}
+
+.about-update__actions {
+  min-width: max-content;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.about-update__activity {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-primary-hover), transparent);
+  background-size: 220% 100%;
+  animation: g-shimmer 1s var(--ease-in-out) infinite;
+}
+
 .about-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-5);
+  margin-top: var(--space-3);
 }
 
 .about-action,
@@ -601,30 +801,15 @@ button.about-action {
   color: var(--color-success);
 }
 
+.about-update-action {
+  min-width: max-content;
+  white-space: nowrap;
+}
+
 .about-action:disabled {
   cursor: wait;
   opacity: 0.72;
   transform: none;
-}
-
-.about-update-status {
-  min-height: 20px;
-  margin-top: var(--space-3);
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  line-height: var(--leading-relaxed);
-}
-
-.about-update-status--success {
-  color: var(--color-success);
-}
-
-.about-update-status--error {
-  color: var(--color-error);
-}
-
-.about-update-status--muted {
-  color: var(--text-tertiary);
 }
 
 .about-author {
@@ -1035,6 +1220,21 @@ button.about-action {
   .about-title-row {
     flex-direction: column;
     gap: var(--space-3);
+  }
+
+  .about-update {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .about-update__actions {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .about-update-action {
+    min-width: 0;
   }
 
   .about-stats,

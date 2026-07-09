@@ -150,10 +150,10 @@ function clampScrollTop() {
   }
 }
 
-async function scrollToBottom() {
+async function scrollToTop() {
   await nextTick()
   if (!containerRef.value) return
-  containerRef.value.scrollTop = containerRef.value.scrollHeight
+  containerRef.value.scrollTop = 0
   onScroll()
 }
 
@@ -161,7 +161,7 @@ watch(
   () => [props.logs.length, props.autoScroll],
   () => {
     if (props.autoScroll) {
-      void scrollToBottom()
+      void scrollToTop()
       return
     }
     clampScrollTop()
@@ -172,8 +172,8 @@ watch(
 watch(containerRef, () => {
   if (!containerRef.value) return
   viewportHeight.value = containerRef.value.clientHeight
-  if (props.autoScroll) void scrollToBottom()
+  if (props.autoScroll) void scrollToTop()
 })
 
-defineExpose({ scrollToBottom })
+defineExpose({ scrollToTop })
 </script>

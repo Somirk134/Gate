@@ -1,7 +1,7 @@
 <!--
-  TunnelCard — Mock Tunnel 卡片
+  TunnelCard — 项目隧道摘要卡片
   ------------------------------------------------------------------
-  详情页 Tunnel 区域占位卡片，不开发真实 Tunnel 逻辑。
+  详情页 Tunnel 区域使用的轻量摘要视图。
 -->
 <template>
   <div
@@ -49,14 +49,14 @@ import { computed } from 'vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
 import GBadge from '@components/base/GBadge.vue'
-import type { MockTunnel } from '../types'
+import type { ProjectTunnelSummary } from '../types'
 
 const props = defineProps<{
-  tunnel: MockTunnel
+  tunnel: ProjectTunnelSummary
   selected?: boolean
 }>()
 
-defineEmits<{ select: [tunnel: MockTunnel] }>()
+defineEmits<{ select: [tunnel: ProjectTunnelSummary] }>()
 
 const statusLabel = computed(() => {
   const map: Record<string, string> = {

@@ -2,7 +2,7 @@
   ServerHealth — 工作区 Health 标签
   ------------------------------------------------------------------
   Health Report。检查：Server Online / API Available / Token Valid /
-  Tunnel Service / Disk / Memory / Clock / Version。全部 Mock。
+  Tunnel Service / Disk / Memory / Clock / Version。
 -->
 <template>
   <div class="server-health">
@@ -81,7 +81,7 @@
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      当前为 Mock 健康检查。未来将接入真实 Rust Server 健康检查 API。
+      健康检查来自 Runtime 状态；未连接服务器时仅显示本地可用信息。
     </p>
   </div>
 </template>

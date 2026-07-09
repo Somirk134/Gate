@@ -36,6 +36,42 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
         await router.push('/settings')
       },
     },
+    navigate(router, 'navigation.dashboard', '打开首页', 'Dashboard', '/', 'dashboard', [
+      '首页',
+      'home',
+      'dashboard',
+    ]),
+    navigate(router, 'navigation.projects', '打开项目', 'Projects', '/projects', 'projects', [
+      '项目',
+      'project',
+    ]),
+    navigate(router, 'navigation.tunnels', '打开隧道', 'Tunnels', '/tunnels', 'router', [
+      '隧道',
+      'tunnel',
+    ]),
+    navigate(router, 'navigation.servers', '打开服务器', 'Servers', '/servers', 'servers', [
+      '服务器',
+      'server',
+    ]),
+    navigate(router, 'navigation.logs', '打开日志', 'Logs', '/logs', 'logs', ['日志', 'log']),
+    navigate(router, 'navigation.settings', '打开设置', 'Settings', '/settings', 'settings', [
+      '设置',
+      'settings',
+    ]),
+    navigate(router, 'navigation.about', '打开关于', 'About', '/about', 'about', ['关于', 'about']),
+    navigate(router, 'navigation.help', '打开帮助', 'Help', '/help', 'help', ['帮助', 'help']),
+    {
+      id: 'tunnel.create',
+      title: '创建隧道',
+      description: '打开隧道创建向导',
+      category: 'tunnel',
+      icon: 'plus',
+      shortcut: 'Ctrl+N',
+      keywords: ['隧道', '创建', 'create', 'tunnel', 'new'],
+      handler: async () => {
+        await router.push('/tunnels?create=1')
+      },
+    },
     {
       id: 'app.sidebar.toggle',
       title: '切换侧边栏',
@@ -82,7 +118,7 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
         })
       },
     },
-    reserved('project.create', '创建项目', 'project', 'projects', 'Ctrl+N'),
+    reserved('project.create', '创建项目', 'project', 'projects'),
     reserved('project.delete', '删除项目', 'project', 'trash'),
     reserved('tunnel.start', '启动隧道', 'tunnel', 'play'),
     reserved('tunnel.stop', '停止隧道', 'tunnel', 'stop'),
@@ -111,6 +147,28 @@ function reserved(
     shortcut,
     handler: async ({ context, args }) => {
       await context.events.publish('command:reserved', { id, args })
+    },
+  }
+}
+
+function navigate(
+  router: Router,
+  id: string,
+  title: string,
+  description: string,
+  path: string,
+  icon: string,
+  keywords: string[],
+): Command {
+  return {
+    id,
+    title,
+    description,
+    category: 'navigation',
+    icon,
+    keywords,
+    handler: async () => {
+      await router.push(path)
     },
   }
 }

@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod certificate;
 pub mod config;
 pub mod connection;

@@ -1,7 +1,7 @@
 <!--
   TunnelStatistics — 工作区 Statistics 标签
   ------------------------------------------------------------------
-  展示隧道运行统计卡片组 + 协议分布饼图（Mock）。
+  展示隧道运行统计卡片组 + 协议分布饼图。
 -->
 <template>
   <div class="tunnel-statistics">

@@ -2,8 +2,7 @@
   TunnelMonitor — 工作区 Monitor 标签
   ------------------------------------------------------------------
   实时监控面板：速度 / 连接 / 延迟 / CPU（预留）/ 内存（预留）/ 网络。
-  当前全部 Mock，由 store.tick() 驱动实时刷新。
-  未来替换为真实 Tunnel Engine 指标即可。
+  数据来自 Runtime Dashboard；未采集到的指标显示为空值。
 -->
 <template>
   <div class="tunnel-monitor">
@@ -125,7 +124,7 @@
 
     <p class="tunnel-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      当前为 Mock 实时数据，每秒刷新。未来将接入真实 Tunnel Engine 指标。
+      监控数据来自 Runtime Dashboard；暂无采样时显示空曲线。
     </p>
   </div>
 </template>
@@ -171,7 +170,7 @@ const resources = computed(() => [
     label: '网络',
     icon: 'network',
     value: formatSpeed(props.tunnel.traffic.downloadSpeed),
-    percent: 35,
+    percent: props.tunnel.traffic.downloadSpeed > 0 ? 100 : 0,
     color: 'var(--color-success)',
   },
 ])

@@ -3,8 +3,7 @@
   ------------------------------------------------------------------
   实时监控面板：CPU / 内存 / 磁盘 / 负载 / 网络 / 流量 / 连接。
   采用 Card / Mini Chart / Progress / Circle，不使用复杂图表。
-  当前全部 Mock，由 store.tick() 驱动实时刷新。
-  未来替换为真实 Rust Server 指标即可。
+  数据来自 Runtime Store；服务端未上报时保持空值。
 -->
 <template>
   <div class="server-monitor">
@@ -151,7 +150,7 @@
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      当前为 Mock 实时数据，每秒刷新。未来将接入真实 Rust Server 指标。
+      监控数据来自 Runtime Store；服务端未上报时保持空值。
     </p>
   </div>
 </template>

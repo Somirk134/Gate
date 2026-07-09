@@ -274,6 +274,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useFeedback } from '@composables/useFeedback'
+import { isTauri } from '@tauri-apps/api/core'
+import { open as openExternalUrl } from '@tauri-apps/plugin-shell'
 import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
@@ -576,8 +578,19 @@ async function copyTestUrl(tunnel: Tunnel) {
   toast.success(t('tunnel.notifications.testUrlCopied'))
 }
 
-function openTestUrl(tunnel: Tunnel) {
-  window.open(testUrl(tunnel), '_blank', 'noopener,noreferrer')
+async function openTestUrl(tunnel: Tunnel) {
+  const url = testUrl(tunnel)
+  try {
+    if (isTauri()) {
+      await openExternalUrl(url)
+      return
+    }
+
+    const target = window.open(url, '_blank', 'noopener,noreferrer')
+    if (!target) throw new Error('浏览器阻止了新窗口打开')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '打开链接失败')
+  }
 }
 
 function errorMessage(err: unknown): string {

@@ -216,6 +216,64 @@
                 </div>
               </section>
 
+              <section
+                v-else-if="screen === 'deployment'"
+                ref="activePanelRef"
+                class="deployment-panel">
+                <div class="deployment-mode-grid">
+                  <button
+                    v-for="mode in deployModeOptions"
+                    :key="mode.value"
+                    type="button"
+                    class="environment-card"
+                    :class="{ active: answers.deployMode === mode.value }"
+                    @click="answers.deployMode = mode.value">
+                    <GIcon :name="mode.icon" :size="18" />
+                    <strong>{{ mode.label }}</strong>
+                    <span>{{ mode.description }}</span>
+                  </button>
+                </div>
+
+                <div class="deployment-form">
+                  <label class="chat-input">
+                    <span>Gate Server 端口</span>
+                    <input v-model.number="answers.serverPort" type="number" min="1" max="65535" />
+                  </label>
+                  <label class="chat-input">
+                    <span>Token</span>
+                    <input
+                      v-model.trim="answers.serverToken"
+                      autocomplete="off"
+                      placeholder="建议使用 16 位以上随机字符串" />
+                  </label>
+                </div>
+
+                <div class="deploy-command-panel">
+                  <header>
+                    <div>
+                      <p>{{ answers.deployMode === 'docker' ? 'Docker' : 'Linux VPS' }}</p>
+                      <strong>复制到服务器执行</strong>
+                    </div>
+                    <button type="button" @click="copyDeployCommand">
+                      <GIcon name="copy" :size="14" />
+                      复制
+                    </button>
+                  </header>
+                  <pre><code>{{ activeDeployCommand }}</code></pre>
+                </div>
+
+                <div v-if="deploymentReport" class="deployment-test-result">
+                  <GIcon
+                    :name="deploymentReport.ok ? 'check-circle' : 'alert-triangle'"
+                    :size="18" />
+                  <div>
+                    <strong>{{ deploymentReport.title }}</strong>
+                    <p>{{ deploymentReport.reason }}</p>
+                    <small>{{ deploymentReport.solution }}</small>
+                  </div>
+                </div>
+              </section>
+
               <section v-else-if="screen === 'domain'" ref="activePanelRef" class="domain-panel">
                 <div class="choice-row">
                   <button
@@ -375,6 +433,18 @@
               @click="continueFromEnvironment">
               继续
             </GButton>
+            <div v-else-if="screen === 'deployment'" class="deployment-footer-actions">
+              <GButton
+                variant="secondary"
+                icon="activity"
+                :loading="deploymentTesting"
+                @click="testDeploymentConnection">
+                测试连接
+              </GButton>
+              <GButton variant="primary" trailing-icon="arrow-right" @click="continueFromDeployment">
+                继续
+              </GButton>
+            </div>
             <GButton
               v-else-if="screen === 'domain'"
               variant="primary"
@@ -392,10 +462,10 @@
             <GButton
               v-else-if="screen === 'review'"
               variant="primary"
-              icon="plus"
+              :icon="answers.serverOwnership === 'has-server' ? 'plus' : 'servers'"
               :loading="creating"
-              @click="createFirstTunnel">
-              确认并创建
+              @click="handleReviewAction">
+              {{ answers.serverOwnership === 'has-server' ? '确认并创建' : '去添加服务器' }}
             </GButton>
           </footer>
         </main>
@@ -436,11 +506,13 @@ import {
   scenarioRecommendations,
   serverEnvironmentOptions,
   smartOnboardingKeys,
+  type DeployMode,
   type DomainMode,
   type ServerEnvironmentId,
   type ServerOwnership,
   type SmartWizardAnswers,
 } from '@/onboarding/smartWizard'
+import { diagnosticsService, type ConnectionTestReport } from '@/services'
 import { useTunnelStore } from '@/views/tunnels/store/tunnel'
 
 type WizardScreen =
@@ -448,6 +520,7 @@ type WizardScreen =
   | 'server-question'
   | 'server-education'
   | 'environment'
+  | 'deployment'
   | 'domain'
   | 'scenario'
   | 'review'
@@ -477,6 +550,8 @@ const neverShowChoice = ref(false)
 const inlineError = ref('')
 const creating = ref(false)
 const createdTunnelName = ref('')
+const deploymentTesting = ref(false)
+const deploymentReport = ref<ConnectionTestReport | null>(null)
 const wizardContentRef = ref<HTMLElement | null>(null)
 const activePanelRef = ref<HTMLElement | null>(null)
 const answers = reactive<SmartWizardAnswers>(createDefaultAnswers())
@@ -493,7 +568,7 @@ const serverOwnershipOptions: Array<{
 }> = [
   {
     value: 'has-server',
-    label: '我有服务器',
+    label: '我已有服务器',
     description: '继续选择服务器环境和部署方式。',
     icon: 'servers',
   },
@@ -508,6 +583,26 @@ const serverOwnershipOptions: Array<{
     label: '我不知道什么是公网服务器',
     description: '用最简单的话解释，不讲术语。',
     icon: 'circle-help',
+  },
+]
+
+const deployModeOptions: Array<{
+  value: DeployMode
+  label: string
+  description: string
+  icon: string
+}> = [
+  {
+    value: 'linux-vps',
+    label: 'Linux VPS',
+    description: '适合 Ubuntu / Debian / CentOS，使用 systemd 或二进制长期运行。',
+    icon: 'terminal',
+  },
+  {
+    value: 'docker',
+    label: 'Docker',
+    description: '适合容器化部署，配置文件和数据挂载在宿主机。',
+    icon: 'boxes',
   },
 ]
 
@@ -563,9 +658,33 @@ const tourItems = [
 const selectedScenario = computed(() => findScenario(answers.scenarioId))
 const recommendation = computed(() => buildSmartRecommendation(answers))
 const currentTour = computed(() => tourItems[tourIndex.value])
+const serverAddressForTest = computed(() => ({
+  host: answers.serverAddress.trim(),
+  port: answers.serverPort,
+  token: answers.serverToken.trim(),
+}))
+const linuxDeployCommand = computed(
+  () =>
+    `GATE_TOKEN="${answers.serverToken.trim() || 'your-token'}" GATE_BIND="0.0.0.0:${answers.serverPort || 7000}" ./gate-server`,
+)
+const dockerDeployCommand = computed(
+  () =>
+    [
+      'docker run -d --name gate-server --restart unless-stopped \\',
+      `  -e GATE_TOKEN="${answers.serverToken.trim() || 'your-token'}" \\`,
+      `  -p ${answers.serverPort || 7000}:${answers.serverPort || 7000} \\`,
+      '  ghcr.io/gate/gate-server:beta',
+    ].join('\n'),
+)
+const activeDeployCommand = computed(() =>
+  answers.deployMode === 'docker' ? dockerDeployCommand.value : linuxDeployCommand.value,
+)
 const visibleKnowledgeCards = computed(() => {
   if (screen.value === 'server-question' || screen.value === 'server-education') {
     return knowledgeCards.filter((card) => ['public-server', 'tunnel', 'domain'].includes(card.id))
+  }
+  if (screen.value === 'deployment') {
+    return knowledgeCards.filter((card) => ['public-server', 'tunnel', 'https'].includes(card.id))
   }
   if (screen.value === 'domain' || screen.value === 'review') {
     return knowledgeCards.filter((card) => ['domain', 'https', 'certificate'].includes(card.id))
@@ -580,6 +699,7 @@ const screenTitle = computed(() => {
     'server-education':
       answers.serverOwnership === 'unknown-server' ? '先理解公网服务器' : '没有服务器也没关系',
     environment: '你的服务器是什么环境？',
+    deployment: '部署 Gate Server 并测试连接',
     domain: '你拥有域名吗？',
     scenario: '你想用 Gate 做什么？',
     review: '推荐配置已生成',
@@ -593,6 +713,7 @@ const screenCaption = computed(() => {
     'server-question': '第一个关键判断',
     'server-education': '基础概念',
     environment: '部署方式推荐',
+    deployment: '服务器部署向导',
     domain: '访问地址',
     scenario: '使用场景',
     review: '确认即可创建',
@@ -606,7 +727,8 @@ const progressPercent = computed(() => {
     'server-question': 18,
     'server-education': 36,
     environment: 36,
-    domain: 56,
+    deployment: 48,
+    domain: 62,
     scenario: 76,
     review: 94,
   }
@@ -624,6 +746,13 @@ const pathItems = computed(() => {
       (item) => item.id === answers.serverEnvironment,
     )
     list.push(environment?.title ?? '环境')
+  }
+  if (
+    answers.serverOwnership === 'has-server' &&
+    ['deployment', 'domain', 'scenario', 'review'].includes(screen.value)
+  ) {
+    const option = deployModeOptions.find((item) => item.value === answers.deployMode)
+    list.push(option?.label ?? '部署')
   }
   if (answers.domainMode) {
     const option = domainOptions.find((item) => item.value === answers.domainMode)
@@ -719,6 +848,7 @@ function resetWizard() {
   conversation.value = []
   inlineError.value = ''
   createdTunnelName.value = ''
+  deploymentReport.value = null
   localStorage.removeItem(smartOnboardingKeys.draft)
 }
 
@@ -779,6 +909,7 @@ function chooseEnvironment(id: ServerEnvironmentId) {
   if (!environment || environment.reserved) return
   answers.serverEnvironment = id
   inlineError.value = ''
+  deploymentReport.value = null
 }
 
 function continueFromEnvironment() {
@@ -793,8 +924,54 @@ function continueFromEnvironment() {
   }
   const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
   pushUser(`${answers.serverAddress}，${environment?.title ?? '服务器'}`)
-  pushGate(`${environment?.recommendedDeploy ?? '已记录服务器环境'} 接下来选择是否使用域名。`)
+  pushGate(`${environment?.recommendedDeploy ?? '已记录服务器环境'} 下一步配置 Token，并测试连接。`)
+  navigateTo('deployment')
+}
+
+function continueFromDeployment() {
+  inlineError.value = ''
+  if (!Number.isInteger(answers.serverPort) || answers.serverPort < 1 || answers.serverPort > 65535) {
+    inlineError.value = 'Gate Server 端口必须在 1-65535 之间。'
+    return
+  }
+  if (!answers.serverToken.trim()) {
+    inlineError.value = '请填写服务端 Token。'
+    return
+  }
+  const mode = deployModeOptions.find((item) => item.value === answers.deployMode)
+  pushUser(`${mode?.label ?? '部署'}，端口 ${answers.serverPort}`)
+  pushGate('部署信息已记录。现在选择是否使用域名。')
   navigateTo('domain')
+}
+
+async function testDeploymentConnection() {
+  inlineError.value = ''
+  if (!answers.serverAddress.trim()) {
+    inlineError.value = '请先填写服务器 IP 或域名。'
+    return
+  }
+  if (!Number.isInteger(answers.serverPort) || answers.serverPort < 1 || answers.serverPort > 65535) {
+    inlineError.value = 'Gate Server 端口必须在 1-65535 之间。'
+    return
+  }
+  if (!answers.serverToken.trim()) {
+    inlineError.value = '请填写服务端 Token 后再测试。'
+    return
+  }
+
+  deploymentTesting.value = true
+  try {
+    deploymentReport.value = await diagnosticsService.testConnection(serverAddressForTest.value)
+  } catch (error) {
+    inlineError.value = error instanceof Error ? error.message : '连接测试失败，请检查服务器。'
+  } finally {
+    deploymentTesting.value = false
+  }
+}
+
+async function copyDeployCommand() {
+  await navigator.clipboard?.writeText(activeDeployCommand.value)
+  pushGate('部署命令已复制。执行后回到这里点击“测试连接”。')
 }
 
 function chooseDomainMode(value: DomainMode) {
@@ -857,6 +1034,17 @@ async function createFirstTunnel() {
   } finally {
     creating.value = false
   }
+}
+
+async function handleReviewAction() {
+  if (answers.serverOwnership !== 'has-server') {
+    markComplete()
+    visible.value = false
+    await router.push('/servers?create=1')
+    return
+  }
+
+  await createFirstTunnel()
 }
 
 function navigateTo(nextScreen: WizardScreen) {
@@ -1442,11 +1630,121 @@ button.environment-card {
 
 .education-panel,
 .environment-panel,
+.deployment-panel,
 .domain-panel,
 .scenario-panel,
 .review-panel {
   display: grid;
   gap: var(--space-4);
+}
+
+.deployment-mode-grid,
+.deployment-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.deployment-mode-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deployment-form {
+  grid-template-columns: 180px minmax(0, 1fr);
+}
+
+.deploy-command-panel {
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.deploy-command-panel header {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.deploy-command-panel header p {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+}
+
+.deploy-command-panel header strong {
+  color: var(--text-primary);
+}
+
+.deploy-command-panel header button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+
+.deploy-command-panel header button:hover {
+  border-color: var(--color-primary);
+  color: var(--text-primary);
+}
+
+.deploy-command-panel pre {
+  margin: 0;
+  max-height: 180px;
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--bg-input);
+}
+
+.deploy-command-panel code {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.deployment-test-result {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.deployment-test-result svg {
+  color: var(--color-info);
+}
+
+.deployment-test-result strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+.deployment-test-result p,
+.deployment-test-result small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.deployment-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .explain-card,
@@ -1768,6 +2066,7 @@ button.environment-card {
   .provider-grid,
   .scenario-grid,
   .environment-grid,
+  .deployment-mode-grid,
   .welcome-points,
   .question-panel,
   .choice-row {
@@ -1793,6 +2092,8 @@ button.environment-card {
   .provider-grid,
   .scenario-grid,
   .environment-grid,
+  .deployment-mode-grid,
+  .deployment-form,
   .welcome-points,
   .question-panel,
   .choice-row,

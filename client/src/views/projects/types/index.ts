@@ -212,7 +212,7 @@ export interface ProjectDeleteResponse {
 
 export type ProjectLoadStatus = 'idle' | 'loading' | 'success' | 'error'
 
-export interface MockTunnel {
+export interface ProjectTunnelSummary {
   id: string
   name: string
   protocol: 'tcp' | 'http' | 'https'

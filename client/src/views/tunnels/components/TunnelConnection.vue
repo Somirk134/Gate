@@ -1,7 +1,7 @@
 <!--
   TunnelConnection — 工作区 Connection 标签
   ------------------------------------------------------------------
-  展示当前连接（Mock）。未来支持实时连接。
+  展示 Runtime 返回的当前连接列表。
   字段：Client IP / Region / Duration / Status / Protocol
 -->
 <template>
@@ -49,7 +49,7 @@
 
     <p class="tunnel-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      当前为 Mock 数据。未来将支持实时连接监控。
+      当前隧道没有活动连接；有访问流量后这里会显示连接明细。
     </p>
   </div>
 </template>

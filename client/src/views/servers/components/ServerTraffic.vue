@@ -2,7 +2,7 @@
   ServerTraffic — 工作区 Traffic 标签
   ------------------------------------------------------------------
   展示：Today / Week / Month / Total / Upload / Download。
-  历史趋势 Mini Chart。全部 Mock。
+  历史趋势 Mini Chart。
 -->
 <template>
   <div class="server-traffic">

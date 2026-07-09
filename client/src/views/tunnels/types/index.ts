@@ -5,7 +5,7 @@
    统计、日志、连接、配置与监控。
 
    设计原则：
-     - 所有类型契约与 Mock 解耦，未来替换为真实 Tunnel Engine 时
+     - 所有类型契约与运行时实现解耦，未来替换 Tunnel Engine 时
        仅需保持类型不变即可无缝迁移 UI。
      - 协议字段已预留 HTTPS / UDP / P2P 扩展，V1 仅启用 HTTP / TCP。
    ================================================================== */
@@ -45,7 +45,7 @@ export interface TunnelTraffic {
   totalDownload: number // 累计下载 bytes
   todayUpload: number // 今日上传 bytes
   todayDownload: number // 今日下载 bytes
-  history: TunnelTrafficPoint[] // 历史采样（Mock）
+  history: TunnelTrafficPoint[] // 历史采样
 }
 
 /* ── 单条连接 ── */

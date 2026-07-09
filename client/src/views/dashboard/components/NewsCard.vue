@@ -1,7 +1,7 @@
 <!--
   NewsCard — 资讯（预留）
   ------------------------------------------------------------------
-  展示 Release Note / GitHub Release / 更新日志（Mock）。
+  展示 Release Note / GitHub Release / 更新日志入口。
 -->
 <template>
   <section class="dashboard-section">

@@ -10,74 +10,88 @@ use std::{
 };
 
 pub struct ProjectWorkspaceState {
-    service: ProjectService<SqliteProjectRepository>,
+    service: Option<ProjectService<SqliteProjectRepository>>,
+    init_error: Option<String>,
 }
 
 impl Default for ProjectWorkspaceState {
     fn default() -> Self {
-        let repository = SqliteProjectRepository::open(project_store_path())
-            .expect("project SQLite store should be available");
-        Self {
-            service: ProjectService::new(repository),
+        match SqliteProjectRepository::open(project_store_path()) {
+            Ok(repository) => Self {
+                service: Some(ProjectService::new(repository)),
+                init_error: None,
+            },
+            Err(error) => Self {
+                service: None,
+                init_error: Some(format!("项目数据库初始化失败：{error}")),
+            },
         }
     }
 }
 
 impl ProjectWorkspaceState {
+    fn service(&self) -> Result<&ProjectService<SqliteProjectRepository>, String> {
+        self.service.as_ref().ok_or_else(|| {
+            self.init_error
+                .clone()
+                .unwrap_or_else(|| "项目服务不可用".to_string())
+        })
+    }
+
     pub fn list(&self) -> Result<Vec<Project>, String> {
-        self.service.list().map_err(|error| error.to_string())
+        self.service()?.list().map_err(|error| error.to_string())
     }
 
     pub fn get(&self, project_id: &str) -> Result<Project, String> {
-        self.service
+        self.service()?
             .get(project_id)
             .map_err(|error| error.to_string())
     }
 
     pub fn create(&self, request: CreateProjectRequest) -> Result<Project, String> {
-        self.service
+        self.service()?
             .create(request)
             .map_err(|error| error.to_string())
     }
 
     pub fn update(&self, project_id: &str, patch: UpdateProjectRequest) -> Result<Project, String> {
-        self.service
+        self.service()?
             .update(project_id, patch)
             .map_err(|error| error.to_string())
     }
 
     pub fn delete(&self, project_id: &str, mode: ProjectDeleteMode) -> Result<Project, String> {
-        self.service
+        self.service()?
             .delete(project_id, mode)
             .map_err(|error| error.to_string())
     }
 
     pub fn delete_impact(&self, project_id: &str) -> Result<ProjectDeleteImpact, String> {
-        self.service
+        self.service()?
             .delete_impact(project_id)
             .map_err(|error| error.to_string())
     }
 
     pub fn set_favorite(&self, project_id: &str, favorite: bool) -> Result<Project, String> {
-        self.service
+        self.service()?
             .set_favorite(project_id, favorite)
             .map_err(|error| error.to_string())
     }
 
     pub fn set_pinned(&self, project_id: &str, pinned: bool) -> Result<Project, String> {
-        self.service
+        self.service()?
             .set_pinned(project_id, pinned)
             .map_err(|error| error.to_string())
     }
 
     pub fn add_tunnel(&self, project_id: &str, tunnel_id: String) -> Result<Project, String> {
-        self.service
+        self.service()?
             .add_tunnel(project_id, tunnel_id)
             .map_err(|error| error.to_string())
     }
 
     pub fn remove_tunnel(&self, project_id: &str, tunnel_id: &str) -> Result<Project, String> {
-        self.service
+        self.service()?
             .remove_tunnel(project_id, tunnel_id)
             .map_err(|error| error.to_string())
     }
@@ -88,19 +102,19 @@ impl ProjectWorkspaceState {
         target_project_id: &str,
         tunnel_id: &str,
     ) -> Result<(Project, Project), String> {
-        self.service
+        self.service()?
             .move_tunnel(source_project_id, target_project_id, tunnel_id)
             .map_err(|error| error.to_string())
     }
 
     pub fn add_domain(&self, project_id: &str, domain: String) -> Result<Project, String> {
-        self.service
+        self.service()?
             .add_domain(project_id, domain)
             .map_err(|error| error.to_string())
     }
 
     pub fn remove_domain(&self, project_id: &str, domain: &str) -> Result<Project, String> {
-        self.service
+        self.service()?
             .remove_domain(project_id, domain)
             .map_err(|error| error.to_string())
     }
@@ -110,7 +124,7 @@ impl ProjectWorkspaceState {
         project_id: &str,
         certificate_id: String,
     ) -> Result<Project, String> {
-        self.service
+        self.service()?
             .add_certificate(project_id, certificate_id)
             .map_err(|error| error.to_string())
     }
@@ -120,17 +134,23 @@ impl ProjectWorkspaceState {
         project_id: &str,
         certificate_id: &str,
     ) -> Result<Project, String> {
-        self.service
+        self.service()?
             .remove_certificate(project_id, certificate_id)
             .map_err(|error| error.to_string())
     }
 
     pub fn templates(&self) -> Vec<ProjectTemplateProfile> {
-        self.service.templates()
+        self.service
+            .as_ref()
+            .map(|service| service.templates())
+            .unwrap_or_default()
     }
 
     pub fn recommend_tunnels(&self, template: ProjectTemplate) -> Vec<TunnelRecommendation> {
-        self.service.recommend_tunnels(template)
+        self.service
+            .as_ref()
+            .map(|service| service.recommend_tunnels(template))
+            .unwrap_or_default()
     }
 }
 
@@ -143,7 +163,7 @@ pub struct ProjectDeleteResponse {
     pub failed_tunnel_ids: Vec<String>,
 }
 
-fn project_store_path() -> PathBuf {
+pub(crate) fn project_store_path() -> PathBuf {
     if let Some(value) = env::var_os("GATE_PROJECT_DB") {
         return PathBuf::from(value);
     }

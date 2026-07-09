@@ -518,7 +518,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useFeedback } from '@composables/useFeedback'
 import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
@@ -530,6 +530,7 @@ import type { Server, ServerFormData, ServerKind, ServerStatus } from './types'
 import './styles/server.css'
 
 const router = useRouter()
+const route = useRoute()
 const { t } = useI18n()
 const { toast, confirmDanger } = useFeedback()
 const {
@@ -697,6 +698,17 @@ watch(
 onMounted(() => {
   void refresh()
 })
+
+// 承接欢迎向导的“添加服务器”入口，打开后清理 query，避免刷新重复弹窗。
+watch(
+  () => route.query.create,
+  (value) => {
+    if (value !== '1') return
+    openCreate()
+    void router.replace({ path: '/servers' })
+  },
+  { immediate: true },
+)
 
 function openCreate() {
   editingId.value = null

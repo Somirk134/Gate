@@ -112,6 +112,79 @@
         </div>
       </main>
     </div>
+
+    <Transition name="settings-restore">
+      <div
+        v-if="restorePreview"
+        class="settings-restore-backdrop"
+        role="presentation"
+        @click.self="closeRestorePreview">
+        <article
+          class="settings-restore-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="settings-restore-title">
+          <header>
+            <div>
+              <p>Backup Restore</p>
+              <h2 id="settings-restore-title">确认恢复 Gate 备份</h2>
+            </div>
+            <button type="button" :disabled="restoreBusy" @click="closeRestorePreview">
+              <GIcon name="close" :size="16" />
+            </button>
+          </header>
+
+          <section class="settings-restore-summary">
+            <div>
+              <span>备份版本</span>
+              <strong>v{{ restorePreview.appVersion }}</strong>
+            </div>
+            <div>
+              <span>创建时间</span>
+              <strong>{{ formatBackupDate(restorePreview.createdAt) }}</strong>
+            </div>
+            <div>
+              <span>文件内容</span>
+              <strong>{{ restorePreview.entries.length }} 项</strong>
+            </div>
+          </section>
+
+          <section class="settings-restore-grid">
+            <article v-for="row in restoreRows" :key="row.label">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+              <small>{{ row.description }}</small>
+            </article>
+          </section>
+
+          <div class="settings-restore-warning">
+            <GIcon name="alert-triangle" :size="18" />
+            <div>
+              <strong>恢复会先停止 Runtime</strong>
+              <p>
+                Gate 会恢复 Projects、Servers、Tunnels、Domains、证书 metadata、Settings 和 Runtime
+                config。证书私钥和 PEM 不包含在备份中，恢复后需要手动重新连接服务器并启动 Tunnel。
+              </p>
+            </div>
+          </div>
+
+          <p v-if="restoreError" class="settings-restore-error">{{ restoreError }}</p>
+
+          <footer>
+            <GButton variant="ghost" :disabled="restoreBusy" @click="closeRestorePreview">
+              取消
+            </GButton>
+            <GButton
+              variant="primary"
+              icon="upload"
+              :loading="restoreBusy"
+              @click="confirmRestoreBackup">
+              确认恢复
+            </GButton>
+          </footer>
+        </article>
+      </div>
+    </Transition>
   </section>
 </template>
 
@@ -127,7 +200,13 @@ import {
 import { useFeedback } from '@composables/useFeedback'
 import { useLocaleSwitcher } from '@composables/useLocaleSwitcher'
 import { useThemeStore } from '@stores'
+import { isTauri } from '@tauri-apps/api/core'
+import { save } from '@tauri-apps/plugin-dialog'
 import { TauriIpcClient } from '@/ipc'
+import { backupService, type BackupPreview } from '@/services'
+import { useProjectStore } from '@views/projects/store/project'
+import { useServerStore } from '@views/servers'
+import { useTunnelStore } from '@views/tunnels'
 import './styles/settings.css'
 
 type SettingControl = 'switch' | 'select' | 'number' | 'readonly' | 'action'
@@ -136,6 +215,7 @@ type SettingAction =
   | 'exportConfig'
   | 'importConfig'
   | 'backupConfig'
+  | 'restoreBackup'
   | 'resetCache'
   | 'clearLogs'
   | 'openOnboarding'
@@ -179,11 +259,17 @@ const O = (zh: string, en: string, value: string | number | boolean): SettingOpt
 const query = ref('')
 const activeCategory = ref('general')
 const importInput = ref<HTMLInputElement | null>(null)
-const { toast } = useFeedback()
+const { toast, notify } = useFeedback()
 const { t, locale } = useI18n()
 const { currentLocale, setLocale } = useLocaleSwitcher()
 const themeStore = useThemeStore()
+const projectStore = useProjectStore()
+const serverStore = useServerStore()
+const tunnelStore = useTunnelStore()
 const ipc = new TauriIpcClient()
+const restorePreview = ref<BackupPreview | null>(null)
+const restoreBusy = ref(false)
+const restoreError = ref('')
 let hydrating = false
 
 const categories: SettingCategory[] = [
@@ -563,12 +649,28 @@ const categories: SettingCategory[] = [
           {
             key: 'backupConfig',
             label: L('备份配置', 'Backup config'),
-            description: L('生成带时间戳的配置备份文件。', 'Create a timestamped settings backup.'),
+            description: L(
+              '导出完整 Gate 配置为 gate-backup.zip。',
+              'Export the full Gate configuration as gate-backup.zip.',
+            ),
             control: 'action',
             value: '',
             icon: 'save',
             buttonText: L('备份', 'Backup'),
             action: 'backupConfig',
+          },
+          {
+            key: 'restoreBackup',
+            label: L('恢复备份', 'Restore backup'),
+            description: L(
+              '选择 gate-backup.zip，预览内容后恢复。',
+              'Choose gate-backup.zip, preview it, then restore.',
+            ),
+            control: 'action',
+            value: '',
+            icon: 'upload',
+            buttonText: L('恢复', 'Restore'),
+            action: 'restoreBackup',
           },
         ],
       },
@@ -657,8 +759,14 @@ const defaultValues = Object.fromEntries(
 ) as Record<string, string | number | boolean>
 
 onMounted(async () => {
+  await hydrateSettingsFromRuntime()
+})
+
+async function hydrateSettingsFromRuntime() {
   hydrating = true
   try {
+    // 先回到默认值，再套用 Runtime 中保存的配置，避免恢复旧备份后残留当前会话设置。
+    Object.assign(values, defaultValues)
     values.language = currentLocale.value
     values.theme = getCurrentThemeSetting()
     values.fontSize = getFontSizePreference()
@@ -673,7 +781,7 @@ onMounted(async () => {
   } finally {
     hydrating = false
   }
-})
+}
 
 watch(
   values,
@@ -710,6 +818,20 @@ const selectedCategory = computed(
     visibleCategories.value[0],
 )
 
+const restoreRows = computed(() => {
+  const contents = restorePreview.value?.contents
+  if (!contents) return []
+  return [
+    { label: 'Projects', value: contents.projects, description: '项目和工作区关联' },
+    { label: 'Servers', value: contents.servers, description: '服务器地址、Token 和连接偏好' },
+    { label: 'Tunnels', value: contents.tunnels, description: 'TCP / HTTP / HTTPS 隧道配置' },
+    { label: 'Domains', value: contents.domains, description: '域名绑定和解析状态' },
+    { label: 'Certificates', value: contents.certificates, description: '证书 metadata' },
+    { label: 'Settings', value: contents.settings, description: '界面和运行配置项' },
+    { label: 'Runtime config', value: contents.runtimeConfig, description: 'Runtime 配置快照' },
+  ]
+})
+
 watch(visibleCategories, (list) => {
   if (!list.some((category) => category.id === activeCategory.value)) {
     activeCategory.value = list[0]?.id ?? 'general'
@@ -724,13 +846,13 @@ function runSettingAction(action?: SettingAction) {
     toast.success('已恢复默认设置')
   }
   if (action === 'exportConfig') {
-    downloadConfig('gate-config.json')
-    toast.success('配置已导出')
+    void exportConfig()
   }
   if (action === 'backupConfig') {
-    const date = new Date().toISOString().replace(/[:.]/g, '-')
-    downloadConfig(`gate-config-backup-${date}.json`)
-    toast.success('配置备份已生成')
+    void createGateBackup()
+  }
+  if (action === 'restoreBackup') {
+    void chooseBackupForRestore()
   }
   if (action === 'importConfig') {
     importInput.value?.click()
@@ -752,6 +874,90 @@ function runSettingAction(action?: SettingAction) {
     window.dispatchEvent(new CustomEvent('gate:onboarding:open', { detail: { restart: true } }))
     toast.success('已打开新手引导')
   }
+}
+
+async function createGateBackup() {
+  try {
+    const destination = await backupService.chooseExportPath()
+    if (!destination) return
+    const result = await backupService.export(destination)
+    notify.success('备份已生成', result.path)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '备份生成失败')
+  }
+}
+
+async function exportConfig() {
+  const filename = 'gate-config.json'
+  const content = JSON.stringify(values, null, 2)
+
+  if (!isTauri()) {
+    downloadConfig(filename)
+    notify.success('配置已导出', filename)
+    return
+  }
+
+  try {
+    const destination = await save({
+      defaultPath: filename,
+      filters: [{ name: 'Gate JSON', extensions: ['json'] }],
+    })
+    if (!destination) return
+
+    // 通过系统保存对话框选择路径，再交给后端写入，用户可以自定义目录和文件名。
+    const exportedPath = await ipc.invoke<string>('export_config_file', {
+      path: destination,
+      content,
+    })
+    notify.success('配置已导出', exportedPath)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '配置导出失败')
+  }
+}
+
+async function chooseBackupForRestore() {
+  try {
+    const path = await backupService.chooseRestorePath()
+    if (!path) return
+    restorePreview.value = await backupService.preview(path)
+    restoreError.value = ''
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : '备份文件读取失败')
+  }
+}
+
+function closeRestorePreview() {
+  if (restoreBusy.value) return
+  restorePreview.value = null
+  restoreError.value = ''
+}
+
+async function confirmRestoreBackup() {
+  if (!restorePreview.value) return
+  restoreBusy.value = true
+  restoreError.value = ''
+  try {
+    const result = await backupService.restore(restorePreview.value.path)
+    window.dispatchEvent(new CustomEvent('gate:backup:restored', { detail: result }))
+    await refreshProductStateAfterRestore()
+    toast.success(result.message)
+    restorePreview.value = null
+  } catch (err) {
+    restoreError.value = err instanceof Error ? err.message : '恢复失败，请确认备份文件完整'
+    toast.error('恢复失败')
+  } finally {
+    restoreBusy.value = false
+  }
+}
+
+async function refreshProductStateAfterRestore() {
+  // 恢复会替换本地数据文件，这里刷新已挂载的 Store，避免界面继续显示旧配置。
+  await Promise.all([
+    projectStore.load(),
+    serverStore.load(),
+    tunnelStore.load(),
+    hydrateSettingsFromRuntime(),
+  ])
 }
 
 async function clearRuntimeLogs() {
@@ -799,6 +1005,15 @@ function normalizeOptions(options: SettingOption[] = []) {
     if (typeof option === 'string') return { label: option, value: option }
     return option
   })
+}
+
+function formatBackupDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'zh-CN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
 }
 
 function downloadConfig(filename: string) {

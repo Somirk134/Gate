@@ -117,7 +117,7 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="history" :size="12" />
-        历史采样（Mock）
+        历史采样
       </div>
       <div class="tunnel-conn-table">
         <div class="tunnel-conn-row tunnel-conn-row--head">

@@ -6,7 +6,7 @@
    公司服务器 / Docker 部署 / Kubernetes 未来扩展）。
 
    设计原则：
-     - 类型契约与 Mock 解耦，未来替换为真实 Rust Server 时
+     - 类型契约与运行时实现解耦，未来替换为真实 Rust Server 时
        仅需保持类型不变即可无缝迁移 UI。
      - Server 不是配置，是资源。用户管理 Server Cluster。
    ================================================================== */
@@ -63,7 +63,7 @@ export interface ServerResourceMetric {
   used: number // 已用（GB / MB）
   total: number // 总量（GB / MB）
   unit: 'GB' | 'MB'
-  history: number[] // 百分比采样（Mock）
+  history: number[] // 百分比采样
 }
 
 /* ── 负载指标 ── */
@@ -184,7 +184,7 @@ export interface ServerOverviewInfo {
   hostname: string
   os: string
   arch: string
-  rustVersion: string // Mock
+  rustVersion: string
   serverVersion: string
   installTime: string // ISO
   lastOnline: string // 人类可读

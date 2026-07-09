@@ -1,7 +1,7 @@
 <!--
   ServerProjects — 工作区 Projects 标签（Project Overview）
   ------------------------------------------------------------------
-  显示属于当前 Server 的 Project。点击进入。全部 Mock。
+  显示属于当前 Server 的 Project。点击进入。
 -->
 <template>
   <div class="server-projects">
@@ -50,7 +50,7 @@
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      展示关联到当前服务器的项目。全部 Mock 数据，未来从项目模块联动。
+      服务器关联项目会在项目绑定后显示在这里。
     </p>
   </div>
 </template>

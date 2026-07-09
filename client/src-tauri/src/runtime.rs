@@ -629,6 +629,65 @@ impl Default for ClientRuntimeState {
 }
 
 impl ClientRuntimeState {
+    pub async fn backup_snapshot(&self) -> Result<Value, String> {
+        self.sync_local_tunnel_metrics().await;
+        let mut inner = self.inner.lock().await;
+        inner.sync_tunnel_state();
+        serde_json::to_value(inner.snapshot()).map_err(|error| error.to_string())
+    }
+
+    pub async fn stop_for_restore(&self) -> Result<(), String> {
+        self.shutdown_all_local_tunnels().await?;
+        let transport = {
+            let mut inner = self.inner.lock().await;
+            stop_running_tunnels(&mut inner);
+            inner.connected = false;
+            inner.session_id = None;
+            inner.server_addr = None;
+            let active_server_id = inner.active_server_id.take();
+            if let Some(server_id) = active_server_id.as_deref() {
+                if let Some(server) = inner.servers.get_mut(server_id) {
+                    server.status = "disconnected".to_string();
+                    server.session_id = None;
+                    server.last_error = Some("恢复备份前已停止 Runtime".to_string());
+                    server.updated_at = Utc::now().timestamp_millis();
+                }
+            }
+            inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
+            inner.log("info", "backup", "恢复备份前已停止 Runtime");
+            let transport = inner.transport.take();
+            persist_runtime(&self.storage_path, &inner)?;
+            transport
+        };
+
+        if let Some(transport) = transport {
+            let _ = transport.disconnect().await;
+        }
+
+        Ok(())
+    }
+
+    pub async fn restore_runtime_snapshot(&self, snapshot: Value) -> Result<(), String> {
+        self.shutdown_all_local_tunnels().await?;
+        let stored: StoredRuntime =
+            serde_json::from_value(snapshot).map_err(|error| error.to_string())?;
+        if stored.version > STORE_VERSION {
+            return Err(format!(
+                "备份 Runtime 版本 {} 高于当前支持版本 {}",
+                stored.version, STORE_VERSION
+            ));
+        }
+
+        let mut restored = RuntimeInner::from_stored(stored);
+        mark_restored_runtime_inactive(&mut restored);
+        restored.log("info", "backup", "已从备份恢复配置，等待用户手动重新连接");
+        persist_runtime(&self.storage_path, &restored)?;
+
+        let mut inner = self.inner.lock().await;
+        *inner = restored;
+        Ok(())
+    }
+
     pub async fn connect(&self, server_addr: String, token: String) -> Result<String, String> {
         let (transport, session_id) = establish_connection(&server_addr, &token).await?;
 
@@ -1848,11 +1907,24 @@ impl ClientRuntimeState {
                 continue;
             };
 
+            let elapsed_seconds =
+                now.saturating_sub(tunnel.last_sample_at).max(0) as f64 / 1000.0;
+            let mut upload_speed_bps =
+                bytes_per_second(snapshot.upload_bytes, tunnel.upload_bytes, elapsed_seconds);
+            let download_speed_bps =
+                bytes_per_second(snapshot.download_bytes, tunnel.download_bytes, elapsed_seconds);
+            if upload_speed_bps == 0.0
+                && download_speed_bps == 0.0
+                && snapshot.current_speed_bps > 0
+            {
+                upload_speed_bps = snapshot.current_speed_bps as f64;
+            }
+
             tunnel.connections = snapshot.active_connections;
             tunnel.upload_bytes = snapshot.upload_bytes;
             tunnel.download_bytes = snapshot.download_bytes;
-            tunnel.upload_speed_bps = snapshot.current_speed_bps as f64;
-            tunnel.download_speed_bps = 0.0;
+            tunnel.upload_speed_bps = upload_speed_bps;
+            tunnel.download_speed_bps = download_speed_bps;
             tunnel.uptime_seconds = snapshot.runtime_seconds;
             tunnel.request_count = snapshot.request_count;
             tunnel.success_count = snapshot.success_count;
@@ -2334,7 +2406,7 @@ fn runtime_client_id(active_server_id: Option<&str>) -> String {
         .unwrap_or_else(|| "gate-client:standalone".to_string())
 }
 
-fn runtime_store_path() -> PathBuf {
+pub(crate) fn runtime_store_path() -> PathBuf {
     if let Some(appdata) = env::var_os("APPDATA") {
         return PathBuf::from(appdata)
             .join("Gate")
@@ -2358,7 +2430,7 @@ fn runtime_store_path() -> PathBuf {
     PathBuf::from("gate-client-runtime.json")
 }
 
-fn domain_store_path() -> PathBuf {
+pub(crate) fn domain_store_path() -> PathBuf {
     if let Some(value) = env::var_os("GATE_DOMAIN_DB") {
         return PathBuf::from(value);
     }
@@ -2366,14 +2438,14 @@ fn domain_store_path() -> PathBuf {
     runtime_data_dir().join("domains.sqlite3")
 }
 
-fn runtime_data_dir() -> PathBuf {
+pub(crate) fn runtime_data_dir() -> PathBuf {
     runtime_store_path()
         .parent()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from(".gate"))
 }
 
-fn certificate_store_root() -> PathBuf {
+pub(crate) fn certificate_store_root() -> PathBuf {
     if let Some(value) = env::var_os("GATE_CERTIFICATE_STORE") {
         return PathBuf::from(value);
     }
@@ -2400,6 +2472,40 @@ fn persist_runtime(path: &Path, inner: &RuntimeInner) -> Result<(), String> {
 
     let bytes = serde_json::to_vec_pretty(&inner.snapshot()).map_err(|error| error.to_string())?;
     fs::write(path, bytes).map_err(|error| error.to_string())
+}
+
+fn mark_restored_runtime_inactive(inner: &mut RuntimeInner) {
+    inner.transport = None;
+    inner.connected = false;
+    inner.server_addr = None;
+    inner.session_id = None;
+    inner.active_server_id = None;
+
+    for server in inner.servers.values_mut() {
+        if matches!(
+            server.status.as_str(),
+            "connected" | "connecting" | "recovering"
+        ) {
+            server.status = "disconnected".to_string();
+            server.session_id = None;
+            server.last_error = Some("备份恢复后需要手动重新连接服务器".to_string());
+            server.updated_at = Utc::now().timestamp_millis();
+        }
+    }
+
+    for tunnel in inner.tunnels.values_mut() {
+        if matches!(
+            tunnel.status.as_str(),
+            "running" | "starting" | "restarting" | "stopping" | "recovering"
+        ) {
+            tunnel.status = "stopped".to_string();
+            tunnel.upload_speed_bps = 0.0;
+            tunnel.download_speed_bps = 0.0;
+            tunnel.connections = 0;
+            tunnel.started_at = None;
+            tunnel.updated_at = Utc::now().timestamp_millis();
+        }
+    }
 }
 
 fn hydrate_domains_from_repository(repository: &SqliteDomainRepository, inner: &mut RuntimeInner) {
@@ -2966,9 +3072,13 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
         .values()
         .map(|tunnel| tunnel.download_speed_bps)
         .sum::<f64>();
-    let has_realtime_speed = upload_speed_bps > 0.0 || download_speed_bps > 0.0;
     let has_connection_data =
         inner.connected || inner.counters.connection_total > 0 || inner.counters.auth_failure > 0;
+    let has_runtime_samples = has_connection_data
+        || tunnel_count > 0
+        || traffic.total_bytes > 0
+        || upload_speed_bps > 0.0
+        || download_speed_bps > 0.0;
 
     json!({
         "overview": {
@@ -2982,7 +3092,7 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
             "healthScore": health.get("score").and_then(Value::as_u64).unwrap_or(0)
         },
         "statistics": statistics,
-        "realtimeSpeed": if has_realtime_speed {
+        "realtimeSpeed": if has_runtime_samples {
             json!([{
                 "timestamp": now,
                 "uploadBps": upload_speed_bps,
@@ -3002,7 +3112,7 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
         } else {
             json!([])
         },
-        "trafficTrend": if has_realtime_speed {
+        "trafficTrend": if has_runtime_samples {
             json!([{
                 "timestamp": now,
                 "uploadBytes": traffic.upload_bytes,
@@ -3085,52 +3195,71 @@ fn dashboard_json(inner: &RuntimeInner) -> Value {
 fn health_json(inner: &RuntimeInner) -> Value {
     let now = Utc::now().timestamp_millis();
     let system = system_snapshot();
-    let status = if inner.connected {
+    let connection_status = if inner.connected {
         "healthy"
     } else {
         "offline"
     };
-    let system_status = if system.cpu_usage >= 90.0 || system.memory_usage >= 90.0 {
+    let system_pressure = system.cpu_usage.max(system.memory_usage);
+    let system_status = if system_pressure >= 90.0 {
         "warning"
     } else {
         "healthy"
     };
-    let score = if inner.connected {
-        let pressure = system.cpu_usage.max(system.memory_usage).round() as u64;
-        100_u64.saturating_sub(pressure.saturating_sub(70))
+    let overall_status = if !inner.connected {
+        "offline"
+    } else if system_status == "warning" {
+        "warning"
+    } else {
+        "healthy"
+    };
+    let connection_score = if inner.connected { 100_u64 } else { 0 };
+    let heartbeat_score = if inner.connected || inner.counters.heartbeat_pong > 0 {
+        100_u64
     } else {
         0
     };
+    let runtime_score = if inner.connected { 100_u64 } else { 0 };
+    let system_score = if system_pressure >= 95.0 {
+        70_u64
+    } else if system_pressure >= 90.0 {
+        85_u64
+    } else {
+        100_u64
+    };
+    // 评分只按真实状态阈值变化，避免 CPU/内存采样抖动导致健康分每秒跳动。
+    let score = (connection_score + heartbeat_score + runtime_score + system_score + 2) / 4;
+
     json!({
-        "overall": status,
+        "overall": overall_status,
         "score": score,
         "signals": [
             {
                 "target": "connection",
-                "status": status,
+                "status": connection_status,
                 "message": if inner.connected { "TCP connection is authenticated" } else { "TCP connection is offline" },
-                "score": if inner.connected { 100 } else { 0 },
+                "score": connection_score,
                 "timestamp": now
             },
             {
                 "target": "heartbeat",
-                "status": if inner.counters.heartbeat_pong > 0 { "healthy" } else { status },
-                "message": if inner.counters.heartbeat_pong > 0 { "Heartbeat completed at least once" } else { "Heartbeat has not completed yet" },
-                "score": if inner.counters.heartbeat_pong > 0 { 100 } else { 0 },
+                "status": if inner.connected || inner.counters.heartbeat_pong > 0 { "healthy" } else { "offline" },
+                "message": if inner.counters.heartbeat_pong > 0 { "Heartbeat completed at least once" } else if inner.connected { "Heartbeat sample is pending" } else { "Heartbeat has not completed yet" },
+                "score": heartbeat_score,
                 "timestamp": now
             },
             {
                 "target": "runtime",
-                "status": status,
+                "status": connection_status,
                 "message": "Client runtime state is available",
-                "score": if inner.connected { 100 } else { 0 },
+                "score": runtime_score,
                 "timestamp": now
             },
             {
                 "target": "system",
                 "status": system_status,
-                "message": format!("CPU {:.0}% · Memory {:.0}%", system.cpu_usage, system.memory_usage),
-                "score": 100_u64.saturating_sub(system.cpu_usage.max(system.memory_usage).round() as u64),
+                "message": format!("CPU {:.0}% / Memory {:.0}%", system.cpu_usage, system.memory_usage),
+                "score": system_score,
                 "timestamp": now
             }
         ],
@@ -3152,6 +3281,15 @@ struct RuntimeTls {
     handshake_count: u64,
     error_count: u64,
     traffic_bytes: u64,
+}
+
+fn bytes_per_second(current: u64, previous: u64, elapsed_seconds: f64) -> f64 {
+    if elapsed_seconds <= 0.0 {
+        return 0.0;
+    }
+
+    // 使用累计字节差值计算真实瞬时速度，远程转发快照也能展示非 0B/s。
+    current.saturating_sub(previous) as f64 / elapsed_seconds
 }
 
 fn runtime_traffic(inner: &RuntimeInner) -> RuntimeTraffic {

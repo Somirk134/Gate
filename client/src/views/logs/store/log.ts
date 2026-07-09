@@ -100,17 +100,19 @@ export const useLogStore = defineStore('log-center', () => {
 
   function filterLogs(input: LogItem[], current: LogFilter): LogItem[] {
     const start = getTimeRangeStart(current.timeRange)
-    return input.filter((log) => {
-      if (current.levels.length && !current.levels.includes(log.level)) return false
-      if (current.sources.length && !current.sources.includes(log.source)) return false
-      if (current.modules.length && !current.modules.includes(log.module)) return false
-      if (current.projects.length && !log.projectName) return false
-      if (current.projects.length && !current.projects.includes(log.projectName ?? '')) return false
-      if (current.tunnels.length && !log.tunnelName) return false
-      if (current.tunnels.length && !current.tunnels.includes(log.tunnelName ?? '')) return false
-      if (start && log.timestamp < start) return false
-      return matchKeyword(log, current.keyword, current.fuzzy)
-    })
+    return input
+      .filter((log) => {
+        if (current.levels.length && !current.levels.includes(log.level)) return false
+        if (current.sources.length && !current.sources.includes(log.source)) return false
+        if (current.modules.length && !current.modules.includes(log.module)) return false
+        if (current.projects.length && !log.projectName) return false
+        if (current.projects.length && !current.projects.includes(log.projectName ?? '')) return false
+        if (current.tunnels.length && !log.tunnelName) return false
+        if (current.tunnels.length && !current.tunnels.includes(log.tunnelName ?? '')) return false
+        if (start && log.timestamp < start) return false
+        return matchKeyword(log, current.keyword, current.fuzzy)
+      })
+      .sort((left, right) => right.timestamp - left.timestamp)
   }
 
   async function load(): Promise<void> {
@@ -118,7 +120,7 @@ export const useLogStore = defineStore('log-center', () => {
     error.value = ''
     try {
       const runtimeLogs = await ipc.invoke<RuntimeLogRecord[]>('runtime_get_logs')
-      logs.value = runtimeLogs.map(mapRuntimeLog)
+      logs.value = runtimeLogs.map(mapRuntimeLog).sort((left, right) => left.timestamp - right.timestamp)
       status.value = 'success'
       lastUpdated.value = Date.now()
       if (!selectedId.value && logs.value.length)

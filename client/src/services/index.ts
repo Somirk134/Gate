@@ -10,6 +10,14 @@ export { tunnelService } from './tunnel.service'
 export { connectionService } from './connection.service'
 export { projectService } from './project.service'
 export { serverService } from './server.service'
+export { backupService } from './backup.service'
+export type {
+  BackupContents,
+  BackupExportResult,
+  BackupPreview,
+  BackupRestoreResult,
+  BackupSecurity,
+} from './backup.service'
 export type { RuntimeServerList, RuntimeServerRecord } from './server.service'
 export { diagnosticsService } from './diagnostics.service'
 export type {

@@ -2,6 +2,7 @@ import type { TunnelFormData, TunnelProtocol } from '@/views/tunnels/types'
 
 export type ServerOwnership = 'has-server' | 'no-server' | 'unknown-server'
 export type DomainMode = 'has-domain' | 'no-domain' | 'skip-domain'
+export type DeployMode = 'linux-vps' | 'docker'
 
 export type ServerEnvironmentId =
   | 'ubuntu'
@@ -60,6 +61,9 @@ export interface SmartWizardAnswers {
   serverOwnership: ServerOwnership | ''
   serverEnvironment: ServerEnvironmentId | ''
   serverAddress: string
+  serverPort: number
+  serverToken: string
+  deployMode: DeployMode
   domainMode: DomainMode | ''
   domainName: string
   scenarioId: string
@@ -501,6 +505,9 @@ export function createDefaultAnswers(): SmartWizardAnswers {
     serverOwnership: '',
     serverEnvironment: '',
     serverAddress: '',
+    serverPort: 7000,
+    serverToken: 'gate-alpha-token',
+    deployMode: 'linux-vps',
     domainMode: '',
     domainName: '',
     scenarioId: 'springboot',

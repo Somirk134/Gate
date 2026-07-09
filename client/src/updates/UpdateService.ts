@@ -12,6 +12,7 @@ export type UpdateStatus =
   | 'downloading'
   | 'ready'
   | 'installing'
+  | 'installed'
   | 'error'
 
 export interface UpdateInfo {
@@ -117,7 +118,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
 
     try {
       await update.install()
-      this.setStatus('ready')
+      this.setStatus('installed')
     } catch (error) {
       this.setStatus('error')
       throw error
