@@ -5,10 +5,17 @@ use gate_engine::runtime::{
     TunnelRuntime,
 };
 use gate_protocol::{Body, Command, Message, Metadata};
+use gate_server_domain::{
+    model::{
+        Domain as ManagedDomain, DomainId as ManagedDomainId, DomainStatus as ManagedDomainStatus,
+        Host as ManagedHost, RecordType as ManagedRecordType, TunnelId as ManagedTunnelId,
+    },
+    repository::{DomainRepository, SqliteRepository as SqliteDomainRepository},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
@@ -28,7 +35,12 @@ struct RuntimeLog {
     source: String,
     message: String,
     timestamp: i64,
-    #[serde(default, rename = "tunnelId", alias = "tunnel_id", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "tunnelId",
+        alias = "tunnel_id",
+        skip_serializing_if = "Option::is_none"
+    )]
     tunnel_id: Option<String>,
 }
 
@@ -482,6 +494,7 @@ impl RuntimeInner {
 
 pub struct ClientRuntimeState {
     storage_path: PathBuf,
+    domain_repository: Option<SqliteDomainRepository>,
     inner: Mutex<RuntimeInner>,
     local_tunnels: Mutex<BTreeMap<String, LocalTunnelRuntime>>,
 }
@@ -489,10 +502,18 @@ pub struct ClientRuntimeState {
 impl Default for ClientRuntimeState {
     fn default() -> Self {
         let storage_path = runtime_store_path();
+        let domain_repository = SqliteDomainRepository::open(domain_store_path()).ok();
         let stored = load_stored_runtime(&storage_path);
+        let mut inner = RuntimeInner::from_stored(stored);
+        if let Some(repository) = &domain_repository {
+            hydrate_domains_from_repository(repository, &mut inner);
+            let _ = sync_domain_repository(repository, &inner.domains);
+        }
+
         Self {
             storage_path,
-            inner: Mutex::new(RuntimeInner::from_stored(stored)),
+            domain_repository,
+            inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
         }
     }
@@ -970,6 +991,7 @@ impl ClientRuntimeState {
             },
         );
         inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
         inner.log("info", "tunnel", "tunnel configuration created");
         persist_runtime(&self.storage_path, &inner)?;
         Ok(tunnel_id)
@@ -1030,6 +1052,8 @@ impl ClientRuntimeState {
         } else {
             return Err("tunnel not found".to_string());
         };
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
         inner.log_tunnel("info", &tunnel_id, &format!("tunnel started: {name}"));
         persist_runtime(&self.storage_path, &inner)?;
         Ok(())
@@ -1053,6 +1077,8 @@ impl ClientRuntimeState {
         } else {
             return Err("tunnel not found".to_string());
         };
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
         inner.log_tunnel("info", &tunnel_id, &format!("tunnel stopped: {name}"));
         persist_runtime(&self.storage_path, &inner)?;
         Ok(())
@@ -1112,8 +1138,14 @@ impl ClientRuntimeState {
         if let Some(path) = patch.path {
             tunnel.path = Some(normalize_http_path(&path));
         }
+        tunnel.tls_version = if tunnel.protocol == "https" {
+            Some("TLS".to_string())
+        } else {
+            None
+        };
         tunnel.updated_at = Utc::now().timestamp_millis();
         inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
         inner.log("info", "tunnel", "tunnel configuration updated");
         persist_runtime(&self.storage_path, &inner)?;
         Ok(())
@@ -1128,6 +1160,7 @@ impl ClientRuntimeState {
         let mut inner = self.inner.lock().await;
         inner.tunnels.remove(&tunnel_id);
         inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_runtime_domains(&self.domain_repository, &inner.domains)?;
         inner.log_tunnel("info", &tunnel_id, "tunnel configuration deleted");
         persist_runtime(&self.storage_path, &inner)?;
         Ok(())
@@ -1252,12 +1285,13 @@ impl ClientRuntimeState {
         let inner = self.inner.lock().await;
         json!({
             "path": self.storage_path,
+            "domainDatabasePath": domain_store_path(),
             "version": STORE_VERSION,
             "persisted": {
                 "tunnel": { "ok": true, "count": inner.tunnels.len() },
                 "runtime": { "ok": true, "count": 1 },
                 "server": { "ok": true, "count": inner.servers.len(), "activeServerId": inner.active_server_id },
-                "domain": { "ok": true, "count": inner.domains.len() },
+                "domain": { "ok": self.domain_repository.is_some(), "count": inner.domains.len(), "sqlitePath": domain_store_path() },
                 "certificate": { "ok": true, "count": inner.certificate_references.len(), "storeRoot": certificate_store_root() },
                 "settings": { "ok": true, "count": inner.config.len() },
                 "logs": { "ok": true, "count": inner.logs.len() },
@@ -1311,7 +1345,13 @@ impl ClientRuntimeState {
             tunnel.started_at = None;
             tunnel.updated_at = Utc::now().timestamp_millis();
         }
-        inner.log_tunnel("error", tunnel_id, &format!("tunnel start failed: {reason}"));
+        inner.sync_domain_index_for_tunnel(tunnel_id);
+        let _ = sync_runtime_domains(&self.domain_repository, &inner.domains);
+        inner.log_tunnel(
+            "error",
+            tunnel_id,
+            &format!("tunnel start failed: {reason}"),
+        );
         let _ = persist_runtime(&self.storage_path, &inner);
     }
 
@@ -1458,7 +1498,11 @@ async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnel
         "http" => {
             let mut route = HttpRouteConfig::new(tunnel.name.clone(), target_addr)
                 .path_prefix(tunnel.path.as_deref().unwrap_or("/"));
-            if let Some(host) = tunnel.host.as_deref().filter(|value| !value.trim().is_empty()) {
+            if let Some(host) = tunnel
+                .host
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+            {
                 route = route.host(host);
             }
 
@@ -1505,8 +1549,11 @@ async fn resolve_target_addr(host: &str, port: u16) -> Result<SocketAddr, String
 }
 
 async fn verify_target_reachable(target_addr: SocketAddr) -> Result<(), String> {
-    match tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(target_addr))
-        .await
+    match tokio::time::timeout(
+        Duration::from_secs(2),
+        tokio::net::TcpStream::connect(target_addr),
+    )
+    .await
     {
         Ok(Ok(_stream)) => Ok(()),
         Ok(Err(error)) => Err(format!("本地服务不可访问 {target_addr}：{error}")),
@@ -1638,6 +1685,14 @@ fn runtime_store_path() -> PathBuf {
     PathBuf::from("gate-client-runtime.json")
 }
 
+fn domain_store_path() -> PathBuf {
+    if let Some(value) = env::var_os("GATE_DOMAIN_DB") {
+        return PathBuf::from(value);
+    }
+
+    runtime_data_dir().join("domains.sqlite3")
+}
+
 fn runtime_data_dir() -> PathBuf {
     runtime_store_path()
         .parent()
@@ -1672,6 +1727,138 @@ fn persist_runtime(path: &Path, inner: &RuntimeInner) -> Result<(), String> {
 
     let bytes = serde_json::to_vec_pretty(&inner.snapshot()).map_err(|error| error.to_string())?;
     fs::write(path, bytes).map_err(|error| error.to_string())
+}
+
+fn hydrate_domains_from_repository(repository: &SqliteDomainRepository, inner: &mut RuntimeInner) {
+    let Ok(domains) = repository.list() else {
+        return;
+    };
+
+    let restored = domains
+        .iter()
+        .filter_map(|domain| runtime_domain_from_managed(domain, &inner.tunnels))
+        .collect::<BTreeMap<_, _>>();
+
+    if !restored.is_empty() {
+        inner.domains = restored;
+    }
+}
+
+fn sync_runtime_domains(
+    repository: &Option<SqliteDomainRepository>,
+    domains: &BTreeMap<String, RuntimeDomainRecord>,
+) -> Result<(), String> {
+    if let Some(repository) = repository {
+        sync_domain_repository(repository, domains)?;
+    }
+    Ok(())
+}
+
+fn sync_domain_repository(
+    repository: &SqliteDomainRepository,
+    domains: &BTreeMap<String, RuntimeDomainRecord>,
+) -> Result<(), String> {
+    let desired_ids = domains
+        .values()
+        .map(|record| domain_id_for_host(&record.domain))
+        .collect::<BTreeSet<_>>();
+
+    for existing in repository.list().map_err(|error| error.to_string())? {
+        if !desired_ids.contains(existing.id().as_str()) {
+            repository
+                .delete(existing.id())
+                .map_err(|error| error.to_string())?;
+        }
+    }
+
+    for record in domains.values() {
+        let domain = managed_domain_from_runtime(record)?;
+        let exists = repository
+            .find_by_id(domain.id())
+            .map_err(|error| error.to_string())?
+            .is_some();
+
+        if exists {
+            repository
+                .update(domain)
+                .map_err(|error| error.to_string())?;
+        } else {
+            repository
+                .create(domain)
+                .map_err(|error| error.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+fn managed_domain_from_runtime(record: &RuntimeDomainRecord) -> Result<ManagedDomain, String> {
+    let id = ManagedDomainId::new(domain_id_for_host(&record.domain))
+        .map_err(|error| error.to_string())?;
+    let host = ManagedHost::new(&record.domain).map_err(|error| error.to_string())?;
+    let tunnel_id = ManagedTunnelId::new(&record.tunnel_id).map_err(|error| error.to_string())?;
+
+    ManagedDomain::builder(id, host)
+        .tunnel_id(tunnel_id)
+        .record_type(ManagedRecordType::A)
+        .status(ManagedDomainStatus::Active)
+        .build()
+        .map_err(|error| error.to_string())
+}
+
+fn runtime_domain_from_managed(
+    domain: &ManagedDomain,
+    tunnels: &BTreeMap<String, TunnelRecord>,
+) -> Option<(String, RuntimeDomainRecord)> {
+    let tunnel_id = domain.tunnel_id()?.as_str().to_string();
+    let tunnel = tunnels.get(&tunnel_id);
+    let host = domain.host().as_str().to_string();
+    let now = Utc::now().timestamp_millis();
+
+    Some((
+        host.clone(),
+        RuntimeDomainRecord {
+            domain: host,
+            tunnel_id,
+            protocol: tunnel
+                .map(|tunnel| tunnel.protocol.clone())
+                .unwrap_or_else(|| "https".to_string()),
+            status: tunnel
+                .map(|tunnel| tunnel.status.clone())
+                .unwrap_or_else(|| managed_domain_status_label(domain.status()).to_string()),
+            created_at: now,
+            updated_at: now,
+        },
+    ))
+}
+
+fn managed_domain_status_label(status: &ManagedDomainStatus) -> &'static str {
+    match status {
+        ManagedDomainStatus::Active => "active",
+        ManagedDomainStatus::Pending => "pending",
+        ManagedDomainStatus::Disabled => "disabled",
+        ManagedDomainStatus::Deleted => "deleted",
+    }
+}
+
+fn domain_id_for_host(host: &str) -> String {
+    format!("domain:{}", sanitize_domain_key(host))
+}
+
+fn sanitize_domain_key(host: &str) -> String {
+    let sanitized = host
+        .chars()
+        .map(|value| match value {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '-' | '_' => value,
+            _ => '_',
+        })
+        .collect::<String>();
+
+    if sanitized.is_empty() {
+        "unknown".to_string()
+    } else {
+        sanitized
+    }
 }
 
 fn parse_endpoint(server_addr: &str) -> Result<TransportEndpoint, String> {
@@ -2249,18 +2436,37 @@ fn startup_diagnostics_json(path: &Path, inner: &RuntimeInner) -> Value {
         .parent()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
+    let domain_database = domain_store_path();
     let certificate_dir = certificate_store_root();
+    let runtime_store_ready = path.exists() || can_write_dir(&data_dir);
+    let domain_database_ready = domain_database.exists() || can_write_dir(&data_dir);
     let mut checks = Vec::new();
 
     checks.push(startup_check(
         "database",
-        path.exists(),
+        runtime_store_ready,
         if path.exists() {
             format!("Runtime store is available: {}", path.display())
         } else {
             format!("Runtime store will be created at {}", path.display())
         },
         "Ensure the parent directory is writable before creating tunnels.",
+    ));
+    checks.push(startup_check(
+        "domainDatabase",
+        domain_database_ready,
+        if domain_database.exists() {
+            format!(
+                "Domain SQLite store is available: {}",
+                domain_database.display()
+            )
+        } else {
+            format!(
+                "Domain SQLite store will be created at {}",
+                domain_database.display()
+            )
+        },
+        "Grant write permission to the Gate data directory or set GATE_DOMAIN_DB.",
     ));
     checks.push(startup_check(
         "config",
@@ -2326,6 +2532,7 @@ fn startup_diagnostics_json(path: &Path, inner: &RuntimeInner) -> Value {
         "checks": checks,
         "store": {
             "path": path,
+            "domainDatabase": domain_database,
             "dataDir": data_dir,
             "certificateDir": certificate_dir
         }
@@ -2418,6 +2625,37 @@ mod tests {
             .await
             .map_err(|error| anyhow::anyhow!(error))?;
         target_task.abort();
+        Ok(())
+    }
+
+    #[test]
+    fn runtime_domain_repository_sync_persists_and_deletes() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db_path = temp_dir.path().join("domains.sqlite3");
+        let repository = SqliteDomainRepository::open(&db_path)?;
+        let mut tunnel = test_tunnel_record("https", 8443, 18443);
+        tunnel.host = Some("example.com".to_string());
+
+        let tunnel_id = tunnel.id.clone();
+        let mut inner = RuntimeInner::from_stored(StoredRuntime::default());
+        inner.tunnels.insert(tunnel_id.clone(), tunnel);
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+
+        sync_domain_repository(&repository, &inner.domains).map_err(anyhow::Error::msg)?;
+        let reopened = SqliteDomainRepository::open(&db_path)?;
+        let domains = reopened.list()?;
+        assert_eq!(domains.len(), 1);
+        assert_eq!(domains[0].host().as_str(), "example.com");
+        assert_eq!(
+            domains[0].tunnel_id().map(ManagedTunnelId::as_str),
+            Some(tunnel_id.as_str())
+        );
+
+        inner.tunnels.remove(&tunnel_id);
+        inner.sync_domain_index_for_tunnel(&tunnel_id);
+        sync_domain_repository(&reopened, &inner.domains).map_err(anyhow::Error::msg)?;
+        assert!(SqliteDomainRepository::open(&db_path)?.list()?.is_empty());
+
         Ok(())
     }
 

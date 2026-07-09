@@ -252,42 +252,61 @@ const messages: LocaleMessages<Record<string, unknown>> = {
   },
   about: {
     eyebrow: '桌面端隧道工作台',
-    tagline: '将本地服务、内网应用和私有接口通过自部署公网入口安全交付给团队。',
+    tagline:
+      '为开发与运维准备的自托管隧道客户端。将 Rust 服务端、Tauri 桌面端、监控视图和 Docker 部署模板组合在一起，让团队通过自建入口安全交付应用。',
+    heroBadge: 'v{version} Alpha',
     linksLabel: 'Gate 相关链接',
+    authorCardLabel: 'Gate 作者与维护者',
+    authorName: 'Gate Contributors',
+    authorRole: 'Open Source Maintainers',
+    authorQuote: '致力于打造体验扎实的桌面端工具，让内网穿透变得简单、可靠、优雅。',
+    email: 'Email',
     versionSummary: 'Gate 版本概览',
     versionLabel: '版本',
     buildLabel: '构建',
     channelLabel: '通道',
     channelValue: 'Alpha',
     licenseLabel: '许可',
+    stat: {
+      build: '构建版本',
+      engine: '核心引擎',
+      channel: '发布通道',
+      alpha: 'Alpha 预览版',
+      license: '开源协议',
+    },
     summaryKicker: '定位',
     summaryTitle: '为开发与运维准备的自托管隧道客户端',
     summaryBody:
       'Gate 将 Rust 服务端、Tauri 桌面客户端、认证、心跳、监控视图和 Docker 部署模板组合在一起，让团队可以用自己控制的公网入口访问本地开发机、内网服务或私有系统。',
     capabilitiesKicker: '能力',
-    capabilitiesTitle: '聚焦可控、可审计、桌面优先',
+    capabilitiesTitle: '核心能力',
+    capabilitiesSubtitle: '聚焦可控、可审计、桌面优先',
     alphaBadge: 'Pre-1.0 Alpha',
     capability: {
       selfHosted: {
         title: '自托管入口',
-        description: '公网入口运行在你的服务器上，部署、配置和示例都保留在仓库内。',
+        description:
+          '公网入口运行在你的服务器上，部署、配置和示例都保留在仓库内，确保数据与控制权完全属于团队。',
       },
       desktop: {
         title: '桌面工作流',
-        description: '用项目、隧道、服务器、日志和诊断视图承接日常操作。',
+        description:
+          '用项目、隧道、服务器、日志和诊断视图承接日常高频操作，减少在终端、配置和文档之间切换。',
       },
       runtime: {
         title: 'Rust 运行时基础',
-        description: '围绕连接生命周期、心跳、重连、健康检查和监控数据打基础。',
+        description:
+          '围绕连接生命周期、心跳保活、断线重连、健康检查和监控数据，构建稳定的数据打洞基础。',
       },
       openSource: {
         title: '开源可扩展',
-        description: 'MIT 许可，适合审计、二次开发和团队内部定制。',
+        description: '基于 MIT 许可开源。代码结构清晰，适合安全审计、二次开发和团队内部深度定制。',
       },
     },
     releaseKicker: 'v0.1.0',
     releaseDate: '2026 年 7 月',
     changelog: '更新日志',
+    releaseTitle: 'Alpha 首发版',
     releaseNote: {
       clientShell: '完成桌面客户端基础外壳，包含侧边栏、顶部栏、状态栏和命令入口。',
       tunnelWorkflow: '搭建项目、隧道、服务器与日志视图，为后续真实运行时接入预留界面。',
@@ -296,12 +315,15 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     },
     stageLabel: '当前阶段',
     stageValue: 'Pre-1.0 Alpha',
-    stageDescription: '核心协议和运行时能力仍在持续完善，适合测试、集成和早期团队试用。',
+    stageDescription:
+      '核心协议和运行时能力仍在持续完善与重构中。目前版本适合早期测试、功能集成和团队内部试用，不建议用于核心生产环境。',
+    roadmap: '查看路线图',
     creditsKicker: '构建与许可',
     acknowledgements: '致谢',
     creditLine:
       '基于 Tauri、Vue 3、Rust 与 Naive UI 构建；图标来自 Lucide。感谢开源社区为 Gate 提供可靠的基础设施。',
-    copyright: '© 2026 Gate 贡献者。保留所有权利。',
+    copyright: '© {year} Gate Desktop Client. All rights reserved.',
+    builtWith: 'Built with Rust & Tauri',
   },
   auth: {
     login: '登录',

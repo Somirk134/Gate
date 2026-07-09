@@ -36,7 +36,6 @@ export class ConsoleLogSink implements LogSink {
     }
 
     if (entry.level === "debug" || entry.level === "trace") {
-      console.debug(prefix, entry.message, entry.data ?? "")
       return
     }
 

@@ -253,46 +253,62 @@ const messages: LocaleMessages<Record<string, unknown>> = {
   about: {
     eyebrow: 'Desktop tunnel workspace',
     tagline:
-      'Expose local apps, private services, and internal APIs through a self-hosted public entrypoint.',
+      'A self-hosted tunnel client for development and operations. Gate brings the Rust server, Tauri desktop client, monitoring views, and Docker deployment templates together so teams can ship through an entrypoint they control.',
+    heroBadge: 'v{version} Alpha',
     linksLabel: 'Gate links',
+    authorCardLabel: 'Gate authors and maintainers',
+    authorName: 'Gate Contributors',
+    authorRole: 'Open Source Maintainers',
+    authorQuote:
+      'Building a focused desktop toolchain that makes private networking simpler, reliable, and calm to operate.',
+    email: 'Email',
     versionSummary: 'Gate version summary',
     versionLabel: 'Version',
     buildLabel: 'Build',
     channelLabel: 'Channel',
     channelValue: 'Alpha',
     licenseLabel: 'License',
+    stat: {
+      build: 'Build version',
+      engine: 'Core engine',
+      channel: 'Release channel',
+      alpha: 'Alpha preview',
+      license: 'Open-source license',
+    },
     summaryKicker: 'Positioning',
     summaryTitle: 'A self-hosted tunnel client for development and operations',
     summaryBody:
       'Gate combines a Rust server/runtime foundation, a Tauri desktop client, authentication, heartbeat, monitoring views, and Docker deployment templates so teams can reach local machines, internal services, and private systems through an entrypoint they control.',
     capabilitiesKicker: 'Capabilities',
-    capabilitiesTitle: 'Controlled, inspectable, and desktop-first',
+    capabilitiesTitle: 'Core capabilities',
+    capabilitiesSubtitle: 'Controlled, inspectable, and desktop-first',
     alphaBadge: 'Pre-1.0 Alpha',
     capability: {
       selfHosted: {
         title: 'Self-hosted entrypoint',
         description:
-          'Run the public entrypoint on your own server while keeping deployment, configuration, and examples in the repository.',
+          'Run the public entrypoint on your own server while keeping deployment, configuration, and examples in the repository so data and control stay with the team.',
       },
       desktop: {
         title: 'Desktop workflow',
         description:
-          'Use projects, tunnels, servers, logs, and diagnostics as the daily operating surface.',
+          'Use projects, tunnels, servers, logs, and diagnostics as the daily operating surface, with less context switching between terminals and docs.',
       },
       runtime: {
         title: 'Rust runtime foundation',
         description:
-          'Builds around connection lifecycle, heartbeat, reconnect, health checks, and monitoring data.',
+          'Builds around connection lifecycle, heartbeat keepalive, reconnect, health checks, and monitoring data as the reliable tunnel foundation.',
       },
       openSource: {
         title: 'Open and extensible',
         description:
-          'MIT licensed and suitable for audits, extensions, and internal team customization.',
+          'MIT licensed with a clear code structure for security audits, extensions, and deeper internal team customization.',
       },
     },
     releaseKicker: 'v0.1.0',
     releaseDate: 'July 2026',
     changelog: 'Changelog',
+    releaseTitle: 'Initial alpha release',
     releaseNote: {
       clientShell:
         'Shipped the desktop client shell with sidebar, header, status bar, and command entrypoints.',
@@ -305,12 +321,14 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     stageLabel: 'Current stage',
     stageValue: 'Pre-1.0 Alpha',
     stageDescription:
-      'Core protocol and runtime capabilities are still evolving; best suited for testing, integration, and early team trials.',
+      'Core protocol and runtime capabilities are still evolving and being refactored. This release is best suited for early testing, feature integration, and internal team trials, not core production use.',
+    roadmap: 'View roadmap',
     creditsKicker: 'Build and license',
     acknowledgements: 'Acknowledgements',
     creditLine:
       'Built with Tauri, Vue 3, Rust, and Naive UI. Icons are provided by Lucide. Thanks to the open-source community for the infrastructure Gate builds on.',
-    copyright: '© 2026 Gate Contributors. All rights reserved.',
+    copyright: '© {year} Gate Desktop Client. All rights reserved.',
+    builtWith: 'Built with Rust & Tauri',
   },
   auth: {
     login: 'Login',

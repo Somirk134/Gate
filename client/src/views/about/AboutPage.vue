@@ -1,271 +1,259 @@
 <template>
-  <section
-    class="about-page"
-    aria-labelledby="about-title"
-  >
-    <header class="about-hero">
-      <div class="about-hero__identity">
-        <div
-          class="about-logo"
-          aria-hidden="true"
-        >
-          <GIcon
-            name="home"
-            :size="34"
-            :stroke-width="1.9"
-          />
+  <section class="about-page" aria-labelledby="about-title">
+    <div class="about-hero-grid">
+      <article class="about-product">
+        <div class="about-logo" aria-hidden="true">
+          <GIcon name="home" :size="36" :stroke-width="1.9" />
         </div>
-        <div class="about-hero__copy">
-          <p class="about-eyebrow">
-            {{ t("about.eyebrow") }}
+
+        <div class="about-product__content">
+          <div class="about-title-row">
+            <div>
+              <p class="about-eyebrow">
+                {{ t('about.eyebrow') }}
+              </p>
+              <h1 id="about-title">
+                {{ t('common.appName') }}
+              </h1>
+            </div>
+            <span class="about-version-badge">{{ versionBadge }}</span>
+          </div>
+
+          <p class="about-product__lead">
+            {{ t('about.tagline') }}
           </p>
-          <h1 id="about-title">
-            {{ t("common.appName") }}
-          </h1>
-          <p>{{ t("about.tagline") }}</p>
+
+          <nav class="about-actions" :aria-label="t('about.linksLabel')">
+            <a
+              v-for="link in productLinks"
+              :key="link.href"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="about-action"
+              :class="{ 'about-action--primary': link.primary }">
+              <GIcon :name="link.icon" :size="15" />
+              <span>{{ link.label }}</span>
+            </a>
+          </nav>
         </div>
-      </div>
+      </article>
 
-      <nav
-        class="about-actions"
-        :aria-label="t('about.linksLabel')"
-      >
-        <a
-          v-for="link in productLinks"
-          :key="link.href"
-          :href="link.href"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="about-action"
-        >
-          <GIcon
-            :name="link.icon"
-            :size="15"
-          />
-          <span>{{ link.label }}</span>
-          <GIcon
-            name="external-link"
-            :size="13"
-          />
-        </a>
-      </nav>
-    </header>
+      <aside class="about-author" :aria-label="t('about.authorCardLabel')">
+        <div class="about-author__avatar" aria-hidden="true">
+          <span>G</span>
+          <i />
+        </div>
 
-    <div
-      class="about-meta"
-      :aria-label="t('about.versionSummary')"
-    >
-      <div
-        v-for="item in versionItems"
-        :key="item.label"
-        class="about-meta__item"
-      >
-        <span class="about-meta__icon"><GIcon
-          :name="item.icon"
-          :size="16"
-        /></span>
-        <span class="about-meta__label">{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </div>
+        <h2>{{ t('about.authorName') }}</h2>
+        <p class="about-author__role">
+          {{ t('about.authorRole') }}
+        </p>
+        <p class="about-author__quote">
+          {{ t('about.authorQuote') }}
+        </p>
+
+        <div class="about-author__links">
+          <a
+            v-for="link in authorLinks"
+            :key="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener noreferrer">
+            <GIcon :name="link.icon" :size="14" />
+            <span>{{ link.label }}</span>
+          </a>
+        </div>
+      </aside>
     </div>
 
-    <main class="about-content">
-      <section class="about-section about-section--intro">
+    <div class="about-stats" :aria-label="t('about.versionSummary')">
+      <article v-for="item in statItems" :key="item.label" class="about-stat">
+        <div class="about-stat__top">
+          <span>{{ item.label }}</span>
+          <GIcon :name="item.icon" :size="16" />
+        </div>
+        <strong>{{ item.value }}</strong>
+      </article>
+    </div>
+
+    <section class="about-section">
+      <div class="about-section__heading">
         <div>
           <p class="about-section__kicker">
-            {{ t("about.summaryKicker") }}
+            {{ t('about.capabilitiesKicker') }}
           </p>
-          <h2>{{ t("about.summaryTitle") }}</h2>
+          <h2>{{ t('about.capabilitiesTitle') }}</h2>
         </div>
-        <p>{{ t("about.summaryBody") }}</p>
-      </section>
+        <p>{{ t('about.capabilitiesSubtitle') }}</p>
+      </div>
 
-      <section class="about-section">
+      <div class="about-features">
+        <article v-for="item in capabilities" :key="item.title" class="about-feature">
+          <span :class="['about-feature__icon', `about-feature__icon--${item.tone}`]">
+            <GIcon :name="item.icon" :size="20" />
+          </span>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="about-release-grid">
+      <article class="about-changelog">
         <div class="about-section__heading">
           <div>
             <p class="about-section__kicker">
-              {{ t("about.capabilitiesKicker") }}
+              {{ t('about.releaseKicker') }}
             </p>
-            <h2>{{ t("about.capabilitiesTitle") }}</h2>
+            <h2>{{ t('about.changelog') }}</h2>
           </div>
-          <span>{{ t("about.alphaBadge") }}</span>
+          <time datetime="2026-07">{{ t('about.releaseDate') }}</time>
         </div>
 
-        <div class="about-capabilities">
-          <article
-            v-for="item in capabilities"
-            :key="item.title"
-            class="about-card"
-          >
-            <span class="about-card__icon"><GIcon
-              :name="item.icon"
-              :size="18"
-            /></span>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.description }}</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="about-section about-section--split">
-        <div>
-          <div class="about-section__heading">
-            <div>
-              <p class="about-section__kicker">
-                {{ t("about.releaseKicker") }}
-              </p>
-              <h2>{{ t("about.changelog") }}</h2>
-            </div>
-            <time datetime="2026-07">{{ t("about.releaseDate") }}</time>
+        <div class="about-release-card">
+          <div class="about-release-card__header">
+            <span>{{ t('about.releaseKicker') }}</span>
+            <strong>{{ t('about.releaseTitle') }}</strong>
           </div>
 
-          <ol class="about-release">
-            <li
-              v-for="item in releaseNotes"
-              :key="item"
-            >
-              <span aria-hidden="true" />
-              <p>{{ item }}</p>
+          <ul class="about-release-list">
+            <li v-for="item in releaseNotes" :key="item">
+              <GIcon name="check-circle" :size="16" />
+              <span>{{ item }}</span>
             </li>
-          </ol>
+          </ul>
         </div>
+      </article>
 
-        <aside
-          class="about-status"
-          :aria-label="t('about.stageLabel')"
-        >
-          <span class="about-status__icon"><GIcon
-            name="rocket"
-            :size="18"
-          /></span>
-          <p>{{ t("about.stageLabel") }}</p>
-          <strong>{{ t("about.stageValue") }}</strong>
-          <small>{{ t("about.stageDescription") }}</small>
-        </aside>
-      </section>
+      <aside class="about-stage" :aria-label="t('about.stageLabel')">
+        <GIcon name="rocket" :size="22" />
+        <p>{{ t('about.stageLabel') }}</p>
+        <strong>{{ t('about.stageValue') }}</strong>
+        <small>{{ t('about.stageDescription') }}</small>
+        <a
+          href="https://github.com/gate/gate/blob/main/ROADMAP.md"
+          target="_blank"
+          rel="noopener noreferrer">
+          {{ t('about.roadmap') }}
+        </a>
+      </aside>
+    </section>
 
-      <section class="about-section about-section--credits">
-        <div>
-          <p class="about-section__kicker">
-            {{ t("about.creditsKicker") }}
-          </p>
-          <h2>{{ t("about.acknowledgements") }}</h2>
-        </div>
-
-        <div class="about-stack">
-          <span
-            v-for="item in techStack"
-            :key="item"
-          >{{ item }}</span>
-        </div>
-
-        <div>
-          <p class="about-credit-text">
-            {{ t("about.creditLine") }}
-          </p>
-          <p class="about-copyright">
-            {{ t("about.copyright") }}
-          </p>
-        </div>
-      </section>
-    </main>
+    <footer class="about-footer">
+      <p>{{ t('about.copyright', { year: currentYear }) }}</p>
+      <p>{{ t('about.builtWith') }}</p>
+    </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { useI18n } from "vue-i18n"
-import GIcon from "@components/icons/GIcon.vue"
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import GIcon from '@components/icons/GIcon.vue'
 
-const APP_VERSION = "0.1.0"
-const BUILD_NUMBER = "2026.0704.1"
+const APP_VERSION = '0.1.0'
+const BUILD_NUMBER = '2026.0704.1'
 
 const { t } = useI18n()
+const currentYear = new Date().getFullYear()
+const versionBadge = computed(() => t('about.heroBadge', { version: APP_VERSION }))
 
 const productLinks = computed(() => [
   {
-    label: t("common.github"),
-    href: "https://github.com/gate/gate",
-    icon: "github",
+    label: t('common.github'),
+    href: 'https://github.com/gate/gate',
+    icon: 'github',
+    primary: true,
   },
   {
-    label: t("common.website"),
-    href: "https://gate.dev",
-    icon: "globe",
+    label: t('common.website'),
+    href: 'https://gate.dev',
+    icon: 'globe',
+    primary: false,
   },
   {
-    label: t("common.license"),
-    href: "https://github.com/gate/gate/blob/main/LICENSE",
-    icon: "file-text",
+    label: t('common.license'),
+    href: 'https://github.com/gate/gate/blob/main/LICENSE',
+    icon: 'file-code',
+    primary: false,
   },
 ])
 
-const versionItems = computed(() => [
+const authorLinks = computed(() => [
   {
-    label: t("about.versionLabel"),
-    value: `v${APP_VERSION}`,
-    icon: "package",
+    label: t('common.github'),
+    href: 'https://github.com/gate/gate',
+    icon: 'github',
   },
   {
-    label: t("about.buildLabel"),
+    label: t('about.email'),
+    href: 'mailto:hello@gate.dev',
+    icon: 'mail',
+  },
+])
+
+const statItems = computed(() => [
+  {
+    label: t('about.stat.build'),
     value: BUILD_NUMBER,
-    icon: "git-commit",
+    icon: 'terminal',
   },
   {
-    label: t("about.channelLabel"),
-    value: t("about.channelValue"),
-    icon: "radio",
+    label: t('about.stat.engine'),
+    value: 'Rust & Tauri',
+    icon: 'cpu',
   },
   {
-    label: t("about.licenseLabel"),
-    value: "MIT",
-    icon: "shield-check",
+    label: t('about.stat.channel'),
+    value: t('about.stat.alpha'),
+    icon: 'rocket',
+  },
+  {
+    label: t('about.stat.license'),
+    value: 'MIT License',
+    icon: 'shield-check',
   },
 ])
 
 const capabilities = computed(() => [
   {
-    icon: "servers",
-    title: t("about.capability.selfHosted.title"),
-    description: t("about.capability.selfHosted.description"),
+    icon: 'servers',
+    tone: 'blue',
+    title: t('about.capability.selfHosted.title'),
+    description: t('about.capability.selfHosted.description'),
   },
   {
-    icon: "layout-grid",
-    title: t("about.capability.desktop.title"),
-    description: t("about.capability.desktop.description"),
+    icon: 'monitor',
+    tone: 'indigo',
+    title: t('about.capability.desktop.title'),
+    description: t('about.capability.desktop.description'),
   },
   {
-    icon: "activity",
-    title: t("about.capability.runtime.title"),
-    description: t("about.capability.runtime.description"),
+    icon: 'terminal',
+    tone: 'amber',
+    title: t('about.capability.runtime.title'),
+    description: t('about.capability.runtime.description'),
   },
   {
-    icon: "code",
-    title: t("about.capability.openSource.title"),
-    description: t("about.capability.openSource.description"),
+    icon: 'layout-grid',
+    tone: 'green',
+    title: t('about.capability.openSource.title'),
+    description: t('about.capability.openSource.description'),
   },
 ])
 
 const releaseNotes = computed(() => [
-  t("about.releaseNote.clientShell"),
-  t("about.releaseNote.tunnelWorkflow"),
-  t("about.releaseNote.monitoring"),
-  t("about.releaseNote.docs"),
-])
-
-const techStack = computed(() => [
-  "Tauri",
-  "Vue 3",
-  "Rust",
-  "Naive UI",
-  "Lucide",
-  "MIT License",
+  t('about.releaseNote.clientShell'),
+  t('about.releaseNote.tunnelWorkflow'),
+  t('about.releaseNote.monitoring'),
+  t('about.releaseNote.docs'),
 ])
 </script>
 
 <style scoped>
 .about-page {
-  width: min(100%, 1040px);
+  width: min(100%, 1080px);
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -274,41 +262,60 @@ const techStack = computed(() => [
   color: var(--text-primary);
 }
 
-.about-hero {
+.about-hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 0.86fr);
   gap: var(--space-5);
-  padding: var(--space-6);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(135deg, rgba(91, 141, 239, 0.13), transparent 44%),
-    var(--bg-surface);
 }
 
-.about-hero__identity {
+.about-product,
+.about-author,
+.about-stat,
+.about-feature,
+.about-release-card,
+.about-stage {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(24, 26, 32, 0.72);
+  box-shadow: var(--shadow-xs);
+}
+
+.about-product {
+  position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-4);
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: var(--space-5);
+  padding: var(--space-6);
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(91, 141, 239, 0.2), transparent 46%),
+    linear-gradient(160deg, rgba(95, 179, 255, 0.08), transparent 58%), var(--bg-surface);
 }
 
 .about-logo {
-  width: 58px;
-  height: 58px;
+  width: 78px;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(91, 141, 239, 0.35);
+  border: 1px solid rgba(91, 141, 239, 0.34);
   border-radius: var(--radius-md);
-  background: var(--color-primary-muted);
+  background:
+    linear-gradient(145deg, rgba(91, 141, 239, 0.2), rgba(15, 16, 19, 0.76)), var(--bg-input);
   color: var(--color-primary);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
-.about-hero__copy {
+.about-product__content,
+.about-title-row > div {
   min-width: 0;
+}
+
+.about-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 .about-eyebrow,
@@ -316,21 +323,39 @@ const techStack = computed(() => [
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
-  text-transform: uppercase;
+  line-height: var(--leading-normal);
 }
 
-.about-hero h1 {
+.about-product h1 {
   margin-top: var(--space-1);
   color: var(--text-primary);
   font-size: var(--text-3xl);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-bold);
   letter-spacing: 0;
   line-height: var(--leading-tight);
 }
 
-.about-hero__copy p:last-child {
-  max-width: 660px;
-  margin-top: var(--space-2);
+.about-version-badge {
+  flex: 0 0 auto;
+  max-width: 160px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: 1px solid rgba(91, 141, 239, 0.28);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-muted);
+  color: var(--color-primary-hover);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.about-product__lead {
+  max-width: 650px;
+  margin-top: var(--space-3);
   color: var(--text-secondary);
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
@@ -338,129 +363,219 @@ const techStack = computed(() => [
 
 .about-actions {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
   flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
-.about-action {
-  height: 34px;
+.about-action,
+.about-author__links a,
+.about-stage a {
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  background: rgba(15, 16, 19, 0.28);
+  background: rgba(17, 19, 24, 0.64);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  line-height: var(--leading-normal);
   text-decoration: none;
   transition:
     background-color var(--transition-fast),
     border-color var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.about-action:hover {
+.about-action:hover,
+.about-author__links a:hover,
+.about-stage a:hover {
   border-color: var(--border-strong);
   background: var(--bg-surface-hover);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
-.about-meta {
+.about-action--primary {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  box-shadow: 0 8px 18px rgba(91, 141, 239, 0.22);
+}
+
+.about-action--primary:hover {
+  border-color: transparent;
+  background: var(--color-primary-hover);
+  color: var(--color-primary-fg);
+}
+
+.about-author {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-5);
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(91, 141, 239, 0.08), transparent 42%), rgba(24, 26, 32, 0.62);
+}
+
+.about-author__avatar {
+  position: relative;
+  width: 76px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(91, 141, 239, 0.3);
+  border-radius: var(--radius-full);
+  background:
+    linear-gradient(145deg, rgba(91, 141, 239, 0.26), rgba(47, 209, 124, 0.16)), var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.about-author__avatar i {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 14px;
+  aspect-ratio: 1;
+  border: 2px solid var(--bg-surface);
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: 0 0 12px rgba(47, 209, 124, 0.38);
+}
+
+.about-author h2 {
+  margin-top: var(--space-4);
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+}
+
+.about-author__role {
+  margin-top: var(--space-1);
+  color: var(--color-primary-hover);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.about-author__quote {
+  max-width: 260px;
+  margin-top: var(--space-3);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.about-author__links {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-5);
+}
+
+.about-author__links a {
+  min-width: 0;
+  padding: 0 var(--space-2);
+}
+
+.about-author__links span,
+.about-action span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
-.about-meta__item {
+.about-stat {
   min-width: 0;
-  min-height: 72px;
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-content: center;
-  gap: 2px var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
-.about-meta__icon {
-  grid-row: 1 / 3;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--color-primary);
+.about-stat:hover {
+  border-color: var(--border-default);
+  background: var(--bg-surface-hover);
 }
 
-.about-meta__label {
-  min-width: 0;
+.about-stat__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   color: var(--text-tertiary);
   font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
 }
 
-.about-meta strong {
+.about-stat__top svg {
+  color: var(--text-tertiary);
+}
+
+.about-stat strong {
   min-width: 0;
   overflow: hidden;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
+  line-height: var(--leading-normal);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.about-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  padding-bottom: var(--space-8);
-}
-
 .about-section {
-  padding-top: var(--space-1);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.about-section--intro {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: start;
-}
-
-.about-section h2 {
-  margin-top: var(--space-1);
-  color: var(--text-primary);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0;
-  line-height: var(--leading-tight);
-}
-
-.about-section--intro > p,
-.about-credit-text {
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-  line-height: var(--leading-relaxed);
+  padding-top: var(--space-4);
 }
 
 .about-section__heading {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-5);
   margin-bottom: var(--space-4);
 }
 
-.about-section__heading > span,
+.about-section__heading h2 {
+  margin-top: var(--space-1);
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: 0;
+}
+
+.about-section__heading > p {
+  max-width: 360px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  text-align: right;
+}
+
 .about-section__heading time {
   flex: 0 0 auto;
   color: var(--text-tertiary);
@@ -468,210 +583,261 @@ const techStack = computed(() => [
   font-size: var(--text-xs);
 }
 
-.about-capabilities {
+.about-features {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
-.about-card {
+.about-feature {
   min-width: 0;
-  min-height: 156px;
-  padding: var(--space-4);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  min-height: 176px;
+  padding: var(--space-5);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.about-card__icon,
-.about-status__icon {
-  width: 34px;
-  height: 34px;
+.about-feature:hover {
+  border-color: var(--border-default);
+  background: var(--bg-surface-hover);
+  transform: translateY(-1px);
+}
+
+.about-feature__icon {
+  width: 40px;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary-muted);
-  color: var(--color-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
 }
 
-.about-card h3 {
-  margin-top: var(--space-3);
+.about-feature__icon--blue {
+  color: var(--color-info);
+}
+
+.about-feature__icon--indigo {
+  color: var(--color-primary-hover);
+}
+
+.about-feature__icon--amber {
+  color: var(--color-warning);
+}
+
+.about-feature__icon--green {
+  color: var(--color-success);
+}
+
+.about-feature h3 {
+  margin-top: var(--space-4);
   color: var(--text-primary);
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
   letter-spacing: 0;
 }
 
-.about-card p {
+.about-feature p {
   margin-top: var(--space-2);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
 }
 
-.about-section--split {
+.about-release-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: var(--space-5);
+  padding-top: var(--space-4);
 }
 
-.about-release {
+.about-changelog {
+  min-width: 0;
+}
+
+.about-release-card {
+  padding: var(--space-5);
+}
+
+.about-release-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.about-release-card__header span {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-muted);
+  color: var(--color-primary-hover);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.about-release-card__header strong {
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.about-release-list {
   display: grid;
   gap: var(--space-3);
   list-style: none;
 }
 
-.about-release li {
+.about-release-list li {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
   gap: var(--space-3);
   color: var(--text-secondary);
+  font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
 }
 
-.about-release li span {
+.about-release-list svg {
+  margin-top: 2px;
+  color: var(--color-success);
+}
+
+.about-stage {
   position: relative;
-  width: 22px;
-  min-height: 22px;
-}
-
-.about-release li span::before {
-  content: "";
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-}
-
-.about-release li span::after {
-  content: "";
-  position: absolute;
-  top: 19px;
-  left: 11px;
-  width: 1px;
-  height: calc(100% + var(--space-3));
-  background: var(--border-subtle);
-}
-
-.about-release li:last-child span::after {
-  display: none;
-}
-
-.about-status {
   min-width: 0;
   align-self: start;
-  padding: var(--space-4);
-  border: 1px solid rgba(245, 184, 75, 0.24);
-  border-radius: var(--radius-md);
-  background: var(--color-warning-muted);
-}
-
-.about-status__icon {
-  background: rgba(245, 184, 75, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--space-5);
+  overflow: hidden;
+  border-color: rgba(245, 184, 75, 0.24);
+  background:
+    linear-gradient(180deg, rgba(245, 184, 75, 0.14), rgba(245, 184, 75, 0.04)), var(--bg-surface);
   color: var(--color-warning);
 }
 
-.about-status p {
-  margin-top: var(--space-3);
-  color: var(--text-tertiary);
+.about-stage > svg {
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  border: 1px solid rgba(245, 184, 75, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(245, 184, 75, 0.14);
+}
+
+.about-stage p {
+  margin-top: var(--space-4);
+  color: var(--color-warning);
   font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
+  font-weight: var(--weight-bold);
 }
 
-.about-status strong {
-  display: block;
-  margin-top: 2px;
+.about-stage strong {
+  margin-top: var(--space-1);
   color: var(--text-primary);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
 }
 
-.about-status small {
-  display: block;
-  margin-top: var(--space-2);
-  color: var(--text-secondary);
+.about-stage small {
+  margin-top: var(--space-3);
+  color: rgba(245, 230, 195, 0.78);
+  font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
 }
 
-.about-section--credits {
-  display: grid;
-  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 0.36fr) minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
+.about-stage a {
+  width: 100%;
+  margin-top: auto;
+  padding: 0 var(--space-3);
+  border-color: rgba(245, 184, 75, 0.28);
+  background: rgba(245, 184, 75, 0.1);
+  color: var(--color-warning-hover);
 }
 
-.about-stack {
+.about-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.about-stack span {
-  height: 26px;
-  display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  padding: 0 var(--space-2);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
-.about-copyright {
-  margin-top: var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) 0 var(--space-8);
+  border-top: 1px solid var(--border-subtle);
   color: var(--text-tertiary);
   font-size: var(--text-xs);
 }
 
 @media (max-width: 980px) {
-  .about-hero,
-  .about-section--split,
-  .about-section--intro,
-  .about-section--credits {
+  .about-hero-grid,
+  .about-release-grid {
     grid-template-columns: 1fr;
   }
 
-  .about-actions {
-    justify-content: flex-start;
-  }
-
-  .about-meta,
-  .about-capabilities {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .about-status {
-    width: 100%;
+  .about-stage {
+    min-height: 260px;
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
+  .about-product,
+  .about-section__heading,
+  .about-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .about-product {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .about-title-row {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .about-stats,
+  .about-features {
+    grid-template-columns: 1fr;
+  }
+
+  .about-section__heading {
+    align-items: flex-start;
+  }
+
+  .about-section__heading > p {
+    max-width: none;
+    text-align: left;
+  }
+
+  .about-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
   .about-page {
     gap: var(--space-4);
   }
 
-  .about-hero {
+  .about-product,
+  .about-author,
+  .about-feature,
+  .about-release-card,
+  .about-stage {
     padding: var(--space-4);
-  }
-
-  .about-hero__identity {
-    grid-template-columns: 1fr;
-  }
-
-  .about-meta,
-  .about-capabilities {
-    grid-template-columns: 1fr;
   }
 
   .about-action {
     width: 100%;
-    justify-content: center;
   }
 }
 </style>

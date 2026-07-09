@@ -44,11 +44,13 @@ GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 7000:7000 \
-  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+docker run --rm -p 5800:5800 \
+  -e GATE_SERVER_ADDR=0.0.0.0:5800 \
   -e GATE_AUTH_TOKEN=replace-me \
   gate-server:local
 ```
+
+The Docker image defaults to port `5800`. Source and binary runs default to `7000`.
 
 ## Lifecycle
 

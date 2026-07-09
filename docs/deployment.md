@@ -16,7 +16,7 @@ This page describes deployment options for Gate alpha. Use it together with [Ser
 ## Production-Like Checklist
 
 - Build a release binary or image.
-- Set `GATE_SERVER_ADDR=0.0.0.0:7000`.
+- Set `GATE_SERVER_ADDR=0.0.0.0:7000` for source/binary deployments, or `0.0.0.0:5800` for the Docker image.
 - Set a non-default `GATE_AUTH_TOKEN`.
 - Restrict inbound ports with a firewall.
 - Put TLS at the reverse proxy when exposing HTTP entrypoints.

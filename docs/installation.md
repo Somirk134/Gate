@@ -60,11 +60,13 @@ Use `npm run dev` for frontend-only development.
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 7000:7000 \
-  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+docker run --rm -p 5800:5800 \
+  -e GATE_SERVER_ADDR=0.0.0.0:5800 \
   -e GATE_AUTH_TOKEN=replace-me \
   gate-server:local
 ```
+
+For Compose, the repository template maps `${GATE_PORT:-5800}` on the host to container port `5800`.
 
 ## Verify
 

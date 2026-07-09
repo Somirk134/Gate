@@ -127,8 +127,8 @@ GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 7000:7000 \
-  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+docker run --rm -p 5800:5800 \
+  -e GATE_SERVER_ADDR=0.0.0.0:5800 \
   -e GATE_AUTH_TOKEN=replace-me \
   gate-server:local
 ```
@@ -136,8 +136,11 @@ docker run --rm -p 7000:7000 \
 也可以使用 Compose：
 
 ```bash
+GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
 docker compose -f docker/docker-compose.yml up -d
 ```
+
+Docker 镜像默认监听 `5800`。源码和二进制运行默认使用 `7000`，除非通过 `GATE_SERVER_ADDR` 覆盖。
 
 ## 桌面客户端
 

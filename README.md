@@ -137,8 +137,8 @@ Deployment guides:
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 7000:7000 \
-  -e GATE_SERVER_ADDR=0.0.0.0:7000 \
+docker run --rm -p 5800:5800 \
+  -e GATE_SERVER_ADDR=0.0.0.0:5800 \
   -e GATE_AUTH_TOKEN=replace-me \
   gate-server:local
 ```
@@ -146,8 +146,11 @@ docker run --rm -p 7000:7000 \
 Or use Compose:
 
 ```bash
+GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
 docker compose -f docker/docker-compose.yml up -d
 ```
+
+Docker images listen on `5800` by default. Source and binary runs use `7000` unless you override `GATE_SERVER_ADDR`.
 
 ## Desktop Client
 

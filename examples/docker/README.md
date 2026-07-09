@@ -14,10 +14,10 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile.server
     environment:
-      GATE_SERVER_ADDR: 0.0.0.0:7000
+      GATE_SERVER_ADDR: 0.0.0.0:5800
       GATE_AUTH_TOKEN: replace-me
     ports:
-      - "7000:7000"
+      - "5800:5800"
 ```
 
 ## Screenshot
@@ -34,6 +34,7 @@ services:
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
+GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
 docker compose -f docker/docker-compose.yml up -d
 docker compose -f docker/docker-compose.yml logs -f gate-server
 ```

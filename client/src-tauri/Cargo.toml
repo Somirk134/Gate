@@ -30,3 +30,7 @@ gate-shared = { path = "../../shared" }
 gate-communication = { path = "../../crates/communication" }
 gate-protocol = { path = "../../crates/protocol" }
 gate-engine = { path = "../../crates/engine" }
+gate-server-domain = { path = "../../server/domain" }
+
+[dev-dependencies]
+tempfile.workspace = true

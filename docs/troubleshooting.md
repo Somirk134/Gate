@@ -30,7 +30,7 @@ Verify:
 - Address uses the correct host and port.
 - Firewall allows the port.
 - Token matches `GATE_AUTH_TOKEN`.
-- Docker container exposes port `7000`.
+- Docker container exposes port `5800`, or the custom host port from `GATE_PORT`.
 
 ## Authentication Fails
 
@@ -61,14 +61,16 @@ Check:
 Inside the container, use:
 
 ```bash
-GATE_SERVER_ADDR=0.0.0.0:7000
+GATE_SERVER_ADDR=0.0.0.0:5800
 ```
 
 Expose the same port:
 
 ```bash
--p 7000:7000
+-p 5800:5800
 ```
+
+If you use Compose, the default mapping is `${GATE_PORT:-5800}:5800`.
 
 ## Useful Diagnostics
 

@@ -210,7 +210,15 @@ async function select(domain: string) {
 
 async function exportPem(domain: string) {
   const pem = await certificateService.exportPem(domain)
-  await navigator.clipboard.writeText(pem)
+  const blob = new Blob([pem], { type: "application/x-pem-file" })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `${safeFileName(domain)}.pem`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 async function copyInfo(certificate: CertificateSummary) {
@@ -245,6 +253,10 @@ function renewalLabel(status: AutoRenewalStatus) {
     notScheduled: "Not Scheduled",
     expired: "Expired",
   }[status]
+}
+
+function safeFileName(value: string) {
+  return value.replace(/[^a-z0-9.-]+/gi, "_").replace(/^_+|_+$/g, "") || "certificate"
 }
 </script>
 

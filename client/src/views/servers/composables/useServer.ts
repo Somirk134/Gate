@@ -56,27 +56,27 @@ export function useServer() {
   }
 
   function update(id: string, patch: Partial<ServerFormData>) {
-    store.updateServer(id, patch)
+    return store.updateServer(id, patch)
   }
 
   function remove(id: string) {
-    store.removeServer(id)
+    return store.removeServer(id)
   }
 
   function connect(id: string) {
-    store.connectServer(id)
+    return store.connectServer(id)
   }
 
   function disconnect(id: string) {
-    store.disconnectServer(id)
+    return store.disconnectServer(id)
   }
 
   function restart(id: string) {
-    store.restartServer(id)
+    return store.restartServer(id)
   }
 
   function checkHealth(id: string) {
-    store.checkHealth(id)
+    return store.checkHealth(id)
   }
 
   function toggleFavorite(id: string) {

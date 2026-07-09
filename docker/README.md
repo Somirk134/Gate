@@ -12,8 +12,11 @@ This directory contains Docker assets for the Gate server.
 ## Run
 
 ```bash
+GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
 docker compose -f docker/docker-compose.yml up -d
 ```
+
+The Compose template maps `${GATE_PORT:-5800}` on the host to container port `5800`.
 
 ## Build
 
