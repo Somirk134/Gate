@@ -38,6 +38,8 @@ pub fn run() -> Result<()> {
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<runtime::ClientRuntimeState>();
                 let _ = state.startup_diagnostics().await;
+                // 客户端异常退出后，启动时复用已保存的服务器和 Tunnel 配置自动恢复。
+                let _ = state.recover_after_startup().await;
             });
             Ok(())
         })

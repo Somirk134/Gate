@@ -92,6 +92,20 @@ export interface TlsStatistics {
   trafficBytes: number
 }
 
+/** HTTP tunnel statistics sourced from real request logs. */
+export interface HttpStatistics {
+  requestsTotal: number
+  activeRequests: number
+  statusCodes: Record<string, number>
+  latency: {
+    totalMs: number
+    averageMs: number
+  }
+  bandwidth: {
+    bytes: number
+  }
+}
+
 /** System statistics. */
 export interface SystemStatistics {
   cpuUsage: number
@@ -118,6 +132,7 @@ export interface Statistics {
   traffic: TrafficStatistics
   connection: ConnectionStatistics
   runtime: RuntimeStatistics
+  http?: HttpStatistics
   tls?: TlsStatistics
   system: SystemStatistics
   client: ClientStatistics

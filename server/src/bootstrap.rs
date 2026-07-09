@@ -140,6 +140,7 @@ async fn handle_connection(
                 };
 
                 if relay_token != Some(token.as_str()) {
+                    gateway.record_session_failure().await;
                     write_message(
                         &mut stream,
                         &protocol,
@@ -185,7 +186,19 @@ async fn handle_connection(
                 let body = json_body(&message);
                 if body.get("token").and_then(Value::as_str) == Some(token.as_str()) {
                     authenticated = true;
-                    let id = gateway.create_session().await;
+                    let client_id = body
+                        .get("clientId")
+                        .or_else(|| body.get("client_id"))
+                        .and_then(Value::as_str)
+                        .map(ToOwned::to_owned);
+                    let requested_session_id = body
+                        .get("sessionId")
+                        .or_else(|| body.get("session_id"))
+                        .and_then(Value::as_str)
+                        .map(ToOwned::to_owned);
+                    let id = gateway
+                        .create_or_restore_session(client_id, requested_session_id)
+                        .await;
                     session_id = Some(id.clone());
                     write_message(
                         &mut stream,
@@ -196,6 +209,7 @@ async fn handle_connection(
                     info!(target: "gate_server", "Session Create");
                     info!(target: "gate_server", "Server Running");
                 } else {
+                    gateway.record_session_failure().await;
                     write_message(
                         &mut stream,
                         &protocol,
@@ -207,9 +221,13 @@ async fn handle_connection(
             }
             Command::HeartbeatPing if authenticated => {
                 heartbeat_total += 1;
-                if let Some(session_id) = session_id.as_deref() {
-                    gateway.touch_session(session_id).await;
-                }
+                let heartbeat = if let Some(session_id) = session_id.as_deref() {
+                    gateway
+                        .update_heartbeat(session_id, &json_body(&message))
+                        .await
+                } else {
+                    json!({})
+                };
                 write_message(
                     &mut stream,
                     &protocol,
@@ -218,7 +236,8 @@ async fn handle_connection(
                         ok(json!({
                             "kind": "pong",
                             "sessionId": &session_id,
-                            "timestamp": Utc::now().timestamp_millis()
+                            "timestamp": Utc::now().timestamp_millis(),
+                            "heartbeat": heartbeat
                         })),
                     ),
                 )
@@ -287,6 +306,77 @@ async fn handle_connection(
                     ),
                 )
                 .await?;
+            }
+            Command::DomainCreate if authenticated => match gateway
+                .create_domain(&json_body(&message))
+                .await
+            {
+                Ok(data) => {
+                    write_message(&mut stream, &protocol, &response_for(&message, ok(data)))
+                        .await?;
+                }
+                Err(source) => {
+                    write_message(
+                        &mut stream,
+                        &protocol,
+                        &response_for(&message, err("DOMAIN_CREATE_FAILED", &source.to_string())),
+                    )
+                    .await?;
+                }
+            },
+            Command::DomainBind if authenticated => {
+                match gateway.bind_domain(&json_body(&message)).await {
+                    Ok(data) => {
+                        write_message(&mut stream, &protocol, &response_for(&message, ok(data)))
+                            .await?;
+                    }
+                    Err(source) => {
+                        write_message(
+                            &mut stream,
+                            &protocol,
+                            &response_for(&message, err("DOMAIN_BIND_FAILED", &source.to_string())),
+                        )
+                        .await?;
+                    }
+                }
+            }
+            Command::DomainUnbind if authenticated => {
+                match gateway.unbind_domain(&json_body(&message)).await {
+                    Ok(data) => {
+                        write_message(&mut stream, &protocol, &response_for(&message, ok(data)))
+                            .await?;
+                    }
+                    Err(source) => {
+                        write_message(
+                            &mut stream,
+                            &protocol,
+                            &response_for(
+                                &message,
+                                err("DOMAIN_UNBIND_FAILED", &source.to_string()),
+                            ),
+                        )
+                        .await?;
+                    }
+                }
+            }
+            Command::DomainDelete if authenticated => {
+                match gateway.delete_domain(&json_body(&message)).await {
+                    Ok(data) => {
+                        write_message(&mut stream, &protocol, &response_for(&message, ok(data)))
+                            .await?;
+                    }
+                    Err(source) => {
+                        write_message(
+                            &mut stream,
+                            &protocol,
+                            &response_for(
+                                &message,
+                                err("DOMAIN_DELETE_FAILED", &source.to_string()),
+                            ),
+                        )
+                        .await?;
+                    }
+                }
             }
             Command::StatisticsQuery if authenticated => {
                 let gateway_statistics = gateway.statistics().await;

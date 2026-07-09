@@ -28,6 +28,10 @@ pub enum AcmeError {
     ProviderUnavailable { provider: String },
     #[error("ACME network execution is disabled in this infrastructure phase")]
     NetworkDisabled,
+    #[error("ACME provider `{provider}` failed: {reason}")]
+    Execution { provider: String, reason: String },
+    #[error("ACME challenge `{challenge}` is not supported")]
+    UnsupportedChallenge { challenge: String },
     #[error("ACME account is required before creating an order")]
     AccountRequired,
     #[error("invalid ACME state transition from `{from}` to `{to}`")]

@@ -1,3 +1,6 @@
 pub mod scheduler;
 
-pub use scheduler::{RenewConfig, RenewDecision, RenewPlan, RenewScheduler};
+pub use scheduler::{
+    CertificateRenewer, RenewAttempt, RenewAttemptStatus, RenewConfig, RenewDecision,
+    RenewExecutionReport, RenewPlan, RenewScheduler,
+};

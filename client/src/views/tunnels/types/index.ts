@@ -95,6 +95,8 @@ export interface Tunnel {
   localHost: string
   localPort: number
   remotePort: number
+  host?: string | null
+  path?: string | null
   publicAddr: string // 公网访问地址
   remark: string
   status: TunnelStatus
@@ -138,6 +140,8 @@ export interface TunnelFormData {
   localHost: string
   localPort: number | null
   remotePort: number | null
+  host?: string
+  path?: string
   projectId: string
   serverName: string
   autoStart: boolean

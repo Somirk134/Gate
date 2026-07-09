@@ -75,6 +75,18 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
       sessionCount: 0,
       runtimeUptimeSeconds: 0,
     },
+    http: {
+      requestsTotal: 0,
+      activeRequests: 0,
+      statusCodes: {},
+      latency: {
+        totalMs: 0,
+        averageMs: 0,
+      },
+      bandwidth: {
+        bytes: 0,
+      },
+    },
     tls: {
       sessionCount: 0,
       handshakeCount: 0,

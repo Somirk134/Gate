@@ -35,8 +35,8 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'https',
     label: 'HTTPS',
-    description: '加密 Web 反向代理（即将支持）',
-    availability: 'soon',
+    description: '加密 Web 反向代理，自动证书与 SNI 路由',
+    availability: 'enabled',
     icon: 'shield',
     color: '#7C6FF2',
   },

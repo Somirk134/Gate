@@ -18,6 +18,8 @@ export const defaultTunnelForm: TunnelFormData = {
   localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
+  host: '',
+  path: '/',
   projectId: '',
   serverName: '',
   autoStart: false,
@@ -100,6 +102,8 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       remotePort: form.remotePort ?? 0,
       protocol: form.protocol,
       localHost: form.localHost || '127.0.0.1',
+      host: optionalText(form.host),
+      path: optionalText(form.path),
     })
 
     await tunnelService.edit(id, {
@@ -108,6 +112,8 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       localHost: form.localHost || '127.0.0.1',
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
+      host: optionalText(form.host),
+      path: optionalText(form.path),
     })
 
     await load()
@@ -131,6 +137,8 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       localHost: patch.localHost,
       localPort: patch.localPort ?? undefined,
       remotePort: patch.remotePort ?? undefined,
+      host: optionalText(patch.host),
+      path: optionalText(patch.path),
     })
     await load()
   }
@@ -230,6 +238,8 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
     localHost: row.localHost ?? '127.0.0.1',
     localPort: row.localPort ?? 0,
     remotePort: row.remotePort ?? 0,
+    host: row.host ?? null,
+    path: row.path ?? null,
     publicAddr: publicAddress(row),
     remark: '',
     status,
@@ -309,6 +319,11 @@ function publicAddress(row: DashboardTunnel): string {
   }
 
   return 'Not assigned'
+}
+
+function optionalText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
 }
 
 export { TUNNEL_STATUS_CONFIG }

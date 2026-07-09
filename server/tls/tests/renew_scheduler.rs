@@ -2,7 +2,8 @@ use chrono::{Duration, Utc};
 use gate_server_tls::certificate::{
     CertificateAlgorithm, CertificateFingerprint, CertificateRecord, CertificateStatus,
 };
-use gate_server_tls::renew::{RenewConfig, RenewScheduler};
+use gate_server_tls::renew::{CertificateRenewer, RenewAttemptStatus, RenewConfig, RenewScheduler};
+use std::collections::HashSet;
 
 #[test]
 fn scheduler_marks_certificates_inside_renew_window_without_executing() {
@@ -34,6 +35,42 @@ fn disabled_scheduler_never_marks_renewal() {
     assert_eq!(plan.decisions[0].reason, "renew scheduler is disabled");
 }
 
+#[tokio::test]
+async fn scheduler_executes_due_renewals_and_records_failures() {
+    let now = Utc::now();
+    let scheduler = RenewScheduler::new(RenewConfig::default());
+    let due = certificate_record("due.example.com", now + Duration::days(10));
+    let failing = certificate_record("fail.example.com", now + Duration::days(2));
+    let later = certificate_record("later.example.com", now + Duration::days(90));
+    let renewer = SimulatedRenewer {
+        failures: HashSet::from(["fail.example.com".to_string()]),
+    };
+
+    let report = scheduler
+        .execute_due(&[due, failing, later], now, &renewer)
+        .await;
+
+    assert_eq!(report.attempts.len(), 2);
+    assert_eq!(report.attempts[0].status, RenewAttemptStatus::Success);
+    assert_eq!(report.attempts[1].status, RenewAttemptStatus::Failed);
+    assert!(report.attempts[1].error.is_some());
+}
+
+struct SimulatedRenewer {
+    failures: HashSet<String>,
+}
+
+#[async_trait::async_trait]
+impl CertificateRenewer for SimulatedRenewer {
+    async fn renew_certificate(&self, domain: &str) -> Result<(), String> {
+        if self.failures.contains(domain) {
+            Err("simulated renewal failure".to_string())
+        } else {
+            Ok(())
+        }
+    }
+}
+
 fn certificate_record(domain: &str, expire_time: chrono::DateTime<Utc>) -> CertificateRecord {
     CertificateRecord {
         domain: domain.to_string(),
@@ -50,5 +87,6 @@ fn certificate_record(domain: &str, expire_time: chrono::DateTime<Utc>) -> Certi
         cert_path: None,
         key_path: None,
         serial_number: Some("01".to_string()),
+        last_error: None,
     }
 }

@@ -96,7 +96,19 @@
                 <select v-model="form.protocol">
                   <option value="tcp">TCP</option>
                   <option value="http">{{ t('tunnel.wizard.httpAvailable') }}</option>
+                  <option value="https">HTTPS</option>
                 </select>
+              </label>
+            </div>
+
+            <div v-if="isHttpLike" class="form-grid">
+              <label>
+                <span>绑定域名</span>
+                <input v-model.trim="form.host" autocomplete="off" placeholder="api.example.com" />
+              </label>
+              <label>
+                <span>路径</span>
+                <input v-model.trim="form.path" autocomplete="off" placeholder="/" />
               </label>
             </div>
 
@@ -167,6 +179,12 @@
               <div>
                 <span>{{ t('tunnel.wizard.publicPort') }}</span
                 ><strong>{{ form.remotePort || '-' }}</strong>
+              </div>
+              <div v-if="isHttpLike">
+                <span>绑定域名</span><strong>{{ form.host || '-' }}</strong>
+              </div>
+              <div v-if="isHttpLike">
+                <span>路径</span><strong>{{ form.path || '/' }}</strong>
               </div>
               <div>
                 <span>{{ t('tunnel.wizard.accessAddress') }}</span
@@ -255,6 +273,8 @@ const form = reactive<TunnelFormData>({
   localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
+  host: '',
+  path: '/',
   projectId: '',
   serverName: '',
   autoStart: false,
@@ -284,6 +304,7 @@ const selectedTemplate = computed(
     localizedTunnelTemplates.value.find((template) => template.id === selectedTemplateId.value) ??
     localizedTunnelTemplates.value[1],
 )
+const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 const stepTitle = computed(
   () =>
     steps.value.find((item) => item.index === step.value)?.title ?? t('tunnel.wizard.successTitle'),
@@ -311,6 +332,8 @@ function reset() {
   form.localHost = '127.0.0.1'
   form.localPort = null
   form.remotePort = null
+  form.host = ''
+  form.path = '/'
   form.projectId =
     props.defaultProjectId &&
     props.projects.some((project) => project.id === props.defaultProjectId)
@@ -333,6 +356,8 @@ function applyScenario(id: string) {
   form.name = scenario.suggestedName
   form.localPort = scenario.localPort
   form.remotePort = scenario.remotePort
+  form.host = ''
+  form.path = template.protocol === 'http' || template.protocol === 'https' ? '/' : ''
   form.tags = [...new Set([...template.tags, ...scenario.tags])]
   form.remark = scenario.description
   errorMessage.value = ''
@@ -346,6 +371,8 @@ function applyTemplate(id: string) {
   form.name = template.suggestedName
   form.localPort = template.localPort
   form.remotePort = template.remotePort
+  form.host = ''
+  form.path = template.protocol === 'http' || template.protocol === 'https' ? '/' : ''
   form.tags = [...template.tags]
   form.remark = template.description
   errorMessage.value = ''
@@ -365,6 +392,12 @@ function validateCurrentStep() {
       errorMessage.value = t('tunnel.wizard.validationLocalPort')
     else if (!isValidPort(form.remotePort))
       errorMessage.value = t('tunnel.wizard.validationPublicPort')
+    else if (form.protocol === 'https' && !form.host?.trim())
+      errorMessage.value = 'HTTPS 隧道必须绑定域名'
+    else if (form.host?.trim() && /[/:?#\s]/.test(form.host.trim()))
+      errorMessage.value = '请输入域名，不要包含协议、路径或空格'
+    else if (form.path?.trim() && !form.path.trim().startsWith('/'))
+      errorMessage.value = '路径必须以 / 开头'
   }
   return !errorMessage.value
 }

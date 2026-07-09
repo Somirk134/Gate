@@ -51,7 +51,7 @@
           :project="project"
           @open="openProject"
           @edit="openEdit"
-          @more="openDelete"
+          @delete="openDelete"
           @start="startWorkspace"
           @stop="stopWorkspace"
           @toggle-pin="togglePinProject"

@@ -39,9 +39,9 @@ pub use error::{
 };
 pub use forward::{ForwardPipeline, ForwardResult};
 pub use http::{
-    HttpHeaderConfig, HttpHeaderRule, HttpHostResolver, HttpRequestLog, HttpRouteConfig,
-    HttpRouteMetrics, HttpRuntimeBuilder, HttpRuntimeConfig, HttpRuntimeConfigBuilder,
-    HttpRuntimeMetrics, HttpTlsLog, HttpTunnel, HttpTunnelRuntime,
+    HttpBandwidthMetrics, HttpHeaderConfig, HttpHeaderRule, HttpHostResolver, HttpLatencyMetrics,
+    HttpRequestLog, HttpRouteConfig, HttpRouteMetrics, HttpRuntimeBuilder, HttpRuntimeConfig,
+    HttpRuntimeConfigBuilder, HttpRuntimeMetrics, HttpTlsLog, HttpTunnel, HttpTunnelRuntime,
 };
 pub use https::{
     CertificateSnapshot, HttpsCertificateProvider, HttpsRuntimeBuilder, HttpsRuntimeConfig,

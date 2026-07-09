@@ -160,6 +160,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       start: '启动',
       stop: '停止',
       edit: '编辑',
+      delete: '删除',
     },
     statusLabels: {
       running: '运行中',

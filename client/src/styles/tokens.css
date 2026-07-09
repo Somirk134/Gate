@@ -298,6 +298,76 @@ button {
   letter-spacing: 0;
 }
 
+select {
+  min-height: var(--control-height-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  color-scheme: dark;
+  line-height: var(--leading-normal);
+  letter-spacing: 0;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+select:not([multiple]) {
+  padding-inline-end: var(--space-6);
+}
+
+select:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+select:focus,
+select:focus-visible {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+select:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+select option,
+select optgroup {
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+}
+
+select option {
+  min-height: 30px;
+  padding: var(--space-2) var(--space-3);
+}
+
+select option:checked {
+  background-color: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+
+select option:disabled {
+  color: var(--text-disabled);
+}
+
+.theme-light select {
+  color-scheme: light;
+}
+
+.theme-light select option,
+.theme-light select optgroup {
+  background-color: var(--bg-surface-raised);
+  color: var(--text-primary);
+}
+
 ::-webkit-scrollbar {
   width: var(--scrollbar-size);
   height: var(--scrollbar-size);

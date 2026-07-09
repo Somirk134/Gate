@@ -9,10 +9,18 @@ description = "Gate Alpha V1 integration harness and tests"
 anyhow.workspace = true
 chrono.workspace = true
 gate-communication = { path = "../crates/communication" }
+gate-client = { path = "../client/src-tauri" }
 gate-engine = { path = "../crates/engine" }
 gate-protocol = { path = "../crates/protocol" }
+gate-server = { path = "../server" }
 serde.workspace = true
 serde_json.workspace = true
+sysinfo.workspace = true
+tempfile.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 uuid.workspace = true
+
+[[test]]
+name = "phase3_real_world_validation"
+path = "e2e/phase3_real_world_validation.rs"

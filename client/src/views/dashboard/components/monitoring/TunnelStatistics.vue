@@ -20,6 +20,26 @@
             <span>{{ formatSpeed(tunnel.uploadSpeedBps) }}</span>
             <span>{{ formatSpeed(tunnel.downloadSpeedBps) }}</span>
           </div>
+          <div
+            v-if="tunnel.protocol === 'http' || tunnel.protocol === 'https'"
+            class="tunnel-statistics__http">
+            <span>
+              <strong>{{ formatCount(tunnel.requestCount ?? 0) }}</strong>
+              Request
+            </span>
+            <span>
+              <strong>{{ formatBytes(tunnel.trafficBytes ?? 0) }}</strong>
+              Traffic
+            </span>
+            <span>
+              <strong>{{ formatLatency(tunnel.averageResponseTimeMs ?? 0) }}</strong>
+              Latency
+            </span>
+            <span>
+              <strong>{{ formatPercent(1 - (tunnel.successRate ?? 0)) }}</strong>
+              Error
+            </span>
+          </div>
         </article>
       </div>
     </div>
@@ -38,6 +58,26 @@ defineProps<{
 function formatSpeed(value: number) {
   if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(1)} MB/s`
   return `${(value / 1024).toFixed(0)} KB/s`
+}
+
+function formatBytes(value: number) {
+  if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(1)} GB`
+  if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(1)} MB`
+  if (value >= 1024) return `${(value / 1024).toFixed(0)} KB`
+  return `${value} B`
+}
+
+function formatLatency(value: number) {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)} s`
+  return `${value.toFixed(0)} ms`
+}
+
+function formatPercent(value: number) {
+  return `${(Math.max(0, value) * 100).toFixed(1)}%`
+}
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat('zh-CN').format(value)
 }
 </script>
 
@@ -133,5 +173,37 @@ function formatSpeed(value: number) {
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
+}
+
+.tunnel-statistics__http {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.tunnel-statistics__http span {
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.tunnel-statistics__http strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .tunnel-statistics__http {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

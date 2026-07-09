@@ -1,4 +1,5 @@
 use crate::certificate::{CertificateRecord, CertificateStatus};
+use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -73,6 +74,46 @@ impl RenewScheduler {
             decisions,
         }
     }
+
+    pub async fn execute_due<R>(
+        &self,
+        certificates: &[CertificateRecord],
+        now: DateTime<Utc>,
+        renewer: &R,
+    ) -> RenewExecutionReport
+    where
+        R: CertificateRenewer,
+    {
+        let plan = self.plan(certificates, now);
+        let mut attempts = Vec::new();
+
+        for decision in plan
+            .decisions
+            .iter()
+            .filter(|decision| decision.should_renew)
+        {
+            // 续期只触发到期窗口内证书，具体 ACME/存储细节由调用方注入。
+            match renewer.renew_certificate(&decision.domain).await {
+                Ok(()) => attempts.push(RenewAttempt {
+                    domain: decision.domain.clone(),
+                    status: RenewAttemptStatus::Success,
+                    error: None,
+                }),
+                Err(error) => attempts.push(RenewAttempt {
+                    domain: decision.domain.clone(),
+                    status: RenewAttemptStatus::Failed,
+                    error: Some(error),
+                }),
+            }
+        }
+
+        RenewExecutionReport { plan, attempts }
+    }
+}
+
+#[async_trait]
+pub trait CertificateRenewer: Send + Sync {
+    async fn renew_certificate(&self, domain: &str) -> Result<(), String>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,4 +129,23 @@ pub struct RenewDecision {
     pub expires_at: DateTime<Utc>,
     pub should_renew: bool,
     pub reason: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenewExecutionReport {
+    pub plan: RenewPlan,
+    pub attempts: Vec<RenewAttempt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenewAttempt {
+    pub domain: String,
+    pub status: RenewAttemptStatus,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RenewAttemptStatus {
+    Success,
+    Failed,
 }

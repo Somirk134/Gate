@@ -50,6 +50,27 @@
               <TunnelProtocolSelect v-model="form.protocol" />
             </GFormField>
 
+            <div v-if="isHttpLike" class="tunnel-port-row">
+              <GFormField :error="errors.host" :required="form.protocol === 'https'">
+                <template #label> 绑定域名 </template>
+                <GInput
+                  v-model="form.host"
+                  placeholder="api.example.com"
+                  prefix="globe"
+                  :state="errors.host ? 'error' : 'normal'"
+                  @update:model-value="validateField('host')" />
+              </GFormField>
+              <GFormField :error="errors.path">
+                <template #label> 路径 </template>
+                <GInput
+                  v-model="form.path"
+                  placeholder="/"
+                  prefix="route"
+                  :state="errors.path ? 'error' : 'normal'"
+                  @update:model-value="validateField('path')" />
+              </GFormField>
+            </div>
+
             <!-- 本地地址 -->
             <GFormField :error="errors.localHost" required>
               <template #label> 本地地址 </template>
@@ -215,6 +236,8 @@ const form = reactive<TunnelFormData>({
   localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
+  host: '',
+  path: '/',
   projectId: props.projects[0]?.id ?? '',
   serverName: props.serverNames[0] ?? '',
   autoStart: false,
@@ -227,9 +250,12 @@ const errors = reactive<{
   localHost?: string
   localPort?: string
   remotePort?: string
+  host?: string
+  path?: string
 }>({})
 
 const protocolPreset = computed(() => PROTOCOL_MAP[form.protocol])
+const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 
 const previewStyle = computed(() => ({
   background: `${protocolPreset.value.color}22`,
@@ -247,8 +273,11 @@ const isValid = computed(
     !errors.localHost &&
     !errors.localPort &&
     !errors.remotePort &&
+    !errors.host &&
+    !errors.path &&
     isValidPort(form.localPort) &&
-    isValidPort(form.remotePort),
+    isValidPort(form.remotePort) &&
+    (form.protocol !== 'https' || Boolean(form.host?.trim())),
 )
 
 // 初始化 / 重置表单
@@ -262,6 +291,8 @@ watch(
         form.localHost = props.tunnel.localHost
         form.localPort = props.tunnel.localPort
         form.remotePort = props.tunnel.remotePort
+        form.host = props.tunnel.host ?? ''
+        form.path = props.tunnel.path ?? '/'
         form.projectId = props.tunnel.projectId
         form.serverName = props.tunnel.serverName
         form.autoStart = props.tunnel.autoStart
@@ -274,6 +305,8 @@ watch(
       errors.localHost = undefined
       errors.localPort = undefined
       errors.remotePort = undefined
+      errors.host = undefined
+      errors.path = undefined
     }
   },
   { immediate: true },
@@ -285,6 +318,8 @@ function resetForm() {
   form.localHost = '127.0.0.1'
   form.localPort = null
   form.remotePort = null
+  form.host = ''
+  form.path = '/'
   form.projectId = props.projects[0]?.id ?? ''
   form.serverName = props.serverNames[0] ?? ''
   form.autoStart = false
@@ -312,6 +347,17 @@ function validateField(field: keyof typeof errors) {
   if (field === 'remotePort') {
     if (!isValidPort(form.remotePort)) errors.remotePort = '端口范围 1-65535'
     else errors.remotePort = undefined
+  }
+  if (field === 'host') {
+    const value = form.host?.trim() ?? ''
+    if (form.protocol === 'https' && !value) errors.host = 'HTTPS 隧道必须绑定域名'
+    else if (value && /[/:?#\s]/.test(value)) errors.host = '请输入域名，不要包含协议、路径或空格'
+    else errors.host = undefined
+  }
+  if (field === 'path') {
+    const value = form.path?.trim() ?? ''
+    if (value && !value.startsWith('/')) errors.path = '路径必须以 / 开头'
+    else errors.path = undefined
   }
 }
 
@@ -352,6 +398,8 @@ function handleSubmit() {
   validateField('localHost')
   validateField('localPort')
   validateField('remotePort')
+  validateField('host')
+  validateField('path')
   if (!isValid.value) return
   submitting.value = false
   emit('submit', { ...form, tags: [...form.tags] }, isEdit.value)

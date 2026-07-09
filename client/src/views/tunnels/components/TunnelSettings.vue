@@ -25,6 +25,27 @@
       <TunnelProtocolSelect v-model="form.protocol" />
     </GFormField>
 
+    <div v-if="isHttpLike" class="tunnel-port-row">
+      <GFormField :error="errors.host" :required="form.protocol === 'https'">
+        <template #label> 绑定域名 </template>
+        <GInput
+          v-model="form.host"
+          placeholder="api.example.com"
+          prefix="globe"
+          :state="errors.host ? 'error' : 'normal'"
+          @update:model-value="validateField('host')" />
+      </GFormField>
+      <GFormField :error="errors.path">
+        <template #label> 路径 </template>
+        <GInput
+          v-model="form.path"
+          placeholder="/"
+          prefix="route"
+          :state="errors.path ? 'error' : 'normal'"
+          @update:model-value="validateField('path')" />
+      </GFormField>
+    </div>
+
     <!-- 本地主机 -->
     <GFormField :error="errors.localHost">
       <template #label> 本地主机 </template>
@@ -150,6 +171,8 @@ interface SettingsForm {
   localHost: string
   localPort: number | null
   remotePort: number | null
+  host: string
+  path: string
   remark: string
   autoStart: boolean
   compression: boolean
@@ -162,6 +185,8 @@ const form = reactive<SettingsForm>({
   localHost: '127.0.0.1',
   localPort: null,
   remotePort: null,
+  host: '',
+  path: '/',
   remark: '',
   autoStart: false,
   compression: false,
@@ -173,6 +198,8 @@ const errors = reactive<{
   localHost?: string
   localPort?: string
   remotePort?: string
+  host?: string
+  path?: string
 }>({})
 
 const saving = ref(false)
@@ -184,6 +211,8 @@ function syncForm() {
   form.localHost = props.tunnel.localHost
   form.localPort = props.tunnel.localPort
   form.remotePort = props.tunnel.remotePort
+  form.host = props.tunnel.host ?? ''
+  form.path = props.tunnel.path ?? '/'
   form.remark = props.tunnel.remark
   form.autoStart = props.tunnel.autoStart
   form.compression = props.tunnel.compression
@@ -193,6 +222,8 @@ function syncForm() {
   errors.localHost = undefined
   errors.localPort = undefined
   errors.remotePort = undefined
+  errors.host = undefined
+  errors.path = undefined
 }
 
 watch(
@@ -202,6 +233,7 @@ watch(
 )
 
 const dirty = computed(() => JSON.stringify(form) !== snapshot)
+const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 
 const isValid = computed(
   () =>
@@ -210,8 +242,11 @@ const isValid = computed(
     !errors.localHost &&
     !errors.localPort &&
     !errors.remotePort &&
+    !errors.host &&
+    !errors.path &&
     isValidPort(form.localPort) &&
-    isValidPort(form.remotePort),
+    isValidPort(form.remotePort) &&
+    (form.protocol !== 'https' || Boolean(form.host.trim())),
 )
 
 function validateField(field: keyof typeof errors) {
@@ -234,6 +269,17 @@ function validateField(field: keyof typeof errors) {
     if (!isValidPort(form.remotePort)) errors.remotePort = '端口范围 1-65535'
     else errors.remotePort = undefined
   }
+  if (field === 'host') {
+    const value = form.host.trim()
+    if (form.protocol === 'https' && !value) errors.host = 'HTTPS 隧道必须绑定域名'
+    else if (value && /[/:?#\s]/.test(value)) errors.host = '请输入域名，不要包含协议、路径或空格'
+    else errors.host = undefined
+  }
+  if (field === 'path') {
+    const value = form.path.trim()
+    if (value && !value.startsWith('/')) errors.path = '路径必须以 / 开头'
+    else errors.path = undefined
+  }
 }
 
 function reset() {
@@ -246,6 +292,8 @@ function handleSave() {
   validateField('localHost')
   validateField('localPort')
   validateField('remotePort')
+  validateField('host')
+  validateField('path')
   if (!isValid.value) return
   saving.value = false
   emit('save', props.tunnel.id, {
@@ -254,6 +302,8 @@ function handleSave() {
     localHost: form.localHost,
     localPort: form.localPort,
     remotePort: form.remotePort,
+    host: form.host,
+    path: form.path,
     remark: form.remark,
     autoStart: form.autoStart,
   })

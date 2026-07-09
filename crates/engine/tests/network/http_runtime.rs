@@ -6,6 +6,35 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
 
 #[tokio::test]
+async fn http_runtime_basic_forward_records_access_log() -> anyhow::Result<()> {
+    let (target_addr, target_task) = spawn_fixed_body_server("basic").await?;
+    let runtime = http_runtime(vec![HttpRouteConfig::new("basic", target_addr)
+        .host("basic.example.com")
+        .path_prefix("/")])?;
+
+    runtime.start().await?;
+    let mut client = TcpStream::connect(runtime.bound_addr().unwrap()).await?;
+    client
+        .write_all(b"GET /hello HTTP/1.1\r\nHost: basic.example.com\r\nConnection: close\r\n\r\n")
+        .await?;
+    let response = read_response(&mut client).await?;
+
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body, b"basic");
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let metrics = runtime.http_metrics();
+    assert_eq!(metrics.requests_total, 1);
+    assert_eq!(metrics.status_codes.get(&200), Some(&1));
+    assert!(metrics.bandwidth.total_bytes > 0);
+    assert_eq!(metrics.active_requests, 0);
+
+    runtime.shutdown().await?;
+    target_task.abort();
+    Ok(())
+}
+
+#[tokio::test]
 async fn http_runtime_forwards_keep_alive_requests() -> anyhow::Result<()> {
     let (target_addr, target_task) = spawn_fixed_body_server("ok").await?;
     let runtime = http_runtime(vec![HttpRouteConfig::new("main", target_addr)
@@ -130,6 +159,80 @@ async fn http_runtime_streams_chunked_requests_and_responses() -> anyhow::Result
     Ok(())
 }
 
+#[tokio::test]
+async fn http_runtime_forwards_large_body() -> anyhow::Result<()> {
+    let (target_addr, target_task) = spawn_body_size_server().await?;
+    let runtime = http_runtime(vec![HttpRouteConfig::new("large-body", target_addr)
+        .host("upload.example.com")
+        .path_prefix("/upload")])?;
+    runtime.start().await?;
+
+    let body = vec![b'a'; 1024 * 1024];
+    let request_head = format!(
+        "POST /upload HTTP/1.1\r\nHost: upload.example.com\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    );
+    let mut client = TcpStream::connect(runtime.bound_addr().unwrap()).await?;
+    client.write_all(request_head.as_bytes()).await?;
+    client.write_all(&body).await?;
+
+    let response = read_response(&mut client).await?;
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body, body.len().to_string().as_bytes());
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let metrics = runtime.http_metrics();
+    assert_eq!(metrics.request_count, 1);
+    assert!(metrics.bandwidth.upload_bytes >= body.len() as u64);
+
+    runtime.shutdown().await?;
+    target_task.abort();
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn http_runtime_handles_100_concurrent_requests() -> anyhow::Result<()> {
+    let (target_addr, target_task) = spawn_fixed_body_server("ok").await?;
+    let runtime = http_runtime(vec![HttpRouteConfig::new("concurrent", target_addr)
+        .host("load.example.com")
+        .path_prefix("/")])?;
+    runtime.start().await?;
+    let listen_addr = runtime.bound_addr().unwrap();
+
+    let mut tasks = Vec::new();
+    for index in 0..100_u16 {
+        tasks.push(tokio::spawn(async move {
+            let mut client = TcpStream::connect(listen_addr).await?;
+            let request = format!(
+                "GET /items/{index} HTTP/1.1\r\nHost: load.example.com\r\nConnection: close\r\n\r\n"
+            );
+            client.write_all(request.as_bytes()).await?;
+            let response = read_response(&mut client).await?;
+            anyhow::ensure!(
+                response.status == 200,
+                "unexpected status {}",
+                response.status
+            );
+            anyhow::ensure!(response.body == b"ok", "unexpected response body");
+            Ok::<(), anyhow::Error>(())
+        }));
+    }
+
+    for task in tasks {
+        task.await??;
+    }
+
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let metrics = runtime.http_metrics();
+    assert_eq!(metrics.requests_total, 100);
+    assert_eq!(metrics.success_count, 100);
+    assert_eq!(metrics.active_requests, 0);
+
+    runtime.shutdown().await?;
+    target_task.abort();
+    Ok(())
+}
+
 fn http_runtime(routes: Vec<HttpRouteConfig>) -> anyhow::Result<HttpTunnelRuntime> {
     Ok(HttpTunnelRuntime::new(
         HttpRuntimeConfig::builder()
@@ -145,6 +248,41 @@ fn http_runtime(routes: Vec<HttpRouteConfig>) -> anyhow::Result<HttpTunnelRuntim
             )
             .build(),
     ))
+}
+
+async fn spawn_body_size_server() -> anyhow::Result<(SocketAddr, tokio::task::JoinHandle<()>)> {
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+    let task = tokio::spawn(async move {
+        loop {
+            let Ok((mut stream, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::spawn(async move {
+                let Ok(head) = read_head_from_stream(&mut stream).await else {
+                    return;
+                };
+                let Ok(text) = String::from_utf8(head) else {
+                    return;
+                };
+                let length = header_value(&text, "Content-Length")
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .unwrap_or_default();
+                let mut body = vec![0_u8; length];
+                if stream.read_exact(&mut body).await.is_err() {
+                    return;
+                }
+                let response_body = body.len().to_string();
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    response_body.len(),
+                    response_body
+                );
+                let _ = stream.write_all(response.as_bytes()).await;
+            });
+        }
+    });
+    Ok((addr, task))
 }
 
 async fn spawn_fixed_body_server(

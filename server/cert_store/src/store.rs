@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 pub trait CertificateStore: Clone + Send + Sync {
     fn save(&self, certificate: &StoredCertificate) -> Result<(), CertificateError>;
+    fn save_record(&self, record: &CertificateRecord) -> Result<(), CertificateError>;
     fn load(&self, domain: &str) -> Result<StoredCertificate, CertificateError>;
     fn query(&self, domain: &str) -> Result<Option<CertificateRecord>, CertificateError>;
     fn list(&self) -> Result<Vec<CertificateRecord>, CertificateError>;

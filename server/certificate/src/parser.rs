@@ -57,6 +57,7 @@ impl CertificateParser {
             cert_path: None,
             key_path: None,
             serial_number: Some(certificate.raw_serial_as_string()),
+            last_error: None,
         })
     }
 }

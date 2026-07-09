@@ -1,7 +1,7 @@
 export type CertificateStatus =
   'pending' | 'active' | 'expiringSoon' | 'expired' | 'revoked' | 'deleted' | 'failed' | 'unknown'
 
-export type AutoRenewalStatus = 'scheduled' | 'due' | 'notScheduled' | 'expired'
+export type AutoRenewalStatus = 'scheduled' | 'due' | 'notScheduled' | 'expired' | 'failed'
 
 export interface CertificateSummary {
   domain: string
@@ -16,6 +16,8 @@ export interface CertificateSummary {
   algorithm: string
   san: string[]
   serialNumber?: string | null
+  lastError?: string | null
+  hasCertificatePem: boolean
   certificatePath: string
   keyPath: string
 }

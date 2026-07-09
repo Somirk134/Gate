@@ -17,6 +17,8 @@ pub struct CertificateRecord {
     cert_path: Option<PathBuf>,
     key_path: Option<PathBuf>,
     serial_number: Option<String>,
+    #[serde(default)]
+    last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,12 +71,12 @@ pub async fn certificate_list() -> Result<Value, String> {
 #[tauri::command]
 pub async fn certificate_detail(domain: String) -> Result<Value, String> {
     let domain = normalize_domain(&domain)?;
-    let (record, certificate_pem, _) = load_certificate(&domain)?;
+    let (record, certificate_pem) = load_certificate(&domain)?;
 
     Ok(json!({
         "summary": certificate_summary(record.clone(), &certificate_domain_dir(&domain)),
         "record": record,
-        "certificatePem": certificate_pem,
+        "certificatePem": certificate_pem.unwrap_or_default(),
         "generatedAt": Utc::now().timestamp_millis()
     }))
 }
@@ -82,20 +84,28 @@ pub async fn certificate_detail(domain: String) -> Result<Value, String> {
 #[tauri::command]
 pub async fn certificate_export_pem(domain: String) -> Result<String, String> {
     let domain = normalize_domain(&domain)?;
-    let (_, certificate_pem, _) = load_certificate(&domain)?;
-    Ok(certificate_pem)
+    let (_, certificate_pem) = load_certificate(&domain)?;
+    certificate_pem.ok_or_else(|| format!("certificate PEM for domain `{domain}` was not found"))
 }
 
 fn certificate_summary(record: CertificateRecord, domain_dir: &std::path::Path) -> Value {
     let now = Utc::now();
     let days_remaining = (record.expire_time - now).num_days();
-    let effective_status = if days_remaining < 0 {
+    let raw_status = normalize_status(&record.status);
+    let effective_status = if matches!(
+        raw_status,
+        "failed" | "revoked" | "deleted" | "pending" | "unknown"
+    ) {
+        raw_status
+    } else if days_remaining < 0 {
         "expired"
     } else if days_remaining <= 30 {
         "expiringSoon"
     } else {
-        normalize_status(&record.status)
+        raw_status
     };
+    let has_certificate_pem = domain_dir.join("certificate.pem").exists();
+    let last_error = record.last_error.clone();
 
     json!({
         "domain": record.domain,
@@ -105,18 +115,26 @@ fn certificate_summary(record: CertificateRecord, domain_dir: &std::path::Path) 
         "renewTime": record.renew_time.map(|value| value.to_rfc3339()),
         "daysRemaining": days_remaining,
         "status": effective_status,
-        "autoRenewalStatus": auto_renewal_status(days_remaining, record.renew_time),
+        "autoRenewalStatus": auto_renewal_status(days_remaining, record.renew_time, last_error.as_deref()),
         "fingerprintSha256": record.fingerprint.sha256,
         "algorithm": algorithm_name(&record.algorithm),
         "san": record.san,
         "serialNumber": record.serial_number,
+        "lastError": last_error,
+        "hasCertificatePem": has_certificate_pem,
         "certificatePath": domain_dir.join("certificate.pem"),
         "keyPath": domain_dir.join("private_key.pem")
     })
 }
 
-fn auto_renewal_status(days_remaining: i64, renew_time: Option<DateTime<Utc>>) -> &'static str {
-    if days_remaining < 0 {
+fn auto_renewal_status(
+    days_remaining: i64,
+    renew_time: Option<DateTime<Utc>>,
+    last_error: Option<&str>,
+) -> &'static str {
+    if last_error.is_some() {
+        "failed"
+    } else if days_remaining < 0 {
         "expired"
     } else if renew_time.is_some() {
         "scheduled"
@@ -152,25 +170,25 @@ fn normalize_status(value: &str) -> &'static str {
     }
 }
 
-fn load_certificate(domain: &str) -> Result<(CertificateRecord, String, String), String> {
+fn load_certificate(domain: &str) -> Result<(CertificateRecord, Option<String>), String> {
     let domain_dir = certificate_domain_dir(domain);
     let metadata_path = domain_dir.join("metadata.json");
     let certificate_path = domain_dir.join("certificate.pem");
-    let private_key_path = domain_dir.join("private_key.pem");
 
-    if !metadata_path.exists() || !certificate_path.exists() || !private_key_path.exists() {
+    if !metadata_path.exists() {
         return Err(format!("certificate for domain `{domain}` was not found"));
     }
 
     let record =
         serde_json::from_slice(&fs::read(metadata_path).map_err(|error| error.to_string())?)
             .map_err(|error| error.to_string())?;
-    let certificate_pem =
-        fs::read_to_string(certificate_path).map_err(|error| error.to_string())?;
-    let private_key_pem =
-        fs::read_to_string(private_key_path).map_err(|error| error.to_string())?;
+    let certificate_pem = if certificate_path.exists() {
+        Some(fs::read_to_string(certificate_path).map_err(|error| error.to_string())?)
+    } else {
+        None
+    };
 
-    Ok((record, certificate_pem, private_key_pem))
+    Ok((record, certificate_pem))
 }
 
 fn certificate_domain_dir(domain: &str) -> PathBuf {

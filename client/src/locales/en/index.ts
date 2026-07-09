@@ -161,6 +161,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       start: 'Start',
       stop: 'Stop',
       edit: 'Edit',
+      delete: 'Delete',
     },
     statusLabels: {
       running: 'Running',

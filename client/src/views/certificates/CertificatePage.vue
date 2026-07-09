@@ -45,17 +45,24 @@
         <span>{{ formatDate(certificate.createTime) }}</span>
         <span>{{ formatDate(certificate.expireTime) }}</span>
         <span>{{ certificate.daysRemaining }}</span>
-        <span class="certificate-page__status" :class="`is-${certificate.status}`">
+        <span
+          class="certificate-page__status"
+          :class="`is-${certificate.status}`"
+          :title="certificate.lastError || undefined">
           {{ statusLabel(certificate.status) }}
         </span>
-        <span class="certificate-page__renewal">{{
+        <span class="certificate-page__renewal" :title="certificate.lastError || undefined">{{
           renewalLabel(certificate.autoRenewalStatus)
         }}</span>
         <div class="certificate-page__actions">
           <button type="button" title="查看详情" @click="select(certificate.domain)">
             <GIcon name="eye" :size="15" />
           </button>
-          <button type="button" title="导出 PEM" @click="exportPem(certificate.domain)">
+          <button
+            type="button"
+            title="导出 PEM"
+            :disabled="!certificate.hasCertificatePem"
+            @click="exportPem(certificate.domain)">
             <GIcon name="download" :size="15" />
           </button>
           <button type="button" title="复制证书信息" @click="copyInfo(certificate)">
@@ -92,8 +99,13 @@
         <dd class="mono">
           {{ selected.summary.certificatePath }}
         </dd>
+        <dt v-if="selected.summary.lastError">错误</dt>
+        <dd v-if="selected.summary.lastError" class="certificate-page__inline-error">
+          {{ selected.summary.lastError }}
+        </dd>
       </dl>
-      <pre>{{ selected.certificatePem }}</pre>
+      <pre v-if="selected.certificatePem">{{ selected.certificatePem }}</pre>
+      <p v-else class="certificate-page__empty-pem">尚未写入证书 PEM。</p>
     </aside>
 
     <p v-if="loading" class="certificate-page__loading">正在加载证书...</p>
@@ -192,6 +204,7 @@ function renewalLabel(status: AutoRenewalStatus) {
     due: '待续期',
     notScheduled: '未计划',
     expired: '已过期',
+    failed: '失败',
   }[status]
 }
 
@@ -249,6 +262,11 @@ function safeFileName(value: string) {
 .certificate-page__button {
   gap: var(--space-2);
   padding: 0 var(--space-3);
+}
+
+.certificate-page__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .certificate-page__table {
@@ -382,6 +400,11 @@ function safeFileName(value: string) {
 }
 
 .certificate-page__error {
+  color: var(--color-error);
+}
+
+.certificate-page__inline-error,
+.certificate-page__empty-pem {
   color: var(--color-error);
 }
 

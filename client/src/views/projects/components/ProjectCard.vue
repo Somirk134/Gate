@@ -5,8 +5,8 @@
   证书数量、最近活动、标签和状态。
 
   交互：
-    - 双击进入详情
-    - Hover 显示操作栏（启动/停止/编辑/更多菜单）
+    - 单击进入详情
+    - 始终展示操作栏（启动/停止/编辑/删除）
     - Pin / Favorite 快捷切换
     - 右键菜单（预留）
 
@@ -17,9 +17,7 @@
     class="project-card"
     :class="[`project-card--${project.status}`, { 'project-card--pinned': project.pinned }]"
     :style="colorVars"
-    @mouseenter="onEnter"
-    @mouseleave="onLeave"
-    @dblclick="$emit('open', project)"
+    @click="$emit('open', project)"
     @contextmenu.prevent="$emit('contextmenu', project, $event)">
     <!-- 顶部颜色条 -->
     <div class="project-card__accent" />
@@ -102,40 +100,39 @@
       </div>
     </div>
 
-    <!-- Hover 操作栏 -->
-    <Transition name="card-actions">
-      <div v-if="hovered" class="project-card__actions">
-        <GButton
-          v-if="!isRunning"
-          size="sm"
-          variant="primary"
-          icon="play"
-          @click.stop="$emit('start', project)">
-          {{ t('project.card.start') }}
-        </GButton>
-        <GButton
-          v-else
-          size="sm"
-          variant="secondary"
-          icon="stop"
-          @click.stop="$emit('stop', project)">
-          {{ t('project.card.stop') }}
-        </GButton>
-        <GButton size="sm" variant="ghost" icon="edit" @click.stop="$emit('edit', project)">
-          {{ t('project.card.edit') }}
-        </GButton>
-        <GIconButton
-          name="more-horizontal"
-          size="sm"
-          variant="ghost"
-          @click.stop="$emit('more', project)" />
-      </div>
-    </Transition>
+    <!-- 操作栏 -->
+    <div class="project-card__actions">
+      <GButton
+        v-if="!isRunning"
+        size="sm"
+        variant="primary"
+        icon="play"
+        @click.stop="$emit('start', project)">
+        {{ t('project.card.start') }}
+      </GButton>
+      <GButton
+        v-else
+        size="sm"
+        variant="secondary"
+        icon="stop"
+        @click.stop="$emit('stop', project)">
+        {{ t('project.card.stop') }}
+      </GButton>
+      <GButton size="sm" variant="ghost" icon="edit" @click.stop="$emit('edit', project)">
+        {{ t('project.card.edit') }}
+      </GButton>
+      <GIconButton
+        name="trash"
+        size="sm"
+        variant="ghost"
+        :title="t('project.card.delete')"
+        @click.stop="$emit('delete', project)" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
@@ -153,14 +150,11 @@ defineEmits<{
   edit: [project: Project]
   start: [project: Project]
   stop: [project: Project]
-  more: [project: Project]
+  delete: [project: Project]
   'toggle-pin': [id: string]
   'toggle-favorite': [id: string]
   contextmenu: [project: Project, event: MouseEvent]
 }>()
-
-const hovered = ref(false)
-let leaveTimer: ReturnType<typeof setTimeout> | null = null
 
 const colorVars = computed(() => projectColorVars(props.project.color))
 
@@ -189,20 +183,6 @@ const createdLabel = computed(() => {
   const d = new Date(props.project.createdAt)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 })
-
-// 通过原生事件管理 hovered（避免 mouseenter/mouseleave 与子按钮冲突）
-function onEnter() {
-  if (leaveTimer) {
-    clearTimeout(leaveTimer)
-    leaveTimer = null
-  }
-  hovered.value = true
-}
-function onLeave() {
-  leaveTimer = setTimeout(() => {
-    hovered.value = false
-  }, 120)
-}
 </script>
 
 <style scoped>
@@ -413,29 +393,12 @@ function onLeave() {
   gap: 4px;
 }
 
-/* ── Hover 操作栏 ── */
+/* ── 操作栏 ── */
 .project-card__actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4) var(--space-4);
   border-top: 1px solid var(--border-subtle);
-}
-
-.card-actions-enter-active,
-.card-actions-leave-active {
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    max-height var(--duration-fast) var(--ease-out);
-  max-height: 60px;
-  overflow: hidden;
-}
-
-.card-actions-enter-from,
-.card-actions-leave-to {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 </style>

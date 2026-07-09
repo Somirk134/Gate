@@ -43,7 +43,7 @@ use uuid::Uuid;
 const STORE_VERSION: u32 = 1;
 const MAX_LOGS: usize = 500;
 const RELAY_WORKERS_PER_TUNNEL: usize = 4;
-const RELAY_RECONNECT_DELAY: Duration = Duration::from_secs(1);
+const RECONNECT_DELAYS_SECS: [u64; 6] = [1, 2, 5, 10, 30, 60];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RuntimeLog {
@@ -219,6 +219,14 @@ struct RuntimeCounters {
     heartbeat_timeout: u64,
     last_rtt_ms: Option<u64>,
     average_rtt_ms: f64,
+    #[serde(default)]
+    recovery_success: u64,
+    #[serde(default)]
+    recovery_failure: u64,
+    #[serde(default)]
+    last_recovery_time_ms: Option<u64>,
+    #[serde(default)]
+    total_recovery_time_ms: u64,
     #[serde(default)]
     tls_session_total: u64,
     #[serde(default)]
@@ -434,31 +442,44 @@ struct RuntimeInner {
 
 impl RuntimeInner {
     fn from_stored(stored: StoredRuntime) -> Self {
+        let stored_active_server_id = stored.active_server_id;
         let mut servers = stored.servers;
         for server in servers.values_mut() {
-            if server.status == "connected" || server.status == "connecting" {
-                server.status = "disconnected".to_string();
-                server.session_id = None;
+            if matches!(
+                server.status.as_str(),
+                "connected" | "connecting" | "recovering"
+            ) {
+                server.status = "recovering".to_string();
+                server.last_error = Some("客户端重启后等待自动恢复".to_string());
             }
         }
         let mut tunnels = stored.tunnels;
         for tunnel in tunnels.values_mut() {
             if matches!(
                 tunnel.status.as_str(),
-                "running" | "starting" | "restarting" | "stopping"
+                "running" | "starting" | "restarting" | "stopping" | "recovering"
             ) {
-                tunnel.status = "stopped".to_string();
+                tunnel.status = "recovering".to_string();
                 tunnel.upload_speed_bps = 0.0;
                 tunnel.download_speed_bps = 0.0;
                 tunnel.connections = 0;
-                tunnel.started_at = None;
             }
         }
+        let active_server_id = stored_active_server_id.filter(|server_id| {
+            servers
+                .get(server_id)
+                .map(|server| server.status == "recovering" || server.auto_connect)
+                .unwrap_or(false)
+        });
+        let session_id = active_server_id
+            .as_deref()
+            .and_then(|server_id| servers.get(server_id))
+            .and_then(|server| server.session_id.clone());
 
         Self {
             transport: None,
             server_addr: None,
-            session_id: None,
+            session_id,
             connected: false,
             started_at: Instant::now(),
             counters: stored.counters,
@@ -467,7 +488,7 @@ impl RuntimeInner {
             domains: stored.domains,
             certificate_references: stored.certificate_references,
             servers,
-            active_server_id: None,
+            active_server_id,
             logs: stored.logs,
         }
     }
@@ -975,12 +996,20 @@ impl ClientRuntimeState {
 
     pub async fn heartbeat(&self) -> Result<u64, String> {
         let started = Instant::now();
-        let response = self
-            .request(
-                Command::HeartbeatPing,
-                json!({ "sentAt": Utc::now().timestamp_millis() }),
-            )
-            .await?;
+        let response = match self
+            .request(Command::HeartbeatPing, self.heartbeat_payload().await)
+            .await
+        {
+            Ok(response) => response,
+            Err(error) => {
+                self.record_control_disconnect(&format!("心跳失败，准备自动恢复：{error}"))
+                    .await;
+                self.restore_active_server_with_backoff(&default_reconnect_delays())
+                    .await?;
+                self.request(Command::HeartbeatPing, self.heartbeat_payload().await)
+                    .await?
+            }
+        };
         ensure_ok(&response)?;
 
         let rtt_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
@@ -998,6 +1027,228 @@ impl ClientRuntimeState {
         inner.log("info", "heartbeat", "heartbeat completed");
         persist_runtime(&self.storage_path, &inner)?;
         Ok(rtt_ms)
+    }
+
+    async fn heartbeat_payload(&self) -> Value {
+        let inner = self.inner.lock().await;
+        let registered_tunnels = inner.tunnels.keys().cloned().collect::<Vec<_>>();
+        let running_tunnels = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.status == "running")
+            .count();
+        let active_connections = inner
+            .tunnels
+            .values()
+            .map(|tunnel| tunnel.connections)
+            .sum::<u64>();
+
+        json!({
+            "sentAt": Utc::now().timestamp_millis(),
+            "clientId": runtime_client_id(inner.active_server_id.as_deref()),
+            "clientStatus": if inner.connected { "online" } else { "recovering" },
+            "registeredTunnels": registered_tunnels,
+            "runtimeStatus": {
+                "sessionId": inner.session_id.clone(),
+                "runningTunnels": running_tunnels,
+                "activeConnections": active_connections,
+                "requestTotal": inner.counters.request_total,
+                "responseTotal": inner.counters.response_total,
+                "reconnectTotal": inner.counters.reconnect_total
+            }
+        })
+    }
+
+    // 控制连接恢复只复用现有 AuthLogin/TunnelRegister，不引入新的协议命令。
+    async fn record_control_disconnect(&self, reason: &str) {
+        let transport = {
+            let mut inner = self.inner.lock().await;
+            inner.connected = false;
+            inner.counters.heartbeat_timeout = inner.counters.heartbeat_timeout.saturating_add(1);
+            inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
+            let active_server_id = inner.active_server_id.clone();
+            if let Some(server_id) = active_server_id.as_deref() {
+                if let Some(server) = inner.servers.get_mut(server_id) {
+                    server.status = "recovering".to_string();
+                    server.last_error = Some(reason.to_string());
+                    server.last_checked_at = Some(Utc::now().timestamp_millis());
+                    server.updated_at = Utc::now().timestamp_millis();
+                }
+            }
+            inner.log("warn", "reconnect", reason);
+            let transport = inner.transport.take();
+            let _ = persist_runtime(&self.storage_path, &inner);
+            transport
+        };
+
+        if let Some(transport) = transport {
+            let _ = transport.disconnect().await;
+        }
+    }
+
+    async fn restore_active_server_with_backoff(
+        &self,
+        delays: &[Duration],
+    ) -> Result<String, String> {
+        let (server_id, server_addr, token, previous_session_id, running_tunnels) = {
+            let mut inner = self.inner.lock().await;
+            let server_id = inner
+                .active_server_id
+                .clone()
+                .ok_or_else(|| "没有可恢复的活动服务器".to_string())?;
+            let server = inner
+                .servers
+                .get(&server_id)
+                .ok_or_else(|| "活动服务器配置不存在".to_string())?;
+            let server_addr = format!("{}:{}", server.host, server.port);
+            let token = server.token.clone();
+            let previous_session_id = inner
+                .session_id
+                .clone()
+                .or_else(|| server.session_id.clone());
+            let running_tunnels = inner
+                .tunnels
+                .values()
+                .filter(|tunnel| matches!(tunnel.status.as_str(), "running" | "recovering"))
+                .cloned()
+                .collect::<Vec<_>>();
+            if let Some(server) = inner.servers.get_mut(&server_id) {
+                server.status = "recovering".to_string();
+                server.updated_at = Utc::now().timestamp_millis();
+            }
+            inner.log("info", "reconnect", "开始恢复控制连接");
+            persist_runtime(&self.storage_path, &inner)?;
+            (
+                server_id,
+                server_addr,
+                token,
+                previous_session_id,
+                running_tunnels,
+            )
+        };
+
+        let recovery_started = Instant::now();
+        self.shutdown_all_local_tunnels().await?;
+
+        let mut last_error = None;
+        for delay in delays {
+            tokio::select! {
+                _ = sleep(*delay) => {}
+            }
+
+            match establish_connection_with_session(
+                &server_addr,
+                &token,
+                previous_session_id.clone(),
+                Some(runtime_client_id(Some(&server_id))),
+            )
+            .await
+            {
+                Ok((transport, session_id)) => {
+                    self.finish_control_recovery(
+                        server_id,
+                        server_addr,
+                        token,
+                        transport,
+                        session_id.clone(),
+                        running_tunnels,
+                        recovery_started.elapsed(),
+                    )
+                    .await?;
+                    return Ok(session_id);
+                }
+                Err(error) => {
+                    last_error = Some(error.clone());
+                    let mut inner = self.inner.lock().await;
+                    inner.log(
+                        "warn",
+                        "reconnect",
+                        &format!("控制连接恢复失败，等待下一次退避：{error}"),
+                    );
+                    let _ = persist_runtime(&self.storage_path, &inner);
+                }
+            }
+        }
+
+        {
+            let mut inner = self.inner.lock().await;
+            inner.counters.recovery_failure = inner.counters.recovery_failure.saturating_add(1);
+            inner.log("error", "reconnect", "控制连接恢复失败");
+            let _ = persist_runtime(&self.storage_path, &inner);
+        }
+
+        Err(format!(
+            "控制连接恢复失败：{}",
+            last_error.unwrap_or_else(|| "没有可用重试机会".to_string())
+        ))
+    }
+
+    async fn finish_control_recovery(
+        &self,
+        server_id: String,
+        server_addr: String,
+        token: String,
+        transport: Arc<TcpTransport>,
+        session_id: String,
+        running_tunnels: Vec<TunnelRecord>,
+        recovery_elapsed: Duration,
+    ) -> Result<(), String> {
+        let recovery_time_ms = recovery_elapsed.as_millis().min(u128::from(u64::MAX)) as u64;
+        {
+            let now = Utc::now().timestamp_millis();
+            let mut inner = self.inner.lock().await;
+            if let Some(server) = inner.servers.get_mut(&server_id) {
+                server.status = "connected".to_string();
+                server.session_id = Some(session_id.clone());
+                server.last_error = None;
+                server.last_checked_at = Some(now);
+                server.last_connected_at = Some(now);
+                server.updated_at = now;
+            }
+            inner.transport = Some(transport);
+            inner.server_addr = Some(server_addr.clone());
+            inner.session_id = Some(session_id.clone());
+            inner.connected = true;
+            inner.active_server_id = Some(server_id.clone());
+            inner.counters.reconnect_total = inner.counters.reconnect_total.saturating_add(1);
+            inner.counters.auth_success = inner.counters.auth_success.saturating_add(1);
+            inner.counters.recovery_success = inner.counters.recovery_success.saturating_add(1);
+            inner.counters.last_recovery_time_ms = Some(recovery_time_ms);
+            inner.counters.total_recovery_time_ms = inner
+                .counters
+                .total_recovery_time_ms
+                .saturating_add(recovery_time_ms);
+            inner.log("info", "reconnect", "控制连接恢复成功");
+            persist_runtime(&self.storage_path, &inner)?;
+        }
+
+        for tunnel in running_tunnels {
+            self.request_required(Command::TunnelRegister, tunnel_control_payload(&tunnel))
+                .await?;
+            match start_remote_tunnel_runtime(&tunnel, &server_addr, &token, &session_id).await {
+                Ok(runtime) => {
+                    self.local_tunnels
+                        .lock()
+                        .await
+                        .insert(tunnel.id.clone(), runtime);
+                    let mut inner = self.inner.lock().await;
+                    let now = Utc::now().timestamp_millis();
+                    if let Some(record) = inner.tunnels.get_mut(&tunnel.id) {
+                        record.status = "running".to_string();
+                        record.started_at = record.started_at.or(Some(now));
+                        record.updated_at = now;
+                    }
+                    inner.log_tunnel("info", &tunnel.id, "tunnel recovered after reconnect");
+                    persist_runtime(&self.storage_path, &inner)?;
+                }
+                Err(error) => {
+                    self.record_tunnel_start_failure(&tunnel.id, &error).await;
+                    return Err(error);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn create_tunnel(
@@ -1286,6 +1537,30 @@ impl ClientRuntimeState {
         inner.sync_tunnel_state();
         let now = Utc::now().timestamp_millis();
         let traffic = runtime_traffic(&inner);
+        let http_requests_total = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+            .map(|tunnel| tunnel.request_count)
+            .sum::<u64>();
+        let http_active_requests = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+            .map(|tunnel| tunnel.connections)
+            .sum::<u64>();
+        let http_latency_total = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+            .map(|tunnel| tunnel.total_latency_ms)
+            .sum::<u64>();
+        let http_bandwidth_bytes = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+            .map(|tunnel| tunnel.upload_bytes.saturating_add(tunnel.download_bytes))
+            .sum::<u64>();
         json!([
             metric(
                 "gate.connection.current",
@@ -1306,6 +1581,24 @@ impl ClientRuntimeState {
                 now
             ),
             metric(
+                "gate.reconnect.count",
+                "Reconnect count",
+                "counter",
+                "recovery",
+                "count",
+                inner.counters.reconnect_total as f64,
+                now
+            ),
+            metric(
+                "gate.recovery.time.last",
+                "Last recovery time",
+                "gauge",
+                "recovery",
+                "milliseconds",
+                inner.counters.last_recovery_time_ms.unwrap_or_default() as f64,
+                now
+            ),
+            metric(
                 "gate.tunnel.count",
                 "Tunnel count",
                 "gauge",
@@ -1315,17 +1608,56 @@ impl ClientRuntimeState {
                 now
             ),
             metric(
-                "gate.http.request.count",
-                "HTTP requests",
-                "counter",
+                "gate.tunnel.uptime.total",
+                "Total tunnel uptime",
+                "gauge",
                 "tunnel",
-                "request",
+                "seconds",
                 inner
                     .tunnels
                     .values()
-                    .filter(|tunnel| tunnel.protocol == "http")
-                    .map(|tunnel| tunnel.request_count)
+                    .map(|tunnel| tunnel.uptime_seconds)
                     .sum::<u64>() as f64,
+                now
+            ),
+            metric(
+                "gate.http.requests_total",
+                "HTTP requests total",
+                "counter",
+                "tunnel",
+                "count",
+                http_requests_total as f64,
+                now
+            ),
+            metric(
+                "gate.http.active_requests",
+                "Active HTTP requests",
+                "gauge",
+                "tunnel",
+                "count",
+                http_active_requests as f64,
+                now
+            ),
+            metric(
+                "gate.http.latency.average",
+                "Average HTTP latency",
+                "gauge",
+                "tunnel",
+                "milliseconds",
+                if http_requests_total == 0 {
+                    0.0
+                } else {
+                    http_latency_total as f64 / http_requests_total as f64
+                },
+                now
+            ),
+            metric(
+                "gate.http.bandwidth.bytes",
+                "HTTP bandwidth",
+                "counter",
+                "tunnel",
+                "bytes",
+                http_bandwidth_bytes as f64,
                 now
             ),
             metric(
@@ -1394,6 +1726,38 @@ impl ClientRuntimeState {
         inner.log("info", "diagnostics", "startup diagnostics completed");
         let _ = persist_runtime(&self.storage_path, &inner);
         report
+    }
+
+    pub async fn recover_after_startup(&self) -> Result<Option<String>, String> {
+        let should_recover = {
+            let mut inner = self.inner.lock().await;
+            if inner.active_server_id.is_none() {
+                let auto_server_id = inner
+                    .servers
+                    .iter()
+                    .find(|(_, server)| server.auto_connect)
+                    .map(|(id, _)| id.clone());
+                inner.active_server_id = auto_server_id;
+            }
+
+            let Some(server_id) = inner.active_server_id.clone() else {
+                return Ok(None);
+            };
+            let Some(server) = inner.servers.get(&server_id) else {
+                inner.active_server_id = None;
+                return Ok(None);
+            };
+
+            server.auto_connect || matches!(server.status.as_str(), "recovering" | "connected")
+        };
+
+        if !should_recover {
+            return Ok(None);
+        }
+
+        self.restore_active_server_with_backoff(&default_reconnect_delays())
+            .await
+            .map(Some)
     }
 
     async fn shutdown_local_tunnel(&self, tunnel_id: &str) -> Result<(), String> {
@@ -1656,8 +2020,9 @@ async fn start_remote_tunnel_runtime(
         Ordering::Relaxed,
     );
 
-    let mut tasks = Vec::with_capacity(RELAY_WORKERS_PER_TUNNEL);
-    for worker_id in 0..RELAY_WORKERS_PER_TUNNEL {
+    let worker_count = relay_workers_per_tunnel();
+    let mut tasks = Vec::with_capacity(worker_count);
+    for worker_id in 0..worker_count {
         let config = RelayWorkerConfig {
             worker_id,
             server_host: server_host.clone(),
@@ -1687,25 +2052,38 @@ async fn relay_worker_loop(
     stats: Arc<RelayTunnelStats>,
     mut shutdown: watch::Receiver<bool>,
 ) {
+    // relay worker 失败时按固定退避序列重连，成功转发后立即补回空闲 worker。
+    let mut retry_attempt = 0_usize;
     loop {
         if *shutdown.borrow() {
             break;
         }
 
-        if relay_worker_once(config.clone(), Arc::clone(&stats), shutdown.clone())
-            .await
-            .is_err()
-        {
-            stats.failed_connections.fetch_add(1, Ordering::Relaxed);
-        }
+        let delay =
+            match relay_worker_once(config.clone(), Arc::clone(&stats), shutdown.clone()).await {
+                Ok(()) => {
+                    retry_attempt = 0;
+                    Duration::ZERO
+                }
+                Err(_) => {
+                    stats.failed_connections.fetch_add(1, Ordering::Relaxed);
+                    let delay = reconnect_delay(retry_attempt);
+                    retry_attempt = retry_attempt.saturating_add(1);
+                    delay
+                }
+            };
 
         if *shutdown.borrow() {
             break;
         }
 
-        tokio::select! {
-            _ = shutdown.changed() => {}
-            _ = sleep(RELAY_RECONNECT_DELAY) => {}
+        if delay.is_zero() {
+            tokio::task::yield_now().await;
+        } else {
+            tokio::select! {
+                _ = shutdown.changed() => {}
+                _ = sleep(delay) => {}
+            }
         }
     }
 }
@@ -1914,6 +2292,46 @@ fn default_config() -> BTreeMap<String, String> {
     config.insert("heartbeat.interval_ms".to_string(), "15000".to_string());
     config.insert("network.transport".to_string(), "tcp".to_string());
     config
+}
+
+fn default_reconnect_delays() -> Vec<Duration> {
+    if let Ok(value) = env::var("GATE_RECONNECT_DELAYS_MS") {
+        let delays = value
+            .split(',')
+            .filter_map(|item| item.trim().parse::<u64>().ok())
+            .filter(|millis| *millis > 0)
+            .map(Duration::from_millis)
+            .collect::<Vec<_>>();
+        if !delays.is_empty() {
+            return delays;
+        }
+    }
+
+    RECONNECT_DELAYS_SECS
+        .iter()
+        .copied()
+        .map(Duration::from_secs)
+        .collect()
+}
+
+fn relay_workers_per_tunnel() -> usize {
+    env::var("GATE_RELAY_WORKERS_PER_TUNNEL")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .map(|value| value.clamp(1, 4096))
+        .unwrap_or(RELAY_WORKERS_PER_TUNNEL)
+}
+
+fn reconnect_delay(attempt: usize) -> Duration {
+    let index = attempt.min(RECONNECT_DELAYS_SECS.len().saturating_sub(1));
+    Duration::from_secs(RECONNECT_DELAYS_SECS[index])
+}
+
+fn runtime_client_id(active_server_id: Option<&str>) -> String {
+    active_server_id
+        .map(|server_id| format!("gate-client:{server_id}"))
+        .unwrap_or_else(|| "gate-client:standalone".to_string())
 }
 
 fn runtime_store_path() -> PathBuf {
@@ -2234,6 +2652,15 @@ async fn establish_connection(
     server_addr: &str,
     token: &str,
 ) -> Result<(Arc<TcpTransport>, String), String> {
+    establish_connection_with_session(server_addr, token, None, None).await
+}
+
+async fn establish_connection_with_session(
+    server_addr: &str,
+    token: &str,
+    previous_session_id: Option<String>,
+    client_id: Option<String>,
+) -> Result<(Arc<TcpTransport>, String), String> {
     let endpoint = parse_endpoint(server_addr)?;
     let transport = Arc::new(TcpTransport::new());
     transport
@@ -2241,7 +2668,16 @@ async fn establish_connection(
         .await
         .map_err(|error| error.to_string())?;
 
-    let response = send_request(&transport, Command::AuthLogin, json!({ "token": token })).await?;
+    let mut auth = json!({ "token": token });
+    if let Some(previous_session_id) = previous_session_id.filter(|value| !value.trim().is_empty())
+    {
+        auth["sessionId"] = json!(previous_session_id);
+    }
+    if let Some(client_id) = client_id.filter(|value| !value.trim().is_empty()) {
+        auth["clientId"] = json!(client_id);
+    }
+
+    let response = send_request(&transport, Command::AuthLogin, auth).await?;
     ensure_ok(&response)?;
 
     let session_id = response
@@ -2376,6 +2812,52 @@ fn statistics_json(inner: &RuntimeInner) -> Value {
         .values()
         .map(|tunnel| tunnel.connections)
         .sum::<u64>();
+    let http_requests_total = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| tunnel.request_count)
+        .sum::<u64>();
+    let http_active_requests = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| tunnel.connections)
+        .sum::<u64>();
+    let http_latency_total = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| tunnel.total_latency_ms)
+        .sum::<u64>();
+    let http_bandwidth_bytes = inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .map(|tunnel| {
+            tunnel
+                .upload_bytes
+                .saturating_add(tunnel.download_bytes)
+                .saturating_add(
+                    tunnel
+                        .recent_requests
+                        .iter()
+                        .map(|request| request.traffic_bytes)
+                        .sum::<u64>(),
+                )
+        })
+        .sum::<u64>();
+    let mut http_status_codes = BTreeMap::<String, u64>::new();
+    for request in inner
+        .tunnels
+        .values()
+        .filter(|tunnel| tunnel.protocol == "http" || tunnel.protocol == "https")
+        .flat_map(|tunnel| tunnel.recent_requests.iter())
+    {
+        *http_status_codes
+            .entry(request.status.to_string())
+            .or_insert(0) += 1;
+    }
 
     json!({
         "collectedAt": now,
@@ -2408,6 +2890,14 @@ fn statistics_json(inner: &RuntimeInner) -> Value {
             "failure": inner.counters.auth_failure,
             "reconnect": inner.counters.reconnect_total,
             "disconnect": inner.counters.disconnect_total,
+            "recoverySuccess": inner.counters.recovery_success,
+            "recoveryFailure": inner.counters.recovery_failure,
+            "recoveryTimeMs": inner.counters.last_recovery_time_ms.unwrap_or_default(),
+            "averageRecoveryTimeMs": if inner.counters.recovery_success == 0 {
+                0.0
+            } else {
+                inner.counters.total_recovery_time_ms as f64 / inner.counters.recovery_success as f64
+            },
             "connectionDurationMs": if inner.connected { inner.started_at.elapsed().as_millis() as u64 } else { 0 },
             "averageRttMs": inner.counters.average_rtt_ms
         },
@@ -2418,6 +2908,18 @@ fn statistics_json(inner: &RuntimeInner) -> Value {
             "bufferUsage": 0,
             "sessionCount": inner.session_id.as_ref().map(|_| 1).unwrap_or(0),
             "runtimeUptimeSeconds": uptime
+        },
+        "http": {
+            "requestsTotal": http_requests_total,
+            "activeRequests": http_active_requests,
+            "statusCodes": http_status_codes,
+            "latency": {
+                "totalMs": http_latency_total,
+                "averageMs": if http_requests_total == 0 { 0.0 } else { http_latency_total as f64 / http_requests_total as f64 }
+            },
+            "bandwidth": {
+                "bytes": http_bandwidth_bytes
+            }
         },
         "tls": {
             "sessionCount": tls.session_count,
@@ -2977,6 +3479,92 @@ mod tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn client_reconnect_restores_session_and_registers_running_tunnel() -> anyhow::Result<()>
+    {
+        let register_count = Arc::new(AtomicU64::new(0));
+        let (server_addr, server_shutdown, server_task) =
+            start_reconnect_test_server(Arc::clone(&register_count)).await?;
+        let target_listener = TcpListener::bind("127.0.0.1:0").await?;
+        let target_addr = target_listener.local_addr()?;
+        let target_task = tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = target_listener.accept().await else {
+                    break;
+                };
+                tokio::spawn(async move {
+                    let mut buffer = [0_u8; 16];
+                    let _ = stream.read(&mut buffer).await;
+                });
+            }
+        });
+
+        let temp_dir = tempfile::tempdir()?;
+        let storage_path = temp_dir.path().join("runtime.json");
+        let server_id = "server-reconnect".to_string();
+        let previous_session_id = "session-old".to_string();
+        let now = Utc::now().timestamp_millis();
+        let mut inner = RuntimeInner::from_stored(StoredRuntime::default());
+        inner.servers.insert(
+            server_id.clone(),
+            ServerRecord {
+                id: server_id.clone(),
+                name: "reconnect-test".to_string(),
+                kind: "personal".to_string(),
+                host: server_addr.ip().to_string(),
+                port: server_addr.port(),
+                token: "gate-alpha-token".to_string(),
+                region: String::new(),
+                remark: String::new(),
+                tags: Vec::new(),
+                heartbeat_interval: 30,
+                reconnect_interval: 5,
+                auto_connect: true,
+                status: "connected".to_string(),
+                last_error: None,
+                last_rtt_ms: None,
+                session_id: Some(previous_session_id.clone()),
+                last_checked_at: Some(now),
+                last_connected_at: Some(now),
+                created_at: now,
+                updated_at: now,
+            },
+        );
+        inner.active_server_id = Some(server_id);
+        inner.session_id = Some(previous_session_id.clone());
+        inner.connected = false;
+
+        let mut tunnel =
+            test_tunnel_record("tcp", target_addr.port(), unused_loopback_port().await?);
+        tunnel.status = "running".to_string();
+        tunnel.started_at = Some(now);
+        inner.tunnels.insert(tunnel.id.clone(), tunnel);
+
+        let runtime = ClientRuntimeState {
+            storage_path,
+            domain_repository: None,
+            inner: Mutex::new(inner),
+            local_tunnels: Mutex::new(BTreeMap::new()),
+        };
+
+        let restored_session = runtime
+            .restore_active_server_with_backoff(&[Duration::from_millis(1)])
+            .await
+            .map_err(anyhow::Error::msg)?;
+
+        assert_eq!(restored_session, previous_session_id);
+        assert_eq!(register_count.load(Ordering::Relaxed), 1);
+
+        runtime
+            .shutdown_all_local_tunnels()
+            .await
+            .map_err(anyhow::Error::msg)?;
+        let _ = server_shutdown.send(true);
+        server_task.abort();
+        target_task.abort();
+        Ok(())
+    }
+
     async fn unused_loopback_port() -> anyhow::Result<u16> {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let port = listener.local_addr()?.port();
@@ -3018,5 +3606,84 @@ mod tests {
             certificate_issuer: None,
             recent_requests: Vec::new(),
         }
+    }
+
+    async fn start_reconnect_test_server(
+        register_count: Arc<AtomicU64>,
+    ) -> anyhow::Result<(SocketAddr, watch::Sender<bool>, JoinHandle<()>)> {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = listener.local_addr()?;
+        let (shutdown, mut shutdown_rx) = watch::channel(false);
+        let task = tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = shutdown_rx.changed() => break,
+                    accepted = listener.accept() => {
+                        let Ok((stream, _)) = accepted else {
+                            continue;
+                        };
+                        let register_count = Arc::clone(&register_count);
+                        tokio::spawn(async move {
+                            let _ = handle_reconnect_test_connection(stream, register_count).await;
+                        });
+                    }
+                }
+            }
+        });
+
+        Ok((addr, shutdown, task))
+    }
+
+    async fn handle_reconnect_test_connection(
+        mut stream: TcpStream,
+        register_count: Arc<AtomicU64>,
+    ) -> anyhow::Result<()> {
+        let protocol = ProtocolBuilder::new().build();
+        loop {
+            let Some(message) = read_protocol_message(&mut stream, &protocol)
+                .await
+                .map_err(anyhow::Error::msg)?
+            else {
+                break;
+            };
+
+            let body = match &message.body {
+                Body::Json(value) => value.clone(),
+                _ => Value::Null,
+            };
+            let response_body = match message.header.command {
+                Command::AuthLogin => {
+                    let session_id = body
+                        .get("sessionId")
+                        .and_then(Value::as_str)
+                        .unwrap_or("session-new");
+                    json!({ "ok": true, "data": { "sessionId": session_id } })
+                }
+                Command::TunnelRegister | Command::TunnelStart => {
+                    register_count.fetch_add(1, Ordering::Relaxed);
+                    json!({ "ok": true, "data": { "registered": true } })
+                }
+                Command::TunnelRelayConnect => {
+                    json!({ "ok": true, "data": { "waiting": true } })
+                }
+                _ => json!({ "ok": true, "data": {} }),
+            };
+            let mut response = Message::new(
+                gate_protocol::MessageType::Response,
+                message.header.command.clone(),
+                Body::Json(response_body),
+                Metadata::default(),
+            );
+            response.header.request_id = message.header.request_id;
+            write_protocol_message(&mut stream, &protocol, &response)
+                .await
+                .map_err(anyhow::Error::msg)?;
+
+            if message.header.command == Command::TunnelRelayConnect {
+                break;
+            }
+        }
+
+        Ok(())
     }
 }

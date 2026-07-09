@@ -16,6 +16,8 @@ pub struct CertificateRecord {
     pub cert_path: Option<PathBuf>,
     pub key_path: Option<PathBuf>,
     pub serial_number: Option<String>,
+    #[serde(default)]
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

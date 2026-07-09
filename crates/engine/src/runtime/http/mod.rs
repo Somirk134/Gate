@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -333,9 +334,13 @@ pub struct HttpRouteMetrics {
     pub name: String,
     pub host: Option<String>,
     pub path_prefix: Option<String>,
+    pub requests_total: u64,
     pub request_count: u64,
     pub success_count: u64,
     pub failure_count: u64,
+    pub status_codes: HashMap<u16, u64>,
+    pub latency: HttpLatencyMetrics,
+    pub bandwidth: HttpBandwidthMetrics,
     pub success_rate: f64,
     pub average_latency_ms: f64,
     pub recent_requests: Vec<HttpRequestLog>,
@@ -344,13 +349,33 @@ pub struct HttpRouteMetrics {
 /// Runtime-level HTTP metrics for dashboard views.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HttpRuntimeMetrics {
+    pub requests_total: u64,
+    pub active_requests: u64,
     pub request_count: u64,
     pub success_count: u64,
     pub failure_count: u64,
+    pub status_codes: HashMap<u16, u64>,
+    pub latency: HttpLatencyMetrics,
+    pub bandwidth: HttpBandwidthMetrics,
     pub success_rate: f64,
     pub average_latency_ms: f64,
     pub recent_requests: Vec<HttpRequestLog>,
     pub routes: Vec<HttpRouteMetrics>,
+}
+
+/// HTTP 延迟指标，保留总量便于外部计算窗口平均值。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HttpLatencyMetrics {
+    pub total_ms: u64,
+    pub average_ms: f64,
+}
+
+/// HTTP 带宽指标，按请求日志真实累计上传和下载字节。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HttpBandwidthMetrics {
+    pub upload_bytes: u64,
+    pub download_bytes: u64,
+    pub total_bytes: u64,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -363,6 +388,9 @@ struct RouteAggregate {
     success_count: u64,
     failure_count: u64,
     total_latency_ms: u128,
+    upload_bytes: u64,
+    download_bytes: u64,
+    status_codes: HashMap<u16, u64>,
 }
 
 #[derive(Debug)]
@@ -374,6 +402,9 @@ struct HttpLogState {
     success_count: u64,
     failure_count: u64,
     total_latency_ms: u128,
+    upload_bytes: u64,
+    download_bytes: u64,
+    status_codes: HashMap<u16, u64>,
 }
 
 impl HttpLogState {
@@ -386,6 +417,9 @@ impl HttpLogState {
             success_count: 0,
             failure_count: 0,
             total_latency_ms: 0,
+            upload_bytes: 0,
+            download_bytes: 0,
+            status_codes: HashMap::new(),
         }
     }
 }
@@ -394,13 +428,27 @@ impl HttpLogState {
 #[derive(Debug)]
 pub struct HttpLogStore {
     state: Mutex<HttpLogState>,
+    active_requests: AtomicU64,
 }
 
 impl HttpLogStore {
     pub fn new(recent_limit: usize) -> Self {
         Self {
             state: Mutex::new(HttpLogState::new(recent_limit)),
+            active_requests: AtomicU64::new(0),
         }
+    }
+
+    fn begin_request(&self) {
+        self.active_requests.fetch_add(1, Ordering::Relaxed);
+    }
+
+    fn end_request(&self) {
+        let _ = self
+            .active_requests
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                value.checked_sub(1)
+            });
     }
 
     pub fn record(&self, route: Option<&HttpRouteConfig>, log: HttpRequestLog) {
@@ -415,6 +463,9 @@ impl HttpLogStore {
         state.total_latency_ms = state
             .total_latency_ms
             .saturating_add(u128::from(log.latency_ms));
+        state.upload_bytes = state.upload_bytes.saturating_add(log.upload_bytes);
+        state.download_bytes = state.download_bytes.saturating_add(log.download_bytes);
+        *state.status_codes.entry(log.status).or_insert(0) += 1;
 
         if let Some(route) = route {
             let key = route.tunnel_id.to_string();
@@ -437,6 +488,9 @@ impl HttpLogStore {
             aggregate.total_latency_ms = aggregate
                 .total_latency_ms
                 .saturating_add(u128::from(log.latency_ms));
+            aggregate.upload_bytes = aggregate.upload_bytes.saturating_add(log.upload_bytes);
+            aggregate.download_bytes = aggregate.download_bytes.saturating_add(log.download_bytes);
+            *aggregate.status_codes.entry(log.status).or_insert(0) += 1;
         }
 
         state.logs.push_back(log);
@@ -448,6 +502,7 @@ impl HttpLogStore {
     pub fn snapshot(&self) -> HttpRuntimeMetrics {
         let state = self.state.lock();
         let recent_requests = state.logs.iter().cloned().collect::<Vec<_>>();
+        let active_requests = self.active_requests.load(Ordering::Relaxed);
         let routes = state
             .routes
             .values()
@@ -462,9 +517,22 @@ impl HttpLogStore {
                     name: aggregate.name.clone(),
                     host: aggregate.host.clone(),
                     path_prefix: aggregate.path_prefix.clone(),
+                    requests_total: aggregate.request_count,
                     request_count: aggregate.request_count,
                     success_count: aggregate.success_count,
                     failure_count: aggregate.failure_count,
+                    status_codes: aggregate.status_codes.clone(),
+                    latency: HttpLatencyMetrics {
+                        total_ms: saturating_u128_to_u64(aggregate.total_latency_ms),
+                        average_ms: average(aggregate.total_latency_ms, aggregate.request_count),
+                    },
+                    bandwidth: HttpBandwidthMetrics {
+                        upload_bytes: aggregate.upload_bytes,
+                        download_bytes: aggregate.download_bytes,
+                        total_bytes: aggregate
+                            .upload_bytes
+                            .saturating_add(aggregate.download_bytes),
+                    },
                     success_rate: ratio(aggregate.success_count, aggregate.request_count),
                     average_latency_ms: average(
                         aggregate.total_latency_ms,
@@ -476,14 +544,43 @@ impl HttpLogStore {
             .collect::<Vec<_>>();
 
         HttpRuntimeMetrics {
+            requests_total: state.request_count,
+            active_requests,
             request_count: state.request_count,
             success_count: state.success_count,
             failure_count: state.failure_count,
+            status_codes: state.status_codes.clone(),
+            latency: HttpLatencyMetrics {
+                total_ms: saturating_u128_to_u64(state.total_latency_ms),
+                average_ms: average(state.total_latency_ms, state.request_count),
+            },
+            bandwidth: HttpBandwidthMetrics {
+                upload_bytes: state.upload_bytes,
+                download_bytes: state.download_bytes,
+                total_bytes: state.upload_bytes.saturating_add(state.download_bytes),
+            },
             success_rate: ratio(state.success_count, state.request_count),
             average_latency_ms: average(state.total_latency_ms, state.request_count),
             recent_requests,
             routes,
         }
+    }
+}
+
+struct ActiveHttpRequest {
+    logs: Arc<HttpLogStore>,
+}
+
+impl ActiveHttpRequest {
+    fn new(logs: Arc<HttpLogStore>) -> Self {
+        logs.begin_request();
+        Self { logs }
+    }
+}
+
+impl Drop for ActiveHttpRequest {
+    fn drop(&mut self) {
+        self.logs.end_request();
     }
 }
 
@@ -1000,6 +1097,7 @@ impl HttpTunnelRuntime {
             };
 
             let started = Instant::now();
+            let _active_request = ActiveHttpRequest::new(Arc::clone(&self.inner.logs));
             let request = match HttpHead::parse_request(&head_bytes) {
                 Ok(request) => request,
                 Err(_) => {
@@ -2102,6 +2200,10 @@ fn average(total_latency_ms: u128, count: u64) -> f64 {
     } else {
         total_latency_ms as f64 / count as f64
     }
+}
+
+fn saturating_u128_to_u64(value: u128) -> u64 {
+    value.min(u128::from(u64::MAX)) as u64
 }
 
 fn forward_io(source: Error) -> RuntimeError {
