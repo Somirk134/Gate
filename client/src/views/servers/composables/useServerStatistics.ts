@@ -5,10 +5,12 @@
    ================================================================== */
 
 import { computed, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Server } from '../types'
 import { isOnlineStatus } from '../utils'
 
 export function useServerStatistics(servers: Ref<Server[]>) {
+  const { t } = useI18n()
   const total = computed(() => servers.value.length)
   const online = computed(() => servers.value.filter((s) => isOnlineStatus(s.status)))
   const offline = computed(() =>
@@ -67,9 +69,9 @@ export function useServerStatistics(servers: Ref<Server[]>) {
 
   /** 状态分布 */
   const statusDistribution = computed(() => [
-    { key: 'online', label: '在线', value: onlineCount.value, color: '#22C55E' },
-    { key: 'offline', label: '离线', value: offlineCount.value, color: '#6B6B72' },
-    { key: 'error', label: '异常', value: errorCount.value, color: '#EF4444' },
+    { key: 'online', label: t('server.statusDistribution.online'), value: onlineCount.value, color: '#22C55E' },
+    { key: 'offline', label: t('server.statusDistribution.offline'), value: offlineCount.value, color: '#6B6B72' },
+    { key: 'error', label: t('server.statusDistribution.error'), value: errorCount.value, color: '#EF4444' },
   ])
 
   return {

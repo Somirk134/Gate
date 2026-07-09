@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { i18n } from '@/i18n'
 import { serverService, type RuntimeServerRecord } from '@/services/server.service'
 import type {
   ConnectionMethod,
@@ -10,6 +11,13 @@ import type {
   ServerStatus,
 } from '../types'
 import { SERVER_STATUS_CONFIG, isOnlineStatus, isTransitionStatus } from '../utils'
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 export const defaultServerForm: ServerFormData = {
   name: '',
@@ -83,7 +91,7 @@ export const useServerStore = defineStore('server-module', () => {
       lastUpdated.value = Date.now()
     } catch (e) {
       status.value = 'error'
-      error.value = e instanceof Error ? e.message : '服务器加载失败'
+      error.value = e instanceof Error ? e.message : t('server.errors.loadFailed')
     }
   }
 
@@ -96,7 +104,7 @@ export const useServerStore = defineStore('server-module', () => {
     await load()
     const created = getById(id)
     if (!created) {
-      throw new Error('服务器已保存，但无法从 Runtime Store 重新读取。')
+      throw new Error(t('server.errors.savedReloadFailed'))
     }
     return created
   }
@@ -136,7 +144,7 @@ export const useServerStore = defineStore('server-module', () => {
     const result = await serverService.test(id)
     await load()
     if (!result.ok) {
-      throw new Error(result.error || '服务器连接测试失败')
+      throw new Error(result.error || t('server.errors.connectionTestFailed'))
     }
   }
 
@@ -198,7 +206,9 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
   const status = normalizeStatus(row.status, row.id === activeId)
   const createdAt = toIso(row.createdAt)
   const updatedAt = toIso(row.updatedAt)
-  const lastConnectedAt = row.lastConnectedAt ? formatRelative(row.lastConnectedAt) : '从未连接'
+  const lastConnectedAt = row.lastConnectedAt
+    ? formatRelative(row.lastConnectedAt)
+    : t('server.neverConnected')
   const ping = row.lastRttMs ?? 0
 
   return {
@@ -207,7 +217,7 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
     kind: normalizeKind(row.kind),
     region: row.region,
     publicIp: row.host,
-    version: row.sessionId ? '已连接' : '未知',
+    version: row.sessionId ? t('server.connectedVersion') : t('common.unknown'),
     status,
     connectionMethod: 'tcp' as ConnectionMethod,
     ping,
@@ -216,13 +226,13 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
     recent: false,
     overview: {
       hostname: row.host,
-      os: '未知',
-      arch: '未知',
-      rustVersion: '未知',
-      serverVersion: row.sessionId ? '已认证' : '未知',
+      os: t('common.unknown'),
+      arch: t('common.unknown'),
+      rustVersion: t('common.unknown'),
+      serverVersion: row.sessionId ? t('server.authenticated') : t('common.unknown'),
       installTime: createdAt,
       lastOnline: lastConnectedAt,
-      lastHeartbeat: row.lastCheckedAt ? formatRelative(row.lastCheckedAt) : '从未连接',
+      lastHeartbeat: row.lastCheckedAt ? formatRelative(row.lastCheckedAt) : t('server.neverConnected'),
     },
     monitor: emptyMonitor(),
     traffic: emptyTraffic(),
@@ -324,9 +334,11 @@ function healthFromStatus(
     items: [
       {
         key: 'connection',
-        label: '连接',
+        label: t('server.health.connection'),
         status: healthy ? 'pass' : warning ? 'warn' : failed ? 'fail' : 'pending',
-        message: lastError ?? (healthy ? 'Runtime 已认证' : `等待连接到 ${host}`),
+        message:
+          lastError ??
+          (healthy ? t('server.health.runtimeAuthenticated') : t('server.health.waitingForHost', { host })),
         latency: ping,
         icon: healthy ? 'check-circle' : failed ? 'alert-circle' : 'clock',
       },
@@ -340,12 +352,12 @@ function toIso(value: number): string {
 
 function formatRelative(value: number): string {
   const diffSeconds = Math.max(0, Math.round((Date.now() - value) / 1000))
-  if (diffSeconds < 60) return `${diffSeconds} 秒前`
+  if (diffSeconds < 60) return t('server.relative.secondsAgo', { count: diffSeconds })
   const minutes = Math.floor(diffSeconds / 60)
-  if (minutes < 60) return `${minutes} 分钟前`
+  if (minutes < 60) return t('server.relative.minutesAgo', { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小时前`
-  return `${Math.floor(hours / 24)} 天前`
+  if (hours < 24) return t('server.relative.hoursAgo', { count: hours })
+  return t('server.relative.daysAgo', { count: Math.floor(hours / 24) })
 }
 
 export { SERVER_STATUS_CONFIG, isOnlineStatus, isTransitionStatus }

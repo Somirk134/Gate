@@ -28,6 +28,6 @@ const form = reactive({
 })
 
 function handleLogin() {
-  throw new Error('该功能暂未实现：登录后台尚未接入。')
+  throw new Error(t('auth.loginUnavailable'))
 }
 </script>

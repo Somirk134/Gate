@@ -8,9 +8,8 @@
       </transition>
     </router-view>
 
-    <!-- 空状态兜底 -->
     <div v-if="!routeHasComponent" class="content-empty">
-      <GEmptyState title="暂无内容" description="这个页面暂时不可用。" />
+      <GEmptyState :title="t('shell.empty.title')" :description="t('shell.empty.description')" />
     </div>
   </main>
 </template>
@@ -18,12 +17,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import GEmptyState from '@components/feedback/GEmptyState.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const cachedViews = ref<string[]>(['dashboard', 'projects', 'settings'])
 
+// 路由兜底文案走 i18n，避免语言切换后空状态不刷新。
 const routeHasComponent = computed(() => {
   return route.matched.length > 0
 })
@@ -48,7 +50,7 @@ const routeHasComponent = computed(() => {
   height: 100%;
 }
 
-/* ── Page Transition ── */
+/* 页面过渡 */
 .page-enter-active,
 .page-leave-active {
   transition:

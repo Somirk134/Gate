@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { i18n } from '@/i18n'
 import type {
   SettingActionStatus,
   SettingCategory,
@@ -17,31 +18,44 @@ import {
   validateSettingValue,
 } from '../utils'
 
-const settingsCategories: SettingCategory[] = [
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
+
+function currentLocale(): string {
+  const locale = (i18n.global as unknown as { locale: string | { value: string } }).locale
+  return typeof locale === 'string' ? locale : locale.value
+}
+
+function buildSettingsCategories(): SettingCategory[] {
+  return [
   {
     id: 'general',
-    label: '通用',
-    description: '基础应用偏好。',
+    label: t('settings.general'),
+    description: t('settings.legacy.generalDescription'),
     icon: 'settings',
     order: 1,
     groups: [
       {
         id: 'general.language',
         categoryId: 'general',
-        label: '语言',
+        label: t('settings.language'),
         items: [
           {
             id: 'general.language',
             key: 'general.language',
             categoryId: 'general',
             groupId: 'general.language',
-            label: '语言',
-            description: '界面语言。',
+            label: t('settings.language'),
+            description: t('settings.legacy.languageDescription'),
             control: {
               type: 'select',
               options: [
-                { label: '简体中文', value: 'zh-CN' },
-                { label: 'English', value: 'en-US' },
+                { label: t('settings.legacy.simplifiedChinese'), value: 'zh-CN' },
+                { label: t('settings.languageEn'), value: 'en-US' },
               ],
             },
             defaultValue: 'zh-CN',
@@ -53,29 +67,29 @@ const settingsCategories: SettingCategory[] = [
   },
   {
     id: 'appearance',
-    label: '外观',
-    description: '界面主题偏好。',
+    label: t('settings.appearance'),
+    description: t('settings.legacy.appearanceDescription'),
     icon: 'palette',
     order: 2,
     groups: [
       {
         id: 'appearance.theme',
         categoryId: 'appearance',
-        label: '主题',
+        label: t('settings.theme'),
         items: [
           {
             id: 'appearance.theme',
             key: 'appearance.theme',
             categoryId: 'appearance',
             groupId: 'appearance.theme',
-            label: '主题',
-            description: '选择浅色、深色或跟随系统。',
+            label: t('settings.theme'),
+            description: t('settings.legacy.themeDescription'),
             control: {
               type: 'select',
               options: [
-                { label: '深色', value: 'dark' },
-                { label: '浅色', value: 'light' },
-                { label: '跟随系统', value: 'system' },
+                { label: t('settings.themeDark'), value: 'dark' },
+                { label: t('settings.themeLight'), value: 'light' },
+                { label: t('settings.themeSystem'), value: 'system' },
               ],
             },
             defaultValue: 'dark',
@@ -85,12 +99,16 @@ const settingsCategories: SettingCategory[] = [
       },
     ],
   },
-]
+  ]
+}
 
 export const useSettingsStore = defineStore('settings', () => {
-  const categories = ref<SettingCategory[]>(settingsCategories)
+  const categories = computed<SettingCategory[]>(() => {
+    currentLocale()
+    return buildSettingsCategories()
+  })
   const defaults = computed(() => getDefaultValues(categories.value))
-  const values = ref<Record<string, SettingValue>>(getDefaultValues(settingsCategories))
+  const values = ref<Record<string, SettingValue>>(getDefaultValues(buildSettingsCategories()))
   const validationErrors = ref<Record<string, string | undefined>>({})
   const activeCategoryId = ref<SettingCategoryId>('general')
   const activeGroupId = ref<string | null>(null)
@@ -254,7 +272,7 @@ export const useSettingsStore = defineStore('settings', () => {
     actionStatuses.value = { ...actionStatuses.value, [actionId]: 'idle' }
     validationErrors.value = {
       ...validationErrors.value,
-      [actionId]: '该功能暂未实现',
+      [actionId]: t('settings.legacy.notImplemented'),
     }
   }
 

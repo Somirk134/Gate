@@ -1,4 +1,4 @@
-import { TauriIpcClient } from '@/ipc'
+import { GateAppError, TauriIpcClient } from '@/ipc'
 import type { DashboardData } from '@/monitoring/types'
 import { isTauri } from '@tauri-apps/api/core'
 
@@ -10,7 +10,11 @@ function isTauriRuntime() {
 
 function ensureRuntime() {
   if (!isTauriRuntime()) {
-    throw new Error('该功能暂未实现：当前环境未连接 Tauri Rust Backend。')
+    throw new GateAppError({
+      code: 'RUNTIME_UNAVAILABLE',
+      messageKey: 'errors.runtimeUnavailable',
+      timestamp: Date.now(),
+    })
   }
 }
 

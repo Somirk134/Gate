@@ -11,13 +11,13 @@
           <span class="tunnel-traffic-card__icon" style="background: #22c55e22; color: #22c55e">
             <GIcon name="arrow-up" :size="16" />
           </span>
-          <span class="tunnel-traffic-card__label">上传速度</span>
+          <span class="tunnel-traffic-card__label">{{ t('tunnel.metrics.uploadSpeed') }}</span>
         </div>
         <span class="tunnel-traffic-card__value">{{
           formatSpeed(tunnel.traffic.uploadSpeed)
         }}</span>
         <span class="tunnel-traffic-card__sub"
-          >今日 {{ formatBytes(tunnel.traffic.todayUpload) }}</span
+          >{{ t('tunnel.metrics.todayValue', { value: formatBytes(tunnel.traffic.todayUpload) }) }}</span
         >
       </div>
 
@@ -26,13 +26,13 @@
           <span class="tunnel-traffic-card__icon" style="background: #5b8def22; color: #5b8def">
             <GIcon name="arrow-down" :size="16" />
           </span>
-          <span class="tunnel-traffic-card__label">下载速度</span>
+          <span class="tunnel-traffic-card__label">{{ t('tunnel.metrics.downloadSpeed') }}</span>
         </div>
         <span class="tunnel-traffic-card__value">{{
           formatSpeed(tunnel.traffic.downloadSpeed)
         }}</span>
         <span class="tunnel-traffic-card__sub"
-          >今日 {{ formatBytes(tunnel.traffic.todayDownload) }}</span
+          >{{ t('tunnel.metrics.todayValue', { value: formatBytes(tunnel.traffic.todayDownload) }) }}</span
         >
       </div>
 
@@ -41,13 +41,13 @@
           <span class="tunnel-traffic-card__icon" style="background: #7c6ff222; color: #7c6ff2">
             <GIcon name="cloud-upload" :size="16" />
           </span>
-          <span class="tunnel-traffic-card__label">累计上传</span>
+          <span class="tunnel-traffic-card__label">{{ t('tunnel.metrics.totalUpload') }}</span>
         </div>
         <span class="tunnel-traffic-card__value">{{
           formatBytes(tunnel.traffic.totalUpload)
         }}</span>
         <span class="tunnel-traffic-card__sub"
-          >峰值 {{ formatSpeed(tunnel.statistics.peakSpeed) }}</span
+          >{{ t('tunnel.metrics.peakValue', { value: formatSpeed(tunnel.statistics.peakSpeed) }) }}</span
         >
       </div>
 
@@ -56,12 +56,14 @@
           <span class="tunnel-traffic-card__icon" style="background: #06b6d422; color: #06b6d4">
             <GIcon name="cloud-download" :size="16" />
           </span>
-          <span class="tunnel-traffic-card__label">累计下载</span>
+          <span class="tunnel-traffic-card__label">{{ t('tunnel.metrics.totalDownload') }}</span>
         </div>
         <span class="tunnel-traffic-card__value">{{
           formatBytes(tunnel.traffic.totalDownload)
         }}</span>
-        <span class="tunnel-traffic-card__sub">总计 {{ formatBytes(totalBytes) }}</span>
+        <span class="tunnel-traffic-card__sub">{{
+          t('tunnel.metrics.totalValue', { value: formatBytes(totalBytes) })
+        }}</span>
       </div>
     </div>
 
@@ -69,7 +71,7 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="chart-line" :size="12" />
-        流量趋势（最近 12 个采样点）
+        {{ t('tunnel.traffic.trendTitle') }}
       </div>
       <div class="tunnel-traffic__chart-wrap">
         <svg class="tunnel-traffic__chart" viewBox="0 0 600 180" preserveAspectRatio="none">
@@ -103,11 +105,11 @@
         <div class="tunnel-traffic__legend">
           <span class="tunnel-traffic__legend-item">
             <span class="tunnel-traffic__legend-dot" style="background: #5b8def" />
-            下载
+            {{ t('tunnel.metrics.download') }}
           </span>
           <span class="tunnel-traffic__legend-item">
             <span class="tunnel-traffic__legend-dot" style="background: #22c55e" />
-            上传
+            {{ t('tunnel.metrics.upload') }}
           </span>
         </div>
       </div>
@@ -117,15 +119,15 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="history" :size="12" />
-        历史采样
+        {{ t('tunnel.traffic.historyTitle') }}
       </div>
       <div class="tunnel-conn-table">
         <div class="tunnel-conn-row tunnel-conn-row--head">
-          <span class="tunnel-conn-row__cell">时间</span>
-          <span class="tunnel-conn-row__cell">上传</span>
-          <span class="tunnel-conn-row__cell">下载</span>
-          <span class="tunnel-conn-row__cell">合计</span>
-          <span class="tunnel-conn-row__cell">趋势</span>
+          <span class="tunnel-conn-row__cell">{{ t('tunnel.traffic.time') }}</span>
+          <span class="tunnel-conn-row__cell">{{ t('tunnel.metrics.upload') }}</span>
+          <span class="tunnel-conn-row__cell">{{ t('tunnel.metrics.download') }}</span>
+          <span class="tunnel-conn-row__cell">{{ t('tunnel.traffic.total') }}</span>
+          <span class="tunnel-conn-row__cell">{{ t('tunnel.traffic.trend') }}</span>
         </div>
         <div v-for="(p, i) in tunnel.traffic.history" :key="i" class="tunnel-conn-row">
           <span class="tunnel-conn-row__cell mono">{{ p.time }}</span>
@@ -143,11 +145,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Tunnel } from '../types'
 import { formatBytes, formatSpeed } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 const totalBytes = computed(
   () => props.tunnel.traffic.totalUpload + props.tunnel.traffic.totalDownload,

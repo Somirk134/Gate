@@ -9,7 +9,7 @@
     :model-value="modelValue"
     :type="visible ? 'text' : 'password'"
     :size="size"
-    :placeholder="placeholder ?? '粘贴或输入 Token'"
+    :placeholder="placeholderText"
     :state="state"
     :disabled="disabled"
     prefix="key"
@@ -18,14 +18,14 @@
       <button
         type="button"
         class="g-token__action"
-        :title="visible ? '隐藏' : '显示'"
+        :title="visible ? t('form.hideSecret') : t('form.showSecret')"
         @click="visible = !visible">
         <GIcon :name="visible ? 'eye-off' : 'eye'" :size="14" />
       </button>
       <button
         type="button"
         class="g-token__action"
-        :title="copied ? '已复制' : '复制'"
+        :title="copied ? t('form.copied') : t('form.copy')"
         @click="copy">
         <GIcon :name="copied ? 'check' : 'copy'" :size="14" />
       </button>
@@ -34,7 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GInput from './GInput.vue'
 import GIcon from '@components/icons/GIcon.vue'
 
@@ -60,13 +61,15 @@ const emit = defineEmits<{
 
 const visible = ref(false)
 const copied = ref(false)
+const { t } = useI18n()
+const placeholderText = computed(() => props.placeholder ?? t('form.tokenPlaceholder'))
 
 async function copy() {
   if (!props.modelValue) return
   try {
     await navigator.clipboard.writeText(props.modelValue)
   } catch {
-    /* 业务层可自行处理 */
+    /* 业务层可自行处理复制失败。 */
   }
   emit('copy', props.modelValue)
   copied.value = true

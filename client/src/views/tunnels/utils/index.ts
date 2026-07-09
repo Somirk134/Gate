@@ -19,7 +19,7 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'http',
     label: 'HTTP',
-    description: 'Web 服务 / API 反向代理',
+    description: 'http',
     availability: 'enabled',
     icon: 'globe',
     color: '#5B8DEF',
@@ -27,7 +27,7 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'tcp',
     label: 'TCP',
-    description: '任意 TCP 端口转发',
+    description: 'tcp',
     availability: 'enabled',
     icon: 'router',
     color: '#22C55E',
@@ -35,7 +35,7 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'https',
     label: 'HTTPS',
-    description: '加密 Web 反向代理，自动证书与 SNI 路由',
+    description: 'https',
     availability: 'enabled',
     icon: 'shield',
     color: '#7C6FF2',
@@ -43,7 +43,7 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'udp',
     label: 'UDP',
-    description: 'UDP 协议转发（计划中）',
+    description: 'udp',
     availability: 'planned',
     icon: 'radio',
     color: '#F59E0B',
@@ -51,7 +51,7 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'p2p',
     label: 'P2P',
-    description: '点对点穿透（计划中）',
+    description: 'p2p',
     availability: 'planned',
     icon: 'network',
     color: '#06B6D4',
@@ -69,76 +69,76 @@ export const PROTOCOL_MAP: Record<TunnelProtocol, ProtocolPreset> = PROTOCOL_PRE
 
 /* ── 预置标签 ── */
 export const TUNNEL_TAGS: TagPreset[] = [
-  { name: 'API', color: '#5B8DEF' },
-  { name: 'Frontend', color: '#06B6D4' },
-  { name: 'SSH', color: '#22C55E' },
-  { name: 'Database', color: '#EF4444' },
-  { name: 'Demo', color: '#F59E0B' },
-  { name: 'Production', color: '#EF4444' },
-  { name: 'Staging', color: '#06B6D4' },
-  { name: 'Personal', color: '#7C6FF2' },
+  { name: 'api', color: '#5B8DEF' },
+  { name: 'frontend', color: '#06B6D4' },
+  { name: 'ssh', color: '#22C55E' },
+  { name: 'database', color: '#EF4444' },
+  { name: 'demo', color: '#F59E0B' },
+  { name: 'production', color: '#EF4444' },
+  { name: 'staging', color: '#06B6D4' },
+  { name: 'personal', color: '#7C6FF2' },
 ]
 
 /* ── 状态配置：统一全模块状态展示 ── */
 export const TUNNEL_STATUS_CONFIG: Record<TunnelStatus, TunnelStatusConfig> = {
   running: {
-    label: '运行中',
+    label: 'running',
     dotStatus: 'online',
     badgeVariant: 'success',
     pulse: false,
     weight: 0,
   },
   connecting: {
-    label: '连接中',
+    label: 'connecting',
     dotStatus: 'connecting',
     badgeVariant: 'warning',
     pulse: true,
     weight: 1,
   },
   starting: {
-    label: '启动中',
+    label: 'starting',
     dotStatus: 'starting',
     badgeVariant: 'info',
     pulse: true,
     weight: 2,
   },
   restarting: {
-    label: '重启中',
+    label: 'restarting',
     dotStatus: 'connecting',
     badgeVariant: 'info',
     pulse: true,
     weight: 3,
   },
   stopping: {
-    label: '停止中',
+    label: 'stopping',
     dotStatus: 'warning',
     badgeVariant: 'warning',
     pulse: true,
     weight: 4,
   },
   error: {
-    label: '异常',
+    label: 'error',
     dotStatus: 'error',
     badgeVariant: 'error',
     pulse: false,
     weight: 5,
   },
   disconnected: {
-    label: '已断开',
+    label: 'disconnected',
     dotStatus: 'warning',
     badgeVariant: 'warning',
     pulse: false,
     weight: 6,
   },
   stopped: {
-    label: '已停止',
+    label: 'stopped',
     dotStatus: 'offline',
     badgeVariant: 'neutral',
     pulse: false,
     weight: 7,
   },
   offline: {
-    label: '离线',
+    label: 'offline',
     dotStatus: 'offline',
     badgeVariant: 'neutral',
     pulse: false,
@@ -214,16 +214,18 @@ export function formatSpeed(bytesPerSec: number): string {
 }
 
 /* ── 格式化：时长（秒） ── */
-export function formatDuration(seconds: number): string {
-  if (seconds <= 0) return '0 秒'
+type TranslateFn = (key: string, params?: Record<string, number>) => string
+
+export function formatDuration(seconds: number, t: TranslateFn): string {
+  if (seconds <= 0) return t('common.time.seconds', { count: 0 })
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
-  if (d > 0) return `${d} 天 ${h} 小时`
-  if (h > 0) return `${h} 小时 ${m} 分钟`
-  if (m > 0) return `${m} 分钟 ${s} 秒`
-  return `${s} 秒`
+  if (d > 0) return t('common.time.daysHours', { days: d, hours: h })
+  if (h > 0) return t('common.time.hoursMinutes', { hours: h, minutes: m })
+  if (m > 0) return t('common.time.minutesSeconds', { minutes: m, seconds: s })
+  return t('common.time.seconds', { count: s })
 }
 
 /* ── 格式化：数字（千分位） ── */

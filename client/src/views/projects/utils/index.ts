@@ -17,17 +17,17 @@ import type {
 
 /* ── 颜色预设 ── */
 export const PROJECT_COLORS: ColorPreset[] = [
-  { key: 'blue', label: '蓝色', value: '#5B8DEF' },
-  { key: 'green', label: '绿色', value: '#22C55E' },
-  { key: 'purple', label: '紫色', value: '#7C6FF2' },
-  { key: 'orange', label: '橙色', value: '#F59E0B' },
-  { key: 'red', label: '红色', value: '#EF4444' },
-  { key: 'cyan', label: '青色', value: '#06B6D4' },
-  { key: 'pink', label: '粉色', value: '#EC4899' },
-  { key: 'indigo', label: '靛蓝', value: '#6366F1' },
-  { key: 'teal', label: '蓝绿', value: '#14B8A6' },
-  { key: 'amber', label: '琥珀', value: '#D97706' },
-  { key: 'slate', label: '石板灰', value: '#64748B' },
+  { key: 'blue', label: 'blue', value: '#5B8DEF' },
+  { key: 'green', label: 'green', value: '#22C55E' },
+  { key: 'purple', label: 'purple', value: '#7C6FF2' },
+  { key: 'orange', label: 'orange', value: '#F59E0B' },
+  { key: 'red', label: 'red', value: '#EF4444' },
+  { key: 'cyan', label: 'cyan', value: '#06B6D4' },
+  { key: 'pink', label: 'pink', value: '#EC4899' },
+  { key: 'indigo', label: 'indigo', value: '#6366F1' },
+  { key: 'teal', label: 'teal', value: '#14B8A6' },
+  { key: 'amber', label: 'amber', value: '#D97706' },
+  { key: 'slate', label: 'slate', value: '#64748B' },
 ]
 
 /* 颜色键 → hex 映射，便于 O(1) 查找 */
@@ -41,155 +41,155 @@ export const COLOR_MAP: Record<ProjectColor, string> = PROJECT_COLORS.reduce(
 
 /* ── 图标预设（均为 registry 中已注册的 Lucide 图标） ── */
 export const PROJECT_ICONS: IconPreset[] = [
-  { key: 'package', label: '项目' },
-  { key: 'globe', label: '域名' },
-  { key: 'database', label: '数据库' },
-  { key: 'servers', label: '服务器' },
-  { key: 'cloud', label: '云服务' },
-  { key: 'code', label: '代码' },
-  { key: 'box', label: '容器' },
-  { key: 'terminal', label: '终端' },
-  { key: 'activity', label: '活动' },
+  { key: 'package', label: 'project' },
+  { key: 'globe', label: 'domain' },
+  { key: 'database', label: 'database' },
+  { key: 'servers', label: 'servers' },
+  { key: 'cloud', label: 'cloud' },
+  { key: 'code', label: 'code' },
+  { key: 'box', label: 'container' },
+  { key: 'terminal', label: 'terminal' },
+  { key: 'activity', label: 'activity' },
   { key: 'cpu', label: 'CPU' },
-  { key: 'router', label: '路由' },
-  { key: 'layers', label: '分层' },
-  { key: 'boxes', label: '资源组' },
-  { key: 'network', label: '网络' },
-  { key: 'shield', label: '安全' },
-  { key: 'zap', label: '快速' },
-  { key: 'rocket', label: '启动' },
-  { key: 'hard-drive', label: '存储' },
-  { key: 'link', label: '链接' },
-  { key: 'plug', label: '插件' },
+  { key: 'router', label: 'router' },
+  { key: 'layers', label: 'layers' },
+  { key: 'boxes', label: 'resourceGroup' },
+  { key: 'network', label: 'network' },
+  { key: 'shield', label: 'security' },
+  { key: 'zap', label: 'fast' },
+  { key: 'rocket', label: 'launch' },
+  { key: 'hard-drive', label: 'storage' },
+  { key: 'link', label: 'link' },
+  { key: 'plug', label: 'plugin' },
 ]
 
 export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
   {
     key: 'blank',
-    label: '空白',
+    label: 'blank',
     icon: 'package',
     color: 'blue',
-    description: '空白工作空间，自由组织资源。',
+    description: 'blank',
     tags: [],
     recommendations: [],
   },
   {
     key: 'springBoot',
-    label: 'Spring Boot 服务',
+    label: 'springBoot',
     icon: 'code',
     color: 'green',
-    description: 'Java Web 服务，推荐 HTTP 8080。',
-    tags: ['后端', 'Java'],
+    description: 'springBoot',
+    tags: ['backend', 'java'],
     recommendations: [
       {
         id: 'spring-http',
-        name: 'Spring Boot HTTP 服务',
+        name: 'springHttp',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 8080,
         remotePort: 18080,
-        description: '暴露 Spring Boot 本地 HTTP 服务',
-        tags: ['后端', 'HTTP'],
+        description: 'springHttp',
+        tags: ['backend', 'http'],
       },
     ],
   },
   {
     key: 'vue',
-    label: 'Vue 前端',
+    label: 'vue',
     icon: 'code',
     color: 'cyan',
-    description: '前端开发服务器，推荐 HTTP 5173。',
-    tags: ['前端', 'Vite'],
+    description: 'vue',
+    tags: ['frontend', 'vite'],
     recommendations: [
       {
         id: 'vue-dev',
-        name: 'Vue 开发服务',
+        name: 'vueDev',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 5173,
         remotePort: 15173,
-        description: '暴露 Vite/Vue 开发服务器',
-        tags: ['前端', 'HTTP'],
+        description: 'vueDev',
+        tags: ['frontend', 'http'],
       },
     ],
   },
   {
     key: 'node',
-    label: 'Node 服务',
+    label: 'node',
     icon: 'terminal',
     color: 'green',
-    description: 'Node.js API 或本地服务。',
-    tags: ['Node', 'API'],
+    description: 'node',
+    tags: ['node', 'api'],
     recommendations: [
       {
         id: 'node-api',
-        name: 'Node API 服务',
+        name: 'nodeApi',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 3000,
         remotePort: 13000,
-        description: '暴露 Node.js HTTP API',
-        tags: ['Node', 'HTTP'],
+        description: 'nodeApi',
+        tags: ['node', 'http'],
       },
     ],
   },
   {
     key: 'python',
-    label: 'Python 服务',
+    label: 'python',
     icon: 'file-code',
     color: 'blue',
-    description: 'Python Flask/FastAPI 服务。',
-    tags: ['Python', 'API'],
+    description: 'python',
+    tags: ['python', 'api'],
     recommendations: [
       {
         id: 'python-api',
-        name: 'Python API 服务',
+        name: 'pythonApi',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 8000,
         remotePort: 18000,
-        description: '暴露 Python Web 服务',
-        tags: ['Python', 'HTTP'],
+        description: 'pythonApi',
+        tags: ['python', 'http'],
       },
     ],
   },
   {
     key: 'docker',
-    label: 'Docker 容器',
+    label: 'docker',
     icon: 'box',
     color: 'indigo',
-    description: '容器化服务入口。',
-    tags: ['Docker'],
+    description: 'docker',
+    tags: ['docker'],
     recommendations: [
       {
         id: 'docker-web',
-        name: 'Docker Web 服务',
+        name: 'dockerWeb',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 8080,
         remotePort: 18081,
-        description: '暴露容器映射的 Web 服务',
-        tags: ['Docker', 'HTTP'],
+        description: 'dockerWeb',
+        tags: ['docker', 'http'],
       },
     ],
   },
   {
     key: 'mcpServer',
-    label: 'MCP 服务',
+    label: 'mcpServer',
     icon: 'plug-zap',
     color: 'purple',
-    description: '本地 MCP 工具服务。',
-    tags: ['MCP', 'AI'],
+    description: 'mcpServer',
+    tags: ['mcp', 'ai'],
     recommendations: [
       {
         id: 'mcp-server',
-        name: 'MCP 服务',
+        name: 'mcpServer',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 3333,
         remotePort: 13333,
-        description: '暴露 MCP HTTP/SSE 服务',
-        tags: ['MCP', 'AI'],
+        description: 'mcpServer',
+        tags: ['mcp', 'ai'],
       },
     ],
   },
@@ -198,18 +198,18 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
     label: 'AI Agent',
     icon: 'sparkles',
     color: 'pink',
-    description: 'Agent 调试、Webhook 或 Web UI。',
-    tags: ['AI', 'Agent'],
+    description: 'aiAgent',
+    tags: ['ai', 'agent'],
     recommendations: [
       {
         id: 'agent-console',
-        name: 'Agent 控制台',
+        name: 'agentConsole',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 7860,
         remotePort: 17860,
-        description: '暴露 Agent 控制台或调试端点',
-        tags: ['AI', 'Agent'],
+        description: 'agentConsole',
+        tags: ['ai', 'agent'],
       },
     ],
   },
@@ -218,18 +218,18 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
     label: 'NAS',
     icon: 'hard-drive',
     color: 'slate',
-    description: '家庭 NAS、媒体与管理端口。',
-    tags: ['家庭', '存储'],
+    description: 'nas',
+    tags: ['home', 'storage'],
     recommendations: [
       {
         id: 'nas-panel',
-        name: 'NAS 管理面板',
+        name: 'nasPanel',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 5000,
         remotePort: 15000,
-        description: '暴露 NAS 管理面板',
-        tags: ['NAS', '家庭'],
+        description: 'nasPanel',
+        tags: ['nas', 'home'],
       },
     ],
   },
@@ -238,8 +238,8 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
     label: 'SSH',
     icon: 'terminal',
     color: 'amber',
-    description: '远程 Shell 或设备维护。',
-    tags: ['SSH'],
+    description: 'ssh',
+    tags: ['ssh'],
     recommendations: [
       {
         id: 'ssh',
@@ -248,8 +248,8 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
         localHost: '127.0.0.1',
         localPort: 22,
         remotePort: 10022,
-        description: '暴露 SSH TCP 端口',
-        tags: ['SSH', 'TCP'],
+        description: 'ssh',
+        tags: ['ssh', 'tcp'],
       },
     ],
   },
@@ -258,8 +258,8 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
     label: 'Git',
     icon: 'git-branch',
     color: 'orange',
-    description: 'Git 服务与代码托管。',
-    tags: ['Git'],
+    description: 'git',
+    tags: ['git'],
     recommendations: [
       {
         id: 'git-http',
@@ -268,8 +268,8 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
         localHost: '127.0.0.1',
         localPort: 3000,
         remotePort: 13001,
-        description: '暴露 Git Web 面板',
-        tags: ['Git', 'HTTP'],
+        description: 'gitHttp',
+        tags: ['git', 'http'],
       },
     ],
   },
@@ -278,38 +278,38 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
     label: 'Webhook',
     icon: 'radio',
     color: 'teal',
-    description: '本地 Webhook 回调调试。',
-    tags: ['Webhook'],
+    description: 'webhook',
+    tags: ['webhook'],
     recommendations: [
       {
         id: 'webhook',
-        name: 'Webhook 接收端',
+        name: 'webhookReceiver',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 9000,
         remotePort: 19000,
-        description: '暴露本地 Webhook 接收端',
-        tags: ['Webhook', 'HTTP'],
+        description: 'webhookReceiver',
+        tags: ['webhook', 'http'],
       },
     ],
   },
   {
     key: 'custom',
-    label: '自定义',
+    label: 'custom',
     icon: 'layers',
     color: 'blue',
-    description: '自定义资源集合。',
-    tags: ['自定义'],
+    description: 'custom',
+    tags: ['custom'],
     recommendations: [
       {
         id: 'custom-http',
-        name: '自定义 HTTP 服务',
+        name: 'customHttp',
         protocol: 'http',
         localHost: '127.0.0.1',
         localPort: 8080,
         remotePort: 18082,
-        description: '自定义 HTTP 服务',
-        tags: ['自定义'],
+        description: 'customHttp',
+        tags: ['custom'],
       },
     ],
   },
@@ -317,14 +317,14 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
 
 /* ── 预置标签 ── */
 export const PROJECT_TAGS: TagPreset[] = [
-  { name: '工作', color: '#5B8DEF' },
-  { name: '家庭', color: '#22C55E' },
-  { name: '演示', color: '#F59E0B' },
-  { name: '客户', color: '#EC4899' },
-  { name: '开源', color: '#14B8A6' },
-  { name: '个人', color: '#7C6FF2' },
-  { name: '生产', color: '#EF4444' },
-  { name: '预发', color: '#06B6D4' },
+  { name: 'work', color: '#5B8DEF' },
+  { name: 'home', color: '#22C55E' },
+  { name: 'demo', color: '#F59E0B' },
+  { name: 'customer', color: '#EC4899' },
+  { name: 'opensource', color: '#14B8A6' },
+  { name: 'personal', color: '#7C6FF2' },
+  { name: 'production', color: '#EF4444' },
+  { name: 'staging', color: '#06B6D4' },
 ]
 
 /* ── 状态配置：label + GBadge variant ── */
@@ -332,11 +332,11 @@ export const STATUS_CONFIG: Record<
   ProjectStatus,
   { label: string; variant: 'success' | 'warning' | 'error' | 'neutral' | 'info'; pulse: boolean }
 > = {
-  running: { label: '运行中', variant: 'success', pulse: false },
-  partial: { label: '部分运行', variant: 'warning', pulse: false },
-  stopped: { label: '已停止', variant: 'neutral', pulse: false },
-  starting: { label: '启动中', variant: 'info', pulse: true },
-  error: { label: '异常', variant: 'error', pulse: false },
+  running: { label: 'running', variant: 'success', pulse: false },
+  partial: { label: 'partial', variant: 'warning', pulse: false },
+  stopped: { label: 'stopped', variant: 'neutral', pulse: false },
+  starting: { label: 'starting', variant: 'info', pulse: true },
+  error: { label: 'error', variant: 'error', pulse: false },
 }
 
 /* ── hex → rgba ── */
@@ -385,17 +385,23 @@ export function formatDuration(seconds: number): string {
   return `${s}s`
 }
 
-export function formatRelativeTime(timestamp: number): string {
-  if (!timestamp) return '从未'
+type TranslateFn = (key: string, params?: Record<string, number>) => string
+
+export function formatRelativeTime(
+  timestamp: number,
+  t: TranslateFn,
+  locale: string,
+): string {
+  if (!timestamp) return t('project.relativeTime.never')
   const diff = Date.now() - timestamp
   const minute = 60 * 1000
   const hour = 60 * minute
   const day = 24 * hour
-  if (diff < minute) return '刚刚'
-  if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`
-  if (diff < day) return `${Math.floor(diff / hour)} 小时前`
-  if (diff < day * 30) return `${Math.floor(diff / day)} 天前`
-  return new Intl.DateTimeFormat('zh-CN', {
+  if (diff < minute) return t('project.relativeTime.justNow')
+  if (diff < hour) return t('project.relativeTime.minutesAgo', { count: Math.floor(diff / minute) })
+  if (diff < day) return t('project.relativeTime.hoursAgo', { count: Math.floor(diff / hour) })
+  if (diff < day * 30) return t('project.relativeTime.daysAgo', { count: Math.floor(diff / day) })
+  return new Intl.DateTimeFormat(locale, {
     month: '2-digit',
     day: '2-digit',
   }).format(timestamp)

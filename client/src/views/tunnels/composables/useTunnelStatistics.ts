@@ -5,10 +5,12 @@
    ================================================================== */
 
 import { computed, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Tunnel } from '../types'
 import { isRunningStatus } from '../utils'
 
 export function useTunnelStatistics(tunnels: Ref<Tunnel[]>) {
+  const { t } = useI18n()
   const total = computed(() => tunnels.value.length)
   const running = computed(() => tunnels.value.filter((t) => isRunningStatus(t.status)))
   const stopped = computed(() =>
@@ -51,9 +53,9 @@ export function useTunnelStatistics(tunnels: Ref<Tunnel[]>) {
 
   /** 状态分布 */
   const statusDistribution = computed(() => [
-    { key: 'running', label: '运行中', value: runningCount.value, color: '#22C55E' },
-    { key: 'stopped', label: '已停止', value: stoppedCount.value, color: '#6B6B72' },
-    { key: 'error', label: '异常', value: errorCount.value, color: '#EF4444' },
+    { key: 'running', label: t('tunnel.statusLabels.running'), value: runningCount.value, color: '#22C55E' },
+    { key: 'stopped', label: t('tunnel.statusLabels.stopped'), value: stoppedCount.value, color: '#6B6B72' },
+    { key: 'error', label: t('tunnel.statusLabels.error'), value: errorCount.value, color: '#EF4444' },
   ])
 
   return {

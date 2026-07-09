@@ -12,42 +12,54 @@
             <span class="tunnel-delete__icon">
               <GIcon name="alert-triangle" :size="22" />
             </span>
-            <h3 class="tunnel-delete__title">删除隧道</h3>
+            <h3 class="tunnel-delete__title">{{ t('tunnel.deleteDialog.title') }}</h3>
           </header>
 
           <div class="tunnel-delete__body">
             <p class="tunnel-delete__warning">
-              你即将删除隧道
+              {{ t('tunnel.deleteDialog.warning') }}
               <strong class="tunnel-delete__name">「{{ tunnel?.name }}」</strong>
             </p>
             <ul class="tunnel-delete__list">
-              <li>该隧道的公网访问将立即中断</li>
-              <li>当前 {{ tunnel?.statistics.connections ?? 0 }} 个活动连接将被强制关闭</li>
-              <li>所有流量统计与运行日志将被清除</li>
-              <li>此操作<b>不可撤销</b></li>
+              <li>{{ t('tunnel.deleteDialog.publicAccessInterrupted') }}</li>
+              <li>
+                {{
+                  t('tunnel.deleteDialog.activeConnectionsClosed', {
+                    count: tunnel?.statistics.connections ?? 0,
+                  })
+                }}
+              </li>
+              <li>{{ t('tunnel.deleteDialog.statsCleared') }}</li>
+              <li>
+                {{ t('tunnel.deleteDialog.operation') }}<b>{{ t('tunnel.deleteDialog.irreversible') }}</b>
+              </li>
             </ul>
 
             <div class="tunnel-delete__confirm-box">
               <p class="tunnel-delete__confirm-text">
-                请输入隧道名称 <code>{{ tunnel?.name }}</code> 以确认：
+                {{ t('tunnel.deleteDialog.confirmPrefix') }}
+                <code>{{ tunnel?.name }}</code>
+                {{ t('tunnel.deleteDialog.confirmSuffix') }}
               </p>
               <GInput
                 v-model="confirmText"
-                placeholder="输入隧道名称"
+                :placeholder="t('tunnel.deleteDialog.placeholder')"
                 :state="confirmText && confirmText !== tunnel?.name ? 'error' : 'normal'"
                 clearable />
             </div>
           </div>
 
           <footer class="tunnel-delete__footer">
-            <GButton variant="ghost" @click="handleClose"> 取消 </GButton>
+            <GButton variant="ghost" @click="handleClose">
+              {{ t('common.cancel') }}
+            </GButton>
             <GButton
               variant="danger"
               icon="trash"
               :loading="deleting"
               :disabled="confirmText !== tunnel?.name"
               @click="handleDelete">
-              确认删除
+              {{ t('tunnel.deleteDialog.confirm') }}
             </GButton>
           </footer>
         </div>
@@ -58,6 +70,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GInput from '@components/form/GInput.vue'
@@ -72,6 +85,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   confirm: [tunnel: Tunnel]
 }>()
+const { t } = useI18n()
 
 const confirmText = ref('')
 const deleting = ref(false)

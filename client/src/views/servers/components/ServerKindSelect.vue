@@ -7,7 +7,7 @@
 <template>
   <div class="server-kind-grid">
     <button
-      v-for="preset in KIND_PRESETS"
+      v-for="preset in presets"
       :key="preset.key"
       type="button"
       class="server-kind-option"
@@ -33,13 +33,15 @@
         type="soft"
         size="sm"
         class="server-kind-option__badge">
-        {{ preset.availability === 'soon' ? '即将' : '计划' }}
+        {{ t(`server.availability.${preset.availability}`) }}
       </GBadge>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GBadge from '@components/base/GBadge.vue'
 import type { ServerKind } from '../types'
@@ -47,4 +49,13 @@ import { KIND_PRESETS } from '../utils'
 
 defineProps<{ modelValue: ServerKind }>()
 defineEmits<{ 'update:modelValue': [value: ServerKind] }>()
+
+const { t } = useI18n()
+const presets = computed(() =>
+  KIND_PRESETS.map((preset) => ({
+    ...preset,
+    label: t(`server.kinds.${preset.label}.label`),
+    description: t(`server.kinds.${preset.description}.description`),
+  })),
+)
 </script>

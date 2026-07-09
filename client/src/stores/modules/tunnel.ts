@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { i18n } from '@/i18n'
 import { tunnelService } from '@/services/tunnel.service'
 
 export interface Tunnel {
@@ -8,6 +9,13 @@ export interface Tunnel {
   remotePort: number
   protocol: string
   status: string
+}
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
 }
 
 export const useTunnelStore = defineStore('tunnel', () => {
@@ -27,7 +35,7 @@ export const useTunnelStore = defineStore('tunnel', () => {
         status: tunnel.status,
       }))
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '隧道加载失败'
+      error.value = err instanceof Error ? err.message : t('tunnel.errors.loadFailed')
     } finally {
       loading.value = false
     }

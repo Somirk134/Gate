@@ -1,15 +1,6 @@
 <!--
-  GStatusBadge — 状态徽章（圆点 + 文字）
-  ------------------------------------------------------------------
-  用途：列表/卡片中展示“运行中 / 已停止 / 连接中 / 错误”等运行态。
-  结合 GStatusDot 圆点与文字标签，统一所有状态展示。
-
-  Props:
-    status  online | offline | connecting | reconnecting | error | warning | updating | maintenance | starting
-    label   文字（不传则用默认映射）
-    size    sm | md
-
-  内置 status → {label, pulse} 映射，业务可直接传 status。
+  GStatusBadge - 状态徽章。
+  默认状态文案统一走 i18n，避免语言切换后仍显示旧语言。
 -->
 <template>
   <span class="g-status-badge" :class="[`g-status-badge--${size}`]">
@@ -20,6 +11,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GStatusDot from './GStatusDot.vue'
 
 type Status =
@@ -44,23 +36,24 @@ const props = withDefaults(
   },
 )
 
-const defaultLabels: Record<Status, string> = {
-  online: '在线',
-  offline: '离线',
-  connecting: '连接中',
-  reconnecting: '重连中',
-  error: '错误',
-  warning: '警告',
-  updating: '更新中',
-  maintenance: '维护中',
-  starting: '启动中',
-}
+const { t } = useI18n()
 
 const pulseStatuses: Status[] = ['connecting', 'reconnecting', 'updating', 'starting']
+const dotStatusMap: Record<Status, 'online' | 'offline' | 'connecting' | 'starting' | 'error' | 'warning'> = {
+  online: 'online',
+  offline: 'offline',
+  connecting: 'connecting',
+  reconnecting: 'connecting',
+  error: 'error',
+  warning: 'warning',
+  updating: 'connecting',
+  maintenance: 'warning',
+  starting: 'starting',
+}
 
-const displayLabel = computed(() => props.label ?? defaultLabels[props.status])
+const displayLabel = computed(() => props.label ?? t(`statusBadge.${props.status}`))
 const needsPulse = computed(() => pulseStatuses.includes(props.status))
-const dotStatus = computed(() => props.status as any)
+const dotStatus = computed(() => dotStatusMap[props.status])
 </script>
 
 <style scoped>

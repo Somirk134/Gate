@@ -64,7 +64,7 @@
           <div class="panel-heading">
             <div>
               <h2>{{ t('dashboard.chart.trafficTrend') }}</h2>
-              <p>{{ t('dashboard.range.last24h') }}</p>
+              <p>{{ trafficRangeCaption }}</p>
             </div>
             <div class="range-tabs" role="tablist">
               <button
@@ -78,35 +78,51 @@
             </div>
           </div>
 
-          <div v-if="trafficPoints.length" class="traffic-chart">
+          <div v-if="projectTrafficSeries.length" class="traffic-chart">
             <svg viewBox="0 0 680 260" role="img" :aria-label="t('dashboard.chart.trafficTrend')">
-              <defs>
-                <linearGradient id="gate-upload-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#3f7cff" stop-opacity="0.22" />
-                  <stop offset="100%" stop-color="#3f7cff" stop-opacity="0" />
-                </linearGradient>
-                <linearGradient id="gate-download-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#39c27f" stop-opacity="0.2" />
-                  <stop offset="100%" stop-color="#39c27f" stop-opacity="0" />
-                </linearGradient>
-              </defs>
               <g class="traffic-chart__grid">
-                <line v-for="line in 5" :key="line" x1="44" x2="650" :y1="axisY(line)" :y2="axisY(line)" />
+                <line
+                  v-for="label in trafficYAxisLabels"
+                  :key="label.value"
+                  :x1="trafficChartBounds.left"
+                  :x2="trafficChartBounds.right"
+                  :y1="label.y"
+                  :y2="label.y" />
               </g>
-              <polygon class="traffic-chart__upload-area" :points="trafficUploadArea" />
-              <polygon class="traffic-chart__download-area" :points="trafficDownloadArea" />
-              <polyline class="traffic-chart__upload" :points="trafficUploadPolyline" />
-              <polyline class="traffic-chart__download" :points="trafficDownloadPolyline" />
-              <circle
-                v-if="trafficPoints.length === 1"
-                :cx="singleTrafficPoint.x"
-                :cy="singleTrafficPoint.y"
-                r="5" />
+              <g class="traffic-chart__axis">
+                <text
+                  v-for="label in trafficYAxisLabels"
+                  :key="`y-${label.value}`"
+                  class="traffic-chart__y-label"
+                  :x="trafficChartBounds.left - 10"
+                  :y="label.y">
+                  {{ label.text }}
+                </text>
+                <text
+                  v-for="label in trafficXAxisLabels"
+                  :key="`x-${label.index}`"
+                  class="traffic-chart__x-label"
+                  :x="label.x"
+                  :y="236">
+                  {{ label.text }}
+                </text>
+              </g>
+              <polyline
+                v-for="series in projectTrafficSeries"
+                :key="series.id"
+                class="traffic-chart__project-line"
+                :points="series.polyline"
+                :stroke="series.color" />
             </svg>
             <div class="traffic-chart__legend">
-              <span><i class="is-upload" />{{ t('dashboard.upload') }}</span>
-              <span><i class="is-download" />{{ t('dashboard.download') }}</span>
-              <span v-if="trafficPoints.length === 1">{{ t('dashboard.chart.singleSample') }}</span>
+              <span
+                v-for="series in projectTrafficSeries"
+                :key="series.id"
+                :title="`${series.name} ${formatBytes(series.total)}`">
+                <i :style="{ background: series.color }" />
+                <b>{{ series.name }}</b>
+                <small>{{ formatBytes(series.total) }}</small>
+              </span>
             </div>
           </div>
 
@@ -237,56 +253,6 @@
             </button>
           </div>
         </section>
-
-        <section class="dashboard-panel dashboard-panel--recent">
-          <div class="panel-heading">
-            <div>
-              <h2>{{ t('dashboard.chart.recentTunnels') }}</h2>
-              <p>{{ t('dashboard.metric.tunnelRepository') }}</p>
-            </div>
-            <button class="panel-link" type="button" @click="router.push('/tunnels')">
-              {{ t('dashboard.viewAll') }}
-            </button>
-          </div>
-
-          <div v-if="recentTunnels.length" class="tunnel-table">
-            <div class="tunnel-table__head">
-              <span>{{ t('dashboard.table.name') }}</span>
-              <span>{{ t('dashboard.table.type') }}</span>
-              <span>{{ t('dashboard.table.domain') }}</span>
-              <span>{{ t('dashboard.table.status') }}</span>
-              <span>{{ t('dashboard.table.traffic') }}</span>
-              <span>{{ t('dashboard.table.latency') }}</span>
-              <span>{{ t('dashboard.table.action') }}</span>
-            </div>
-            <article v-for="tunnel in recentTunnels" :key="tunnel.id" class="tunnel-row">
-              <strong>{{ tunnel.name }}</strong>
-              <span class="protocol-pill" :class="`is-${protocolTone(tunnel.protocol)}`">
-                {{ protocolLabel(tunnel.protocol) }}
-              </span>
-              <span>{{ tunnel.host || t('dashboard.noDomain') }}</span>
-              <span class="status-pill" :class="`is-${statusTone(tunnel.status)}`">
-                {{ statusLabel(tunnel.status) }}
-              </span>
-              <span>{{ formatBytes(tunnel.trafficBytes ?? 0) }}</span>
-              <span>{{ formatLatency(tunnel.averageResponseTimeMs ?? 0) }}</span>
-              <button type="button" @click="router.push('/tunnels')">
-                <GIcon name="more-vertical" :size="15" />
-              </button>
-            </article>
-          </div>
-
-          <GEmptyState
-            v-else
-            :title="t('dashboard.empty.noTunnel')"
-            :description="t('dashboard.empty.noTunnelDesc')">
-            <template #action>
-              <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
-                {{ t('dashboard.empty.createTunnel') }}
-              </GButton>
-            </template>
-          </GEmptyState>
-        </section>
       </div>
     </template>
 
@@ -297,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
@@ -305,7 +271,9 @@ import GIcon from '@components/icons/GIcon.vue'
 import GEmptyState from '@components/feedback/GEmptyState.vue'
 import GSkeleton from '@components/feedback/GSkeleton.vue'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
-import type { DashboardMetricCardMeta, DashboardTunnel, TrafficTrendPoint } from '@/monitoring/types'
+import { useProject } from '@views/projects/composables/useProject'
+import type { DashboardMetricCardMeta, DashboardTunnel } from '@/monitoring/types'
+import type { ProjectColor } from '@views/projects/types'
 
 type TrafficRange = '24h' | '7d' | '30d'
 type MetricKey =
@@ -316,10 +284,68 @@ type MetricKey =
   | 'latency'
   | 'runtimeUptime'
 
+interface ProjectTrafficSample {
+  timestamp: number
+  totals: Record<string, number>
+}
+
+interface TrafficChartPoint {
+  x: number
+  y: number
+  value: number
+}
+
 const router = useRouter()
 const { t, locale } = useI18n()
-const { dashboard, healthStatus, lastUpdated, loading, error, refresh } = useMonitoringDashboard()
+const {
+  dashboard,
+  healthStatus,
+  lastUpdated,
+  loading,
+  error,
+  refresh: refreshDashboard,
+} = useMonitoringDashboard()
+const { projects, refresh: refreshProjects } = useProject()
 const trafficRange = ref<TrafficRange>('24h')
+
+const TRAFFIC_HISTORY_STORAGE_KEY = 'gate.dashboard.projectTrafficHistory'
+const TRAFFIC_HISTORY_SAMPLE_MS = 5 * 60 * 1000
+const TRAFFIC_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+const TRAFFIC_HISTORY_MAX_SAMPLES = 30 * 24 * 12 + 24
+const TRAFFIC_CHART_Y_TICKS = 5
+const trafficChartBounds = {
+  left: 62,
+  right: 650,
+  top: 30,
+  bottom: 204,
+}
+
+const projectColorMap: Record<ProjectColor, string> = {
+  blue: '#3f7cff',
+  green: '#39c27f',
+  purple: '#a855f7',
+  orange: '#f97316',
+  red: '#ef4444',
+  cyan: '#06b6d4',
+  pink: '#ec4899',
+  indigo: '#6366f1',
+  teal: '#14b8a6',
+  amber: '#f59e0b',
+  slate: '#94a3b8',
+}
+
+const fallbackProjectColors = [
+  '#3f7cff',
+  '#39c27f',
+  '#a855f7',
+  '#f97316',
+  '#06b6d4',
+  '#ec4899',
+  '#f59e0b',
+  '#14b8a6',
+]
+
+const projectTrafficHistory = ref<ProjectTrafficSample[]>(loadProjectTrafficHistory())
 
 const defaultMetricCardMeta: DashboardMetricCardMeta[] = [
   { key: 'totalTunnels', icon: 'router', tone: 'primary' },
@@ -449,29 +475,66 @@ const isRuntimeEmpty = computed(
     dashboard.value.overview.totalTraffic === 0,
 )
 
-const trafficPoints = computed(() => {
-  const windowMs =
-    trafficRange.value === '24h'
-      ? 24 * 60 * 60 * 1000
-      : trafficRange.value === '7d'
-        ? 7 * 24 * 60 * 60 * 1000
-        : 30 * 24 * 60 * 60 * 1000
-  const cutoff = Date.now() - windowMs
-  return dashboard.value.trafficTrend.filter((point) => point.timestamp >= cutoff)
+const trafficRangeCaption = computed(() => {
+  const activeRange = rangeOptions.value.find((range) => range.value === trafficRange.value)
+  return `${activeRange?.label ?? t('dashboard.range.last24h')} · ${t('dashboard.chart.projectTotalTraffic')}`
 })
 
-const maxTrafficBytes = computed(() =>
+const currentProjectTrafficTotals = computed(() => {
+  const tunnelsById = new Map(dashboard.value.tunnels.map((tunnel) => [tunnel.id, tunnel]))
+  return projects.value.reduce<Record<string, number>>((totals, project) => {
+    totals[project.id] = project.tunnelIds.reduce((sum, tunnelId) => {
+      const tunnel = tunnelsById.get(tunnelId)
+      return sum + (tunnel?.trafficBytes ?? 0)
+    }, 0)
+    return totals
+  }, {})
+})
+
+const trafficTimeBuckets = computed(() => buildTrafficTimeBuckets(trafficRange.value))
+const maxProjectTrafficBytes = computed(() =>
   Math.max(
     1,
-    ...trafficPoints.value.map((point) => Math.max(point.uploadBytes, point.downloadBytes)),
+    ...projects.value.flatMap((project) =>
+      buildProjectTrafficBucketValues(project.id).map((point) => point.value),
+    ),
   ),
 )
-const trafficUploadPolyline = computed(() => buildTrafficPolyline(trafficPoints.value, 'upload'))
-const trafficDownloadPolyline = computed(() => buildTrafficPolyline(trafficPoints.value, 'download'))
-const trafficUploadArea = computed(() => buildTrafficArea(trafficPoints.value, 'upload'))
-const trafficDownloadArea = computed(() => buildTrafficArea(trafficPoints.value, 'download'))
-const singleTrafficPoint = computed(() =>
-  pointForTraffic(trafficPoints.value[0], 0, 1, maxTrafficBytes.value),
+
+const projectTrafficSeries = computed(() =>
+  projects.value.map((project, index) => {
+    const points = buildProjectTrafficPoints(project.id)
+    return {
+      id: project.id,
+      name: project.name,
+      color: projectColorMap[project.color] ?? fallbackProjectColors[index % fallbackProjectColors.length],
+      total: currentProjectTrafficTotals.value[project.id] ?? 0,
+      points,
+      polyline: pointsToPolyline(points),
+    }
+  }),
+)
+
+const trafficYAxisLabels = computed(() =>
+  Array.from({ length: TRAFFIC_CHART_Y_TICKS }, (_, index) => {
+    const ratio = (TRAFFIC_CHART_Y_TICKS - 1 - index) / (TRAFFIC_CHART_Y_TICKS - 1)
+    const value = maxProjectTrafficBytes.value * ratio
+    return {
+      value,
+      text: formatBytes(value),
+      y: trafficChartBounds.top + index * trafficChartStepY(),
+    }
+  }),
+)
+
+const trafficXAxisLabels = computed(() =>
+  trafficTimeBuckets.value
+    .map((bucket, index) => ({
+      index,
+      text: formatTrafficTimeLabel(bucket.start),
+      x: trafficPointX(index, trafficTimeBuckets.value.length),
+    }))
+    .filter((label) => shouldShowTrafficTimeLabel(label.index, trafficTimeBuckets.value.length)),
 )
 
 const tunnelState = computed(() => {
@@ -575,11 +638,19 @@ const errorBuckets = computed(() => {
 const requestBars = computed(() => normalizeBars(requestBuckets.value))
 const errorBars = computed(() => normalizeBars(errorBuckets.value))
 
-const recentTunnels = computed(() =>
-  [...dashboard.value.tunnels]
-    .sort((left, right) => Number(right.status === 'running') - Number(left.status === 'running'))
-    .slice(0, 6),
+
+watch(
+  () => [
+    dashboard.value.generatedAt,
+    projects.value.map((project) => `${project.id}:${project.tunnelIds.join(',')}`).join('|'),
+  ],
+  () => recordProjectTrafficSample(),
+  { immediate: true },
 )
+
+async function refresh() {
+  await Promise.all([refreshDashboard(), refreshProjects()])
+}
 
 function metricMetaFor(key: MetricKey): DashboardMetricCardMeta {
   return (
@@ -601,54 +672,171 @@ function isAttentionStatus(status: DashboardTunnel['status']): boolean {
   return status !== 'running' && status !== 'stopped'
 }
 
-function statusTone(status: DashboardTunnel['status']): 'running' | 'warning' | 'stopped' {
-  if (status === 'running') return 'running'
-  if (status === 'stopped') return 'stopped'
-  return 'warning'
+function protocolLabel(protocol: DashboardTunnel['protocol'] | 'unknown') {
+  return t(`dashboard.protocol.${protocolTone(protocol)}`)
 }
 
-function buildTrafficPolyline(points: TrafficTrendPoint[], kind: 'upload' | 'download'): string {
-  if (!points.length) return ''
-  return points
-    .map((point, index) => {
-      const chartPoint = pointForTraffic(point, index, points.length, maxTrafficBytes.value)
-      return `${chartPoint.x},${kind === 'upload' ? chartPoint.uploadY : chartPoint.downloadY}`
-    })
-    .join(' ')
+function protocolTone(protocol: DashboardTunnel['protocol'] | 'unknown') {
+  const knownProtocol = ['tcp', 'udp', 'http', 'https']
+  return knownProtocol.includes(protocol) ? protocol : 'unknown'
 }
 
-function buildTrafficArea(points: TrafficTrendPoint[], kind: 'upload' | 'download'): string {
-  if (!points.length) return ''
-  const line = buildTrafficPolyline(points, kind)
-  const start = pointForTraffic(points[0], 0, points.length, maxTrafficBytes.value)
-  const end = pointForTraffic(points[points.length - 1], points.length - 1, points.length, maxTrafficBytes.value)
-  return `${start.x},224 ${line} ${end.x},224`
+// 后端暂未提供项目级历史曲线，首页用 5 分钟粒度缓存项目总流量，支撑 24h / 7d / 30d 的折线切换。
+function recordProjectTrafficSample() {
+  const totals = currentProjectTrafficTotals.value
+  const hasTraffic = Object.values(totals).some((value) => value > 0)
+  if (!hasTraffic && projectTrafficHistory.value.length === 0) return
+
+  const timestamp = normalizeTrafficSampleTime(dashboard.value.generatedAt || Date.now())
+  const nextHistory = projectTrafficHistory.value
+    .filter((sample) => sample.timestamp !== timestamp)
+    .concat({ timestamp, totals })
+
+  projectTrafficHistory.value = pruneProjectTrafficHistory(nextHistory)
+  saveProjectTrafficHistory(projectTrafficHistory.value)
 }
 
-function pointForTraffic(
-  point: TrafficTrendPoint | undefined,
-  index: number,
-  total: number,
-  max: number,
-) {
-  const width = 606
-  const height = 172
-  const left = 44
-  const top = 34
-  const x = left + (total <= 1 ? width / 2 : (index / (total - 1)) * width)
-  const upload = point?.uploadBytes ?? 0
-  const download = point?.downloadBytes ?? 0
+function loadProjectTrafficHistory(): ProjectTrafficSample[] {
+  if (typeof window === 'undefined') return []
 
-  return {
-    x,
-    y: top + height - (Math.max(upload, download) / max) * height,
-    uploadY: top + height - (upload / max) * height,
-    downloadY: top + height - (download / max) * height,
+  try {
+    const raw = window.localStorage.getItem(TRAFFIC_HISTORY_STORAGE_KEY)
+    const rows = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(rows)) return []
+
+    return pruneProjectTrafficHistory(
+      rows.map((row) => ({
+        timestamp: Number(row?.timestamp) || 0,
+        totals: normalizeTrafficTotals(row?.totals),
+      })),
+    )
+  } catch {
+    return []
   }
 }
 
-function axisY(line: number) {
-  return 34 + (line - 1) * 43
+function saveProjectTrafficHistory(history: ProjectTrafficSample[]) {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(TRAFFIC_HISTORY_STORAGE_KEY, JSON.stringify(history))
+  } catch {
+    // 本地存储空间不足时不阻塞首页渲染，下一次运行时重新从实时数据开始采样。
+  }
+}
+
+function normalizeTrafficTotals(totals: unknown): Record<string, number> {
+  if (!totals || typeof totals !== 'object') return {}
+  return Object.entries(totals as Record<string, unknown>).reduce<Record<string, number>>(
+    (normalized, [projectId, value]) => {
+      normalized[projectId] = Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
+      return normalized
+    },
+    {},
+  )
+}
+
+function pruneProjectTrafficHistory(history: ProjectTrafficSample[]) {
+  const cutoff = Date.now() - TRAFFIC_HISTORY_RETENTION_MS
+  return history
+    .filter((sample) => sample.timestamp >= cutoff)
+    .sort((left, right) => left.timestamp - right.timestamp)
+    .slice(-TRAFFIC_HISTORY_MAX_SAMPLES)
+}
+
+function normalizeTrafficSampleTime(timestamp: number) {
+  return Math.floor(timestamp / TRAFFIC_HISTORY_SAMPLE_MS) * TRAFFIC_HISTORY_SAMPLE_MS
+}
+
+function buildTrafficTimeBuckets(range: TrafficRange) {
+  const hourMs = 60 * 60 * 1000
+  const dayMs = 24 * hourMs
+  const todayStart = startOfDay(Date.now())
+
+  if (range === '24h') {
+    return Array.from({ length: 24 }, (_, index) => {
+      const start = todayStart + index * hourMs
+      return { start, end: start + hourMs - 1 }
+    })
+  }
+
+  const days = range === '7d' ? 7 : 30
+  const start = todayStart - (days - 1) * dayMs
+  return Array.from({ length: days }, (_, index) => {
+    const bucketStart = start + index * dayMs
+    return { start: bucketStart, end: bucketStart + dayMs - 1 }
+  })
+}
+
+function buildProjectTrafficBucketValues(projectId: string) {
+  const now = Date.now()
+  return trafficTimeBuckets.value
+    .map((bucket, index) => {
+      if (bucket.start > now) return undefined
+      const value =
+        latestProjectTrafficValue(projectId, bucket.end) ??
+        (bucket.start <= now && now <= bucket.end ? currentProjectTrafficTotals.value[projectId] ?? 0 : 0)
+      return { index, value }
+    })
+    .filter((point): point is { index: number; value: number } => Boolean(point))
+}
+
+function buildProjectTrafficPoints(projectId: string): TrafficChartPoint[] {
+  return buildProjectTrafficBucketValues(projectId).map(({ index, value }) => ({
+    x: trafficPointX(index, trafficTimeBuckets.value.length),
+    y: trafficPointY(value),
+    value,
+  }))
+}
+
+function latestProjectTrafficValue(projectId: string, timestamp: number): number | undefined {
+  for (let index = projectTrafficHistory.value.length - 1; index >= 0; index -= 1) {
+    const sample = projectTrafficHistory.value[index]
+    if (sample.timestamp <= timestamp) {
+      return sample.totals[projectId] ?? 0
+    }
+  }
+  return undefined
+}
+
+function pointsToPolyline(points: TrafficChartPoint[]) {
+  return points.map((point) => `${roundChartValue(point.x)},${roundChartValue(point.y)}`).join(' ')
+}
+
+function trafficPointX(index: number, total: number) {
+  const width = trafficChartBounds.right - trafficChartBounds.left
+  return trafficChartBounds.left + (total <= 1 ? width / 2 : (index / (total - 1)) * width)
+}
+
+function trafficPointY(value: number) {
+  const height = trafficChartBounds.bottom - trafficChartBounds.top
+  return trafficChartBounds.bottom - (value / maxProjectTrafficBytes.value) * height
+}
+
+function trafficChartStepY() {
+  return (trafficChartBounds.bottom - trafficChartBounds.top) / (TRAFFIC_CHART_Y_TICKS - 1)
+}
+
+function formatTrafficTimeLabel(timestamp: number) {
+  const date = new Date(timestamp)
+  if (trafficRange.value === '24h') return `${String(date.getHours()).padStart(2, '0')}:00`
+  return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`
+}
+
+function shouldShowTrafficTimeLabel(index: number, total: number) {
+  if (trafficRange.value === '24h') return index % 4 === 0 || index === total - 1
+  if (trafficRange.value === '7d') return true
+  return index === 0 || index === total - 1 || index % 5 === 0
+}
+
+function startOfDay(timestamp: number) {
+  const date = new Date(timestamp)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+function roundChartValue(value: number) {
+  return Math.round(value * 10) / 10
 }
 
 function buildRequestBuckets(kind: 'all' | 'error') {
@@ -673,33 +861,6 @@ function normalizeBars(values: number[]) {
   const max = Math.max(0, ...values)
   if (max === 0) return []
   return values.map((value) => Math.max(8, Math.round((value / max) * 100)))
-}
-
-function protocolLabel(protocol: DashboardTunnel['protocol'] | 'unknown') {
-  return t(`dashboard.protocol.${protocolTone(protocol)}`)
-}
-
-function protocolTone(protocol: DashboardTunnel['protocol'] | 'unknown') {
-  const knownProtocol = ['tcp', 'udp', 'http', 'https']
-  return knownProtocol.includes(protocol) ? protocol : 'unknown'
-}
-
-function statusLabel(status: DashboardTunnel['status']) {
-  return t(`dashboard.status.${statusKey(status)}`)
-}
-
-function statusKey(status: DashboardTunnel['status']) {
-  const knownStatus = [
-    'running',
-    'stopped',
-    'warning',
-    'starting',
-    'stopping',
-    'restarting',
-    'recovering',
-    'error',
-  ]
-  return knownStatus.includes(status) ? status : 'unknown'
 }
 
 function formatNumber(value: number): string {
@@ -946,10 +1107,6 @@ function formatRelativeTime(timestamp: number): string {
   min-height: 320px;
 }
 
-.dashboard-panel--recent {
-  min-height: 320px;
-}
-
 .panel-heading {
   display: flex;
   align-items: flex-start;
@@ -1020,42 +1177,38 @@ function formatRelativeTime(timestamp: number): string {
   stroke-width: 1;
 }
 
-.traffic-chart polyline {
+.traffic-chart__axis text {
+  fill: var(--text-tertiary);
+  font-size: 11px;
+  dominant-baseline: middle;
+}
+
+.traffic-chart__y-label {
+  text-anchor: end;
+}
+
+.traffic-chart__x-label {
+  text-anchor: middle;
+}
+
+.traffic-chart__project-line {
   fill: none;
-  stroke-width: 3;
+  stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.traffic-chart__upload {
-  stroke: #3f7cff;
-}
-
-.traffic-chart__download {
-  stroke: #39c27f;
-}
-
-.traffic-chart__upload-area {
-  fill: url(#gate-upload-area);
-}
-
-.traffic-chart__download-area {
-  fill: url(#gate-download-area);
-}
-
-.traffic-chart circle {
-  fill: #3f7cff;
 }
 
 .traffic-chart__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: 10px 16px;
   color: var(--text-secondary);
   font-size: var(--text-xs);
 }
 
 .traffic-chart__legend span {
+  min-width: 0;
+  max-width: 210px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -1065,14 +1218,21 @@ function formatRelativeTime(timestamp: number): string {
   width: 18px;
   height: 2px;
   border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
-.traffic-chart__legend .is-upload {
-  background: #3f7cff;
+.traffic-chart__legend b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.traffic-chart__legend .is-download {
-  background: #39c27f;
+.traffic-chart__legend small {
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 .type-chart {
@@ -1277,122 +1437,6 @@ function formatRelativeTime(timestamp: number): string {
   margin-top: 2px;
   color: var(--text-tertiary);
   font-size: var(--text-xs);
-}
-
-.panel-link {
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  color: var(--color-primary);
-  cursor: pointer;
-  font-size: var(--text-xs);
-}
-
-.tunnel-table {
-  display: grid;
-  gap: 0;
-  overflow-x: auto;
-}
-
-.tunnel-table__head,
-.tunnel-row {
-  display: grid;
-  grid-template-columns: minmax(138px, 1.15fr) 72px minmax(150px, 1fr) 82px 82px 74px 42px;
-  gap: var(--space-3);
-  align-items: center;
-  min-width: 780px;
-}
-
-.tunnel-table__head {
-  padding: 0 12px 10px;
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.tunnel-row {
-  min-height: 46px;
-  padding: 0 12px;
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.tunnel-row strong,
-.tunnel-row span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tunnel-row strong {
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-}
-
-.protocol-pill,
-.status-pill {
-  width: fit-content;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: var(--weight-semibold);
-}
-
-.protocol-pill.is-tcp {
-  color: #3366ff;
-  background: rgba(77, 115, 255, 0.12);
-}
-
-.protocol-pill.is-http {
-  color: #16a56f;
-  background: rgba(58, 200, 134, 0.14);
-}
-
-.protocol-pill.is-https {
-  color: #e37a16;
-  background: rgba(255, 181, 71, 0.18);
-}
-
-.protocol-pill.is-udp {
-  color: #7c3aed;
-  background: rgba(139, 92, 246, 0.14);
-}
-
-.protocol-pill.is-unknown {
-  color: #64748b;
-  background: rgba(148, 163, 184, 0.14);
-}
-
-.status-pill.is-running {
-  color: var(--color-success);
-  background: var(--color-success-muted);
-}
-
-.status-pill.is-warning {
-  color: var(--color-warning);
-  background: var(--color-warning-muted);
-}
-
-.status-pill.is-stopped {
-  color: var(--color-error);
-  background: var(--color-error-muted);
-}
-
-.tunnel-row button {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-tertiary);
-  cursor: pointer;
 }
 
 .dashboard-error {

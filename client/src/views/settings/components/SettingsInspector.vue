@@ -2,7 +2,7 @@
   <aside class="settings-inspector">
     <header class="settings-inspector__header">
       <GIcon name="circle-help" :size="16" />
-      <span>说明</span>
+      <span>{{ t('settings.legacy.inspectorTitle') }}</span>
     </header>
 
     <SettingDescription
@@ -14,13 +14,14 @@
 
     <div v-else class="settings-inspector__empty">
       <GIcon name="settings" :size="28" />
-      <p>选择一个设置项</p>
+      <p>{{ t('settings.legacy.selectSetting') }}</p>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { SettingContext, SettingValue } from '../types'
 import SettingDescription from './SettingDescription.vue'
@@ -32,6 +33,7 @@ const props = defineProps<{
   validationErrors: Record<string, string | undefined>
 }>()
 
+const { t } = useI18n()
 const currentValue = computed(() => {
   if (!props.context) return null
   return props.values[props.context.item.key]

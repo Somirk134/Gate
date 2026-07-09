@@ -11,31 +11,37 @@
     </p>
 
     <dl class="setting-description__meta">
-      <dt>当前值</dt>
+      <dt>{{ t('settings.legacy.currentValue') }}</dt>
       <dd>{{ formatSettingValue(currentValue) }}</dd>
-      <dt>默认值</dt>
+      <dt>{{ t('settings.legacy.defaultValue') }}</dt>
       <dd>{{ formatSettingValue(context.item.defaultValue) }}</dd>
-      <dt>推荐值</dt>
+      <dt>{{ t('settings.legacy.recommendedValue') }}</dt>
       <dd>{{ formatSettingValue(context.item.recommendedValue ?? context.item.defaultValue) }}</dd>
-      <dt>重启</dt>
-      <dd>{{ context.item.restartRequired ? '需要' : '不需要' }}</dd>
-      <dt>状态</dt>
-      <dd>{{ modified ? '已修改' : '默认' }}</dd>
+      <dt>{{ t('settings.legacy.restart') }}</dt>
+      <dd>
+        {{
+          context.item.restartRequired
+            ? t('settings.legacy.needed')
+            : t('settings.legacy.notNeeded')
+        }}
+      </dd>
+      <dt>{{ t('settings.legacy.status') }}</dt>
+      <dd>{{ modified ? t('settings.legacy.modified') : t('settings.legacy.default') }}</dd>
     </dl>
 
     <div v-if="context.item.validation" class="setting-description__section">
-      <h3>校验规则</h3>
+      <h3>{{ t('settings.legacy.validationRules') }}</h3>
       <p>{{ validationText }}</p>
     </div>
 
     <div v-if="error" class="setting-description__section setting-description__section--error">
-      <h3>校验错误</h3>
+      <h3>{{ t('settings.legacy.validationError') }}</h3>
       <p>{{ error }}</p>
     </div>
 
     <div class="setting-description__links">
       <GButton size="sm" variant="secondary" icon="external-link" :disabled="!context.item.helpUrl">
-        帮助
+        {{ t('settings.legacy.help') }}
       </GButton>
     </div>
   </div>
@@ -43,6 +49,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import type { SettingContext, SettingValue } from '../types'
 import { formatSettingValue } from '../utils'
@@ -54,17 +61,19 @@ const props = defineProps<{
   error?: string
 }>()
 
+const { t } = useI18n()
+
 const validationText = computed(() => {
   const validation = props.context?.item.validation
-  if (!validation) return '无校验规则。'
+  if (!validation) return t('settings.legacy.noValidationRules')
 
   const parts = [
-    validation.required ? '必填' : '',
-    typeof validation.min === 'number' ? `最小 ${validation.min}` : '',
-    typeof validation.max === 'number' ? `最大 ${validation.max}` : '',
-    validation.pattern ? '格式校验' : '',
+    validation.required ? t('settings.legacy.required') : '',
+    typeof validation.min === 'number' ? t('settings.legacy.min', { value: validation.min }) : '',
+    typeof validation.max === 'number' ? t('settings.legacy.max', { value: validation.max }) : '',
+    validation.pattern ? t('settings.legacy.pattern') : '',
   ].filter(Boolean)
 
-  return parts.join(' / ') || '无校验规则。'
+  return parts.join(' / ') || t('settings.legacy.noValidationRules')
 })
 </script>

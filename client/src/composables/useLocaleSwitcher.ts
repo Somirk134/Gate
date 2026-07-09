@@ -8,8 +8,8 @@ import { normalizeLocale, persistRuntimeLocale, type SupportedLocale } from '@/i
 export type { SupportedLocale } from '@/i18n'
 
 export const locales = [
-  { value: 'zh-CN' as SupportedLocale, label: '中文' },
-  { value: 'en-US' as SupportedLocale, label: 'English' },
+  { value: 'zh-CN' as SupportedLocale, labelKey: 'settings.languageZh' },
+  { value: 'en-US' as SupportedLocale, labelKey: 'settings.languageEn' },
 ]
 
 export function useLocaleSwitcher() {

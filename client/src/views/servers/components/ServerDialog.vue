@@ -18,11 +18,13 @@
               </span>
               <div>
                 <h3 class="server-dialog__title">
-                  {{ isEdit ? '编辑服务器' : '添加服务器' }}
+                  {{ isEdit ? t('server.dialog.editTitle') : t('server.dialog.addTitle') }}
                 </h3>
                 <p class="server-dialog__subtitle">
                   {{
-                    isEdit ? '修改服务器配置，自动保存' : '填写服务器信息，连接后即可管理隧道资源'
+                    isEdit
+                      ? t('server.dialog.editSubtitle')
+                      : t('server.dialog.addSubtitle')
                   }}
                 </p>
               </div>
@@ -34,10 +36,10 @@
           <div class="server-dialog__body">
             <!-- 名称 -->
             <GFormField :error="errors.name" required>
-              <template #label> 名称 </template>
+              <template #label>{{ t('server.dialog.name') }}</template>
               <GInput
                 v-model="form.name"
-                placeholder="例如：Tokyo Edge"
+                :placeholder="t('server.settings.namePlaceholder')"
                 :state="errors.name ? 'error' : 'normal'"
                 :maxlength="40"
                 clearable
@@ -46,23 +48,23 @@
 
             <!-- 类型 -->
             <GFormField>
-              <template #label> 类型 </template>
+              <template #label>{{ t('server.dialog.type') }}</template>
               <ServerKindSelect v-model="form.kind" />
             </GFormField>
 
             <!-- 主机 / 端口 -->
             <div class="server-port-row">
               <GFormField :error="errors.host" required>
-                <template #label> 主机 </template>
+                <template #label>{{ t('server.settings.host') }}</template>
                 <GInput
                   v-model="form.host"
-                  placeholder="IP 或域名"
+                  :placeholder="t('server.settings.hostPlaceholder')"
                   prefix="plug"
                   :state="errors.host ? 'error' : 'normal'"
                   @update:model-value="validateField('host')" />
               </GFormField>
               <GFormField :error="errors.port" required>
-                <template #label> 端口 </template>
+                <template #label>{{ t('server.settings.port') }}</template>
                 <GPortInput
                   :model-value="form.port"
                   @update:model-value="
@@ -79,7 +81,7 @@
               <template #label> Token </template>
               <GInput
                 v-model="form.token"
-                placeholder="服务器访问令牌"
+                :placeholder="t('server.settings.tokenPlaceholder')"
                 prefix="key"
                 :state="errors.token ? 'error' : 'normal'"
                 :type="showToken ? 'text' : 'password'"
@@ -90,7 +92,7 @@
                     :name="showToken ? 'eye-off' : 'eye'"
                     size="sm"
                     variant="ghost"
-                    :tooltip="showToken ? '隐藏' : '显示'"
+                    :tooltip="showToken ? t('form.hideSecret') : t('form.showSecret')"
                     @click="showToken = !showToken" />
                 </template>
               </GInput>
@@ -98,14 +100,17 @@
 
             <!-- 地区 -->
             <GFormField>
-              <template #label> 地区 </template>
-              <GInput v-model="form.region" placeholder="例如：Tokyo, JP" prefix="globe" />
+              <template #label>{{ t('server.dialog.region') }}</template>
+              <GInput
+                v-model="form.region"
+                :placeholder="t('server.dialog.regionPlaceholder')"
+                prefix="globe" />
             </GFormField>
 
             <!-- 心跳 / 重连间隔 -->
             <div class="server-port-row">
               <GFormField :error="errors.heartbeatInterval">
-                <template #label> 心跳间隔 (秒) </template>
+                <template #label>{{ t('server.settings.heartbeatInterval') }}</template>
                 <GInput
                   v-model.number="form.heartbeatInterval"
                   type="number"
@@ -114,7 +119,7 @@
                   @update:model-value="validateField('heartbeatInterval')" />
               </GFormField>
               <GFormField :error="errors.reconnectInterval">
-                <template #label> 重连间隔 (秒) </template>
+                <template #label>{{ t('server.settings.reconnectInterval') }}</template>
                 <GInput
                   v-model.number="form.reconnectInterval"
                   type="number"
@@ -127,8 +132,8 @@
             <!-- 自动连接 -->
             <div class="server-dialog__row">
               <div class="server-dialog__row-text">
-                <span class="server-dialog__row-label">自动连接</span>
-                <span class="server-dialog__row-hint">应用启动时自动连接该服务器</span>
+                <span class="server-dialog__row-label">{{ t('server.settings.autoConnect') }}</span>
+                <span class="server-dialog__row-hint">{{ t('server.settings.autoConnectHint') }}</span>
               </div>
               <button
                 type="button"
@@ -141,7 +146,7 @@
 
             <!-- 标签 -->
             <GFormField>
-              <template #label> 标签 </template>
+              <template #label>{{ t('server.dialog.tags') }}</template>
               <div class="server-tag-input" :class="{ 'server-tag-input--focused': tagFocused }">
                 <ServerTag
                   v-for="tag in form.tags"
@@ -152,7 +157,7 @@
                 <input
                   v-model="tagInput"
                   class="server-tag-input__field"
-                  placeholder="输入标签后回车"
+                  :placeholder="t('server.dialog.tagPlaceholder')"
                   @focus="tagFocused = true"
                   @blur="onTagBlur"
                   @keydown.enter.prevent="addTag"
@@ -167,17 +172,17 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)">
                   <GIcon name="plus" :size="10" />
-                  {{ tag.name }}
+                  {{ tag.label }}
                 </button>
               </div>
             </GFormField>
 
             <!-- 备注 -->
             <GFormField>
-              <template #label> 备注 </template>
+              <template #label>{{ t('server.dialog.remark') }}</template>
               <GTextarea
                 v-model="form.remark"
-                placeholder="内部备注，仅自己可见…"
+                :placeholder="t('server.settings.remarkPlaceholder')"
                 :rows="2"
                 :maxlength="200"
                 resizable />
@@ -186,14 +191,16 @@
 
           <!-- 底部 -->
           <footer class="server-dialog__footer">
-            <GButton variant="ghost" @click="handleClose"> 取消 </GButton>
+            <GButton variant="ghost" @click="handleClose">
+              {{ t('common.cancel') }}
+            </GButton>
             <GButton
               variant="primary"
               :icon="isEdit ? 'save' : 'plus'"
               :loading="submitting"
               :disabled="!isValid"
               @click="handleSubmit">
-              {{ isEdit ? '保存' : '添加服务器' }}
+              {{ isEdit ? t('common.save') : t('server.addServer') }}
             </GButton>
           </footer>
         </div>
@@ -204,6 +211,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -227,6 +235,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   submit: [form: ServerFormData, isEdit: boolean]
 }>()
+const { t } = useI18n()
 
 const isEdit = computed(() => !!props.server)
 const submitting = ref(false)
@@ -255,7 +264,12 @@ const previewStyle = computed(() => ({
 }))
 
 const suggestedTags = computed(() =>
-  SERVER_TAGS.filter((t) => !form.tags.includes(t.name)).slice(0, 6),
+  SERVER_TAGS.filter((tag) => !form.tags.includes(tag.name))
+    .slice(0, 6)
+    .map((tag) => ({
+      ...tag,
+      label: t(`server.tags.${tag.name}`),
+    })),
 )
 
 const isValid = computed(
@@ -316,33 +330,33 @@ function clearErrors() {
 function validateField(field: keyof typeof errors) {
   if (field === 'name') {
     const v = form.name.trim()
-    if (v.length === 0) errors.name = '名称不能为空'
-    else if (v.length < 2) errors.name = '名称至少 2 个字符'
-    else if (v.length > 40) errors.name = '名称不能超过 40 个字符'
+    if (v.length === 0) errors.name = t('server.settings.validation.nameRequired')
+    else if (v.length < 2) errors.name = t('server.settings.validation.nameMin')
+    else if (v.length > 40) errors.name = t('server.settings.validation.nameMax')
     else errors.name = undefined
   }
   if (field === 'host') {
-    if (!form.host.trim()) errors.host = '主机不能为空'
-    else if (!isValidHost(form.host)) errors.host = '无效的 IP 或域名'
+    if (!form.host.trim()) errors.host = t('server.settings.validation.hostRequired')
+    else if (!isValidHost(form.host)) errors.host = t('server.settings.validation.hostInvalid')
     else errors.host = undefined
   }
   if (field === 'port') {
-    if (!isValidPort(form.port)) errors.port = '端口范围 1-65535'
+    if (!isValidPort(form.port)) errors.port = t('server.settings.validation.portRange')
     else errors.port = undefined
   }
   if (field === 'token') {
-    if (!form.token.trim()) errors.token = 'Token 不能为空'
-    else if (!isValidToken(form.token)) errors.token = 'Token 至少 8 个字符'
+    if (!form.token.trim()) errors.token = t('server.settings.validation.tokenRequired')
+    else if (!isValidToken(form.token)) errors.token = t('server.settings.validation.tokenMin')
     else errors.token = undefined
   }
   if (field === 'heartbeatInterval') {
-    if (form.heartbeatInterval < 1) errors.heartbeatInterval = '至少 1 秒'
-    else if (form.heartbeatInterval > 300) errors.heartbeatInterval = '不能超过 300 秒'
+    if (form.heartbeatInterval < 1) errors.heartbeatInterval = t('server.settings.validation.minOneSecond')
+    else if (form.heartbeatInterval > 300) errors.heartbeatInterval = t('server.settings.validation.max300Seconds')
     else errors.heartbeatInterval = undefined
   }
   if (field === 'reconnectInterval') {
-    if (form.reconnectInterval < 1) errors.reconnectInterval = '至少 1 秒'
-    else if (form.reconnectInterval > 60) errors.reconnectInterval = '不能超过 60 秒'
+    if (form.reconnectInterval < 1) errors.reconnectInterval = t('server.settings.validation.minOneSecond')
+    else if (form.reconnectInterval > 60) errors.reconnectInterval = t('server.settings.validation.max60Seconds')
     else errors.reconnectInterval = undefined
   }
 }

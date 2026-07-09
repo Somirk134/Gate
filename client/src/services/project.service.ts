@@ -1,4 +1,5 @@
 import { isTauri } from '@tauri-apps/api/core'
+import { i18n } from '@/i18n'
 import { TauriIpcClient } from '@/ipc'
 import type { DashboardData } from '@/monitoring/types'
 import type { CertificateListResponse } from '@views/certificates/types'
@@ -18,6 +19,13 @@ import { PROJECT_TEMPLATES } from '@views/projects/utils'
 
 const ipc = new TauriIpcClient()
 const LOCAL_KEY = 'gate.project.workspace.records'
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 type ProjectCreatePayload = {
   name: string
@@ -57,7 +65,7 @@ export const projectService = {
       return ipc.invoke<ProjectRecord>('project_detail', { projectId })
     }
     const project = readLocalProjects().find((item) => item.id === projectId)
-    if (!project) throw new Error('项目不存在')
+    if (!project) throw new Error(t('project.errors.notFound'))
     return project
   },
 
@@ -77,7 +85,7 @@ export const projectService = {
     }
     const projects = readLocalProjects()
     const index = projects.findIndex((item) => item.id === projectId)
-    if (index === -1) throw new Error('项目不存在')
+    if (index === -1) throw new Error(t('project.errors.notFound'))
     projects[index] = {
       ...projects[index],
       ...patch,
@@ -374,7 +382,7 @@ function emptyDashboard(): DashboardData {
       client: {
         onlineTimeSeconds: 0,
         openProject: 0,
-        currentWorkspace: '本地预览',
+        currentWorkspace: t('project.previewWorkspace'),
         memoryBytes: 0,
       },
     },

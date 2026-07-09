@@ -4,6 +4,9 @@ const ipc = new TauriIpcClient()
 
 const RECENT_SERVERS_KEY = 'gate.recentServers'
 const CONNECTION_HISTORY_KEY = 'gate.connectionHistory'
+export const DIAGNOSTIC_VALUE_DISCONNECTED = 'DIAGNOSTIC_VALUE_DISCONNECTED'
+export const DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED =
+  'DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED'
 
 export type DiagnosticStatus = 'ok' | 'warning' | 'error'
 
@@ -144,10 +147,10 @@ function fallbackConnectionReport(
     return makeConnectionReport(
       false,
       'ADDRESS_INVALID',
-      '服务器地址为空',
-      '还没有填写服务器地址。',
-      '首次配置时容易只填写端口或 Token。',
-      '填写服务器域名或 IP，再点击测试连接。',
+      'ADDRESS_INVALID',
+      'ADDRESS_INVALID_REASON',
+      'ADDRESS_INVALID_CAUSE',
+      'ADDRESS_INVALID_SOLUTION',
       0,
     )
   }
@@ -155,20 +158,20 @@ function fallbackConnectionReport(
     return makeConnectionReport(
       false,
       'TOKEN_EMPTY',
-      'Token 为空',
-      '还没有填写服务端 Token。',
-      'Token 未复制、复制漏掉或服务端尚未生成 Token。',
-      '从服务端配置复制完整 Token 后重试。',
+      'TOKEN_EMPTY',
+      'TOKEN_EMPTY_REASON',
+      'TOKEN_EMPTY_CAUSE',
+      'TOKEN_EMPTY_SOLUTION',
       0,
     )
   }
   return makeConnectionReport(
     false,
     'CLIENT_RUNTIME_UNAVAILABLE',
-    '无法调用桌面诊断运行时',
-    error instanceof Error ? error.message : `无法测试 ${serverAddr}`,
-    '当前可能运行在浏览器预览模式，或 Tauri IPC 尚未就绪。',
-    '在 Gate Desktop 中重新测试；预览模式下只能查看表单和引导流程。',
+    'CLIENT_RUNTIME_UNAVAILABLE',
+    error instanceof Error ? error.message : `CLIENT_RUNTIME_UNAVAILABLE:${serverAddr}`,
+    'CLIENT_RUNTIME_UNAVAILABLE_CAUSE',
+    'CLIENT_RUNTIME_UNAVAILABLE_SOLUTION',
     Date.now() - startedAt,
   )
 }
@@ -192,8 +195,8 @@ function makeConnectionReport(
     elapsedMs,
     checkedAt: Date.now(),
     actions: [
-      { label: '查看日志', description: '跳转到日志页面查看客户端日志。' },
-      { label: '复制错误', description: '复制结构化错误内容。' },
+      { label: 'VIEW_LOGS', description: 'VIEW_CLIENT_LOGS' },
+      { label: 'COPY_ERROR', description: 'COPY_STRUCTURED_ERROR' },
     ],
   }
 }

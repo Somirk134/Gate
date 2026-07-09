@@ -12,11 +12,11 @@
       <p>{{ description }}</p>
       <dl>
         <div>
-          <dt>结果</dt>
+          <dt>{{ t('help.card.result') }}</dt>
           <dd>{{ reason }}</dd>
         </div>
         <div>
-          <dt>建议</dt>
+          <dt>{{ t('help.card.suggestion') }}</dt>
           <dd>{{ solution }}</dd>
         </div>
       </dl>
@@ -26,6 +26,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 
 type DiagnosticStatus = 'ok' | 'warning' | 'error'
@@ -39,6 +40,8 @@ const props = defineProps<{
   meta?: string
 }>()
 
+const { t } = useI18n()
+
 const statusIcon = computed(() => {
   if (props.status === 'ok') return 'check-circle'
   if (props.status === 'warning') return 'alert-triangle'
@@ -46,9 +49,9 @@ const statusIcon = computed(() => {
 })
 
 const statusLabel = computed(() => {
-  if (props.status === 'ok') return '通过'
-  if (props.status === 'warning') return '警告'
-  return '失败'
+  if (props.status === 'ok') return t('help.card.status.ok')
+  if (props.status === 'warning') return t('help.card.status.warning')
+  return t('help.card.status.error')
 })
 </script>
 

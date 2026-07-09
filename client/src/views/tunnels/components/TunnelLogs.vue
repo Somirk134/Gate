@@ -11,7 +11,7 @@
       <GSearchInput
         :model-value="search"
         size="sm"
-        placeholder="过滤日志…"
+        :placeholder="t('logs.filterPlaceholder')"
         class="tunnel-logs__search"
         @update:model-value="search = $event" />
 
@@ -37,29 +37,34 @@
         size="sm"
         variant="ghost"
         :active="autoScroll"
-        :tooltip="autoScroll ? '自动滚动：开' : '自动滚动：关'"
+        :tooltip="autoScroll ? t('logs.autoScrollOnTooltip') : t('logs.autoScrollOffTooltip')"
         @click="autoScroll = !autoScroll" />
       <GIconButton
         :name="paused ? 'play' : 'pause'"
         size="sm"
         variant="ghost"
         :active="paused"
-        :tooltip="paused ? '已暂停滚动' : '点击暂停滚动'"
+        :tooltip="paused ? t('logs.pausedTooltip') : t('logs.pauseTooltip')"
         @click="paused = !paused" />
       <GIconButton
         name="download"
         size="sm"
         variant="ghost"
-        tooltip="导出日志（预留）"
+        :tooltip="t('logs.exportReserved')"
         @click="$emit('export')" />
-      <GIconButton name="trash" size="sm" variant="ghost" tooltip="清空" @click="$emit('clear')" />
+      <GIconButton
+        name="trash"
+        size="sm"
+        variant="ghost"
+        :tooltip="t('common.clear')"
+        @click="$emit('clear')" />
     </div>
 
     <!-- 日志体 -->
     <div ref="bodyRef" class="tunnel-logs__body" @scroll="onScroll">
       <div v-if="filteredLogs.length === 0" class="tunnel-logs__empty">
         <GIcon name="file-text" :size="20" />
-        <span>无匹配日志</span>
+        <span>{{ t('logs.empty') }}</span>
       </div>
       <div v-for="log in filteredLogs" :key="log.id" class="tunnel-log-line">
         <span class="tunnel-log-line__time">{{ formatLogTime(log.timestamp) }}</span>
@@ -73,14 +78,14 @@
 
     <!-- 状态栏 -->
     <div class="tunnel-logs__statusbar">
-      <span>{{ filteredLogs.length }} / {{ tunnel.logs.length }} 条</span>
+      <span>{{ t('logs.statusCount', { filtered: filteredLogs.length, total: tunnel.logs.length }) }}</span>
       <span v-if="paused" class="tunnel-logs__paused">
         <GIcon name="pause" :size="10" />
-        已暂停
+        {{ t('logs.paused') }}
       </span>
       <span v-else class="tunnel-logs__live">
         <GIcon name="circle" :size="8" />
-        实时
+        {{ t('logs.live') }}
       </span>
     </div>
   </div>
@@ -88,6 +93,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
 import GSearchInput from '@components/form/GSearchInput.vue'
@@ -95,6 +101,7 @@ import type { Tunnel, TunnelLogLevel } from '../types'
 import { formatLogTime } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 defineEmits<{
   export: []

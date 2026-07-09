@@ -6,15 +6,17 @@
       class="lang-btn"
       :class="{ active: locale === l.value }"
       @click="setLocale(l.value)">
-      {{ l.label }}
+      {{ t(l.labelKey) }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useLocaleSwitcher } from '@composables/useLocaleSwitcher'
 
 const { locale, locales, setLocale } = useLocaleSwitcher()
+const { t } = useI18n()
 </script>
 
 <style scoped>

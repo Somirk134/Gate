@@ -1,5 +1,13 @@
 import { computed, ref } from 'vue'
+import { i18n } from '@/i18n'
 import { tunnelService } from '@/services/tunnel.service'
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 export function useTunnel() {
   const tunnels = ref<Awaited<ReturnType<typeof tunnelService.list>>>([])
@@ -12,7 +20,7 @@ export function useTunnel() {
     try {
       tunnels.value = await tunnelService.list()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '隧道加载失败'
+      error.value = err instanceof Error ? err.message : t('tunnel.errors.loadFailed')
     } finally {
       loading.value = false
     }

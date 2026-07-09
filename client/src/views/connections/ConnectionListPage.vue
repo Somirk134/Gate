@@ -5,10 +5,10 @@
       <template #empty>
         <div class="connections-empty">
           <GIcon name="link" :size="28" />
-          <strong>暂无活动连接</strong>
-          <span>启动 Tunnel 并产生访问流量后，连接会显示在这里。</span>
+          <strong>{{ t('connections.emptyTitle') }}</strong>
+          <span>{{ t('connections.emptyDescription') }}</span>
           <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
-            创建第一个 Tunnel
+            {{ t('connections.createFirstTunnel') }}
           </GButton>
         </div>
       </template>

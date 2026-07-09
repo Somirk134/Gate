@@ -1,22 +1,6 @@
 <!--
-  TunnelCard — 隧道卡片（业务组件模板）
-  ------------------------------------------------------------------
-  用途：展示单条隧道（本地端口 → 远程地址 + 协议 + 状态）。
-  属业务组件：基于 DS 组合，无逻辑，数据由父级传入。
-
-  Props:
-    name        隧道名
-    protocol    http | https | tcp | udp
-    localPort   本地端口
-    remoteHost  远程主机
-    remotePort  远程端口
-    status      运行状态
-    traffic     流量文本（上行/下行）
-
-  Events:
-    click / action(key)
-
-  复用：GCard / GBadge / GStatusBadge / GIconButton / GIcon
+  TunnelCard - 隧道摘要卡片。
+  本地/远程标签统一走 i18n，路由地址仍按真实数据渲染。
 -->
 <template>
   <GCard variant="plain" padding="md">
@@ -33,12 +17,12 @@
 
       <div class="tunnel-card__route">
         <span class="tunnel-card__endpoint">
-          <span class="tunnel-card__label">本地</span>
+          <span class="tunnel-card__label">{{ t('business.tunnel.local') }}</span>
           <span class="tunnel-card__addr">127.0.0.1:{{ localPort }}</span>
         </span>
         <GIcon name="arrow-right" :size="14" class="tunnel-card__arrow" />
         <span class="tunnel-card__endpoint">
-          <span class="tunnel-card__label">远程</span>
+          <span class="tunnel-card__label">{{ t('business.tunnel.remote') }}</span>
           <span class="tunnel-card__addr">{{ remoteHost }}:{{ remotePort }}</span>
         </span>
       </div>
@@ -57,26 +41,25 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GCard from '@components/base/GCard.vue'
 import GBadge from '@components/base/GBadge.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
 import GStatusBadge from '@components/status/GStatusBadge.vue'
 
-const props = withDefaults(
-  defineProps<{
-    name: string
-    protocol: 'http' | 'https' | 'tcp' | 'udp'
-    localPort: number
-    remoteHost: string
-    remotePort: number
-    status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'starting'
-    traffic?: { up: string; down: string }
-  }>(),
-  {},
-)
+const props = defineProps<{
+  name: string
+  protocol: 'http' | 'https' | 'tcp' | 'udp'
+  localPort: number
+  remoteHost: string
+  remotePort: number
+  status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'starting'
+  traffic?: { up: string; down: string }
+}>()
 
 const emit = defineEmits<{ click: []; action: [key: string] }>()
+const { t } = useI18n()
 
 const protocolVariant = computed(() => {
   switch (props.protocol) {

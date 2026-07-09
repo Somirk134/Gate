@@ -18,7 +18,7 @@
       <button
         type="button"
         class="g-password__toggle"
-        :title="visible ? '隐藏' : '显示'"
+        :title="visible ? t('form.hideSecret') : t('form.showSecret')"
         @click="visible = !visible">
         <GIcon :name="visible ? 'eye-off' : 'eye'" :size="iconSize" />
       </button>
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GInput from './GInput.vue'
 import GIcon from '@components/icons/GIcon.vue'
 
@@ -50,6 +51,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const { t } = useI18n()
 const visible = ref(false)
 const iconSize = computed(() => (props.size === 'sm' ? 14 : props.size === 'lg' ? 18 : 16))
 </script>

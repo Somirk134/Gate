@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { ServerKind } from '../types'
 import { KIND_MAP } from '../utils'
@@ -27,8 +28,9 @@ const props = withDefaults(
   { size: 'sm' },
 )
 
+const { t } = useI18n()
 const preset = computed(() => KIND_MAP[props.kind])
 const color = computed(() => preset.value.color)
-const label = computed(() => preset.value.label)
+const label = computed(() => t(`server.kinds.${preset.value.label}.label`))
 const icon = computed(() => preset.value.icon)
 </script>

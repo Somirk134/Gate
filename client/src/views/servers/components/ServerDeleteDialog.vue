@@ -12,42 +12,54 @@
             <span class="server-delete__icon">
               <GIcon name="alert-triangle" :size="22" />
             </span>
-            <h3 class="server-delete__title">删除服务器</h3>
+            <h3 class="server-delete__title">{{ t('server.deleteDialog.title') }}</h3>
           </header>
 
           <div class="server-delete__body">
             <p class="server-delete__warning">
-              你即将删除服务器
+              {{ t('server.deleteDialog.warning') }}
               <strong class="server-delete__name">「{{ server?.name }}」</strong>
             </p>
             <ul class="server-delete__list">
-              <li>该服务器下所有隧道将失去绑定资源</li>
-              <li>当前 {{ server?.monitor.connections.active ?? 0 }} 个活动连接将被强制关闭</li>
-              <li>所有流量统计与运行日志将被清除</li>
-              <li>此操作<b>不可撤销</b></li>
+              <li>{{ t('server.deleteDialog.tunnelsUnbound') }}</li>
+              <li>
+                {{
+                  t('server.deleteDialog.activeConnectionsClosed', {
+                    count: server?.monitor.connections.active ?? 0,
+                  })
+                }}
+              </li>
+              <li>{{ t('server.deleteDialog.statsCleared') }}</li>
+              <li>
+                {{ t('server.deleteDialog.operation') }}<b>{{ t('server.deleteDialog.irreversible') }}</b>
+              </li>
             </ul>
 
             <div class="server-delete__confirm-box">
               <p class="server-delete__confirm-text">
-                请输入服务器名称 <code>{{ server?.name }}</code> 以确认：
+                {{ t('server.deleteDialog.confirmPrefix') }}
+                <code>{{ server?.name }}</code>
+                {{ t('server.deleteDialog.confirmSuffix') }}
               </p>
               <GInput
                 v-model="confirmText"
-                placeholder="输入服务器名称"
+                :placeholder="t('server.deleteDialog.placeholder')"
                 :state="confirmText && confirmText !== server?.name ? 'error' : 'normal'"
                 clearable />
             </div>
           </div>
 
           <footer class="server-delete__footer">
-            <GButton variant="ghost" @click="handleClose"> 取消 </GButton>
+            <GButton variant="ghost" @click="handleClose">
+              {{ t('common.cancel') }}
+            </GButton>
             <GButton
               variant="danger"
               icon="trash"
               :loading="deleting"
               :disabled="confirmText !== server?.name"
               @click="handleDelete">
-              确认删除
+              {{ t('server.deleteDialog.confirm') }}
             </GButton>
           </footer>
         </div>
@@ -58,6 +70,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GInput from '@components/form/GInput.vue'
@@ -72,6 +85,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   confirm: [server: Server]
 }>()
+const { t } = useI18n()
 
 const confirmText = ref('')
 const deleting = ref(false)

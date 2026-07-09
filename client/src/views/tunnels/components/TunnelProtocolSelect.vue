@@ -33,13 +33,15 @@
         :variant="p.availability === 'soon' ? 'info' : 'neutral'"
         type="soft"
         size="sm">
-        {{ p.availability === 'soon' ? '即将' : '计划' }}
+        {{ t(`tunnel.availability.${p.availability}`) }}
       </GBadge>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GBadge from '@components/base/GBadge.vue'
 import type { ProtocolAvailability, TunnelProtocol } from '../types'
@@ -53,7 +55,13 @@ const emit = defineEmits<{
   'update:modelValue': [value: TunnelProtocol]
 }>()
 
-const protocols = PROTOCOL_PRESETS
+const { t } = useI18n()
+const protocols = computed(() =>
+  PROTOCOL_PRESETS.map((protocol) => ({
+    ...protocol,
+    description: t(`tunnel.protocolDescriptions.${protocol.description}`),
+  })),
+)
 
 function onSelect(key: TunnelProtocol, availability: ProtocolAvailability) {
   if (availability !== 'enabled') return

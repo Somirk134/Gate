@@ -2,38 +2,48 @@
   <main class="certificate-page">
     <header class="certificate-page__header">
       <div>
-        <span class="certificate-page__eyebrow">TLS 存储</span>
-        <h1>证书</h1>
+        <span class="certificate-page__eyebrow">{{ t('certificate.eyebrow') }}</span>
+        <h1>{{ t('certificate.title') }}</h1>
       </div>
-      <button class="certificate-page__icon-button" type="button" title="刷新" @click="refresh">
+      <button
+        class="certificate-page__icon-button"
+        type="button"
+        :title="t('certificate.refresh')"
+        @click="refresh">
         <GIcon name="refresh" :size="16" />
       </button>
     </header>
 
+    <section v-if="loading && certificates.length === 0" class="certificate-page__skeleton">
+      <span v-for="index in 6" :key="index" />
+    </section>
+
     <GEmptyState
-      v-if="!loading && certificates.length === 0"
-      title="暂无证书"
-      :description="`存储目录：${storeRoot || '尚未创建'}`">
+      v-else-if="!loading && certificates.length === 0"
+      :title="t('certificate.emptyTitle')"
+      :description="
+        t('certificate.emptyDescription', { path: storeRoot || t('certificate.storeNotCreated') })
+      ">
       <template #icon>
         <GIcon name="shield-check" :size="32" />
       </template>
       <template #action>
         <button class="certificate-page__button" type="button" @click="refresh">
           <GIcon name="refresh" :size="14" />
-          刷新
+          {{ t('certificate.refresh') }}
         </button>
       </template>
     </GEmptyState>
 
-    <section v-else class="certificate-page__table" aria-label="证书列表">
+    <section v-else class="certificate-page__table" :aria-label="t('certificate.listAria')">
       <div class="certificate-page__table-head">
-        <span>域名</span>
-        <span>签发者</span>
-        <span>签发时间</span>
-        <span>到期时间</span>
-        <span>天数</span>
-        <span>状态</span>
-        <span>续期</span>
+        <span>{{ t('certificate.columns.domain') }}</span>
+        <span>{{ t('certificate.columns.issuer') }}</span>
+        <span>{{ t('certificate.columns.issuedAt') }}</span>
+        <span>{{ t('certificate.columns.expiresAt') }}</span>
+        <span>{{ t('certificate.columns.days') }}</span>
+        <span>{{ t('certificate.columns.status') }}</span>
+        <span>{{ t('certificate.columns.renewal') }}</span>
         <span />
       </div>
       <article
@@ -51,64 +61,72 @@
           :title="certificate.lastError || undefined">
           {{ statusLabel(certificate.status) }}
         </span>
-        <span class="certificate-page__renewal" :title="certificate.lastError || undefined">{{
-          renewalLabel(certificate.autoRenewalStatus)
-        }}</span>
+        <span class="certificate-page__renewal" :title="certificate.lastError || undefined">
+          {{ renewalLabel(certificate.autoRenewalStatus) }}
+        </span>
         <div class="certificate-page__actions">
-          <button type="button" title="查看详情" @click="select(certificate.domain)">
+          <button
+            type="button"
+            :title="t('certificate.viewDetails')"
+            @click="select(certificate.domain)">
             <GIcon name="eye" :size="15" />
           </button>
           <button
             type="button"
-            title="导出 PEM"
+            :title="t('certificate.exportPem')"
             :disabled="!certificate.hasCertificatePem"
             @click="exportPem(certificate.domain)">
             <GIcon name="download" :size="15" />
           </button>
-          <button type="button" title="复制证书信息" @click="copyInfo(certificate)">
+          <button type="button" :title="t('certificate.copyInfo')" @click="copyInfo(certificate)">
             <GIcon name="copy" :size="15" />
           </button>
         </div>
       </article>
     </section>
 
-    <aside v-if="selected" class="certificate-page__detail" aria-label="证书详情">
+    <aside
+      v-if="selected"
+      class="certificate-page__detail"
+      :aria-label="t('certificate.detailAria')">
       <header>
         <div>
-          <span>证书详情</span>
+          <span>{{ t('certificate.detailTitle') }}</span>
           <h2>{{ selected.summary.domain }}</h2>
         </div>
-        <button type="button" title="关闭" @click="selected = null">
+        <button type="button" :title="t('certificate.close')" @click="selected = null">
           <GIcon name="close" :size="16" />
         </button>
       </header>
       <dl>
-        <dt>签发者</dt>
+        <dt>{{ t('certificate.fields.issuer') }}</dt>
         <dd>{{ selected.summary.issuer }}</dd>
-        <dt>序列号</dt>
+        <dt>{{ t('certificate.fields.serialNumber') }}</dt>
         <dd>{{ selected.summary.serialNumber || '-' }}</dd>
-        <dt>算法</dt>
+        <dt>{{ t('certificate.fields.algorithm') }}</dt>
         <dd>{{ selected.summary.algorithm }}</dd>
-        <dt>指纹</dt>
+        <dt>{{ t('certificate.fields.fingerprint') }}</dt>
         <dd class="mono">
           {{ selected.summary.fingerprintSha256 }}
         </dd>
         <dt>SAN</dt>
         <dd>{{ selected.summary.san.join(', ') || '-' }}</dd>
-        <dt>证书路径</dt>
+        <dt>{{ t('certificate.fields.certificatePath') }}</dt>
         <dd class="mono">
           {{ selected.summary.certificatePath }}
         </dd>
-        <dt v-if="selected.summary.lastError">错误</dt>
+        <dt v-if="selected.summary.lastError">{{ t('certificate.fields.error') }}</dt>
         <dd v-if="selected.summary.lastError" class="certificate-page__inline-error">
           {{ selected.summary.lastError }}
         </dd>
       </dl>
       <pre v-if="selected.certificatePem">{{ selected.certificatePem }}</pre>
-      <p v-else class="certificate-page__empty-pem">尚未写入证书 PEM。</p>
+      <p v-else class="certificate-page__empty-pem">{{ t('certificate.noPem') }}</p>
     </aside>
 
-    <p v-if="loading" class="certificate-page__loading">正在加载证书...</p>
+    <p v-if="loading && certificates.length > 0" class="certificate-page__loading">
+      {{ t('certificate.loading') }}
+    </p>
     <p v-if="error" class="certificate-page__error">
       {{ error }}
     </p>
@@ -117,8 +135,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GEmptyState from '@/components/feedback/GEmptyState.vue'
 import GIcon from '@/components/icons/GIcon.vue'
+import { useFeedback } from '@/composables/useFeedback'
 import { certificateService } from './service'
 import type {
   CertificateDetailResponse,
@@ -132,6 +152,8 @@ const selected = ref<CertificateDetailResponse | null>(null)
 const loading = ref(false)
 const error = ref('')
 const storeRoot = ref('')
+const { t, locale } = useI18n()
+const { toast } = useFeedback()
 
 onMounted(() => {
   void refresh()
@@ -175,10 +197,11 @@ async function exportPem(domain: string) {
 
 async function copyInfo(certificate: CertificateSummary) {
   await navigator.clipboard.writeText(JSON.stringify(certificate, null, 2))
+  toast.success(t('certificate.copied'))
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -186,26 +209,11 @@ function formatDate(value: string) {
 }
 
 function statusLabel(status: CertificateStatus) {
-  return {
-    pending: '待处理',
-    active: '有效',
-    expiringSoon: '即将过期',
-    expired: '已过期',
-    revoked: '已吊销',
-    deleted: '已删除',
-    failed: '失败',
-    unknown: '未知',
-  }[status]
+  return t(`certificate.status.${status}`)
 }
 
 function renewalLabel(status: AutoRenewalStatus) {
-  return {
-    scheduled: '已计划',
-    due: '待续期',
-    notScheduled: '未计划',
-    expired: '已过期',
-    failed: '失败',
-  }[status]
+  return t(`certificate.renewal.${status}`)
 }
 
 function safeFileName(value: string) {
@@ -267,6 +275,28 @@ function safeFileName(value: string) {
 .certificate-page__actions button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.certificate-page__skeleton {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.certificate-page__skeleton span {
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-input),
+    var(--bg-surface-hover),
+    var(--bg-input)
+  );
+  background-size: 200% 100%;
+  animation: certificate-skeleton 1.3s ease-in-out infinite;
 }
 
 .certificate-page__table {
@@ -406,6 +436,16 @@ function safeFileName(value: string) {
 .certificate-page__inline-error,
 .certificate-page__empty-pem {
   color: var(--color-error);
+}
+
+@keyframes certificate-skeleton {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }
 
 @media (max-width: 980px) {

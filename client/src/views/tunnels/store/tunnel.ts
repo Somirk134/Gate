@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { i18n } from '@/i18n'
 import { tunnelService } from '@/services/tunnel.service'
 import { useServerStore } from '@views/servers'
 import type { DashboardTunnel } from '@/monitoring/types'
@@ -11,6 +12,13 @@ import type {
   TunnelStatus,
 } from '../types'
 import { TUNNEL_STATUS_CONFIG, isRunningStatus } from '../utils'
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 export const defaultTunnelForm: TunnelFormData = {
   name: '',
@@ -80,7 +88,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       lastUpdated.value = Date.now()
     } catch (e) {
       status.value = 'error'
-      error.value = e instanceof Error ? e.message : '隧道加载失败'
+      error.value = e instanceof Error ? e.message : t('tunnel.errors.loadFailed')
     }
   }
 
@@ -94,7 +102,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       await serverStore.load()
     }
     if (!serverStore.onlineServers.length || !form.serverName) {
-      throw new Error('请先在服务器页面添加并连接一台服务器，然后再创建隧道。')
+      throw new Error(t('tunnel.errors.needConnectedServer'))
     }
 
     const id = await tunnelService.create({
@@ -119,7 +127,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     await load()
     const created = getById(id)
     if (!created) {
-      throw new Error('隧道已保存，但无法从后端重新加载。')
+      throw new Error(t('tunnel.errors.savedReloadFailed'))
     }
 
     if (form.autoStart) {
@@ -173,16 +181,16 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   }
 
   function cloneTunnel(_id: string): Tunnel | undefined {
-    error.value = '该功能暂未实现'
+    error.value = t('common.notImplemented')
     return undefined
   }
 
   function togglePin(_id: string): void {
-    error.value = '该功能暂未实现'
+    error.value = t('common.notImplemented')
   }
 
   function toggleFavorite(_id: string): void {
-    error.value = '该功能暂未实现'
+    error.value = t('common.notImplemented')
   }
 
   function tick(): void {
@@ -318,7 +326,7 @@ function publicAddress(row: DashboardTunnel): string {
     return `:${row.remotePort}`
   }
 
-  return 'Not assigned'
+  return t('tunnel.notAssigned')
 }
 
 function optionalText(value: string | undefined): string | undefined {

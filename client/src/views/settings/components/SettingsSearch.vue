@@ -6,7 +6,7 @@
         ref="inputRef"
         :value="query"
         type="search"
-        placeholder="搜索设置"
+        :placeholder="t('settings.searchPlaceholder')"
         @input="emit('update:query', ($event.target as HTMLInputElement).value)" />
       <button v-if="query" type="button" @click="emit('update:query', '')">
         <GIcon name="close" :size="14" />
@@ -22,7 +22,7 @@
           ($event.target as HTMLSelectElement).value as SettingCategoryId | 'all',
         )
       ">
-      <option value="all">全部分类</option>
+      <option value="all">{{ t('settings.legacy.allCategories') }}</option>
       <option v-for="category in categories" :key="category.id" :value="category.id">
         {{ category.label }}
       </option>
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { SettingCategory, SettingCategoryId } from '../types'
 
@@ -46,6 +47,7 @@ const emit = defineEmits<{
   'update:categoryFilter': [value: SettingCategoryId | 'all']
 }>()
 
+const { t } = useI18n()
 const inputRef = ref<HTMLInputElement | null>(null)
 
 function focus() {

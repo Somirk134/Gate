@@ -6,7 +6,7 @@
 <template>
   <div class="tunnel-statistics">
     <div class="tunnel-stat-grid">
-      <div v-for="item in stats" :key="item.label" class="tunnel-stat-card">
+      <div v-for="item in stats" :key="item.key" class="tunnel-stat-card">
         <div
           class="tunnel-stat-card__icon"
           :style="{ color: item.color, background: item.color + '1f' }">
@@ -23,7 +23,7 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="chart-pie" :size="12" />
-        流量占比
+        {{ t('tunnel.statistics.trafficRatio') }}
       </div>
       <div class="tunnel-statistics__rings">
         <div v-for="ring in rings" :key="ring.label" class="tunnel-statistics__ring">
@@ -60,34 +60,34 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="chart-bar" :size="12" />
-        详细统计
+        {{ t('tunnel.statistics.detailTitle') }}
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">运行时长</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.uptime') }}</span>
         <span class="tunnel-info-row__value mono">{{
-          formatDuration(tunnel.statistics.uptime)
+          formatDuration(tunnel.statistics.uptime, t)
         }}</span>
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">当前连接</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.currentConnections') }}</span>
         <span class="tunnel-info-row__value">{{ tunnel.statistics.connections }}</span>
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">累计连接</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.totalConnections') }}</span>
         <span class="tunnel-info-row__value">{{
           formatNumber(tunnel.statistics.totalConnections)
         }}</span>
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">累计请求</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.totalRequests') }}</span>
         <span class="tunnel-info-row__value">{{ formatNumber(tunnel.statistics.requests) }}</span>
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">平均延迟</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.avgLatency') }}</span>
         <span class="tunnel-info-row__value">{{ tunnel.statistics.avgLatency }} ms</span>
       </div>
       <div class="tunnel-info-row">
-        <span class="tunnel-info-row__label">峰值速度</span>
+        <span class="tunnel-info-row__label">{{ t('tunnel.metrics.peakSpeed') }}</span>
         <span class="tunnel-info-row__value mono">{{
           formatSpeed(tunnel.statistics.peakSpeed)
         }}</span>
@@ -98,11 +98,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Tunnel } from '../types'
 import { formatDuration, formatNumber, formatSpeed } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 const ringStroke = 7
 const ringRadius = (84 - ringStroke) / 2
@@ -110,37 +112,43 @@ const ringCircumference = 2 * Math.PI * ringRadius
 
 const stats = computed(() => [
   {
-    label: '运行时长',
-    value: formatDuration(props.tunnel.statistics.uptime),
+    key: 'uptime',
+    label: t('tunnel.metrics.uptime'),
+    value: formatDuration(props.tunnel.statistics.uptime, t),
     icon: 'clock',
     color: '#22C55E',
   },
   {
-    label: '当前连接',
+    key: 'currentConnections',
+    label: t('tunnel.metrics.currentConnections'),
     value: String(props.tunnel.statistics.connections),
     icon: 'link',
     color: '#F59E0B',
   },
   {
-    label: '累计连接',
+    key: 'totalConnections',
+    label: t('tunnel.metrics.totalConnections'),
     value: formatNumber(props.tunnel.statistics.totalConnections),
     icon: 'users',
     color: '#5B8DEF',
   },
   {
-    label: '累计请求',
+    key: 'totalRequests',
+    label: t('tunnel.metrics.totalRequests'),
     value: formatNumber(props.tunnel.statistics.requests),
     icon: 'activity',
     color: '#7C6FF2',
   },
   {
-    label: '平均延迟',
+    key: 'avgLatency',
+    label: t('tunnel.metrics.avgLatency'),
     value: `${props.tunnel.statistics.avgLatency} ms`,
     icon: 'gauge',
     color: '#06B6D4',
   },
   {
-    label: '峰值速度',
+    key: 'peakSpeed',
+    label: t('tunnel.metrics.peakSpeed'),
     value: formatSpeed(props.tunnel.statistics.peakSpeed),
     icon: 'zap',
     color: '#EF4444',
@@ -155,9 +163,9 @@ const rings = computed(() => {
     ((props.tunnel.traffic.todayUpload + props.tunnel.traffic.todayDownload) / total) * 100,
   )
   return [
-    { label: '上传', percent: upPct, color: '#22C55E' },
-    { label: '下载', percent: downPct, color: '#5B8DEF' },
-    { label: '今日', percent: Math.min(todayPct, 100), color: '#F59E0B' },
+    { label: t('tunnel.metrics.upload'), percent: upPct, color: '#22C55E' },
+    { label: t('tunnel.metrics.download'), percent: downPct, color: '#5B8DEF' },
+    { label: t('tunnel.today'), percent: Math.min(todayPct, 100), color: '#F59E0B' },
   ]
 })
 </script>

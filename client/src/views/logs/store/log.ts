@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { i18n } from '@/i18n'
 import { TauriIpcClient } from '@/ipc'
 import { buildLogStatistics } from '../constants'
 import type { LogFilter, LogItem, LogLevel, LogLoadStatus, LogSource } from '../types'
@@ -15,6 +16,13 @@ interface RuntimeLogRecord {
 }
 
 const ipc = new TauriIpcClient()
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 export const defaultLogFilter: LogFilter = {
   levels: [],
@@ -127,7 +135,7 @@ export const useLogStore = defineStore('log-center', () => {
         selectedId.value = logs.value[logs.value.length - 1].id
     } catch (e) {
       status.value = 'error'
-      error.value = e instanceof Error ? e.message : '日志加载失败'
+      error.value = e instanceof Error ? e.message : t('logs.loadingFailed')
     }
   }
 

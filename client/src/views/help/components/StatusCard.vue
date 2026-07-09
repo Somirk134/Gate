@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 
 type SupportStatus = 'ok' | 'warning' | 'error' | 'unknown'
@@ -34,12 +35,14 @@ const props = withDefaults(
   },
 )
 
+const { t } = useI18n()
+
 const statusLabel = computed(() => {
-  if (props.loading) return '检测中'
-  if (props.status === 'ok') return '正常'
-  if (props.status === 'warning') return '注意'
-  if (props.status === 'error') return '异常'
-  return '未知'
+  if (props.loading) return t('help.statusBadge.detecting')
+  if (props.status === 'ok') return t('help.statusBadge.ok')
+  if (props.status === 'warning') return t('help.statusBadge.warning')
+  if (props.status === 'error') return t('help.statusBadge.error')
+  return t('help.statusBadge.unknown')
 })
 </script>
 

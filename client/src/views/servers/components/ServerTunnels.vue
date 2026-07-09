@@ -8,13 +8,13 @@
     <div class="server-section__head">
       <div class="server-section__title">
         <GIcon name="router" :size="16" class="server-section__title-icon" />
-        <span>隧道列表</span>
+        <span>{{ t('server.tunnels.title') }}</span>
         <GBadge variant="neutral" type="soft" size="sm">
           {{ tunnels.length }}
         </GBadge>
       </div>
       <GButton size="sm" variant="ghost" icon="plus" @click="$emit('create-tunnel')">
-        新建隧道
+        {{ t('server.tunnels.create') }}
       </GButton>
     </div>
 
@@ -42,20 +42,20 @@
             name="play"
             size="sm"
             variant="ghost"
-            tooltip="启动"
+            :tooltip="t('tunnel.start')"
             @click.stop="$emit('start-tunnel', tunnel)" />
           <GIconButton
             v-else
             name="stop"
             size="sm"
             variant="ghost"
-            tooltip="停止"
+            :tooltip="t('tunnel.stop')"
             @click.stop="$emit('stop-tunnel', tunnel)" />
           <GIconButton
             name="external-link"
             size="sm"
             variant="ghost"
-            tooltip="查看详情"
+            :tooltip="t('server.tunnels.viewDetails')"
             @click.stop="$emit('view-tunnel', tunnel)" />
         </div>
       </div>
@@ -63,20 +63,21 @@
 
     <div v-else class="server-logs__empty">
       <GIcon name="router" :size="20" />
-      <span>该服务器暂无隧道</span>
+      <span>{{ t('server.tunnels.empty') }}</span>
       <GButton size="sm" variant="ghost" icon="plus" @click="$emit('create-tunnel')">
-        创建第一个隧道
+        {{ t('server.tunnels.createFirst') }}
       </GButton>
     </div>
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      服务器绑定隧道会在创建或关联后显示在这里。
+      {{ t('server.tunnels.hint') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GBadge from '@components/base/GBadge.vue'
@@ -103,4 +104,6 @@ defineEmits<{
   'stop-tunnel': [tunnel: ServerTunnelItem]
   'view-tunnel': [tunnel: ServerTunnelItem]
 }>()
+
+const { t } = useI18n()
 </script>

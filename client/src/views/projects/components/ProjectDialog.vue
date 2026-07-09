@@ -158,7 +158,7 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)">
                   <GIcon name="plus" :size="10" />
-                  {{ tag.name }}
+                  {{ tag.label }}
                 </button>
               </div>
             </GFormField>
@@ -252,13 +252,23 @@ const previewStyle = computed(() => {
 })
 
 const suggestedTags = computed(() =>
-  PROJECT_TAGS.filter((t) => !form.tags.includes(t.name)).slice(0, 6),
+  PROJECT_TAGS.filter((tag) => !form.tags.includes(tag.name))
+    .slice(0, 6)
+    .map((tag) => ({
+      ...tag,
+      label: t(`project.tags.${tag.name}`),
+    })),
 )
 const templateOptions = computed(() =>
   PROJECT_TEMPLATES.map((template) => ({
     ...template,
     label: t(`project.templates.${template.key}.label`),
     description: t(`project.templates.${template.key}.description`),
+    recommendations: template.recommendations.map((recommendation) => ({
+      ...recommendation,
+      name: t(`project.templateRecommendations.${recommendation.id}.name`),
+      description: t(`project.templateRecommendations.${recommendation.id}.description`),
+    })),
   })),
 )
 const selectedTemplate = computed(() =>
@@ -318,7 +328,7 @@ function selectTemplate(template: ProjectTemplateProfile) {
     form.icon = template.icon
     form.color = template.color
     if (!form.description.trim()) {
-      form.description = template.description
+      form.description = t(`project.templates.${template.key}.description`)
     }
     form.tags = [...new Set([...form.tags, ...template.tags])]
   }

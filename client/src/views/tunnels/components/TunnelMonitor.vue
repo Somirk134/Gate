@@ -14,7 +14,7 @@
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ formatSpeed(tunnel.traffic.uploadSpeed) }}</span>
-          <span class="tunnel-stat-card__label">上传速度</span>
+          <span class="tunnel-stat-card__label">{{ t('tunnel.metrics.uploadSpeed') }}</span>
         </div>
       </div>
       <div class="tunnel-stat-card">
@@ -25,7 +25,7 @@
           <span class="tunnel-stat-card__value">{{
             formatSpeed(tunnel.traffic.downloadSpeed)
           }}</span>
-          <span class="tunnel-stat-card__label">下载速度</span>
+          <span class="tunnel-stat-card__label">{{ t('tunnel.metrics.downloadSpeed') }}</span>
         </div>
       </div>
       <div class="tunnel-stat-card">
@@ -34,7 +34,7 @@
         </div>
         <div class="tunnel-stat-card__body">
           <span class="tunnel-stat-card__value">{{ tunnel.statistics.connections }}</span>
-          <span class="tunnel-stat-card__label">当前连接</span>
+          <span class="tunnel-stat-card__label">{{ t('tunnel.metrics.currentConnections') }}</span>
         </div>
       </div>
       <div class="tunnel-stat-card">
@@ -45,7 +45,7 @@
           <span class="tunnel-stat-card__value"
             >{{ tunnel.statistics.avgLatency }}<span class="tunnel-monitor__unit">ms</span></span
           >
-          <span class="tunnel-stat-card__label">平均延迟</span>
+          <span class="tunnel-stat-card__label">{{ t('tunnel.metrics.avgLatency') }}</span>
         </div>
       </div>
     </div>
@@ -54,7 +54,7 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="chart-line" :size="12" />
-        实时速度（最近 12 个采样点）
+        {{ t('tunnel.monitor.realtimeSpeedTitle') }}
         <span class="tunnel-monitor__live">
           <span class="tunnel-monitor__live-dot" />
           LIVE
@@ -89,11 +89,11 @@
         <div class="tunnel-traffic__legend">
           <span class="tunnel-traffic__legend-item">
             <span class="tunnel-traffic__legend-dot" style="background: #5b8def" />
-            下载
+            {{ t('tunnel.metrics.download') }}
           </span>
           <span class="tunnel-traffic__legend-item">
             <span class="tunnel-traffic__legend-dot" style="background: #22c55e" />
-            上传
+            {{ t('tunnel.metrics.upload') }}
           </span>
         </div>
       </div>
@@ -103,8 +103,10 @@
     <div class="tunnel-info-card" style="margin-top: var(--space-4)">
       <div class="tunnel-info-card__title">
         <GIcon name="cpu" :size="12" />
-        资源占用
-        <GBadge variant="neutral" type="soft" size="sm"> 预留 </GBadge>
+        {{ t('tunnel.monitor.resourceUsage') }}
+        <GBadge variant="neutral" type="soft" size="sm">
+          {{ t('tunnel.settings.reserved') }}
+        </GBadge>
       </div>
       <div class="tunnel-monitor__resource">
         <div v-for="r in resources" :key="r.label" class="tunnel-monitor__resource-item">
@@ -124,19 +126,21 @@
 
     <p class="tunnel-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      监控数据来自 Runtime Dashboard；暂无采样时显示空曲线。
+      {{ t('tunnel.monitor.hint') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GBadge from '@components/base/GBadge.vue'
 import type { Tunnel } from '../types'
 import { formatSpeed } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 function buildPath(key: 'upload' | 'download'): string {
   const h = props.tunnel.traffic.history
@@ -165,9 +169,15 @@ const downArea = computed(() => buildArea('download'))
 
 const resources = computed(() => [
   { label: 'CPU', icon: 'cpu', value: '—', percent: 0, color: 'var(--color-primary)' },
-  { label: '内存', icon: 'memory-stick', value: '—', percent: 0, color: 'var(--color-secondary)' },
   {
-    label: '网络',
+    label: t('common.memory'),
+    icon: 'memory-stick',
+    value: '—',
+    percent: 0,
+    color: 'var(--color-secondary)',
+  },
+  {
+    label: t('server.network'),
     icon: 'network',
     value: formatSpeed(props.tunnel.traffic.downloadSpeed),
     percent: props.tunnel.traffic.downloadSpeed > 0 ? 100 : 0,

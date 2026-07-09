@@ -1,6 +1,7 @@
 import type { EventBus } from '@/events/EventBus'
 import type { AppEventMap } from '@/types/application'
 import { GITHUB_REPOSITORY_URL } from '@/constants'
+import { GateAppError } from '@/ipc'
 import { isTauri } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
@@ -93,7 +94,11 @@ export class TauriAutoUpdateService implements AutoUpdateService {
     const update = this.pendingUpdate
 
     if (!update) {
-      throw new Error('当前没有可下载的桌面端更新。')
+      throw new GateAppError({
+        code: 'UPDATE_DOWNLOAD_UNAVAILABLE',
+        messageKey: 'errors.updateNoDownload',
+        timestamp: Date.now(),
+      })
     }
 
     this.setStatus('downloading')
@@ -111,7 +116,11 @@ export class TauriAutoUpdateService implements AutoUpdateService {
     const update = this.pendingUpdate
 
     if (!update) {
-      throw new Error('当前没有可安装的桌面端更新。')
+      throw new GateAppError({
+        code: 'UPDATE_INSTALL_UNAVAILABLE',
+        messageKey: 'errors.updateNoInstall',
+        timestamp: Date.now(),
+      })
     }
 
     this.setStatus('installing')
@@ -160,7 +169,12 @@ export class TauriAutoUpdateService implements AutoUpdateService {
     }
 
     if (!response.ok) {
-      throw new Error(`检查 GitHub 更新失败：HTTP ${response.status}`)
+      throw new GateAppError({
+        code: 'UPDATE_CHECK_HTTP_FAILED',
+        messageKey: 'errors.updateCheckHttpFailed',
+        details: { status: response.status },
+        timestamp: Date.now(),
+      })
     }
 
     const releases = (await response.json()) as GitHubReleaseResponse[]

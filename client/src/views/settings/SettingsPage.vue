@@ -27,7 +27,7 @@
           :class="{ active: activeCategory === category.id }"
           @click="activeCategory = category.id">
           <GIcon :name="category.icon" :size="16" />
-          <span>{{ localize(category.label) }}</span>
+          <span>{{ t(category.labelKey) }}</span>
         </button>
       </aside>
 
@@ -36,21 +36,21 @@
           <div class="settings-category-panel__heading">
             <span><GIcon :name="selectedCategory.icon" :size="20" /></span>
             <div>
-              <p>{{ localize(selectedCategory.kicker) }}</p>
-              <h2>{{ localize(selectedCategory.label) }}</h2>
-              <small>{{ localize(selectedCategory.description) }}</small>
+              <p>{{ t(selectedCategory.kickerKey) }}</p>
+              <h2>{{ t(selectedCategory.labelKey) }}</h2>
+              <small>{{ t(selectedCategory.descriptionKey) }}</small>
             </div>
           </div>
 
           <div class="settings-groups">
             <article
-              v-for="(group, groupIndex) in selectedCategory.groups"
-              :key="`${selectedCategory.id}-${groupIndex}`"
+              v-for="group in selectedCategory.groups"
+              :key="`${selectedCategory.id}-${group.titleKey}`"
               class="settings-group-card">
               <header>
                 <div>
-                  <h3>{{ localize(group.title) }}</h3>
-                  <p>{{ localize(group.description) }}</p>
+                  <h3>{{ t(group.titleKey) }}</h3>
+                  <p>{{ t(group.descriptionKey) }}</p>
                 </div>
               </header>
 
@@ -61,8 +61,8 @@
                   class="settings-row"
                   :class="{ 'settings-row--action': item.control === 'action' }">
                   <div>
-                    <strong>{{ localize(item.label) }}</strong>
-                    <span>{{ localize(item.description) }}</span>
+                    <strong>{{ t(item.labelKey) }}</strong>
+                    <span>{{ t(item.descriptionKey) }}</span>
                   </div>
 
                   <button
@@ -77,10 +77,10 @@
 
                   <select v-else-if="item.control === 'select'" v-model="values[item.key]">
                     <option
-                      v-for="option in normalizeOptions(item.options)"
+                      v-for="option in item.options ?? []"
                       :key="String(option.value)"
                       :value="option.value">
-                      {{ localize(option.label) }}
+                      {{ t(option.labelKey) }}
                     </option>
                   </select>
 
@@ -95,10 +95,10 @@
                     variant="secondary"
                     :icon="item.icon"
                     @click="runSettingAction(item.action)">
-                    {{ localize(item.buttonText ?? '执行') }}
+                    {{ t(item.buttonKey ?? 'settings.actions.run') }}
                   </GButton>
 
-                  <code v-else>{{ values[item.key] }}</code>
+                  <code v-else>{{ readonlyValue(item.key) }}</code>
                 </div>
               </div>
             </article>
@@ -114,11 +114,7 @@
     </div>
 
     <Transition name="settings-restore">
-      <div
-        v-if="restorePreview"
-        class="settings-restore-backdrop"
-        role="presentation"
-        >
+      <div v-if="restorePreview" class="settings-restore-backdrop" role="presentation">
         <article
           class="settings-restore-dialog"
           role="dialog"
@@ -126,45 +122,46 @@
           aria-labelledby="settings-restore-title">
           <header>
             <div>
-              <p>Backup Restore</p>
-              <h2 id="settings-restore-title">确认恢复 Gate 备份</h2>
+              <p>{{ t('backup.restore.kicker') }}</p>
+              <h2 id="settings-restore-title">{{ t('backup.restore.title') }}</h2>
             </div>
-            <button type="button" :disabled="restoreBusy" @click="closeRestorePreview">
+            <button
+              type="button"
+              :aria-label="t('common.cancel')"
+              :disabled="restoreBusy"
+              @click="closeRestorePreview">
               <GIcon name="close" :size="16" />
             </button>
           </header>
 
           <section class="settings-restore-summary">
             <div>
-              <span>备份版本</span>
-              <strong>v{{ restorePreview.appVersion }}</strong>
+              <span>{{ t('backup.restore.backupVersion') }}</span>
+              <strong>{{ restorePreview.version }} / v{{ restorePreview.appVersion }}</strong>
             </div>
             <div>
-              <span>创建时间</span>
+              <span>{{ t('backup.restore.createdAt') }}</span>
               <strong>{{ formatBackupDate(restorePreview.createdAt) }}</strong>
             </div>
             <div>
-              <span>文件内容</span>
-              <strong>{{ restorePreview.entries.length }} 项</strong>
+              <span>{{ t('backup.restore.entries') }}</span>
+              <strong>{{ t('backup.restore.entryCount', { count: restorePreview.entries.length }) }}</strong>
             </div>
           </section>
 
           <section class="settings-restore-grid">
-            <article v-for="row in restoreRows" :key="row.label">
-              <span>{{ row.label }}</span>
+            <article v-for="row in restoreRows" :key="row.labelKey">
+              <span>{{ t(row.labelKey) }}</span>
               <strong>{{ row.value }}</strong>
-              <small>{{ row.description }}</small>
+              <small>{{ t(row.descriptionKey) }}</small>
             </article>
           </section>
 
           <div class="settings-restore-warning">
             <GIcon name="alert-triangle" :size="18" />
             <div>
-              <strong>恢复会先停止 Runtime</strong>
-              <p>
-                Gate 会恢复 Projects、Servers、Tunnels、Domains、证书 metadata、Settings 和 Runtime
-                config。证书私钥和 PEM 不包含在备份中，恢复后需要手动重新连接服务器并启动 Tunnel。
-              </p>
+              <strong>{{ t('backup.restore.warningTitle') }}</strong>
+              <p>{{ t('backup.restore.warningBody') }}</p>
             </div>
           </div>
 
@@ -172,14 +169,14 @@
 
           <footer>
             <GButton variant="ghost" :disabled="restoreBusy" @click="closeRestorePreview">
-              取消
+              {{ t('common.cancel') }}
             </GButton>
             <GButton
               variant="primary"
               icon="upload"
               :loading="restoreBusy"
               @click="confirmRestoreBackup">
-              确认恢复
+              {{ t('backup.restore.confirm') }}
             </GButton>
           </footer>
         </article>
@@ -220,41 +217,42 @@ type SettingAction =
   | 'clearLogs'
   | 'openOnboarding'
 
+interface SettingOption {
+  labelKey: string
+  value: string | number | boolean
+}
+
 interface SettingItem {
   key: string
-  label: LocalizedText
-  description: LocalizedText
+  labelKey: string
+  descriptionKey: string
   control: SettingControl
   options?: SettingOption[]
   value: string | number | boolean
   icon?: string
-  buttonText?: LocalizedText
+  buttonKey?: string
   action?: SettingAction
 }
 
 interface SettingGroup {
-  title: LocalizedText
-  description: LocalizedText
+  titleKey: string
+  descriptionKey: string
   items: SettingItem[]
 }
 
 interface SettingCategory {
   id: string
-  label: LocalizedText
-  kicker: LocalizedText
-  description: LocalizedText
+  labelKey: string
+  kickerKey: string
+  descriptionKey: string
   icon: string
   groups: SettingGroup[]
 }
 
-type LocalizedText = string | { zh: string; en: string }
-type SettingOption = string | { label: LocalizedText; value: string | number | boolean }
-
-const L = (zh: string, en: string): LocalizedText => ({ zh, en })
-const O = (zh: string, en: string, value: string | number | boolean): SettingOption => ({
-  label: L(zh, en),
-  value,
-})
+const option = (
+  labelKey: string,
+  value: string | number | boolean,
+): SettingOption => ({ labelKey, value })
 
 const query = ref('')
 const activeCategory = ref('general')
@@ -275,223 +273,55 @@ let hydrating = false
 const categories: SettingCategory[] = [
   {
     id: 'general',
-    label: L('通用', 'General'),
-    kicker: L('启动与工作区', 'Startup and workspace'),
-    description: L(
-      '控制应用启动、默认行为和日常使用偏好。',
-      'Control startup, defaults, and daily preferences.',
-    ),
+    labelKey: 'settings.general',
+    kickerKey: 'settings.polish.general.kicker',
+    descriptionKey: 'settings.polish.general.description',
     icon: 'settings',
     groups: [
       {
-        title: L('启动', 'Startup'),
-        description: L(
-          '保持普通开发者第一次打开时足够清晰。',
-          'Keep first launch clear for everyday developers.',
-        ),
+        titleKey: 'settings.polish.language.title',
+        descriptionKey: 'settings.polish.language.description',
         items: [
           {
             key: 'language',
-            label: { zh: '语言', en: 'Language' },
-            description: {
-              zh: '切换整个界面的显示语言，立即生效。',
-              en: 'Change the interface language. Applies immediately.',
-            },
+            labelKey: 'settings.language',
+            descriptionKey: 'settings.desc.language',
             control: 'select',
             options: [
-              O('简体中文', 'Simplified Chinese', 'zh-CN'),
-              O('English', 'English', 'en-US'),
+              option('settings.languageZh', 'zh-CN'),
+              option('settings.languageEn', 'en-US'),
             ],
             value: 'zh-CN',
           },
           {
-            key: 'launchAtLogin',
-            label: L('开机启动', 'Launch at login'),
-            description: L(
-              '登录系统后自动启动 Gate。',
-              'Start Gate automatically after system login.',
-            ),
-            control: 'switch',
-            value: false,
-          },
-          {
-            key: 'showWelcome',
-            label: L('显示欢迎页', 'Show welcome'),
-            description: L(
-              '首次启动时展示智能新手引导。',
-              'Show the guided onboarding on first launch.',
-            ),
-            control: 'switch',
-            value: true,
-          },
-          {
             key: 'openOnboarding',
-            label: L('重新打开新手引导', 'Open onboarding again'),
-            description: L(
-              '从头开始聊天式配置流程，不会改动 Runtime。',
-              'Restart the guided setup without changing the Runtime.',
-            ),
+            labelKey: 'settings.polish.openOnboarding.label',
+            descriptionKey: 'settings.polish.openOnboarding.description',
             control: 'action',
             value: '',
             icon: 'sparkles',
-            buttonText: L('打开', 'Open'),
+            buttonKey: 'settings.polish.openOnboarding.button',
             action: 'openOnboarding',
           },
         ],
       },
       {
-        title: L('工作区', 'Workspace'),
-        description: L(
-          '决定默认进入位置和运行反馈。',
-          'Choose the default page and interaction feedback.',
-        ),
+        titleKey: 'settings.polish.startup.title',
+        descriptionKey: 'settings.polish.startup.description',
         items: [
           {
-            key: 'defaultPage',
-            label: L('默认页面', 'Default page'),
-            description: L('应用启动后打开的页面。', 'Page opened after the app starts.'),
-            control: 'select',
-            options: [
-              O('首页', 'Dashboard', 'Dashboard'),
-              O('项目', 'Projects', 'Projects'),
-              O('隧道', 'Tunnels', 'Tunnels'),
-              O('日志', 'Logs', 'Logs'),
-            ],
-            value: 'Dashboard',
-          },
-          {
-            key: 'confirmBeforeStop',
-            label: L('停止前确认', 'Confirm before stopping'),
-            description: L(
-              '停止隧道或项目时使用统一确认对话框。',
-              'Ask before stopping a tunnel or project.',
-            ),
-            control: 'switch',
-            value: true,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'network',
-    label: L('网络', 'Network'),
-    kicker: L('连接能力', 'Connectivity'),
-    description: L(
-      '网络重试、超时和代理相关偏好。',
-      'Network retry, timeout, and proxy preferences.',
-    ),
-    icon: 'network',
-    groups: [
-      {
-        title: L('连接', 'Connection'),
-        description: L(
-          '只调整客户端体验，不改变通信协议。',
-          'Only changes client behavior, not the communication protocol.',
-        ),
-        items: [
-          {
-            key: 'timeout',
-            label: L('连接超时', 'Connection timeout'),
-            description: L(
-              '客户端等待服务器响应的时间。',
-              'How long the client waits for server response.',
-            ),
-            control: 'number',
-            value: 10,
-          },
-          {
-            key: 'retry',
-            label: L('自动重试', 'Auto retry'),
-            description: L(
-              '连接失败后自动重试。',
-              'Retry automatically after connection failures.',
-            ),
-            control: 'switch',
-            value: true,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'server',
-    label: L('服务器', 'Server'),
-    kicker: L('中继与运行时', 'Relay and runtime'),
-    description: L(
-      '服务器显示、健康检查和默认区域。',
-      'Server display, health checks, and default region.',
-    ),
-    icon: 'servers',
-    groups: [
-      {
-        title: L('默认服务器', 'Default Server'),
-        description: L(
-          '让创建隧道时默认选择更合理。',
-          'Make tunnel creation defaults more convenient.',
-        ),
-        items: [
-          {
-            key: 'serverRegion',
-            label: L('默认区域', 'Default region'),
-            description: L(
-              '创建时优先使用的服务器区域。',
-              'Preferred server region during creation.',
-            ),
-            control: 'select',
-            options: [
-              O('自动', 'Auto', 'Auto'),
-              O('东京节点', 'Tokyo Edge', 'Tokyo Edge'),
-              O('新加坡节点', 'Singapore Hub', 'Singapore Hub'),
-              O('法兰克福中继', 'Frankfurt Relay', 'Frankfurt Relay'),
-            ],
-            value: 'Auto',
-          },
-          {
-            key: 'healthPolling',
-            label: L('健康轮询', 'Health polling'),
-            description: L('在首页展示服务器健康状态。', 'Show server health on the dashboard.'),
-            control: 'switch',
-            value: true,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'tunnel',
-    label: L('隧道', 'Tunnel'),
-    kicker: L('创建默认值', 'Creation defaults'),
-    description: L('隧道创建向导和运行默认值。', 'Tunnel wizard and runtime defaults.'),
-    icon: 'router',
-    groups: [
-      {
-        title: L('向导默认值', 'Wizard Defaults'),
-        description: L(
-          '减少重复输入，保持创建流程不超过一分钟。',
-          'Reduce repeated input and keep creation fast.',
-        ),
-        items: [
-          {
-            key: 'defaultProtocol',
-            label: L('默认协议', 'Default protocol'),
-            description: L(
-              '创建向导默认选择的协议。',
-              'Protocol selected by default in the wizard.',
-            ),
-            control: 'select',
-            options: ['HTTP', 'TCP'],
-            value: 'HTTP',
-          },
-          {
-            key: 'autoStartTunnel',
-            label: L('创建后自动启动', 'Auto-start after creation'),
-            description: L(
-              '创建成功后立即启动隧道。',
-              'Start the tunnel immediately after creation.',
-            ),
+            key: 'launchAtLogin',
+            labelKey: 'settings.startAtLogin',
+            descriptionKey: 'settings.desc.startAtLogin',
             control: 'switch',
             value: false,
+          },
+          {
+            key: 'showWelcome',
+            labelKey: 'settings.polish.showWelcome.label',
+            descriptionKey: 'settings.polish.showWelcome.description',
+            control: 'switch',
+            value: true,
           },
         ],
       },
@@ -499,61 +329,44 @@ const categories: SettingCategory[] = [
   },
   {
     id: 'appearance',
-    label: L('外观', 'Appearance'),
-    kicker: L('视觉样式', 'Visual style'),
-    description: L('主题、字体、密度和动效偏好。', 'Theme, font, density, and motion preferences.'),
+    labelKey: 'settings.appearance',
+    kickerKey: 'settings.polish.appearance.kicker',
+    descriptionKey: 'settings.polish.appearance.description',
     icon: 'palette',
     groups: [
       {
-        title: L('界面', 'Interface'),
-        description: L('统一现代桌面应用视觉体验。', 'Tune the desktop interface appearance.'),
+        titleKey: 'settings.polish.interface.title',
+        descriptionKey: 'settings.polish.interface.description',
         items: [
           {
             key: 'theme',
-            label: L('主题', 'Theme'),
-            description: L('选择深色、浅色或跟随系统。', 'Choose dark, light, or system theme.'),
+            labelKey: 'settings.theme',
+            descriptionKey: 'settings.desc.theme',
             control: 'select',
             options: [
-              O('深色', 'Dark', 'Dark'),
-              O('浅色', 'Light', 'Light'),
-              O('跟随系统', 'System', 'System'),
+              option('settings.themeDark', 'Dark'),
+              option('settings.themeLight', 'Light'),
+              option('settings.themeSystem', 'System'),
             ],
             value: 'Dark',
           },
           {
             key: 'fontSize',
-            label: { zh: '字体大小', en: 'Font Size' },
-            description: {
-              zh: '调整全局基础字号，立即生效。',
-              en: 'Adjust the global base font size. Applies immediately.',
-            },
+            labelKey: 'settings.fontSize',
+            descriptionKey: 'settings.polish.fontSize.description',
             control: 'select',
             options: [
-              { label: { zh: '紧凑', en: 'Compact' }, value: 'compact' },
-              { label: { zh: '舒适', en: 'Comfortable' }, value: 'comfortable' },
-              { label: { zh: '较大', en: 'Large' }, value: 'large' },
-              { label: { zh: '特大', en: 'Extra Large' }, value: 'extra-large' },
+              option('settings.fontSizeCompact', 'compact'),
+              option('settings.fontSizeComfortable', 'comfortable'),
+              option('settings.fontSizeLarge', 'large'),
+              option('settings.fontSizeExtraLarge', 'extra-large'),
             ],
             value: 'comfortable',
           },
           {
-            key: 'density',
-            label: L('界面密度', 'Interface density'),
-            description: L(
-              '控制卡片、表格和侧边栏间距。',
-              'Adjust spacing in cards, tables, and sidebars.',
-            ),
-            control: 'select',
-            options: [O('舒适', 'Comfortable', 'Comfortable'), O('紧凑', 'Compact', 'Compact')],
-            value: 'Comfortable',
-          },
-          {
             key: 'reduceMotion',
-            label: L('减少动画', 'Reduce motion'),
-            description: L(
-              '降低页面、对话框和提示动效。',
-              'Reduce page, dialog, and toast animations.',
-            ),
+            labelKey: 'settings.polish.reduceMotion.label',
+            descriptionKey: 'settings.polish.reduceMotion.description',
             control: 'switch',
             value: false,
           },
@@ -562,152 +375,109 @@ const categories: SettingCategory[] = [
     ],
   },
   {
-    id: 'advanced',
-    label: L('高级', 'Advanced'),
-    kicker: L('高级用户', 'Power user'),
-    description: L(
-      '日志、缓存、诊断和实验选项集中到高级区。',
-      'Logs, cache, diagnostics, and advanced options.',
-    ),
-    icon: 'sliders',
+    id: 'network',
+    labelKey: 'settings.network',
+    kickerKey: 'settings.polish.network.kicker',
+    descriptionKey: 'settings.polish.network.description',
+    icon: 'network',
     groups: [
       {
-        title: L('诊断', 'Diagnostics'),
-        description: L(
-          '默认保持安静，只在需要时打开。',
-          'Keep quiet by default and enable only when needed.',
-        ),
+        titleKey: 'settings.polish.connection.title',
+        descriptionKey: 'settings.polish.connection.description',
         items: [
           {
-            key: 'verboseLogs',
-            label: L('详细日志', 'Verbose logs'),
-            description: L(
-              '输出更多调试信息到日志页面。',
-              'Output more diagnostic details to Logs.',
-            ),
-            control: 'switch',
-            value: false,
-          },
-          {
-            key: 'logRetention',
-            label: L('日志保留', 'Log retention'),
-            description: L('本地最多保留的日志条数。', 'Maximum local log entries to keep.'),
+            key: 'timeout',
+            labelKey: 'settings.timeout',
+            descriptionKey: 'settings.desc.timeout',
             control: 'number',
-            value: 100000,
+            value: 10,
+          },
+          {
+            key: 'retry',
+            labelKey: 'settings.polish.retry.label',
+            descriptionKey: 'settings.polish.retry.description',
+            control: 'switch',
+            value: true,
           },
         ],
       },
     ],
   },
   {
-    id: 'maintenance',
-    label: L('维护', 'Maintenance'),
-    kicker: L('配置与清理', 'Config and cleanup'),
-    description: L(
-      '恢复默认设置、导入导出配置、备份配置、重置缓存和清理日志。',
-      'Restore defaults, import/export config, backup, reset cache, and clean logs.',
-    ),
-    icon: 'sliders',
+    id: 'data',
+    labelKey: 'settings.dataManagement.title',
+    kickerKey: 'settings.dataManagement.kicker',
+    descriptionKey: 'settings.dataManagement.description',
+    icon: 'database',
     groups: [
       {
-        title: L('配置', 'Configuration'),
-        description: L(
-          '所有配置操作都可视化，不需要手动编辑文件。',
-          'Manage configuration visually without editing files by hand.',
-        ),
+        titleKey: 'settings.dataManagement.backupGroup',
+        descriptionKey: 'settings.dataManagement.backupDescription',
         items: [
           {
-            key: 'restoreDefaults',
-            label: L('恢复默认设置', 'Restore defaults'),
-            description: L(
-              '将界面偏好恢复为推荐默认值。',
-              'Restore interface preferences to recommended defaults.',
-            ),
-            control: 'action',
-            value: '',
-            icon: 'refresh',
-            buttonText: L('恢复', 'Restore'),
-            action: 'restoreDefaults',
-          },
-          {
-            key: 'exportConfig',
-            label: L('导出配置', 'Export config'),
-            description: L('导出当前设置为 JSON 文件。', 'Export current settings as a JSON file.'),
+            key: 'backupConfig',
+            labelKey: 'settings.dataManagement.exportBackup',
+            descriptionKey: 'settings.dataManagement.exportBackupDesc',
             control: 'action',
             value: '',
             icon: 'download',
-            buttonText: L('导出', 'Export'),
-            action: 'exportConfig',
-          },
-          {
-            key: 'importConfig',
-            label: L('导入配置', 'Import config'),
-            description: L('从 JSON 文件导入设置。', 'Import settings from a JSON file.'),
-            control: 'action',
-            value: '',
-            icon: 'upload',
-            buttonText: L('导入', 'Import'),
-            action: 'importConfig',
-          },
-          {
-            key: 'backupConfig',
-            label: L('备份配置', 'Backup config'),
-            description: L(
-              '导出完整 Gate 配置为 gate-backup.zip。',
-              'Export the full Gate configuration as gate-backup.zip.',
-            ),
-            control: 'action',
-            value: '',
-            icon: 'save',
-            buttonText: L('备份', 'Backup'),
+            buttonKey: 'settings.dataManagement.export',
             action: 'backupConfig',
           },
           {
             key: 'restoreBackup',
-            label: L('恢复备份', 'Restore backup'),
-            description: L(
-              '选择 gate-backup.zip，预览内容后恢复。',
-              'Choose gate-backup.zip, preview it, then restore.',
-            ),
+            labelKey: 'settings.dataManagement.restoreBackup',
+            descriptionKey: 'settings.dataManagement.restoreBackupDesc',
             control: 'action',
             value: '',
             icon: 'upload',
-            buttonText: L('恢复', 'Restore'),
+            buttonKey: 'settings.dataManagement.restore',
             action: 'restoreBackup',
+          },
+          {
+            key: 'exportConfig',
+            labelKey: 'settings.dataManagement.exportConfig',
+            descriptionKey: 'settings.dataManagement.exportConfigDesc',
+            control: 'action',
+            value: '',
+            icon: 'save',
+            buttonKey: 'settings.dataManagement.export',
+            action: 'exportConfig',
+          },
+          {
+            key: 'importConfig',
+            labelKey: 'settings.dataManagement.importConfig',
+            descriptionKey: 'settings.dataManagement.importConfigDesc',
+            control: 'action',
+            value: '',
+            icon: 'upload',
+            buttonKey: 'settings.dataManagement.import',
+            action: 'importConfig',
           },
         ],
       },
       {
-        title: L('本地数据', 'Local Data'),
-        description: L(
-          '清理不会影响服务端，也不会新增或删除隧道协议。',
-          'Cleanup does not affect the server or tunnel protocols.',
-        ),
+        titleKey: 'settings.dataManagement.localDataGroup',
+        descriptionKey: 'settings.dataManagement.localDataDescription',
         items: [
           {
             key: 'resetCache',
-            label: L('重置缓存', 'Reset cache'),
-            description: L(
-              '清理欢迎向导、最近服务器和连接历史缓存。',
-              'Clear onboarding, recent servers, and connection history cache.',
-            ),
+            labelKey: 'settings.dataManagement.resetCache',
+            descriptionKey: 'settings.dataManagement.resetCacheDesc',
             control: 'action',
             value: '',
             icon: 'trash',
-            buttonText: L('重置', 'Reset'),
+            buttonKey: 'settings.dataManagement.reset',
             action: 'resetCache',
           },
           {
             key: 'clearLogs',
-            label: L('清理日志', 'Clear logs'),
-            description: L(
-              '清理本地日志视图缓存；服务端日志不受影响。',
-              'Clear local log view cache; server logs are not affected.',
-            ),
+            labelKey: 'settings.dataManagement.clearLogs',
+            descriptionKey: 'settings.dataManagement.clearLogsDesc',
             control: 'action',
             value: '',
             icon: 'logs',
-            buttonText: L('清理', 'Clear'),
+            buttonKey: 'settings.dataManagement.clear',
             action: 'clearLogs',
           },
         ],
@@ -716,31 +486,28 @@ const categories: SettingCategory[] = [
   },
   {
     id: 'about',
-    label: L('关于', 'About'),
-    kicker: L('版本与许可', 'Version and legal'),
-    description: L(
-      '版本信息、更新状态和项目链接。',
-      'Version information, update status, and project links.',
-    ),
+    labelKey: 'nav.about',
+    kickerKey: 'settings.polish.about.kicker',
+    descriptionKey: 'settings.polish.about.description',
     icon: 'info-circle',
     groups: [
       {
-        title: 'Gate',
-        description: L('当前桌面客户端版本。', 'Current desktop client version.'),
+        titleKey: 'common.appName',
+        descriptionKey: 'settings.polish.about.groupDescription',
         items: [
           {
             key: 'version',
-            label: L('版本', 'Version'),
-            description: L('当前安装的 Gate Desktop 版本。', 'Installed Gate Desktop version.'),
+            labelKey: 'about.versionLabel',
+            descriptionKey: 'settings.polish.about.versionDescription',
             control: 'readonly',
             value: '0.1.0',
           },
           {
             key: 'channel',
-            label: L('通道', 'Channel'),
-            description: L('当前更新通道。', 'Current update channel.'),
+            labelKey: 'about.channelLabel',
+            descriptionKey: 'settings.polish.about.channelDescription',
             control: 'readonly',
-            value: 'Beta Sprint 1',
+            value: 'Beta',
           },
         ],
       },
@@ -755,37 +522,11 @@ const values = reactive<Record<string, string | number | boolean>>(
     ),
   ),
 )
-const defaultValues = Object.fromEntries(
-  categories.flatMap((category) =>
-    category.groups.flatMap((group) => group.items.map((item) => [item.key, item.value])),
-  ),
-) as Record<string, string | number | boolean>
+const defaultValues = { ...values }
 
 onMounted(async () => {
   await hydrateSettingsFromRuntime()
 })
-
-async function hydrateSettingsFromRuntime() {
-  hydrating = true
-  try {
-    // 先回到默认值，再套用 Runtime 中保存的配置，避免恢复旧备份后残留当前会话设置。
-    Object.assign(values, defaultValues)
-    values.language = currentLocale.value
-    values.theme = getCurrentThemeSetting()
-    values.fontSize = getFontSizePreference()
-    const saved = await ipc.invoke<Record<string, string>>('get_config')
-    for (const key of Object.keys(values)) {
-      if (saved[key] === undefined) continue
-      values[key] = parseSettingValue(saved[key], values[key])
-    }
-    if (values.language === 'en') values.language = 'en-US'
-    applyRuntimePreferences()
-  } catch (err) {
-    toast.error(err instanceof Error ? err.message : '设置加载失败')
-  } finally {
-    hydrating = false
-  }
-}
 
 watch(
   values,
@@ -801,13 +542,13 @@ const visibleCategories = computed(() => {
   if (!keyword) return categories
   return categories.filter((category) =>
     [
-      localize(category.label),
-      localize(category.kicker),
-      localize(category.description),
+      t(category.labelKey),
+      t(category.kickerKey),
+      t(category.descriptionKey),
       ...category.groups.flatMap((group) => [
-        localize(group.title),
-        localize(group.description),
-        ...group.items.flatMap((item) => [localize(item.label), localize(item.description)]),
+        t(group.titleKey),
+        t(group.descriptionKey),
+        ...group.items.flatMap((item) => [t(item.labelKey), t(item.descriptionKey)]),
       ]),
     ]
       .join(' ')
@@ -826,13 +567,36 @@ const restoreRows = computed(() => {
   const contents = restorePreview.value?.contents
   if (!contents) return []
   return [
-    { label: 'Projects', value: contents.projects, description: '项目和工作区关联' },
-    { label: 'Servers', value: contents.servers, description: '服务器地址、Token 和连接偏好' },
-    { label: 'Tunnels', value: contents.tunnels, description: 'TCP / HTTP / HTTPS 隧道配置' },
-    { label: 'Domains', value: contents.domains, description: '域名绑定和解析状态' },
-    { label: 'Certificates', value: contents.certificates, description: '证书 metadata' },
-    { label: 'Settings', value: contents.settings, description: '界面和运行配置项' },
-    { label: 'Runtime config', value: contents.runtimeConfig, description: 'Runtime 配置快照' },
+    {
+      labelKey: 'backup.contents.projects',
+      value: contents.projects,
+      descriptionKey: 'backup.contents.projectsDesc',
+    },
+    {
+      labelKey: 'backup.contents.servers',
+      value: contents.servers,
+      descriptionKey: 'backup.contents.serversDesc',
+    },
+    {
+      labelKey: 'backup.contents.tunnels',
+      value: contents.tunnels,
+      descriptionKey: 'backup.contents.tunnelsDesc',
+    },
+    {
+      labelKey: 'backup.contents.domains',
+      value: contents.domains,
+      descriptionKey: 'backup.contents.domainsDesc',
+    },
+    {
+      labelKey: 'backup.contents.certificates',
+      value: contents.certificates,
+      descriptionKey: 'backup.contents.certificatesDesc',
+    },
+    {
+      labelKey: 'backup.contents.settings',
+      value: contents.settings,
+      descriptionKey: 'backup.contents.settingsDesc',
+    },
   ]
 })
 
@@ -842,41 +606,44 @@ watch(visibleCategories, (list) => {
   }
 })
 
+async function hydrateSettingsFromRuntime() {
+  hydrating = true
+  try {
+    Object.assign(values, defaultValues)
+    values.language = currentLocale.value
+    values.theme = getCurrentThemeSetting()
+    values.fontSize = getFontSizePreference()
+    const saved = await ipc.invoke<Record<string, string>>('get_config')
+    for (const key of Object.keys(values)) {
+      const raw = key === 'language' ? saved[key] ?? saved['app.locale'] : saved[key]
+      if (raw === undefined) continue
+      values[key] = parseSettingValue(raw, values[key])
+    }
+    if (values.language === 'en') values.language = 'en-US'
+    applyRuntimePreferences()
+  } catch (err) {
+    toast.error(errorMessage(err, t('settings.notifications.loadFailed')))
+  } finally {
+    hydrating = false
+  }
+}
+
 function runSettingAction(action?: SettingAction) {
   if (!action) return
   if (action === 'restoreDefaults') {
     Object.assign(values, defaultValues)
     void persistAllSettings()
-    toast.success('已恢复默认设置')
+    toast.success(t('settings.notifications.defaultsRestored'))
   }
-  if (action === 'exportConfig') {
-    void exportConfig()
-  }
-  if (action === 'backupConfig') {
-    void createGateBackup()
-  }
-  if (action === 'restoreBackup') {
-    void chooseBackupForRestore()
-  }
-  if (action === 'importConfig') {
-    importInput.value?.click()
-  }
-  if (action === 'resetCache') {
-    localStorage.removeItem('gate.firstLaunch.completed')
-    localStorage.removeItem('gate.smartOnboarding.completed')
-    localStorage.removeItem('gate.smartOnboarding.neverShow')
-    localStorage.removeItem('gate.smartOnboarding.draft')
-    localStorage.removeItem('gate.recentServers')
-    localStorage.removeItem('gate.connectionHistory')
-    localStorage.removeItem('gate.welcome.dismissed')
-    toast.success('缓存已重置，下次启动会重新显示向导')
-  }
-  if (action === 'clearLogs') {
-    void clearRuntimeLogs()
-  }
+  if (action === 'exportConfig') void exportConfig()
+  if (action === 'backupConfig') void createGateBackup()
+  if (action === 'restoreBackup') void chooseBackupForRestore()
+  if (action === 'importConfig') importInput.value?.click()
+  if (action === 'resetCache') resetLocalCache()
+  if (action === 'clearLogs') void clearRuntimeLogs()
   if (action === 'openOnboarding') {
     window.dispatchEvent(new CustomEvent('gate:onboarding:open', { detail: { restart: true } }))
-    toast.success('已打开新手引导')
+    toast.success(t('settings.notifications.onboardingOpened'))
   }
 }
 
@@ -885,9 +652,9 @@ async function createGateBackup() {
     const destination = await backupService.chooseExportPath()
     if (!destination) return
     const result = await backupService.export(destination)
-    notify.success('备份已生成', result.path)
+    notify.success(t('backup.export.success'), result.path)
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '备份生成失败')
+    toast.error(errorMessage(err, t('backup.export.failed')))
   }
 }
 
@@ -897,7 +664,7 @@ async function exportConfig() {
 
   if (!isTauri()) {
     downloadConfig(filename)
-    notify.success('配置已导出', filename)
+    notify.success(t('settings.notifications.configExported'), filename)
     return
   }
 
@@ -908,14 +675,13 @@ async function exportConfig() {
     })
     if (!destination) return
 
-    // 通过系统保存对话框选择路径，再交给后端写入，用户可以自定义目录和文件名。
     const exportedPath = await ipc.invoke<string>('export_config_file', {
       path: destination,
       content,
     })
-    notify.success('配置已导出', exportedPath)
+    notify.success(t('settings.notifications.configExported'), exportedPath)
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '配置导出失败')
+    toast.error(errorMessage(err, t('settings.notifications.configExportFailed')))
   }
 }
 
@@ -926,7 +692,7 @@ async function chooseBackupForRestore() {
     restorePreview.value = await backupService.preview(path)
     restoreError.value = ''
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '备份文件读取失败')
+    toast.error(errorMessage(err, t('backup.restore.previewFailed')))
   }
 }
 
@@ -944,18 +710,18 @@ async function confirmRestoreBackup() {
     const result = await backupService.restore(restorePreview.value.path)
     window.dispatchEvent(new CustomEvent('gate:backup:restored', { detail: result }))
     await refreshProductStateAfterRestore()
-    toast.success(result.message)
+    toast.success(t(result.messageKey))
     restorePreview.value = null
   } catch (err) {
-    restoreError.value = err instanceof Error ? err.message : '恢复失败，请确认备份文件完整'
-    toast.error('恢复失败')
+    restoreError.value = errorMessage(err, t('backup.restore.failed'))
+    toast.error(t('backup.restore.failed'))
   } finally {
     restoreBusy.value = false
   }
 }
 
 async function refreshProductStateAfterRestore() {
-  // 恢复会替换本地数据文件，这里刷新已挂载的 Store，避免界面继续显示旧配置。
+  // 恢复会替换本地数据文件，刷新 Store 可避免界面继续显示旧配置。
   await Promise.all([
     projectStore.load(),
     serverStore.load(),
@@ -968,10 +734,21 @@ async function clearRuntimeLogs() {
   try {
     await ipc.invoke<void>('runtime_clear_logs')
     window.dispatchEvent(new CustomEvent('gate:logs:cleared'))
-    toast.success('日志已清理')
+    toast.success(t('settings.notifications.logsCleared'))
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '日志清理失败')
+    toast.error(errorMessage(err, t('settings.notifications.logsClearFailed')))
   }
+}
+
+function resetLocalCache() {
+  localStorage.removeItem('gate.firstLaunch.completed')
+  localStorage.removeItem('gate.smartOnboarding.completed')
+  localStorage.removeItem('gate.smartOnboarding.neverShow')
+  localStorage.removeItem('gate.smartOnboarding.draft')
+  localStorage.removeItem('gate.recentServers')
+  localStorage.removeItem('gate.connectionHistory')
+  localStorage.removeItem('gate.welcome.dismissed')
+  toast.success(t('settings.notifications.cacheReset'))
 }
 
 function applyRuntimePreferences() {
@@ -999,16 +776,8 @@ function getCurrentThemeSetting() {
   return 'Dark'
 }
 
-function localize(text: LocalizedText) {
-  if (typeof text === 'string') return text
-  return locale.value === 'en-US' ? text.en : text.zh
-}
-
-function normalizeOptions(options: SettingOption[] = []) {
-  return options.map((option) => {
-    if (typeof option === 'string') return { label: option, value: option }
-    return option
-  })
+function readonlyValue(key: string) {
+  return values[key]
 }
 
 function formatBackupDate(value: string) {
@@ -1047,9 +816,9 @@ function handleImportFile(event: Event) {
         }
       }
       void persistAllSettings()
-      toast.success('配置已导入')
+      toast.success(t('settings.notifications.configImported'))
     } catch {
-      toast.error('导入失败：配置文件不是有效 JSON')
+      toast.error(t('settings.notifications.configImportFailed'))
     } finally {
       input.value = ''
     }
@@ -1068,7 +837,7 @@ async function persistAllSettings() {
       ),
     )
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '设置保存失败')
+    toast.error(errorMessage(err, t('settings.notifications.saveFailed')))
   }
 }
 
@@ -1079,6 +848,12 @@ function parseSettingValue(raw: string, fallback: string | number | boolean) {
   } catch {
     if (typeof fallback === 'string') return raw
   }
+  return fallback
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message
+  if (typeof err === 'string') return err
   return fallback
 }
 </script>

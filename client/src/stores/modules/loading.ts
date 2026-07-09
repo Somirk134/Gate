@@ -1,11 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { i18n } from '@/i18n'
 
 export interface LoadingTask {
   id: string
   message: string
   progress?: number
   indeterminate?: boolean
+}
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
 }
 
 export const useLoadingStore = defineStore('loading', () => {
@@ -20,7 +28,7 @@ export const useLoadingStore = defineStore('loading', () => {
   const taskCount = computed(() => tasks.value.length)
 
   // === Actions ===
-  function startLoading(message: string = '加载中...') {
+  function startLoading(message: string = t('common.loading')) {
     globalMessage.value = message
     globalVisible.value = true
   }

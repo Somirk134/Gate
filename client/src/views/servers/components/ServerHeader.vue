@@ -20,7 +20,7 @@
           <button
             class="server-header__quick"
             :class="{ 'server-header__quick--active': server.favorite }"
-            title="收藏"
+            :title="t('project.card.favorite')"
             @click="$emit('toggle-favorite', server.id)">
             <GIcon :name="server.favorite ? 'star' : 'star-off'" :size="15" />
           </button>
@@ -39,10 +39,10 @@
         icon="plug"
         :disabled="isTransition"
         @click="$emit('connect')">
-        连接
+        {{ t('server.actions.connect') }}
       </GButton>
       <GButton v-else size="sm" variant="secondary" icon="stop" @click="$emit('disconnect')">
-        断开
+        {{ t('server.actions.disconnect') }}
       </GButton>
       <GButton
         size="sm"
@@ -50,16 +50,16 @@
         icon="refresh"
         :disabled="isTransition || !isOnline"
         @click="$emit('restart')">
-        重启
+        {{ t('server.reconnect') }}
       </GButton>
       <GIconButton
         name="activity"
         size="sm"
         variant="ghost"
-        tooltip="健康检查"
+        :tooltip="t('server.header.healthCheck')"
         @click="$emit('check-health')" />
-      <GIconButton name="edit" size="sm" variant="ghost" tooltip="编辑" @click="$emit('edit')" />
-      <GIconButton name="trash" size="sm" variant="ghost" tooltip="删除" @click="$emit('delete')" />
+      <GIconButton name="edit" size="sm" variant="ghost" :tooltip="t('common.edit')" @click="$emit('edit')" />
+      <GIconButton name="trash" size="sm" variant="ghost" :tooltip="t('common.delete')" @click="$emit('delete')" />
     </div>
   </div>
 
@@ -67,25 +67,25 @@
   <div class="server-metric-bar">
     <div class="server-metric-bar__item">
       <GIcon name="router" :size="13" />
-      <span class="server-metric-bar__label">隧道</span>
+      <span class="server-metric-bar__label">{{ t('server.metrics.tunnels') }}</span>
       <span class="server-metric-bar__value">{{ server.statistics.tunnelCount }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
       <GIcon name="package" :size="13" />
-      <span class="server-metric-bar__label">项目</span>
+      <span class="server-metric-bar__label">{{ t('server.metrics.projects') }}</span>
       <span class="server-metric-bar__value">{{ server.statistics.projectCount }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
       <GIcon name="cloud" :size="13" />
-      <span class="server-metric-bar__label">流量</span>
+      <span class="server-metric-bar__label">{{ t('common.traffic') }}</span>
       <span class="server-metric-bar__value">{{ trafficLabel }}</span>
     </div>
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
       <GIcon name="link" :size="13" />
-      <span class="server-metric-bar__label">连接</span>
+      <span class="server-metric-bar__label">{{ t('server.metrics.connections') }}</span>
       <span class="server-metric-bar__value">{{ server.monitor.connections.active }}</span>
     </div>
     <span class="server-metric-bar__sep" />
@@ -97,7 +97,7 @@
     <span class="server-metric-bar__sep" />
     <div class="server-metric-bar__item">
       <GIcon name="clock" :size="13" />
-      <span class="server-metric-bar__label">运行时间</span>
+      <span class="server-metric-bar__label">{{ t('server.metrics.uptime') }}</span>
       <span class="server-metric-bar__value">{{ uptimeLabel }}</span>
     </div>
   </div>
@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -120,6 +121,7 @@ import {
 } from '../utils'
 
 const props = defineProps<{ server: Server }>()
+const { t } = useI18n()
 
 defineEmits<{
   connect: []
@@ -138,5 +140,5 @@ const isTransition = computed(() => isTransitionStatus(props.server.status))
 const trafficLabel = computed(() =>
   formatBytes(props.server.traffic.totalUpload + props.server.traffic.totalDownload),
 )
-const uptimeLabel = computed(() => formatDuration(props.server.statistics.uptime))
+const uptimeLabel = computed(() => formatDuration(props.server.statistics.uptime, t))
 </script>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { i18n } from '@/i18n'
 import { projectService } from '@/services/project.service'
 import type { DashboardData, DashboardTunnel } from '@/monitoring/types'
 import type { CertificateSummary } from '@views/certificates/types'
@@ -14,6 +15,18 @@ import type {
 } from '../types'
 import { PROJECT_TEMPLATES, formatRelativeTime } from '../utils'
 
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
+
+function currentLocale(): string {
+  const locale = (i18n.global as unknown as { locale: string | { value: string } }).locale
+  return typeof locale === 'string' ? locale : locale.value
+}
+
 export const useProjectStore = defineStore('project', () => {
   const records = ref<ProjectRecord[]>([])
   const projects = ref<Project[]>([])
@@ -24,7 +37,7 @@ export const useProjectStore = defineStore('project', () => {
   const status = ref<ProjectLoadStatus>('idle')
   const error = ref<string>('')
   const lastUpdated = ref<number>(0)
-  const serverNames = ref<string[]>(['工作空间'])
+  const serverNames = ref<string[]>([t('project.defaultWorkspace')])
 
   const isLoading = computed(() => status.value === 'loading')
   const isError = computed(() => status.value === 'error')
@@ -66,7 +79,9 @@ export const useProjectStore = defineStore('project', () => {
       logs.value = runtimeLogs
       certificates.value = certificateList.certificates
       templates.value = templateRows.length ? templateRows : PROJECT_TEMPLATES
-      serverNames.value = [runtimeDashboard.statistics.client.currentWorkspace || '工作空间']
+      serverNames.value = [
+        runtimeDashboard.statistics.client.currentWorkspace || t('project.defaultWorkspace'),
+      ]
       projects.value = projectRows.map((record) =>
         mapProject(record, runtimeDashboard, runtimeLogs, certificateList.certificates),
       )
@@ -74,7 +89,7 @@ export const useProjectStore = defineStore('project', () => {
       lastUpdated.value = Date.now()
     } catch (e) {
       status.value = 'error'
-      error.value = e instanceof Error ? e.message : '项目加载失败'
+      error.value = e instanceof Error ? e.message : t('project.loadFailed')
     }
   }
 
@@ -87,20 +102,20 @@ export const useProjectStore = defineStore('project', () => {
     records.value = [record, ...records.value.filter((item) => item.id !== record.id)]
     await refresh()
     const created = getById(record.id)
-    if (!created) throw new Error('项目已保存，但无法重新加载。')
+    if (!created) throw new Error(t('project.savedReloadFailed'))
     return created
   }
 
   async function createDefaultProject(): Promise<Project> {
     return createProject({
-      name: '默认项目',
+      name: t('project.defaultName'),
       icon: 'projects',
       color: 'blue',
       template: 'blank',
-      description: '默认工作空间，用于组织隧道、域名和证书。',
-      serverName: '工作空间',
+      description: t('project.defaultDescription'),
+      serverName: t('project.defaultWorkspace'),
       autoStart: false,
-      tags: ['默认'],
+      tags: ['default'],
       remark: '',
       environments: [],
       startupPolicy: null,
@@ -281,12 +296,12 @@ function mapProject(
   return {
     id: record.id,
     name: record.name,
-    description: record.description || '项目用于组织隧道、域名和证书。',
+    description: record.description || t('project.descriptionFallback'),
     icon: record.icon || 'package',
     color: record.color || 'blue',
     template: record.template,
     tags: record.tags,
-    serverName: '工作空间',
+    serverName: t('project.defaultWorkspace'),
     autoStart: record.autoStart,
     startupPolicy: record.startupPolicy,
     remark: record.notes[0]?.content,
@@ -324,7 +339,7 @@ function mapProject(
     recentLogs,
     recentErrors,
     certificateStatus: certificateStatus(domains, projectCertificates),
-    lastStartedAt: formatRelativeTime(record.lastActivityAt),
+    lastStartedAt: formatRelativeTime(record.lastActivityAt, t, currentLocale()),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }

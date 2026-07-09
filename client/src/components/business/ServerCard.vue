@@ -1,20 +1,6 @@
 <!--
-  ServerCard — 服务器卡片（业务组件模板）
-  ------------------------------------------------------------------
-  用途：展示单台服务器（地址/延迟/负载/隧道数/状态）。
-  属业务组件：基于 DS 组合，无逻辑。
-
-  Props:
-    name        服务器名
-    host        主机地址
-    latency     延迟(ms)
-    load        负载 0-100
-    tunnelCount 隧道数
-    status      状态
-
-  Events: click / action(key)
-
-  复用：GCard / GIcon / GStatusBadge / GIconButton / GCircleProgress
+  ServerCard - 服务器摘要卡片。
+  指标标签统一走 i18n，运行数据仍由父级提供。
 -->
 <template>
   <GCard variant="plain" padding="md">
@@ -33,15 +19,15 @@
 
       <div class="server-card__metrics">
         <div class="server-card__metric">
-          <span class="server-card__metric-label">延迟</span>
+          <span class="server-card__metric-label">{{ t('business.server.latency') }}</span>
           <span class="server-card__metric-value" :class="latencyClass">{{ latency }}ms</span>
         </div>
         <div class="server-card__metric">
-          <span class="server-card__metric-label">负载</span>
+          <span class="server-card__metric-label">{{ t('business.server.load') }}</span>
           <GCircleProgress :value="load" :size="36" :stroke="3" :variant="loadVariant" />
         </div>
         <div class="server-card__metric">
-          <span class="server-card__metric-label">隧道</span>
+          <span class="server-card__metric-label">{{ t('business.server.tunnels') }}</span>
           <span class="server-card__metric-value">{{ tunnelCount }}</span>
         </div>
       </div>
@@ -51,25 +37,24 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
 import GStatusBadge from '@components/status/GStatusBadge.vue'
 import GCircleProgress from '@components/feedback/GCircleProgress.vue'
 
-const props = withDefaults(
-  defineProps<{
-    name: string
-    host: string
-    latency: number
-    load: number
-    tunnelCount: number
-    status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'maintenance'
-  }>(),
-  {},
-)
+const props = defineProps<{
+  name: string
+  host: string
+  latency: number
+  load: number
+  tunnelCount: number
+  status: 'online' | 'offline' | 'connecting' | 'error' | 'warning' | 'maintenance'
+}>()
 
 const emit = defineEmits<{ click: []; action: [key: string] }>()
+const { t } = useI18n()
 
 const latencyClass = computed(() => {
   if (props.latency < 100) return 'server-card__metric-value--good'

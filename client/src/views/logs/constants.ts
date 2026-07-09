@@ -10,42 +10,42 @@ import type {
 export const LOG_LEVELS: LogLevelOption[] = [
   {
     level: 'TRACE',
-    label: '跟踪',
+    label: 'TRACE',
     color: '#8A9099',
     muted: 'rgba(138, 144, 153, 0.12)',
     icon: 'circle-dot',
   },
   {
     level: 'DEBUG',
-    label: '调试',
+    label: 'DEBUG',
     color: '#06B6D4',
     muted: 'rgba(6, 182, 212, 0.12)',
     icon: 'code',
   },
   {
     level: 'INFO',
-    label: '信息',
+    label: 'INFO',
     color: '#3B82F6',
     muted: 'rgba(59, 130, 246, 0.12)',
     icon: 'info-circle',
   },
   {
     level: 'WARN',
-    label: '警告',
+    label: 'WARN',
     color: '#F59E0B',
     muted: 'rgba(245, 158, 11, 0.14)',
     icon: 'alert-triangle',
   },
   {
     level: 'ERROR',
-    label: '错误',
+    label: 'ERROR',
     color: '#EF4444',
     muted: 'rgba(239, 68, 68, 0.13)',
     icon: 'alert-circle',
   },
   {
     level: 'FATAL',
-    label: '严重',
+    label: 'FATAL',
     color: '#A855F7',
     muted: 'rgba(168, 85, 247, 0.14)',
     icon: 'zap',
@@ -64,20 +64,20 @@ export const LOG_SOURCE_LIST: LogSource[] = [
 ]
 
 export const LOG_SOURCE_LABELS: Record<LogSource, string> = {
-  SYSTEM: '系统',
-  CLIENT: '客户端',
-  SERVER: '服务器',
-  PROJECT: '项目',
-  TUNNEL: '隧道',
-  STATISTICS: '统计',
-  UPDATE: '更新',
-  PLUGIN: '插件',
+  SYSTEM: 'System',
+  CLIENT: 'Client',
+  SERVER: 'Server',
+  PROJECT: 'Project',
+  TUNNEL: 'Tunnel',
+  STATISTICS: 'Statistics',
+  UPDATE: 'Update',
+  PLUGIN: 'Plugin',
 }
 
 export const LOG_SOURCES: LogSourceNode[] = [
   {
     id: 'ALL',
-    label: '全部日志',
+    label: 'All Logs',
     icon: 'logs',
     children: LOG_SOURCE_LIST.map((source) => ({
       id: source,

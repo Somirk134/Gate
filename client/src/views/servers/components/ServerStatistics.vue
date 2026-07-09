@@ -6,7 +6,7 @@
 <template>
   <div class="server-statistics">
     <div class="server-stat-grid">
-      <div v-for="item in stats" :key="item.label" class="server-stat-card">
+      <div v-for="item in stats" :key="item.key" class="server-stat-card">
         <div
           class="server-stat-card__icon"
           :style="{ color: item.color, background: item.color + '1f' }">
@@ -23,7 +23,7 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="chart-pie" :size="12" />
-        流量占比
+        {{ t('server.statistics.trafficRatio') }}
       </div>
       <div class="server-statistics__rings">
         <div v-for="ring in rings" :key="ring.label" class="server-statistics__ring">
@@ -60,44 +60,44 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="chart-bar" :size="12" />
-        详细统计
+        {{ t('server.statistics.detailTitle') }}
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">运行时长</span>
+        <span class="server-info-row__label">{{ t('server.metrics.uptime') }}</span>
         <span class="server-info-row__value mono">{{
-          formatDuration(server.statistics.uptime)
+          formatDuration(server.statistics.uptime, t)
         }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">隧道数</span>
+        <span class="server-info-row__label">{{ t('server.metrics.tunnels') }}</span>
         <span class="server-info-row__value">{{ server.statistics.tunnelCount }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">项目数</span>
+        <span class="server-info-row__label">{{ t('server.metrics.projects') }}</span>
         <span class="server-info-row__value">{{ server.statistics.projectCount }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">活动连接</span>
+        <span class="server-info-row__label">{{ t('server.metrics.activeConnections') }}</span>
         <span class="server-info-row__value">{{ server.monitor.connections.active }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">累计连接</span>
+        <span class="server-info-row__label">{{ t('server.metrics.totalConnections') }}</span>
         <span class="server-info-row__value">{{
           formatNumber(server.monitor.connections.total)
         }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">累计请求</span>
+        <span class="server-info-row__label">{{ t('tunnel.metrics.totalRequests') }}</span>
         <span class="server-info-row__value">{{ formatNumber(server.statistics.requests) }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">平均 Ping</span>
+        <span class="server-info-row__label">{{ t('server.metrics.avgPing') }}</span>
         <span class="server-info-row__value">{{
           isOnline ? `${server.statistics.avgPing} ms` : '—'
         }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">峰值速度</span>
+        <span class="server-info-row__label">{{ t('tunnel.metrics.peakSpeed') }}</span>
         <span class="server-info-row__value mono">{{
           formatSpeed(server.statistics.peakSpeed)
         }}</span>
@@ -108,11 +108,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Server } from '../types'
 import { formatDuration, formatNumber, formatSpeed, isOnlineStatus } from '../utils'
 
 const props = defineProps<{ server: Server }>()
+const { t } = useI18n()
 
 const ringStroke = 7
 const ringRadius = (84 - ringStroke) / 2
@@ -122,37 +124,43 @@ const isOnline = computed(() => isOnlineStatus(props.server.status))
 
 const stats = computed(() => [
   {
-    label: '运行时长',
-    value: formatDuration(props.server.statistics.uptime),
+    key: 'uptime',
+    label: t('server.metrics.uptime'),
+    value: formatDuration(props.server.statistics.uptime, t),
     icon: 'clock',
     color: '#22C55E',
   },
   {
-    label: '隧道数',
+    key: 'tunnels',
+    label: t('server.metrics.tunnels'),
     value: String(props.server.statistics.tunnelCount),
     icon: 'router',
     color: '#5B8DEF',
   },
   {
-    label: '项目数',
+    key: 'projects',
+    label: t('server.metrics.projects'),
     value: String(props.server.statistics.projectCount),
     icon: 'package',
     color: '#7C6FF2',
   },
   {
-    label: '活动连接',
+    key: 'activeConnections',
+    label: t('server.metrics.activeConnections'),
     value: String(props.server.monitor.connections.active),
     icon: 'link',
     color: '#F59E0B',
   },
   {
-    label: '累计请求',
+    key: 'totalRequests',
+    label: t('tunnel.metrics.totalRequests'),
     value: formatNumber(props.server.statistics.requests),
     icon: 'activity',
     color: '#06B6D4',
   },
   {
-    label: '平均 Ping',
+    key: 'avgPing',
+    label: t('server.metrics.avgPing'),
     value: isOnline.value ? `${props.server.statistics.avgPing} ms` : '—',
     icon: 'gauge',
     color: '#EF4444',
@@ -167,9 +175,9 @@ const rings = computed(() => {
     ((props.server.traffic.todayUpload + props.server.traffic.todayDownload) / total) * 100,
   )
   return [
-    { label: '上传', percent: upPct, color: '#22C55E' },
-    { label: '下载', percent: downPct, color: '#5B8DEF' },
-    { label: '今日', percent: Math.min(todayPct, 100), color: '#F59E0B' },
+    { label: t('tunnel.metrics.upload'), percent: upPct, color: '#22C55E' },
+    { label: t('tunnel.metrics.download'), percent: downPct, color: '#5B8DEF' },
+    { label: t('tunnel.today'), percent: Math.min(todayPct, 100), color: '#F59E0B' },
   ]
 })
 </script>

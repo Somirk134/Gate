@@ -1,13 +1,14 @@
 <template>
   <div class="settings-empty">
     <GIcon name="search" :size="34" />
-    <h2>没有找到设置</h2>
-    <p v-if="query">没有匹配“{{ query }}”的结果。</p>
-    <p v-else>当前分类暂无设置项。</p>
+    <h2>{{ t('settings.legacy.emptyTitle') }}</h2>
+    <p v-if="query">{{ t('settings.legacy.emptyWithQuery', { query }) }}</p>
+    <p v-else>{{ t('settings.legacy.emptyByCategory') }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 
 withDefaults(
@@ -18,4 +19,6 @@ withDefaults(
     query: '',
   },
 )
+
+const { t } = useI18n()
 </script>

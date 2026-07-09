@@ -103,11 +103,11 @@
 
             <div v-if="isHttpLike" class="form-grid">
               <label>
-                <span>绑定域名</span>
+                <span>{{ t('tunnel.settings.host') }}</span>
                 <input v-model.trim="form.host" autocomplete="off" placeholder="api.example.com" />
               </label>
               <label>
-                <span>路径</span>
+                <span>{{ t('tunnel.settings.path') }}</span>
                 <input v-model.trim="form.path" autocomplete="off" placeholder="/" />
               </label>
             </div>
@@ -181,10 +181,10 @@
                 ><strong>{{ form.remotePort || '-' }}</strong>
               </div>
               <div v-if="isHttpLike">
-                <span>绑定域名</span><strong>{{ form.host || '-' }}</strong>
+                <span>{{ t('tunnel.settings.host') }}</span><strong>{{ form.host || '-' }}</strong>
               </div>
               <div v-if="isHttpLike">
-                <span>路径</span><strong>{{ form.path || '/' }}</strong>
+                <span>{{ t('tunnel.settings.path') }}</span><strong>{{ form.path || '/' }}</strong>
               </div>
               <div>
                 <span>{{ t('tunnel.wizard.accessAddress') }}</span
@@ -192,7 +192,7 @@
               </div>
               <div>
                 <span>{{ t('tunnel.wizard.tags') }}</span
-                ><strong>{{ form.tags.join(', ') || '-' }}</strong>
+                ><strong>{{ tagSummary }}</strong>
               </div>
             </div>
 
@@ -252,7 +252,7 @@ const emit = defineEmits<{
   submit: [form: TunnelFormData]
 }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const steps = computed(() => [
   { index: 1, title: t('tunnel.wizard.quickStart') },
@@ -315,6 +315,9 @@ const suggestedName = computed(
 const publicPreview = computed(() =>
   form.remotePort ? `:${form.remotePort}` : t('tunnel.wizard.runtimeReturned'),
 )
+const tagSummary = computed(() =>
+  form.tags.length ? form.tags.map((tag) => localizedTag(tag)).join(', ') : '-',
+)
 
 watch(
   () => props.visible,
@@ -359,7 +362,7 @@ function applyScenario(id: string) {
   form.host = ''
   form.path = template.protocol === 'http' || template.protocol === 'https' ? '/' : ''
   form.tags = [...new Set([...template.tags, ...scenario.tags])]
-  form.remark = scenario.description
+  form.remark = t(`tunnel.wizard.scenarios.${scenarioLocaleKey(scenario.id)}.description`)
   errorMessage.value = ''
 }
 
@@ -374,7 +377,7 @@ function applyTemplate(id: string) {
   form.host = ''
   form.path = template.protocol === 'http' || template.protocol === 'https' ? '/' : ''
   form.tags = [...template.tags]
-  form.remark = template.description
+  form.remark = t(`tunnel.wizard.templates.${template.id}.description`)
   errorMessage.value = ''
 }
 
@@ -393,11 +396,11 @@ function validateCurrentStep() {
     else if (!isValidPort(form.remotePort))
       errorMessage.value = t('tunnel.wizard.validationPublicPort')
     else if (form.protocol === 'https' && !form.host?.trim())
-      errorMessage.value = 'HTTPS 隧道必须绑定域名'
+      errorMessage.value = t('tunnel.settings.validation.httpsHostRequired')
     else if (form.host?.trim() && /[/:?#\s]/.test(form.host.trim()))
-      errorMessage.value = '请输入域名，不要包含协议、路径或空格'
+      errorMessage.value = t('tunnel.settings.validation.hostInvalid')
     else if (form.path?.trim() && !form.path.trim().startsWith('/'))
-      errorMessage.value = '路径必须以 / 开头'
+      errorMessage.value = t('tunnel.settings.validation.pathPrefix')
   }
   return !errorMessage.value
 }
@@ -408,6 +411,11 @@ function scenarioLocaleKey(id: string) {
     'payment-callback': 'paymentCallback',
   }
   return map[id] ?? id
+}
+
+function localizedTag(tag: string) {
+  const key = `tunnel.wizard.tagLabels.${tag.toLowerCase()}`
+  return te(key) ? t(key) : tag
 }
 
 function next() {

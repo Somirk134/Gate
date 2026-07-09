@@ -13,13 +13,13 @@
           <span class="server-traffic-card__icon" style="background: #22c55e22; color: #22c55e">
             <GIcon name="arrow-up" :size="16" />
           </span>
-          <span class="server-traffic-card__label">上传速度</span>
+          <span class="server-traffic-card__label">{{ t('tunnel.metrics.uploadSpeed') }}</span>
         </div>
         <span class="server-traffic-card__value">{{
           formatSpeed(server.traffic.uploadSpeed)
         }}</span>
         <span class="server-traffic-card__sub"
-          >今日 {{ formatBytes(server.traffic.todayUpload) }}</span
+          >{{ t('tunnel.metrics.todayValue', { value: formatBytes(server.traffic.todayUpload) }) }}</span
         >
       </div>
 
@@ -28,13 +28,13 @@
           <span class="server-traffic-card__icon" style="background: #5b8def22; color: #5b8def">
             <GIcon name="arrow-down" :size="16" />
           </span>
-          <span class="server-traffic-card__label">下载速度</span>
+          <span class="server-traffic-card__label">{{ t('tunnel.metrics.downloadSpeed') }}</span>
         </div>
         <span class="server-traffic-card__value">{{
           formatSpeed(server.traffic.downloadSpeed)
         }}</span>
         <span class="server-traffic-card__sub"
-          >今日 {{ formatBytes(server.traffic.todayDownload) }}</span
+          >{{ t('tunnel.metrics.todayValue', { value: formatBytes(server.traffic.todayDownload) }) }}</span
         >
       </div>
 
@@ -43,13 +43,13 @@
           <span class="server-traffic-card__icon" style="background: #7c6ff222; color: #7c6ff2">
             <GIcon name="cloud-upload" :size="16" />
           </span>
-          <span class="server-traffic-card__label">累计上传</span>
+          <span class="server-traffic-card__label">{{ t('tunnel.metrics.totalUpload') }}</span>
         </div>
         <span class="server-traffic-card__value">{{
           formatBytes(server.traffic.totalUpload)
         }}</span>
         <span class="server-traffic-card__sub"
-          >峰值 {{ formatSpeed(server.statistics.peakSpeed) }}</span
+          >{{ t('tunnel.metrics.peakValue', { value: formatSpeed(server.statistics.peakSpeed) }) }}</span
         >
       </div>
 
@@ -58,12 +58,14 @@
           <span class="server-traffic-card__icon" style="background: #06b6d422; color: #06b6d4">
             <GIcon name="cloud-download" :size="16" />
           </span>
-          <span class="server-traffic-card__label">累计下载</span>
+          <span class="server-traffic-card__label">{{ t('tunnel.metrics.totalDownload') }}</span>
         </div>
         <span class="server-traffic-card__value">{{
           formatBytes(server.traffic.totalDownload)
         }}</span>
-        <span class="server-traffic-card__sub">总计 {{ formatBytes(totalBytes) }}</span>
+        <span class="server-traffic-card__sub">{{
+          t('tunnel.metrics.totalValue', { value: formatBytes(totalBytes) })
+        }}</span>
       </div>
     </div>
 
@@ -71,7 +73,7 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="chart-line" :size="12" />
-        流量趋势（最近 12 个采样点）
+        {{ t('tunnel.traffic.trendTitle') }}
       </div>
       <div class="server-traffic__chart-wrap">
         <svg class="server-traffic__chart" viewBox="0 0 600 180" preserveAspectRatio="none">
@@ -102,11 +104,11 @@
         <div class="server-traffic__legend">
           <span class="server-traffic__legend-item">
             <span class="server-traffic__legend-dot" style="background: #5b8def" />
-            下载
+            {{ t('tunnel.metrics.download') }}
           </span>
           <span class="server-traffic__legend-item">
             <span class="server-traffic__legend-dot" style="background: #22c55e" />
-            上传
+            {{ t('tunnel.metrics.upload') }}
           </span>
         </div>
       </div>
@@ -116,15 +118,15 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="calendar" :size="12" />
-        周期统计
+        {{ t('server.traffic.periodStats') }}
       </div>
       <div class="server-conn-table">
         <div class="server-conn-row server-conn-row--head">
-          <span class="server-conn-row__cell">周期</span>
-          <span class="server-conn-row__cell">上传</span>
-          <span class="server-conn-row__cell">下载</span>
-          <span class="server-conn-row__cell">合计</span>
-          <span class="server-conn-row__cell">占比</span>
+          <span class="server-conn-row__cell">{{ t('server.traffic.period') }}</span>
+          <span class="server-conn-row__cell">{{ t('tunnel.metrics.upload') }}</span>
+          <span class="server-conn-row__cell">{{ t('tunnel.metrics.download') }}</span>
+          <span class="server-conn-row__cell">{{ t('tunnel.traffic.total') }}</span>
+          <span class="server-conn-row__cell">{{ t('server.traffic.ratio') }}</span>
         </div>
         <div v-for="row in periodRows" :key="row.label" class="server-conn-row">
           <span class="server-conn-row__cell">{{ row.label }}</span>
@@ -142,11 +144,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Server } from '../types'
 import { formatBytes, formatSpeed } from '../utils'
 
 const props = defineProps<{ server: Server }>()
+const { t } = useI18n()
 
 const totalBytes = computed(
   () => props.server.traffic.totalUpload + props.server.traffic.totalDownload,
@@ -181,7 +185,7 @@ const periodRows = computed(() => {
   const total = totalBytes.value || 1
   return [
     {
-      label: '今日',
+      label: t('tunnel.today'),
       upload: props.server.traffic.todayUpload,
       download: props.server.traffic.todayDownload,
       percent: Math.round(
@@ -189,7 +193,7 @@ const periodRows = computed(() => {
       ),
     },
     {
-      label: '本周',
+      label: t('server.traffic.thisWeek'),
       upload: props.server.traffic.weekUpload,
       download: props.server.traffic.weekDownload,
       percent: Math.round(
@@ -197,7 +201,7 @@ const periodRows = computed(() => {
       ),
     },
     {
-      label: '本月',
+      label: t('server.traffic.thisMonth'),
       upload: props.server.traffic.monthUpload,
       download: props.server.traffic.monthDownload,
       percent: Math.round(
@@ -205,7 +209,7 @@ const periodRows = computed(() => {
       ),
     },
     {
-      label: '累计',
+      label: t('server.traffic.total'),
       upload: props.server.traffic.totalUpload,
       download: props.server.traffic.totalDownload,
       percent: 100,

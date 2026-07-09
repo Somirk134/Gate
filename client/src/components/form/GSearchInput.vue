@@ -15,9 +15,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GInput from './GInput.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue?: string
     size?: 'sm' | 'md' | 'lg'
@@ -26,7 +28,6 @@ withDefaults(
   }>(),
   {
     size: 'md',
-    placeholder: '搜索…',
     clearable: true,
   },
 )
@@ -35,4 +36,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   search: [event: KeyboardEvent]
 }>()
+const { t } = useI18n()
+const placeholder = computed(() => props.placeholder ?? t('form.searchPlaceholder'))
 </script>

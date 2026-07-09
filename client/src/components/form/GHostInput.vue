@@ -7,7 +7,7 @@
   <GInput
     :model-value="modelValue"
     :size="size"
-    :placeholder="placeholder ?? 'example.com 或 127.0.0.1'"
+    :placeholder="placeholderText"
     :state="state"
     :disabled="disabled"
     :clearable="clearable"
@@ -16,9 +16,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GInput from './GInput.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     modelValue?: string
     size?: 'sm' | 'md' | 'lg'
@@ -36,6 +38,8 @@ withDefaults(
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const { t } = useI18n()
+const placeholderText = computed(() => props.placeholder ?? t('form.hostPlaceholder'))
 </script>
 
 <style scoped>

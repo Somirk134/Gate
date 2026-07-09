@@ -19,16 +19,16 @@ import type {
 export const KIND_PRESETS: KindPreset[] = [
   {
     key: 'personal',
-    label: '个人',
-    description: '个人服务器 / VPS',
+    label: 'personal',
+    description: 'personal',
     availability: 'enabled',
     icon: 'home',
     color: '#5B8DEF',
   },
   {
     key: 'cloud',
-    label: '云服务器',
-    description: '云服务器（阿里云 / 腾讯云 / AWS）',
+    label: 'cloud',
+    description: 'cloud',
     availability: 'enabled',
     icon: 'cloud',
     color: '#22C55E',
@@ -36,15 +36,15 @@ export const KIND_PRESETS: KindPreset[] = [
   {
     key: 'nas',
     label: 'NAS',
-    description: '家庭 NAS / 存储设备',
+    description: 'nas',
     availability: 'enabled',
     icon: 'hard-drive',
     color: '#F59E0B',
   },
   {
     key: 'company',
-    label: '企业',
-    description: '公司内网服务器',
+    label: 'company',
+    description: 'company',
     availability: 'enabled',
     icon: 'servers',
     color: '#7C6FF2',
@@ -52,7 +52,7 @@ export const KIND_PRESETS: KindPreset[] = [
   {
     key: 'docker',
     label: 'Docker',
-    description: 'Docker 容器部署',
+    description: 'docker',
     availability: 'enabled',
     icon: 'box',
     color: '#06B6D4',
@@ -60,7 +60,7 @@ export const KIND_PRESETS: KindPreset[] = [
   {
     key: 'kubernetes',
     label: 'Kubernetes',
-    description: 'K8s 集群（即将支持）',
+    description: 'kubernetes',
     availability: 'soon',
     icon: 'layers',
     color: '#EF4444',
@@ -78,62 +78,62 @@ export const KIND_MAP: Record<ServerKind, KindPreset> = KIND_PRESETS.reduce(
 
 /* ── 预置标签 ── */
 export const SERVER_TAGS: TagPreset[] = [
-  { name: '生产', color: '#EF4444' },
-  { name: '开发', color: '#06B6D4' },
-  { name: '测试', color: '#F59E0B' },
-  { name: '家庭', color: '#5B8DEF' },
-  { name: '云服务', color: '#22C55E' },
-  { name: '阿里云', color: '#F59E0B' },
-  { name: '腾讯云', color: '#5B8DEF' },
-  { name: 'AWS', color: '#EF4444' },
+  { name: 'production', color: '#EF4444' },
+  { name: 'development', color: '#06B6D4' },
+  { name: 'testing', color: '#F59E0B' },
+  { name: 'home', color: '#5B8DEF' },
+  { name: 'cloudService', color: '#22C55E' },
+  { name: 'aliyun', color: '#F59E0B' },
+  { name: 'tencentCloud', color: '#5B8DEF' },
+  { name: 'aws', color: '#EF4444' },
 ]
 
 /* ── 状态配置：统一全模块状态展示 ── */
 export const SERVER_STATUS_CONFIG: Record<ServerStatus, ServerStatusConfig> = {
   connected: {
-    label: '已连接',
+    label: 'connected',
     dotStatus: 'online',
     badgeVariant: 'success',
     pulse: false,
     weight: 0,
   },
   connecting: {
-    label: '连接中',
+    label: 'connecting',
     dotStatus: 'connecting',
     badgeVariant: 'info',
     pulse: true,
     weight: 1,
   },
   reconnecting: {
-    label: '重连中',
+    label: 'reconnecting',
     dotStatus: 'connecting',
     badgeVariant: 'warning',
     pulse: true,
     weight: 2,
   },
   maintenance: {
-    label: '维护中',
+    label: 'maintenance',
     dotStatus: 'warning',
     badgeVariant: 'warning',
     pulse: false,
     weight: 3,
   },
   error: {
-    label: '错误',
+    label: 'error',
     dotStatus: 'error',
     badgeVariant: 'error',
     pulse: false,
     weight: 4,
   },
   disconnected: {
-    label: '已断开',
+    label: 'disconnected',
     dotStatus: 'warning',
     badgeVariant: 'warning',
     pulse: false,
     weight: 5,
   },
   offline: {
-    label: '离线',
+    label: 'offline',
     dotStatus: 'offline',
     badgeVariant: 'neutral',
     pulse: false,
@@ -199,16 +199,18 @@ export function formatSpeed(bytesPerSec: number): string {
 }
 
 /* ── 格式化：时长（秒） ── */
-export function formatDuration(seconds: number): string {
-  if (seconds <= 0) return '0 秒'
+type TranslateFn = (key: string, params?: Record<string, number>) => string
+
+export function formatDuration(seconds: number, t: TranslateFn): string {
+  if (seconds <= 0) return t('common.time.seconds', { count: 0 })
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
-  if (d > 0) return `${d} 天 ${h} 小时`
-  if (h > 0) return `${h} 小时 ${m} 分钟`
-  if (m > 0) return `${m} 分钟 ${s} 秒`
-  return `${s} 秒`
+  if (d > 0) return t('common.time.daysHours', { days: d, hours: h })
+  if (h > 0) return t('common.time.hoursMinutes', { hours: h, minutes: m })
+  if (m > 0) return t('common.time.minutesSeconds', { minutes: m, seconds: s })
+  return t('common.time.seconds', { count: s })
 }
 
 /* ── 格式化：数字（千分位） ── */

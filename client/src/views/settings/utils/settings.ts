@@ -6,6 +6,14 @@ import type {
   SettingValidation,
   SettingValue,
 } from '../types'
+import { i18n } from '@/i18n'
+
+function t(key: string, params?: Record<string, unknown>): string {
+  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
+    key,
+    params,
+  )
+}
 
 export function flattenSettingItems(categories: SettingCategory[]) {
   return categories.flatMap((category) =>
@@ -72,17 +80,17 @@ export function validateSettingValue(item: SettingItem, value: SettingValue) {
 
   if (typeof value === 'number') {
     if (typeof validation.min === 'number' && value < validation.min) {
-      return validation.message ?? `最小值为 ${validation.min}。`
+      return validation.message ?? t('settings.validation.min', { min: validation.min })
     }
 
     if (typeof validation.max === 'number' && value > validation.max) {
-      return validation.message ?? `最大值为 ${validation.max}。`
+      return validation.message ?? t('settings.validation.max', { max: validation.max })
     }
   }
 
   if (typeof value === 'string' && validation.pattern) {
     const pattern = new RegExp(validation.pattern)
-    if (!pattern.test(value)) return validation.message ?? '格式不正确。'
+    if (!pattern.test(value)) return validation.message ?? t('settings.validation.pattern')
   }
 
   return undefined
@@ -90,16 +98,17 @@ export function validateSettingValue(item: SettingItem, value: SettingValue) {
 
 export function formatSettingValue(value: SettingValue) {
   if (Array.isArray(value)) return value.join(', ')
-  if (value === null) return '无'
-  if (typeof value === 'boolean') return value ? '已启用' : '已禁用'
+  if (value === null) return t('settings.value.none')
+  if (typeof value === 'boolean') return value ? t('settings.value.enabled') : t('settings.value.disabled')
   return String(value)
 }
 
 function validateRequired(validation: SettingValidation, value: SettingValue) {
   if (!validation.required) return undefined
-  if (value === null) return validation.message ?? '此项为必填。'
+  if (value === null) return validation.message ?? t('settings.validation.required')
   if (typeof value === 'string' && value.trim().length === 0)
-    return validation.message ?? '此项为必填。'
-  if (Array.isArray(value) && value.length === 0) return validation.message ?? '此项为必填。'
+    return validation.message ?? t('settings.validation.required')
+  if (Array.isArray(value) && value.length === 0)
+    return validation.message ?? t('settings.validation.required')
   return undefined
 }

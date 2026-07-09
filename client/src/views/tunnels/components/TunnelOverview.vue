@@ -11,33 +11,33 @@
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
           <GIcon name="link" :size="12" />
-          连接信息
+          {{ t('tunnel.overview.connectionInfo') }}
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">状态</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.status') }}</span>
           <TunnelStatus :status="tunnel.status" size="sm" />
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">协议</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.protocol') }}</span>
           <TunnelBadge :protocol="tunnel.protocol" size="sm" />
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">公网地址</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.publicAddress') }}</span>
           <span
             class="tunnel-info-row__value mono copy"
-            :title="`点击复制 ${tunnel.publicAddr}`"
+            :title="t('tunnel.overview.copyTitle', { value: tunnel.publicAddr })"
             @click="copy(tunnel.publicAddr)">
             {{ tunnel.publicAddr }}
           </span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">本地地址</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.localAddress') }}</span>
           <span class="tunnel-info-row__value mono"
             >{{ tunnel.localHost }}:{{ tunnel.localPort }}</span
           >
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">公网端口</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.remotePort') }}</span>
           <span class="tunnel-info-row__value mono">{{ tunnel.remotePort }}</span>
         </div>
       </div>
@@ -46,28 +46,28 @@
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
           <GIcon name="package" :size="12" />
-          归属信息
+          {{ t('tunnel.overview.ownershipInfo') }}
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">服务器</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.server') }}</span>
           <span class="tunnel-info-row__value">{{ tunnel.serverName }}</span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">项目</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.project') }}</span>
           <span class="tunnel-info-row__value">{{ tunnel.projectName }}</span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">自动启动</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.autoStart') }}</span>
           <span class="tunnel-info-row__value">
             <GIcon
               :name="tunnel.autoStart ? 'check' : 'close'"
               :size="12"
               :class="tunnel.autoStart ? 'on' : 'off'" />
-            {{ tunnel.autoStart ? '已启用' : '未启用' }}
+            {{ tunnel.autoStart ? t('tunnel.overview.enabled') : t('tunnel.overview.disabled') }}
           </span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">标签</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.tags') }}</span>
           <span v-if="tunnel.tags.length" class="tunnel-info-row__value">
             <TunnelTag v-for="tag in tunnel.tags" :key="tag" :name="tag" />
           </span>
@@ -79,24 +79,24 @@
       <div class="tunnel-info-card">
         <div class="tunnel-info-card__title">
           <GIcon name="clock" :size="12" />
-          时间信息
+          {{ t('tunnel.overview.timeInfo') }}
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">最后启动</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.lastStarted') }}</span>
           <span class="tunnel-info-row__value">{{ tunnel.lastStartedAt }}</span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">创建时间</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.createdAt') }}</span>
           <span class="tunnel-info-row__value mono">{{ formatDateTime(tunnel.createdAt) }}</span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">更新时间</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.updatedAt') }}</span>
           <span class="tunnel-info-row__value mono">{{ formatDateTime(tunnel.updatedAt) }}</span>
         </div>
         <div class="tunnel-info-row">
-          <span class="tunnel-info-row__label">运行时长</span>
+          <span class="tunnel-info-row__label">{{ t('tunnel.overview.uptime') }}</span>
           <span class="tunnel-info-row__value mono">{{
-            formatDuration(tunnel.statistics.uptime)
+            formatDuration(tunnel.statistics.uptime, t)
           }}</span>
         </div>
       </div>
@@ -105,7 +105,7 @@
       <div v-if="tunnel.remark" class="tunnel-info-card">
         <div class="tunnel-info-card__title">
           <GIcon name="file-text" :size="12" />
-          备注
+          {{ t('tunnel.overview.remark') }}
         </div>
         <p class="tunnel-overview__remark">
           {{ tunnel.remark }}
@@ -116,6 +116,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import TunnelStatus from './TunnelStatus.vue'
 import TunnelBadge from './TunnelBadge.vue'
@@ -127,11 +128,12 @@ import { useFeedback } from '@composables/useFeedback'
 defineProps<{ tunnel: Tunnel }>()
 
 const { toast } = useFeedback()
+const { t } = useI18n()
 
 function copy(text: string) {
   navigator.clipboard?.writeText(text).then(
-    () => toast.success(`已复制：${text}`),
-    () => toast.error('复制失败'),
+    () => toast.success(t('common.copiedWithValue', { value: text })),
+    () => toast.error(t('common.copyFailed')),
   )
 }
 </script>

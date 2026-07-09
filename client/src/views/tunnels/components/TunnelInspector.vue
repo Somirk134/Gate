@@ -8,7 +8,7 @@
   <div class="tunnel-inspector" :style="colorVars">
     <header class="tunnel-inspector__header">
       <GIcon name="activity" :size="14" />
-      <span>实时检查器</span>
+      <span>{{ t('tunnel.inspector.title') }}</span>
       <span class="tunnel-inspector__live">
         <span class="tunnel-inspector__live-dot" />
         LIVE
@@ -29,30 +29,30 @@
 
       <!-- 实时统计 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">实时统计</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.inspector.realtimeStats') }}</div>
         <div class="tunnel-inspector__stat">
           <div class="tunnel-inspector__stat-item">
             <GIcon name="arrow-up" :size="12" />
-            <span class="tunnel-inspector__stat-label">上传</span>
+            <span class="tunnel-inspector__stat-label">{{ t('tunnel.metrics.upload') }}</span>
             <span class="tunnel-inspector__stat-value">{{
               formatSpeed(tunnel.traffic.uploadSpeed)
             }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
             <GIcon name="arrow-down" :size="12" />
-            <span class="tunnel-inspector__stat-label">下载</span>
+            <span class="tunnel-inspector__stat-label">{{ t('tunnel.metrics.download') }}</span>
             <span class="tunnel-inspector__stat-value">{{
               formatSpeed(tunnel.traffic.downloadSpeed)
             }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
             <GIcon name="link" :size="12" />
-            <span class="tunnel-inspector__stat-label">连接</span>
+            <span class="tunnel-inspector__stat-label">{{ t('tunnel.metrics.connections') }}</span>
             <span class="tunnel-inspector__stat-value">{{ tunnel.statistics.connections }}</span>
           </div>
           <div class="tunnel-inspector__stat-item">
             <GIcon name="gauge" :size="12" />
-            <span class="tunnel-inspector__stat-label">延迟</span>
+            <span class="tunnel-inspector__stat-label">{{ t('tunnel.metrics.latency') }}</span>
             <span class="tunnel-inspector__stat-value">{{ tunnel.statistics.avgLatency }}ms</span>
           </div>
         </div>
@@ -60,7 +60,7 @@
 
       <!-- Mini Chart -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">流量趋势</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.inspector.trafficTrend') }}</div>
         <svg class="tunnel-mini-chart" viewBox="0 0 200 80" preserveAspectRatio="none">
           <defs>
             <linearGradient :id="`grad-${tunnel.id}`" x1="0" y1="0" x2="0" y2="1">
@@ -75,64 +75,64 @@
 
       <!-- 基础信息 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">基础信息</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.inspector.basic') }}</div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">协议</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.protocol') }}</span>
           <TunnelBadge :protocol="tunnel.protocol" size="sm" />
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">本地地址</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.localAddress') }}</span>
           <span class="tunnel-inspector__value mono"
             >{{ tunnel.localHost }}:{{ tunnel.localPort }}</span
           >
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">公网端口</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.remotePort') }}</span>
           <span class="tunnel-inspector__value mono">{{ tunnel.remotePort }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">服务器</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.server') }}</span>
           <span class="tunnel-inspector__value">{{ tunnel.serverName }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">项目</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.project') }}</span>
           <span class="tunnel-inspector__value">{{ tunnel.projectName }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">自动启动</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.overview.autoStart') }}</span>
           <span class="tunnel-inspector__value">
             <GIcon
               :name="tunnel.autoStart ? 'check' : 'close'"
               :size="12"
               :class="tunnel.autoStart ? 'on' : 'off'" />
-            {{ tunnel.autoStart ? '已启用' : '未启用' }}
+            {{ tunnel.autoStart ? t('common.enabled') : t('common.disabled') }}
           </span>
         </div>
       </div>
 
       <!-- 累计 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">累计</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.inspector.cumulative') }}</div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">累计上传</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.metrics.totalUpload') }}</span>
           <span class="tunnel-inspector__value mono">{{
             formatBytes(tunnel.traffic.totalUpload)
           }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">累计下载</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.metrics.totalDownload') }}</span>
           <span class="tunnel-inspector__value mono">{{
             formatBytes(tunnel.traffic.totalDownload)
           }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">运行时长</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.metrics.uptime') }}</span>
           <span class="tunnel-inspector__value mono">{{
-            formatDuration(tunnel.statistics.uptime)
+            formatDuration(tunnel.statistics.uptime, t)
           }}</span>
         </div>
         <div class="tunnel-inspector__row">
-          <span class="tunnel-inspector__label">累计请求</span>
+          <span class="tunnel-inspector__label">{{ t('tunnel.metrics.totalRequests') }}</span>
           <span class="tunnel-inspector__value mono">{{
             formatNumber(tunnel.statistics.requests)
           }}</span>
@@ -141,7 +141,7 @@
 
       <!-- 标签 -->
       <div v-if="tunnel.tags.length" class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">标签</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.overview.tags') }}</div>
         <div class="tunnel-inspector__tags">
           <TunnelTag v-for="tag in tunnel.tags" :key="tag" :name="tag" />
         </div>
@@ -149,7 +149,7 @@
 
       <!-- 最近日志 -->
       <div class="tunnel-inspector__group">
-        <div class="tunnel-inspector__group-title">最近日志</div>
+        <div class="tunnel-inspector__group-title">{{ t('tunnel.detail.recentLogs') }}</div>
         <div class="tunnel-inspector__logs">
           <div v-for="log in recentLogs" :key="log.id" class="tunnel-inspector__log">
             <span
@@ -167,6 +167,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import TunnelStatus from './TunnelStatus.vue'
 import TunnelBadge from './TunnelBadge.vue'
@@ -182,6 +183,7 @@ import {
 } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 const colorVars = computed(() => tunnelColorVars(props.tunnel.protocol))
 const protocolPreset = computed(() => PROTOCOL_MAP[props.tunnel.protocol])

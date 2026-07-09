@@ -6,7 +6,7 @@
         <GIcon name="loader" :size="24" spin />
       </div>
       <div class="loading-message">
-        {{ loading.globalMessage || '加载中...' }}
+        {{ loading.globalMessage || t('common.loading') }}
       </div>
       <div v-if="loading.currentTask?.progress !== undefined" class="loading-progress">
         <div class="progress-track">
@@ -19,10 +19,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useLoadingStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
 
 const loading = useLoadingStore()
+// 默认 Loading 文案使用 i18n，调用方传入 globalMessage 时仍优先显示业务文案。
+const { t } = useI18n()
 </script>
 
 <style scoped>

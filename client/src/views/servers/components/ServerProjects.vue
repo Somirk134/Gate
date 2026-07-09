@@ -8,7 +8,7 @@
     <div class="server-section__head">
       <div class="server-section__title">
         <GIcon name="package" :size="16" class="server-section__title-icon" />
-        <span>项目列表</span>
+        <span>{{ t('server.projects.title') }}</span>
         <GBadge variant="neutral" type="soft" size="sm">
           {{ projects.length }}
         </GBadge>
@@ -29,7 +29,7 @@
         <div class="server-sublist__main">
           <span class="server-sublist__name">{{ project.name }}</span>
           <span class="server-sublist__meta"
-            >{{ project.tunnelCount }} 个隧道 · {{ project.remark || '—' }}</span
+            >{{ t('server.projects.projectMeta', { count: project.tunnelCount, remark: project.remark || '—' }) }}</span
           >
         </div>
         <div class="server-sublist__actions">
@@ -37,7 +37,7 @@
             name="external-link"
             size="sm"
             variant="ghost"
-            tooltip="进入项目"
+            :tooltip="t('server.projects.enterProject')"
             @click.stop="$emit('view-project', project)" />
         </div>
       </div>
@@ -45,17 +45,18 @@
 
     <div v-else class="server-logs__empty">
       <GIcon name="package" :size="20" />
-      <span>该服务器暂无项目</span>
+      <span>{{ t('server.projects.empty') }}</span>
     </div>
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      服务器关联项目会在项目绑定后显示在这里。
+      {{ t('server.projects.hint') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GBadge from '@components/base/GBadge.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -75,4 +76,6 @@ defineProps<{
 defineEmits<{
   'view-project': [project: ServerProjectItem]
 }>()
+
+const { t } = useI18n()
 </script>

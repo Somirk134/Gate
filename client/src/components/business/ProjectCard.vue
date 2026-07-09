@@ -1,24 +1,6 @@
 <!--
-  ProjectCard — 项目卡片（业务组件模板）
-  ------------------------------------------------------------------
-  用途：项目列表中展示单个项目概览。
-  属业务组件：基于 GCard + GStatusBadge 组合，仅负责展示结构，
-  不包含任何数据获取/状态管理逻辑（数据由父级传入）。
-
-  Props:
-    name        项目名
-    icon        项目图标名
-    description 描述
-    tunnelCount 隧道数
-    onlineCount 在线数
-    lastActive  最近活跃
-    status      整体状态
-
-  Events:
-    click       点击整卡
-    action      点击操作按钮（payload: action key）
-
-  复用：GCard / GIcon / GStatusBadge / GButton
+  ProjectCard - 项目摘要卡片。
+  计数标签统一走 i18n，父级传入的数据保持原样。
 -->
 <template>
   <GCard variant="interactive" padding="md" clickable @click="emit('click')">
@@ -41,11 +23,11 @@
       <div class="project-card__meta">
         <span class="project-card__meta-item">
           <GIcon name="link" :size="12" />
-          {{ tunnelCount }} 隧道
+          {{ t('business.project.tunnelCount', { count: tunnelCount }) }}
         </span>
         <span class="project-card__meta-item project-card__meta-item--online">
           <GStatusDot status="online" size="xs" />
-          {{ onlineCount }} 在线
+          {{ t('business.project.onlineCount', { count: onlineCount }) }}
         </span>
         <span class="project-card__meta-item project-card__meta-item--time">
           <GIcon name="clock" :size="12" />
@@ -57,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -85,6 +68,8 @@ const emit = defineEmits<{
   click: []
   action: [key: string]
 }>()
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

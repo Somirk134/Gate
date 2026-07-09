@@ -20,9 +20,13 @@
             <template v-else>{{ part.text }}</template>
           </template>
         </span>
-        <span v-if="modified" class="setting-item__dot" aria-label="已修改" />
-        <span v-if="item.restartRequired" class="setting-badge setting-badge--warning">需重启</span>
-        <span v-if="item.status === 'reserved'" class="setting-badge">预留</span>
+        <span v-if="modified" class="setting-item__dot" :aria-label="t('settings.legacy.modified')" />
+        <span v-if="item.restartRequired" class="setting-badge setting-badge--warning">
+          {{ t('settings.legacy.restartRequired') }}
+        </span>
+        <span v-if="item.status === 'reserved'" class="setting-badge">
+          {{ t('settings.legacy.reserved') }}
+        </span>
       </div>
 
       <p class="setting-item__description">
@@ -122,12 +126,16 @@
 
       <div v-else-if="control.type === 'folder'" class="setting-folder">
         <span>{{ stringValue || folderPlaceholder }}</span>
-        <GButton size="sm" icon="projects" :disabled="folderDisabled"> 浏览 </GButton>
+        <GButton size="sm" icon="projects" :disabled="folderDisabled">
+          {{ t('settings.legacy.browse') }}
+        </GButton>
       </div>
 
       <div v-else-if="control.type === 'shortcut'" class="setting-shortcut">
         <kbd v-for="segment in shortcutSegments" :key="segment">{{ segment }}</kbd>
-        <GButton size="sm" variant="ghost" icon="edit" disabled> 编辑 </GButton>
+        <GButton size="sm" variant="ghost" icon="edit" disabled>
+          {{ t('settings.legacy.edit') }}
+        </GButton>
       </div>
 
       <div
@@ -147,7 +155,7 @@
           :disabled="action.disabled"
           :loading="actionStatuses[action.id] === 'running'"
           @click="emit('run-action', action.id)">
-          {{ actionStatuses[action.id] === 'done' ? '完成' : action.label }}
+          {{ actionStatuses[action.id] === 'done' ? t('settings.legacy.done') : action.label }}
         </GButton>
       </div>
     </div>
@@ -158,6 +166,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import type {
   SettingAction,
@@ -199,6 +208,7 @@ const emit = defineEmits<{
   'run-action': [actionId: string]
 }>()
 
+const { t } = useI18n()
 const control = computed(() => props.item.control)
 const disabled = computed(
   () =>
@@ -245,7 +255,9 @@ const inputType = computed(() =>
   control.value.type === 'input' ? (control.value.inputType ?? 'text') : 'text',
 )
 const folderPlaceholder = computed(() =>
-  control.value.type === 'folder' ? (control.value.placeholder ?? '选择文件夹') : '选择文件夹',
+  control.value.type === 'folder'
+    ? (control.value.placeholder ?? t('settings.legacy.folderPlaceholder'))
+    : t('settings.legacy.folderPlaceholder'),
 )
 const folderDisabled = computed(() => disabled.value || control.value.type === 'folder')
 const readonlyVariant = computed(() =>

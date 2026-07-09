@@ -5,36 +5,44 @@
    ================================================================== */
 
 import { computed, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Tunnel } from '../types'
-import { TUNNEL_STATUS_CONFIG } from '../utils'
 
 export function useTunnelSearch(tunnels: Ref<Tunnel[]>, query: Ref<string>) {
+  const { t, te, locale } = useI18n()
   const normalizedQuery = computed(() => query.value.trim().toLowerCase())
 
   const results = computed(() => {
+    void locale.value
     const q = normalizedQuery.value
     if (!q) return tunnels.value
-    return tunnels.value.filter((t) => {
+    return tunnels.value.filter((tunnel) => {
       // 名称
-      if (t.name.toLowerCase().includes(q)) return true
+      if (tunnel.name.toLowerCase().includes(q)) return true
       // 协议
-      if (t.protocol.toLowerCase().includes(q)) return true
+      if (tunnel.protocol.toLowerCase().includes(q)) return true
       // 本地端口 / 公网端口
-      if (String(t.localPort).includes(q)) return true
-      if (String(t.remotePort).includes(q)) return true
+      if (String(tunnel.localPort).includes(q)) return true
+      if (String(tunnel.remotePort).includes(q)) return true
       // 公网地址
-      if (t.publicAddr.toLowerCase().includes(q)) return true
+      if (tunnel.publicAddr.toLowerCase().includes(q)) return true
       // 项目
-      if (t.projectName.toLowerCase().includes(q)) return true
+      if (tunnel.projectName.toLowerCase().includes(q)) return true
       // 服务器
-      if (t.serverName.toLowerCase().includes(q)) return true
+      if (tunnel.serverName.toLowerCase().includes(q)) return true
       // 标签
-      if (t.tags.some((tag) => tag.toLowerCase().includes(q))) return true
+      if (tunnel.tags.some((tag) => tag.toLowerCase().includes(q))) return true
+      if (tunnel.tags.some((tag) => localizedTag(tag).toLowerCase().includes(q))) return true
       // 状态文本
-      if (TUNNEL_STATUS_CONFIG[t.status].label.toLowerCase().includes(q)) return true
+      if (t(`tunnel.statusLabels.${tunnel.status}`).toLowerCase().includes(q)) return true
       return false
     })
   })
+
+  function localizedTag(tag: string): string {
+    const key = `tunnel.tags.${tag}`
+    return te(key) ? t(key) : tag
+  }
 
   const hasQuery = computed(() => normalizedQuery.value.length > 0)
   const matchCount = computed(() => results.value.length)

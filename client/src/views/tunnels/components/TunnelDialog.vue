@@ -18,11 +18,13 @@
               </span>
               <div>
                 <h3 class="tunnel-dialog__title">
-                  {{ isEdit ? '编辑隧道' : '新建隧道' }}
+                  {{ isEdit ? t('tunnel.dialog.editTitle') : t('tunnel.dialog.createTitle') }}
                 </h3>
                 <p class="tunnel-dialog__subtitle">
                   {{
-                    isEdit ? '修改隧道配置，自动保存' : '填写本地地址，点击启动后即可通过公网访问'
+                    isEdit
+                      ? t('tunnel.dialog.editSubtitle')
+                      : t('tunnel.dialog.createSubtitle')
                   }}
                 </p>
               </div>
@@ -34,10 +36,10 @@
           <div class="tunnel-dialog__body">
             <!-- 名称 -->
             <GFormField :error="errors.name" required>
-              <template #label> 名称 </template>
+              <template #label>{{ t('tunnel.settings.name') }}</template>
               <GInput
                 v-model="form.name"
-                placeholder="例如：api-gateway"
+                :placeholder="t('tunnel.settings.namePlaceholder')"
                 :state="errors.name ? 'error' : 'normal'"
                 :maxlength="40"
                 clearable
@@ -46,13 +48,13 @@
 
             <!-- 协议 -->
             <GFormField>
-              <template #label> 协议 </template>
+              <template #label>{{ t('tunnel.settings.protocol') }}</template>
               <TunnelProtocolSelect v-model="form.protocol" />
             </GFormField>
 
             <div v-if="isHttpLike" class="tunnel-port-row">
               <GFormField :error="errors.host" :required="form.protocol === 'https'">
-                <template #label> 绑定域名 </template>
+                <template #label>{{ t('tunnel.settings.host') }}</template>
                 <GInput
                   v-model="form.host"
                   placeholder="api.example.com"
@@ -61,7 +63,7 @@
                   @update:model-value="validateField('host')" />
               </GFormField>
               <GFormField :error="errors.path">
-                <template #label> 路径 </template>
+                <template #label>{{ t('tunnel.settings.path') }}</template>
                 <GInput
                   v-model="form.path"
                   placeholder="/"
@@ -73,7 +75,7 @@
 
             <!-- 本地地址 -->
             <GFormField :error="errors.localHost" required>
-              <template #label> 本地地址 </template>
+              <template #label>{{ t('tunnel.settings.localAddress') }}</template>
               <GInput
                 v-model="form.localHost"
                 placeholder="127.0.0.1"
@@ -85,11 +87,11 @@
             <!-- 本地端口 / 公网端口 -->
             <div class="tunnel-port-row">
               <GFormField :error="errors.localPort" required>
-                <template #label> 本地端口 </template>
+                <template #label>{{ t('tunnel.settings.localPort') }}</template>
                 <TunnelPortInput v-model="form.localPort" />
               </GFormField>
               <GFormField :error="errors.remotePort" required>
-                <template #label> 公网端口 </template>
+                <template #label>{{ t('tunnel.settings.remotePort') }}</template>
                 <TunnelPortInput v-model="form.remotePort" />
               </GFormField>
             </div>
@@ -97,7 +99,7 @@
             <!-- 所属项目 / 服务器 -->
             <div class="tunnel-port-row">
               <GFormField>
-                <template #label> 所属项目 </template>
+                <template #label>{{ t('tunnel.dialog.project') }}</template>
                 <div class="tunnel-dialog__select-wrap">
                   <select v-model="form.projectId" class="tunnel-dialog__select">
                     <option v-for="p in projects" :key="p.id" :value="p.id">
@@ -108,7 +110,7 @@
                 </div>
               </GFormField>
               <GFormField>
-                <template #label> 所属服务器 </template>
+                <template #label>{{ t('tunnel.dialog.server') }}</template>
                 <div class="tunnel-dialog__select-wrap">
                   <select v-model="form.serverName" class="tunnel-dialog__select">
                     <option v-for="s in serverNames" :key="s" :value="s">
@@ -123,8 +125,8 @@
             <!-- 自动启动 -->
             <div class="tunnel-dialog__row">
               <div class="tunnel-dialog__row-text">
-                <span class="tunnel-dialog__row-label">自动启动</span>
-                <span class="tunnel-dialog__row-hint">应用启动时自动运行该隧道</span>
+                <span class="tunnel-dialog__row-label">{{ t('tunnel.settings.autoStart') }}</span>
+                <span class="tunnel-dialog__row-hint">{{ t('tunnel.settings.autoStartHint') }}</span>
               </div>
               <button
                 type="button"
@@ -137,7 +139,7 @@
 
             <!-- 标签 -->
             <GFormField>
-              <template #label> 标签 </template>
+              <template #label>{{ t('tunnel.dialog.tags') }}</template>
               <div class="tunnel-tag-input" :class="{ 'tunnel-tag-input--focused': tagFocused }">
                 <TunnelTag
                   v-for="tag in form.tags"
@@ -148,7 +150,7 @@
                 <input
                   v-model="tagInput"
                   class="tunnel-tag-input__field"
-                  placeholder="输入标签后回车"
+                  :placeholder="t('tunnel.dialog.tagPlaceholder')"
                   @focus="tagFocused = true"
                   @blur="onTagBlur"
                   @keydown.enter.prevent="addTag"
@@ -163,17 +165,17 @@
                   :style="{ color: tag.color }"
                   @click="addSuggestedTag(tag.name)">
                   <GIcon name="plus" :size="10" />
-                  {{ tag.name }}
+                  {{ tag.label }}
                 </button>
               </div>
             </GFormField>
 
             <!-- 备注 -->
             <GFormField>
-              <template #label> 备注 </template>
+              <template #label>{{ t('tunnel.settings.remark') }}</template>
               <GTextarea
                 v-model="form.remark"
-                placeholder="内部备注，仅自己可见…"
+                :placeholder="t('tunnel.settings.remarkPlaceholder')"
                 :rows="2"
                 :maxlength="200"
                 resizable />
@@ -182,14 +184,16 @@
 
           <!-- 底部 -->
           <footer class="tunnel-dialog__footer">
-            <GButton variant="ghost" @click="handleClose"> 取消 </GButton>
+            <GButton variant="ghost" @click="handleClose">
+              {{ t('common.cancel') }}
+            </GButton>
             <GButton
               variant="primary"
               :icon="isEdit ? 'save' : 'plus'"
               :loading="submitting"
               :disabled="!isValid"
               @click="handleSubmit">
-              {{ isEdit ? '保存' : '创建隧道' }}
+              {{ isEdit ? t('common.save') : t('tunnel.create') }}
             </GButton>
           </footer>
         </div>
@@ -200,6 +204,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -224,6 +229,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   submit: [form: TunnelFormData, isEdit: boolean]
 }>()
+const { t } = useI18n()
 
 const isEdit = computed(() => !!props.tunnel)
 const submitting = ref(false)
@@ -263,7 +269,12 @@ const previewStyle = computed(() => ({
 }))
 
 const suggestedTags = computed(() =>
-  TUNNEL_TAGS.filter((t) => !form.tags.includes(t.name)).slice(0, 6),
+  TUNNEL_TAGS.filter((tag) => !form.tags.includes(tag.name))
+    .slice(0, 6)
+    .map((tag) => ({
+      ...tag,
+      label: t(`tunnel.tags.${tag.name}`),
+    })),
 )
 
 const isValid = computed(
@@ -331,32 +342,32 @@ function resetForm() {
 function validateField(field: keyof typeof errors) {
   if (field === 'name') {
     const v = form.name.trim()
-    if (v.length === 0) errors.name = '名称不能为空'
-    else if (v.length < 2) errors.name = '名称至少 2 个字符'
-    else if (v.length > 40) errors.name = '名称不能超过 40 个字符'
+    if (v.length === 0) errors.name = t('tunnel.settings.validation.nameRequired')
+    else if (v.length < 2) errors.name = t('tunnel.settings.validation.nameMin')
+    else if (v.length > 40) errors.name = t('tunnel.settings.validation.nameMax')
     else errors.name = undefined
   }
   if (field === 'localHost') {
-    if (!form.localHost.trim()) errors.localHost = '本地地址不能为空'
+    if (!form.localHost.trim()) errors.localHost = t('tunnel.settings.validation.localAddressRequired')
     else errors.localHost = undefined
   }
   if (field === 'localPort') {
-    if (!isValidPort(form.localPort)) errors.localPort = '端口范围 1-65535'
+    if (!isValidPort(form.localPort)) errors.localPort = t('tunnel.settings.validation.portRange')
     else errors.localPort = undefined
   }
   if (field === 'remotePort') {
-    if (!isValidPort(form.remotePort)) errors.remotePort = '端口范围 1-65535'
+    if (!isValidPort(form.remotePort)) errors.remotePort = t('tunnel.settings.validation.portRange')
     else errors.remotePort = undefined
   }
   if (field === 'host') {
     const value = form.host?.trim() ?? ''
-    if (form.protocol === 'https' && !value) errors.host = 'HTTPS 隧道必须绑定域名'
-    else if (value && /[/:?#\s]/.test(value)) errors.host = '请输入域名，不要包含协议、路径或空格'
+    if (form.protocol === 'https' && !value) errors.host = t('tunnel.settings.validation.httpsHostRequired')
+    else if (value && /[/:?#\s]/.test(value)) errors.host = t('tunnel.settings.validation.hostInvalid')
     else errors.host = undefined
   }
   if (field === 'path') {
     const value = form.path?.trim() ?? ''
-    if (value && !value.startsWith('/')) errors.path = '路径必须以 / 开头'
+    if (value && !value.startsWith('/')) errors.path = t('tunnel.settings.validation.pathPrefix')
     else errors.path = undefined
   }
 }

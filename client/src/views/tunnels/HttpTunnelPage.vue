@@ -2,47 +2,49 @@
   <section class="http-page">
     <header class="http-page__header">
       <div>
-        <p>HTTP 隧道</p>
-        <h1>HTTP 路由</h1>
-        <span>{{ httpTunnels.length }} 条路由 · {{ totalRequests }} 次请求</span>
+        <p>{{ t('tunnel.httpPage.eyebrow') }}</p>
+        <h1>{{ t('tunnel.httpPage.title') }}</h1>
+        <span>{{
+          t('tunnel.httpPage.summary', { routes: httpTunnels.length, requests: totalRequests })
+        }}</span>
       </div>
       <div class="http-page__actions">
         <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
-          刷新
+          {{ t('common.refresh') }}
         </GButton>
         <GButton variant="primary" icon="plus" @click="router.push('/tunnels?create=1')">
-          创建
+          {{ t('tunnel.create') }}
         </GButton>
       </div>
     </header>
 
     <div class="http-summary">
       <article>
-        <span>请求数</span>
+        <span>{{ t('tunnel.httpPage.requests') }}</span>
         <strong>{{ totalRequests }}</strong>
       </article>
       <article>
-        <span>成功率</span>
+        <span>{{ t('tunnel.httpPage.successRate') }}</span>
         <strong>{{ formatPercent(averageSuccessRate) }}</strong>
       </article>
       <article>
-        <span>平均响应</span>
+        <span>{{ t('tunnel.httpPage.averageResponse') }}</span>
         <strong>{{ Math.round(averageLatency) }}ms</strong>
       </article>
       <article>
-        <span>流量</span>
+        <span>{{ t('common.traffic') }}</span>
         <strong>{{ formatSpeed(totalSpeed) }}</strong>
       </article>
     </div>
 
     <div v-if="!httpTunnels.length" class="http-empty">
       <GIcon name="globe" :size="32" />
-      <strong>暂无 HTTP 隧道</strong>
-      <span>创建 HTTP 协议隧道后，即可按 Host 和 Path 转发。</span>
+      <strong>{{ t('tunnel.httpPage.emptyTitle') }}</strong>
+      <span>{{ t('tunnel.httpPage.emptyDesc') }}</span>
     </div>
 
     <div v-else class="http-layout">
-      <section class="http-route-list" aria-label="HTTP 隧道路由">
+      <section class="http-route-list" :aria-label="t('tunnel.httpPage.routeListAria')">
         <article v-for="tunnel in httpTunnels" :key="tunnel.id" class="http-route">
           <div class="http-route__title">
             <span :class="`is-${statusTone(tunnel.status)}`" />
@@ -54,34 +56,34 @@
 
           <dl>
             <div>
-              <dt>主机</dt>
-              <dd>{{ tunnel.host || '任意' }}</dd>
+              <dt>{{ t('tunnel.httpPage.host') }}</dt>
+              <dd>{{ tunnel.host || t('tunnel.httpPage.anyHost') }}</dd>
             </div>
             <div>
-              <dt>路径</dt>
+              <dt>{{ t('tunnel.detail.path') }}</dt>
               <dd>{{ tunnel.path || '/' }}</dd>
             </div>
             <div>
-              <dt>请求数</dt>
+              <dt>{{ t('tunnel.httpPage.requests') }}</dt>
               <dd>{{ tunnel.requestCount ?? 0 }}</dd>
             </div>
             <div>
-              <dt>成功率</dt>
+              <dt>{{ t('tunnel.httpPage.successRate') }}</dt>
               <dd>{{ formatPercent(tunnel.successRate ?? 0) }}</dd>
             </div>
             <div>
-              <dt>平均响应</dt>
+              <dt>{{ t('tunnel.httpPage.averageResponse') }}</dt>
               <dd>{{ Math.round(tunnel.averageResponseTimeMs ?? 0) }}ms</dd>
             </div>
           </dl>
         </article>
       </section>
 
-      <section class="http-recent" aria-label="最近 HTTP 请求">
+      <section class="http-recent" :aria-label="t('tunnel.httpPage.recentAria')">
         <div class="http-recent__heading">
           <div>
-            <p>最近请求</p>
-            <h2>实时日志</h2>
+            <p>{{ t('tunnel.httpPage.recentRequests') }}</p>
+            <h2>{{ t('tunnel.httpPage.liveLogs') }}</h2>
           </div>
           <GIcon name="logs" :size="18" />
         </div>
@@ -97,7 +99,7 @@
 
         <div v-else class="http-empty http-empty--compact">
           <GIcon name="activity" :size="24" />
-          <span>等待 HTTP 流量</span>
+          <span>{{ t('tunnel.httpPage.waitingTraffic') }}</span>
         </div>
       </section>
     </div>
@@ -110,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
@@ -117,6 +120,7 @@ import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDa
 import type { DashboardTunnel, HttpRequestRecord } from '@/monitoring/types'
 
 const router = useRouter()
+const { t } = useI18n()
 const { dashboard, loading, error, refresh } = useMonitoringDashboard()
 
 const httpTunnels = computed(() =>

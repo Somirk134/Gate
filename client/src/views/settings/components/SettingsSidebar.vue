@@ -1,7 +1,7 @@
 <template>
   <aside class="settings-sidebar">
     <div class="settings-sidebar__header">
-      <span>设置导航</span>
+      <span>{{ t('settings.legacy.navigation') }}</span>
       <strong>{{ categories.length }}</strong>
     </div>
 
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { SettingCategory, SettingCategoryId } from '../types'
 
@@ -57,6 +58,7 @@ const emit = defineEmits<{
   'select-group': [groupId: string]
 }>()
 
+const { t } = useI18n()
 const expanded = ref<Record<string, boolean>>({})
 
 watch(

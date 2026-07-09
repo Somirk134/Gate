@@ -5,7 +5,7 @@
 -->
 <template>
   <span class="tunnel-tag" :class="{ 'tunnel-tag--removable': removable }" :style="tagStyle">
-    <span class="tunnel-tag__label">{{ name }}</span>
+    <span class="tunnel-tag__label">{{ displayName }}</span>
     <button
       v-if="removable"
       class="tunnel-tag__remove"
@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
@@ -33,6 +34,13 @@ const props = withDefaults(
 )
 
 defineEmits<{ remove: [name: string] }>()
+
+const { t, te } = useI18n()
+
+const displayName = computed(() => {
+  const key = `tunnel.tags.${props.name}`
+  return te(key) ? t(key) : props.name
+})
 
 const tagStyle = computed(() => {
   if (!props.color) return {}

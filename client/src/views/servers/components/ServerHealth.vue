@@ -37,11 +37,21 @@
           {{ overallLabel }}
         </span>
         <span class="server-health-summary__desc">
-          {{ passCount }}/{{ server.health.items.length }} 项通过 · {{ warnCount }} 警告 ·
-          {{ failCount }} 失败
+          {{
+            t('server.health.summary', {
+              pass: passCount,
+              total: server.health.items.length,
+              warn: warnCount,
+              fail: failCount,
+            })
+          }}
         </span>
         <span class="server-health-summary__desc">
-          最后检查：{{ formatDateTime(new Date(server.health.checkedAt).toISOString()) }}
+          {{
+            t('server.health.lastChecked', {
+              time: formatDateTime(new Date(server.health.checkedAt).toISOString()),
+            })
+          }}
         </span>
       </div>
       <GButton
@@ -50,7 +60,7 @@
         icon="activity"
         :loading="checking"
         @click="$emit('recheck')">
-        {{ checking ? '检查中…' : '重新检查' }}
+        {{ checking ? t('server.health.checking') : t('server.health.recheck') }}
       </GButton>
     </div>
 
@@ -81,13 +91,14 @@
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      健康检查来自 Runtime 状态；未连接服务器时仅显示本地可用信息。
+      {{ t('server.health.hint') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GBadge from '@components/base/GBadge.vue'
@@ -101,6 +112,7 @@ const props = defineProps<{ server: Server }>()
 
 defineEmits<{ recheck: [] }>()
 
+const { t } = useI18n()
 const { checking, passCount, warnCount, failCount } = useServerHealth(toRef(props, 'server'))
 
 const ringStroke = 7
@@ -112,13 +124,13 @@ const scoreColor = computed(() => healthColor(props.server.health.overall))
 const overallLabel = computed(() => {
   switch (props.server.health.overall) {
     case 'healthy':
-      return '健康'
+      return t('server.health.overall.healthy')
     case 'warning':
-      return '存在警告'
+      return t('server.health.overall.warning')
     case 'critical':
-      return '严重异常'
+      return t('server.health.overall.critical')
     default:
-      return '未检查'
+      return t('server.health.overall.unknown')
   }
 })
 
@@ -138,13 +150,13 @@ function statusIcon(status: HealthItemStatus): string {
 function statusLabel(status: HealthItemStatus): string {
   switch (status) {
     case 'pass':
-      return '通过'
+      return t('server.health.itemStatus.pass')
     case 'warn':
-      return '警告'
+      return t('server.health.itemStatus.warn')
     case 'fail':
-      return '失败'
+      return t('server.health.itemStatus.fail')
     case 'pending':
-      return '检查中'
+      return t('server.health.itemStatus.pending')
   }
 }
 

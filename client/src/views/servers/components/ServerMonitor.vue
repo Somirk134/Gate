@@ -17,7 +17,7 @@
           <span class="server-stat-card__value"
             >{{ server.monitor.cpu.percent }}<span class="server-monitor__unit">%</span></span
           >
-          <span class="server-stat-card__label">CPU 使用率</span>
+          <span class="server-stat-card__label">{{ t('server.monitor.cpuUsage') }}</span>
         </div>
       </div>
       <div class="server-stat-card">
@@ -28,7 +28,7 @@
           <span class="server-stat-card__value"
             >{{ server.monitor.memory.percent }}<span class="server-monitor__unit">%</span></span
           >
-          <span class="server-stat-card__label">内存使用率</span>
+          <span class="server-stat-card__label">{{ t('server.monitor.memoryUsage') }}</span>
         </div>
       </div>
       <div class="server-stat-card">
@@ -39,7 +39,7 @@
           <span class="server-stat-card__value"
             >{{ server.monitor.disk.percent }}<span class="server-monitor__unit">%</span></span
           >
-          <span class="server-stat-card__label">磁盘使用率</span>
+          <span class="server-stat-card__label">{{ t('server.monitor.diskUsage') }}</span>
         </div>
       </div>
       <div class="server-stat-card">
@@ -48,7 +48,7 @@
         </div>
         <div class="server-stat-card__body">
           <span class="server-stat-card__value">{{ server.monitor.connections.active }}</span>
-          <span class="server-stat-card__label">活动连接</span>
+          <span class="server-stat-card__label">{{ t('server.metrics.activeConnections') }}</span>
         </div>
       </div>
     </div>
@@ -57,7 +57,7 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="chart-line" :size="12" />
-        网络速度（最近 12 个采样点）
+        {{ t('server.monitor.networkSpeedTitle') }}
         <span class="server-monitor__live">
           <span class="server-monitor__live-dot" />
           LIVE
@@ -92,11 +92,11 @@
         <div class="server-traffic__legend">
           <span class="server-traffic__legend-item">
             <span class="server-traffic__legend-dot" style="background: #5b8def" />
-            下载 {{ formatSpeed(server.traffic.downloadSpeed) }}
+            {{ t('server.monitor.downloadValue', { value: formatSpeed(server.traffic.downloadSpeed) }) }}
           </span>
           <span class="server-traffic__legend-item">
             <span class="server-traffic__legend-dot" style="background: #22c55e" />
-            上传 {{ formatSpeed(server.traffic.uploadSpeed) }}
+            {{ t('server.monitor.uploadValue', { value: formatSpeed(server.traffic.uploadSpeed) }) }}
           </span>
         </div>
       </div>
@@ -106,7 +106,7 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="activity" :size="12" />
-        资源占用
+        {{ t('server.inspector.resourceUsage') }}
       </div>
       <div class="server-monitor__resource">
         <div v-for="r in resources" :key="r.label" class="server-monitor__resource-item">
@@ -128,40 +128,42 @@
     <div class="server-info-card" style="margin-top: var(--space-4)">
       <div class="server-info-card__title">
         <GIcon name="gauge" :size="12" />
-        系统负载
+        {{ t('server.monitor.systemLoad') }}
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">1 分钟</span>
+        <span class="server-info-row__label">{{ t('server.monitor.load1') }}</span>
         <span class="server-info-row__value mono">{{ server.monitor.load.load1 }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">5 分钟</span>
+        <span class="server-info-row__label">{{ t('server.monitor.load5') }}</span>
         <span class="server-info-row__value mono">{{ server.monitor.load.load5 }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">15 分钟</span>
+        <span class="server-info-row__label">{{ t('server.monitor.load15') }}</span>
         <span class="server-info-row__value mono">{{ server.monitor.load.load15 }}</span>
       </div>
       <div class="server-info-row">
-        <span class="server-info-row__label">CPU 核心</span>
+        <span class="server-info-row__label">{{ t('server.monitor.cpuCores') }}</span>
         <span class="server-info-row__value mono">{{ server.monitor.load.cores }}</span>
       </div>
     </div>
 
     <p class="server-connection__hint">
       <GIcon name="info-circle" :size="12" />
-      监控数据来自 Runtime Store；服务端未上报时保持空值。
+      {{ t('server.monitor.hint') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Server } from '../types'
 import { formatSpeed } from '../utils'
 
 const props = defineProps<{ server: Server }>()
+const { t } = useI18n()
 
 function buildPath(key: 'upload' | 'download'): string {
   const h = props.server.traffic.history
@@ -197,14 +199,14 @@ const resources = computed(() => [
     color: 'var(--color-primary)',
   },
   {
-    label: '内存',
+    label: t('common.memory'),
     icon: 'memory-stick',
     value: `${props.server.monitor.memory.used}/${props.server.monitor.memory.total} ${props.server.monitor.memory.unit}`,
     percent: props.server.monitor.memory.percent,
     color: 'var(--color-secondary)',
   },
   {
-    label: 'Disk',
+    label: t('server.disk'),
     icon: 'hard-drive',
     value: `${props.server.monitor.disk.used}/${props.server.monitor.disk.total} ${props.server.monitor.disk.unit}`,
     percent: props.server.monitor.disk.percent,

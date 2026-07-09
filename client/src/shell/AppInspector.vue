@@ -29,26 +29,26 @@
     <div class="inspector-content">
       <div v-show="activeTab === 'details'" class="inspector-panel">
         <div class="inspector-placeholder">
-          <p class="placeholder-text">暂无数据</p>
-          <p class="placeholder-subtext">当前页面未提供详情数据。</p>
+          <p class="placeholder-text">{{ t('inspector.empty.detailsTitle') }}</p>
+          <p class="placeholder-subtext">{{ t('inspector.empty.detailsDesc') }}</p>
         </div>
       </div>
       <div v-show="activeTab === 'logs'" class="inspector-panel">
         <div class="inspector-placeholder">
-          <p class="placeholder-text">暂无日志</p>
-          <p class="placeholder-subtext">当前上下文没有可显示的实时日志。</p>
+          <p class="placeholder-text">{{ t('inspector.empty.logsTitle') }}</p>
+          <p class="placeholder-subtext">{{ t('inspector.empty.logsDesc') }}</p>
         </div>
       </div>
       <div v-show="activeTab === 'stats'" class="inspector-panel">
         <div class="inspector-placeholder">
-          <p class="placeholder-text">暂无数据</p>
-          <p class="placeholder-subtext">该统计面板暂未接入真实 Runtime 指标。</p>
+          <p class="placeholder-text">{{ t('inspector.empty.statsTitle') }}</p>
+          <p class="placeholder-subtext">{{ t('inspector.empty.statsDesc') }}</p>
         </div>
       </div>
       <div v-show="activeTab === 'properties'" class="inspector-panel">
         <div class="inspector-placeholder">
-          <p class="placeholder-text">暂无属性</p>
-          <p class="placeholder-subtext">请选择已接入的数据对象后查看属性。</p>
+          <p class="placeholder-text">{{ t('inspector.empty.propertiesTitle') }}</p>
+          <p class="placeholder-subtext">{{ t('inspector.empty.propertiesDesc') }}</p>
         </div>
       </div>
     </div>
@@ -60,27 +60,29 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useLayoutStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
 
 const layout = useLayoutStore()
+const { t } = useI18n()
 
 const activeTab = ref('details')
 
-const tabs = [
-  { id: 'details', label: '详情', icon: 'file-text' },
-  { id: 'logs', label: '日志', icon: 'scroll-text' },
-  { id: 'stats', label: '统计', icon: 'chart-bar' },
-  { id: 'properties', label: '属性', icon: 'list' },
-]
+const tabs = computed(() => [
+  { id: 'details', label: t('inspector.tabs.details'), icon: 'file-text' },
+  { id: 'logs', label: t('inspector.tabs.logs'), icon: 'scroll-text' },
+  { id: 'stats', label: t('inspector.tabs.stats'), icon: 'chart-bar' },
+  { id: 'properties', label: t('inspector.tabs.properties'), icon: 'list' },
+])
 
 const activeTabLabel = computed(() => {
-  return tabs.find((t) => t.id === activeTab.value)?.label || '详情'
+  return tabs.value.find((tab) => tab.id === activeTab.value)?.label || t('inspector.tabs.details')
 })
 
 function cycleTab() {
-  const idx = tabs.findIndex((t) => t.id === activeTab.value)
-  activeTab.value = tabs[(idx + 1) % tabs.length].id
+  const idx = tabs.value.findIndex((tab) => tab.id === activeTab.value)
+  activeTab.value = tabs.value[(idx + 1) % tabs.value.length].id
 }
 
 function startResize(e: MouseEvent) {

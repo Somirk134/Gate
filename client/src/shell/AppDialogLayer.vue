@@ -1,11 +1,7 @@
 <template>
   <div class="dialog-layer" @keydown.esc="dialogStore.closeAll">
     <transition-group name="dialog">
-      <div
-        v-for="dialog in dialogStore.activeDialogs"
-        :key="dialog.id"
-        class="dialog-overlay"
-        >
+      <div v-for="dialog in dialogStore.activeDialogs" :key="dialog.id" class="dialog-overlay">
         <div
           class="dialog-container"
           :class="`type-${dialog.type}`"
@@ -33,9 +29,7 @@
             <p>{{ dialog.content }}</p>
           </div>
           <div class="dialog-footer">
-            <button
-              class="dialog-btn dialog-btn-secondary"
-              @click="dialogStore.dismissDialog(dialog.id)">
+            <button class="dialog-btn dialog-btn-secondary" @click="dialogStore.dismissDialog(dialog.id)">
               {{ cancelLabel(dialog) }}
             </button>
             <button
@@ -52,32 +46,35 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useDialogStore } from '@stores'
 import type { DialogItem } from '@stores/modules/dialog'
 import GIcon from '@components/icons/GIcon.vue'
 
 const dialogStore = useDialogStore()
+const { t } = useI18n()
 
 function confirmLabel(dialog: DialogItem): string {
   const label = dialog.props?.confirmText
   if (typeof label === 'string') return label
   switch (dialog.type) {
     case 'delete':
-      return '删除'
+      return t('dialog.delete')
     case 'confirm':
-      return '确认'
+      return t('dialog.confirm')
     case 'alert':
-      return '知道了'
+      return t('dialog.ok')
     case 'form':
-      return '提交'
+      return t('dialog.submit')
     default:
-      return '确认'
+      return t('dialog.confirm')
   }
 }
 
 function cancelLabel(dialog: DialogItem): string {
   const label = dialog.props?.cancelText
-  return typeof label === 'string' ? label : '取消'
+  // 默认按钮文案由 i18n 提供，避免弹窗在切换语言后仍保留旧语言。
+  return typeof label === 'string' ? label : t('dialog.cancel')
 }
 </script>
 
@@ -170,7 +167,7 @@ function cancelLabel(dialog: DialogItem): string {
   color: var(--text-primary);
 }
 
-/* ── Body ── */
+/* 内容区 */
 .dialog-body {
   padding: 0 var(--space-5) var(--space-4);
 }
@@ -181,7 +178,7 @@ function cancelLabel(dialog: DialogItem): string {
   line-height: var(--leading-relaxed);
 }
 
-/* ── Footer ── */
+/* 底部操作 */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -230,7 +227,7 @@ function cancelLabel(dialog: DialogItem): string {
   background: var(--color-error-hover);
 }
 
-/* ── Transitions ── */
+/* 过渡动画 */
 .dialog-enter-active,
 .dialog-leave-active {
   transition: all var(--duration-standard) var(--ease-out);

@@ -20,14 +20,14 @@
           <button
             class="tunnel-header__quick"
             :class="{ 'tunnel-header__quick--active': tunnel.favorite }"
-            title="收藏"
+            :title="t('project.card.favorite')"
             @click="$emit('toggle-favorite', tunnel.id)">
             <GIcon :name="tunnel.favorite ? 'star' : 'star-off'" :size="15" />
           </button>
           <button
             class="tunnel-header__quick"
             :class="{ 'tunnel-header__quick--pinned': tunnel.pinned }"
-            title="固定"
+            :title="t('project.card.pin')"
             @click="$emit('toggle-pin', tunnel.id)">
             <GIcon name="pin" :size="15" />
           </button>
@@ -46,7 +46,7 @@
         icon="play"
         :disabled="isTransition"
         @click="$emit('start')">
-        启动
+        {{ t('tunnel.start') }}
       </GButton>
       <GButton
         v-else
@@ -55,7 +55,7 @@
         icon="stop"
         :disabled="isTransition"
         @click="$emit('stop')">
-        停止
+        {{ t('tunnel.stop') }}
       </GButton>
       <GButton
         size="sm"
@@ -63,16 +63,26 @@
         icon="refresh"
         :disabled="isTransition"
         @click="$emit('restart')">
-        重启
+        {{ t('tunnel.restart') }}
       </GButton>
-      <GIconButton name="copy" size="sm" variant="ghost" tooltip="克隆" @click="$emit('clone')" />
+      <GIconButton
+        name="copy"
+        size="sm"
+        variant="ghost"
+        :tooltip="t('tunnel.header.clone')"
+        @click="$emit('clone')" />
       <GIconButton
         name="download"
         size="sm"
         variant="ghost"
-        tooltip="导出配置"
+        :tooltip="t('tunnel.header.exportConfig')"
         @click="$emit('export')" />
-      <GIconButton name="trash" size="sm" variant="ghost" tooltip="删除" @click="$emit('delete')" />
+      <GIconButton
+        name="trash"
+        size="sm"
+        variant="ghost"
+        :tooltip="t('common.delete')"
+        @click="$emit('delete')" />
     </div>
   </div>
 
@@ -80,31 +90,31 @@
   <div class="tunnel-metric-bar">
     <div class="tunnel-metric-bar__item">
       <GIcon name="servers" :size="13" />
-      <span class="tunnel-metric-bar__label">服务器</span>
+      <span class="tunnel-metric-bar__label">{{ t('tunnel.overview.server') }}</span>
       <span class="tunnel-metric-bar__value">{{ tunnel.serverName }}</span>
     </div>
     <span class="tunnel-metric-bar__sep" />
     <div class="tunnel-metric-bar__item">
       <GIcon name="package" :size="13" />
-      <span class="tunnel-metric-bar__label">项目</span>
+      <span class="tunnel-metric-bar__label">{{ t('tunnel.overview.project') }}</span>
       <span class="tunnel-metric-bar__value">{{ tunnel.projectName }}</span>
     </div>
     <span class="tunnel-metric-bar__sep" />
     <div class="tunnel-metric-bar__item">
       <GIcon name="cloud" :size="13" />
-      <span class="tunnel-metric-bar__label">流量</span>
+      <span class="tunnel-metric-bar__label">{{ t('common.traffic') }}</span>
       <span class="tunnel-metric-bar__value">{{ trafficLabel }}</span>
     </div>
     <span class="tunnel-metric-bar__sep" />
     <div class="tunnel-metric-bar__item">
       <GIcon name="link" :size="13" />
-      <span class="tunnel-metric-bar__label">连接</span>
+      <span class="tunnel-metric-bar__label">{{ t('tunnel.connections') }}</span>
       <span class="tunnel-metric-bar__value">{{ tunnel.statistics.connections }}</span>
     </div>
     <span class="tunnel-metric-bar__sep" />
     <div class="tunnel-metric-bar__item">
       <GIcon name="clock" :size="13" />
-      <span class="tunnel-metric-bar__label">运行时间</span>
+      <span class="tunnel-metric-bar__label">{{ t('tunnel.detail.uptime') }}</span>
       <span class="tunnel-metric-bar__value">{{ uptimeLabel }}</span>
     </div>
   </div>
@@ -112,6 +122,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GIconButton from '@components/base/GIconButton.vue'
@@ -127,6 +138,7 @@ import {
 } from '../utils'
 
 const props = defineProps<{ tunnel: Tunnel }>()
+const { t } = useI18n()
 
 defineEmits<{
   start: []
@@ -146,7 +158,7 @@ const isTransition = computed(() => isTransitionStatus(props.tunnel.status))
 const trafficLabel = computed(() =>
   formatBytes(props.tunnel.traffic.totalUpload + props.tunnel.traffic.totalDownload),
 )
-const uptimeLabel = computed(() => formatDuration(props.tunnel.statistics.uptime))
+const uptimeLabel = computed(() => formatDuration(props.tunnel.statistics.uptime, t))
 </script>
 
 <style scoped>

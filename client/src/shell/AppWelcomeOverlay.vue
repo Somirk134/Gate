@@ -11,27 +11,27 @@
             <span><GIcon name="router" :size="24" /></span>
             <div>
               <strong>Gate</strong>
-              <small>智能引导</small>
+              <small>{{ t('welcome.brand.smartGuide') }}</small>
             </div>
           </div>
 
           <div class="rail-illustration" aria-hidden="true">
-            <div class="node local">本地</div>
-            <div class="node server">服务器</div>
-            <div class="node public">公网</div>
+            <div class="node local">{{ t('welcome.nodes.local') }}</div>
+            <div class="node server">{{ t('welcome.nodes.server') }}</div>
+            <div class="node public">{{ t('welcome.nodes.public') }}</div>
             <span class="line line-a" />
             <span class="line line-b" />
           </div>
 
           <div class="path-panel">
-            <p>当前路径</p>
+            <p>{{ t('welcome.rail.currentPath') }}</p>
             <div class="path-list">
               <span v-for="item in pathItems" :key="item">{{ item }}</span>
             </div>
           </div>
 
           <div class="knowledge-panel">
-            <p>知识卡片</p>
+            <p>{{ t('welcome.rail.knowledgeCards') }}</p>
             <article v-for="card in visibleKnowledgeCards" :key="card.id">
               <GIcon :name="card.icon" :size="16" />
               <div>
@@ -56,13 +56,15 @@
                 type="button"
                 class="text-action"
                 @click="restartWizard">
-                重新开始
+                {{ t('welcome.actions.restart') }}
               </button>
-              <button type="button" class="text-action" @click="skipWizard">跳过</button>
+              <button type="button" class="text-action" @click="skipWizard">
+                {{ t('welcome.actions.skip') }}
+              </button>
               <button
                 type="button"
                 class="icon-action"
-                aria-label="稍后继续"
+                :aria-label="t('welcome.actions.closeForLater')"
                 @click="closeForLater">
                 <GIcon name="close" :size="16" />
               </button>
@@ -78,33 +80,30 @@
               <div class="welcome-mark">
                 <GIcon name="sparkles" :size="32" />
               </div>
-              <h2>像聊天一样完成 Gate 配置</h2>
-              <p>
-                我会问几个简单问题，然后自动推荐隧道类型、协议、端口、域名和证书策略。 预计 3-5
-                分钟完成。
-              </p>
+              <h2>{{ t('welcome.landing.title') }}</h2>
+              <p>{{ t('welcome.landing.description') }}</p>
 
               <div class="welcome-points">
                 <article>
                   <GIcon name="message" :size="18" />
-                  <strong>不填复杂表单</strong>
-                  <span>每次只回答一个问题。</span>
+                  <strong>{{ t('welcome.landing.points.simple.title') }}</strong>
+                  <span>{{ t('welcome.landing.points.simple.body') }}</span>
                 </article>
                 <article>
                   <GIcon name="sparkles" :size="18" />
-                  <strong>自动生成配置</strong>
-                  <span>根据场景推荐协议和端口。</span>
+                  <strong>{{ t('welcome.landing.points.auto.title') }}</strong>
+                  <span>{{ t('welcome.landing.points.auto.body') }}</span>
                 </article>
                 <article>
                   <GIcon name="circle-help" :size="18" />
-                  <strong>随时解释概念</strong>
-                  <span>用简单语言说明为什么。</span>
+                  <strong>{{ t('welcome.landing.points.explain.title') }}</strong>
+                  <span>{{ t('welcome.landing.points.explain.body') }}</span>
                 </article>
               </div>
 
               <label class="never-show">
                 <input v-model="neverShowChoice" type="checkbox" />
-                <span>以后不再显示</span>
+                <span>{{ t('welcome.landing.neverShow') }}</span>
               </label>
             </div>
 
@@ -119,8 +118,14 @@
                     <GIcon name="sparkles" :size="14" />
                   </span>
                   <div>
-                    <strong v-if="message.title">{{ message.title }}</strong>
-                    <p>{{ message.body }}</p>
+                    <strong v-if="message.titleKey || message.title">
+                      {{
+                        message.titleKey ? t(message.titleKey, message.params ?? {}) : message.title
+                      }}
+                    </strong>
+                    <p>
+                      {{ message.bodyKey ? t(message.bodyKey, message.params ?? {}) : message.body }}
+                    </p>
                   </div>
                 </article>
               </div>
@@ -148,17 +153,14 @@
                 <div class="explain-card">
                   <GIcon name="servers" :size="22" />
                   <div>
-                    <strong>为什么需要公网服务器？</strong>
-                    <p>
-                      你的电脑通常在家里、公司或校园网里，外面的人访问不到。
-                      公网服务器像一个门口，先接住请求，再交给 Gate 转回你的本地服务。
-                    </p>
+                    <strong>{{ t('welcome.education.whyServerTitle') }}</strong>
+                    <p>{{ t('welcome.education.whyServerBody') }}</p>
                   </div>
                 </div>
 
                 <div class="provider-grid">
                   <article
-                    v-for="provider in cloudProviders"
+                    v-for="provider in localizedCloudProviders"
                     :key="provider.id"
                     :class="`tone-${provider.tone}`">
                     <strong>{{ provider.name }}</strong>
@@ -169,8 +171,8 @@
                 <div class="reserved-deploy">
                   <GIcon name="rocket" :size="18" />
                   <div>
-                    <strong>一键部署已预留</strong>
-                    <span>未来会在这里直接选择云厂商并自动部署 Gate 服务端。</span>
+                    <strong>{{ t('welcome.education.reservedDeployTitle') }}</strong>
+                    <span>{{ t('welcome.education.reservedDeployBody') }}</span>
                   </div>
                 </div>
 
@@ -179,7 +181,7 @@
                     variant="secondary"
                     icon="servers"
                     @click="switchToEnvironmentFromEducation">
-                    我已经准备好服务器
+                    {{ t('welcome.actions.serverReady') }}
                   </GButton>
                 </div>
               </section>
@@ -189,16 +191,16 @@
                 ref="activePanelRef"
                 class="environment-panel">
                 <label class="chat-input">
-                  <span>服务器地址</span>
+                  <span>{{ t('welcome.fields.serverAddress') }}</span>
                   <input
                     v-model.trim="answers.serverAddress"
                     autocomplete="off"
-                    placeholder="例如 203.0.113.10 或 gate.example.com" />
+                    :placeholder="t('welcome.placeholders.serverAddress')" />
                 </label>
 
                 <div class="environment-grid">
                   <button
-                    v-for="environment in serverEnvironmentOptions"
+                    v-for="environment in localizedServerEnvironmentOptions"
                     :key="environment.id"
                     type="button"
                     class="environment-card"
@@ -236,7 +238,7 @@
 
                 <div class="deployment-form">
                   <label class="chat-input">
-                    <span>Gate Server 端口</span>
+                    <span>{{ t('welcome.fields.serverPort') }}</span>
                     <input v-model.number="answers.serverPort" type="number" min="1" max="65535" />
                   </label>
                   <label class="chat-input">
@@ -244,7 +246,7 @@
                     <input
                       v-model.trim="answers.serverToken"
                       autocomplete="off"
-                      placeholder="建议使用 16 位以上随机字符串" />
+                      :placeholder="t('welcome.placeholders.token')" />
                   </label>
                 </div>
 
@@ -252,11 +254,11 @@
                   <header>
                     <div>
                       <p>{{ answers.deployMode === 'docker' ? 'Docker' : 'Linux VPS' }}</p>
-                      <strong>复制到服务器执行</strong>
+                      <strong>{{ t('welcome.deployment.copyToServer') }}</strong>
                     </div>
                     <button type="button" @click="copyDeployCommand">
                       <GIcon name="copy" :size="14" />
-                      复制
+                      {{ t('welcome.actions.copy') }}
                     </button>
                   </header>
                   <pre><code>{{ activeDeployCommand }}</code></pre>
@@ -290,7 +292,7 @@
                 </div>
 
                 <label v-if="answers.domainMode === 'has-domain'" class="chat-input">
-                  <span>域名</span>
+                  <span>{{ t('welcome.fields.domain') }}</span>
                   <input
                     v-model.trim="answers.domainName"
                     autocomplete="off"
@@ -301,7 +303,7 @@
                   v-if="answers.domainMode && answers.domainMode !== 'has-domain'"
                   class="plain-note">
                   <GIcon name="info-circle" :size="17" />
-                  <span>没有域名也可以正常使用，Gate 会推荐 IP + 端口的访问方式。</span>
+                  <span>{{ t('welcome.domain.noDomainNote') }}</span>
                 </div>
               </section>
 
@@ -311,7 +313,7 @@
                 class="scenario-panel">
                 <div class="scenario-grid">
                   <button
-                    v-for="scenario in scenarioRecommendations"
+                    v-for="scenario in localizedScenarioRecommendations"
                     :key="scenario.id"
                     type="button"
                     class="scenario-card"
@@ -329,14 +331,14 @@
 
                 <div class="quick-adjust">
                   <label>
-                    <span>隧道名称</span>
+                    <span>{{ t('welcome.fields.tunnelName') }}</span>
                     <input
                       v-model.trim="answers.customName"
                       autocomplete="off"
                       :placeholder="selectedScenario.defaultName" />
                   </label>
                   <label>
-                    <span>本地端口</span>
+                    <span>{{ t('welcome.fields.localPort') }}</span>
                     <input
                       v-model.number="answers.customLocalPort"
                       inputmode="numeric"
@@ -350,7 +352,7 @@
                 <div class="recommendation-card">
                   <header>
                     <div>
-                      <p>推荐配置</p>
+                      <p>{{ t('welcome.review.recommendedConfig') }}</p>
                       <h2>{{ recommendation.tunnelName }}</h2>
                     </div>
                     <span>{{ recommendation.protocol.toUpperCase() }}</span>
@@ -358,33 +360,33 @@
 
                   <dl class="config-list">
                     <div>
-                      <dt>服务器</dt>
+                      <dt>{{ t('welcome.review.server') }}</dt>
                       <dd>{{ recommendation.server }}</dd>
                     </div>
                     <div>
-                      <dt>协议</dt>
+                      <dt>{{ t('welcome.review.protocol') }}</dt>
                       <dd>{{ recommendation.protocol.toUpperCase() }}</dd>
                     </div>
                     <div>
-                      <dt>本地</dt>
+                      <dt>{{ t('welcome.review.local') }}</dt>
                       <dd>{{ recommendation.local }}</dd>
                     </div>
                     <div>
-                      <dt>远程端口</dt>
+                      <dt>{{ t('welcome.review.remotePort') }}</dt>
                       <dd>{{ recommendation.remote }}</dd>
                     </div>
                     <div>
-                      <dt>域名</dt>
+                      <dt>{{ t('welcome.review.domain') }}</dt>
                       <dd>{{ recommendation.domain }}</dd>
                     </div>
                     <div>
-                      <dt>证书</dt>
+                      <dt>{{ t('welcome.review.certificate') }}</dt>
                       <dd>{{ recommendation.certificate }}</dd>
                     </div>
                   </dl>
 
                   <div class="access-preview">
-                    <span>访问预览</span>
+                    <span>{{ t('welcome.review.accessPreview') }}</span>
                     <code>{{ recommendation.accessPreview }}</code>
                   </div>
                 </div>
@@ -392,7 +394,7 @@
                 <div class="why-card">
                   <GIcon name="circle-help" :size="18" />
                   <div>
-                    <strong>为什么推荐这样配置？</strong>
+                    <strong>{{ t('welcome.review.whyTitle') }}</strong>
                     <ul>
                       <li v-for="reason in recommendation.reasonList" :key="reason">
                         {{ reason }}
@@ -406,9 +408,11 @@
 
           <footer class="wizard-footer">
             <GButton v-if="screen === 'welcome'" variant="ghost" @click="skipWizard">
-              跳过
+              {{ t('welcome.actions.skip') }}
             </GButton>
-            <GButton v-else variant="ghost" @click="goBack"> 返回 </GButton>
+            <GButton v-else variant="ghost" @click="goBack">
+              {{ t('common.back') }}
+            </GButton>
 
             <span class="inline-error">{{ inlineError }}</span>
 
@@ -417,21 +421,21 @@
               variant="primary"
               trailing-icon="arrow-right"
               @click="startWizard">
-              开始配置
+              {{ t('welcome.actions.start') }}
             </GButton>
             <GButton
               v-else-if="screen === 'server-education'"
               variant="primary"
               trailing-icon="arrow-right"
               @click="continueWithoutServer">
-              我先了解，继续
+              {{ t('welcome.actions.continueAfterLearning') }}
             </GButton>
             <GButton
               v-else-if="screen === 'environment'"
               variant="primary"
               trailing-icon="arrow-right"
               @click="continueFromEnvironment">
-              继续
+              {{ t('welcome.actions.continue') }}
             </GButton>
             <div v-else-if="screen === 'deployment'" class="deployment-footer-actions">
               <GButton
@@ -439,10 +443,10 @@
                 icon="activity"
                 :loading="deploymentTesting"
                 @click="testDeploymentConnection">
-                测试连接
+                {{ t('welcome.actions.testConnection') }}
               </GButton>
               <GButton variant="primary" trailing-icon="arrow-right" @click="continueFromDeployment">
-                继续
+                {{ t('welcome.actions.continue') }}
               </GButton>
             </div>
             <GButton
@@ -450,14 +454,14 @@
               variant="primary"
               trailing-icon="arrow-right"
               @click="continueFromDomain">
-              继续
+              {{ t('welcome.actions.continue') }}
             </GButton>
             <GButton
               v-else-if="screen === 'scenario'"
               variant="primary"
               trailing-icon="arrow-right"
               @click="continueFromScenario">
-              生成推荐配置
+              {{ t('welcome.actions.generateRecommendation') }}
             </GButton>
             <GButton
               v-else-if="screen === 'review'"
@@ -465,7 +469,11 @@
               :icon="answers.serverOwnership === 'has-server' ? 'plus' : 'servers'"
               :loading="creating"
               @click="handleReviewAction">
-              {{ answers.serverOwnership === 'has-server' ? '确认并创建' : '去添加服务器' }}
+              {{
+                answers.serverOwnership === 'has-server'
+                  ? t('welcome.actions.confirmAndCreate')
+                  : t('welcome.actions.goAddServer')
+              }}
             </GButton>
           </footer>
         </main>
@@ -478,13 +486,17 @@
       <div class="tour-scrim" @click="finishTour" />
       <div v-if="spotlightRect" class="tour-ring" :style="spotlightStyle" />
       <article class="tour-card" :style="tourCardStyle">
-        <p>快速认识 Gate</p>
+        <p>{{ t('welcome.tour.kicker') }}</p>
         <h2>{{ currentTour.title }}</h2>
         <span>{{ currentTour.body }}</span>
         <footer>
           <small>{{ tourIndex + 1 }} / {{ tourItems.length }}</small>
           <GButton variant="primary" size="sm" @click="nextTour">
-            {{ tourIndex === tourItems.length - 1 ? '完成' : '下一处' }}
+            {{
+              tourIndex === tourItems.length - 1
+                ? t('welcome.actions.finish')
+                : t('welcome.actions.nextSpot')
+            }}
           </GButton>
         </footer>
       </article>
@@ -494,6 +506,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
@@ -511,6 +524,7 @@ import {
   type ServerEnvironmentId,
   type ServerOwnership,
   type SmartWizardAnswers,
+  type TranslateFn,
 } from '@/onboarding/smartWizard'
 import { diagnosticsService, type ConnectionTestReport } from '@/services'
 import { useTunnelStore } from '@/views/tunnels/store/tunnel'
@@ -529,7 +543,10 @@ interface ChatMessage {
   id: string
   role: 'gate' | 'user'
   title?: string
-  body: string
+  titleKey?: string
+  body?: string
+  bodyKey?: string
+  params?: Record<string, unknown>
 }
 
 interface WizardDraft {
@@ -541,13 +558,15 @@ interface WizardDraft {
 
 const router = useRouter()
 const tunnelStore = useTunnelStore()
+const { t } = useI18n()
 
 const visible = ref(false)
 const screen = ref<WizardScreen>('welcome')
 const screenHistory = ref<WizardScreen[]>([])
 const conversation = ref<ChatMessage[]>([])
 const neverShowChoice = ref(false)
-const inlineError = ref('')
+const inlineErrorKey = ref('')
+const inlineErrorParams = ref<Record<string, unknown>>({})
 const creating = ref(false)
 const createdTunnelName = ref('')
 const deploymentTesting = ref(false)
@@ -560,104 +579,139 @@ const tourVisible = ref(false)
 const tourIndex = ref(0)
 const spotlightRect = ref<DOMRect | null>(null)
 
-const serverOwnershipOptions: Array<{
+const serverOwnershipOptions = computed<Array<{
   value: ServerOwnership
   label: string
   description: string
   icon: string
-}> = [
+}>>(() => [
   {
     value: 'has-server',
-    label: '我已有服务器',
-    description: '继续选择服务器环境和部署方式。',
+    label: t('welcome.serverOwnership.hasServer.label'),
+    description: t('welcome.serverOwnership.hasServer.description'),
     icon: 'servers',
   },
   {
     value: 'no-server',
-    label: '我没有服务器',
-    description: '先了解为什么需要，再看推荐平台。',
+    label: t('welcome.serverOwnership.noServer.label'),
+    description: t('welcome.serverOwnership.noServer.description'),
     icon: 'cloud',
   },
   {
     value: 'unknown-server',
-    label: '我不知道什么是公网服务器',
-    description: '用最简单的话解释，不讲术语。',
+    label: t('welcome.serverOwnership.unknownServer.label'),
+    description: t('welcome.serverOwnership.unknownServer.description'),
     icon: 'circle-help',
   },
-]
+])
 
-const deployModeOptions: Array<{
+const deployModeOptions = computed<Array<{
   value: DeployMode
   label: string
   description: string
   icon: string
-}> = [
+}>>(() => [
   {
     value: 'linux-vps',
     label: 'Linux VPS',
-    description: '适合 Ubuntu / Debian / CentOS，使用 systemd 或二进制长期运行。',
+    description: t('welcome.deployModes.linuxVps.description'),
     icon: 'terminal',
   },
   {
     value: 'docker',
     label: 'Docker',
-    description: '适合容器化部署，配置文件和数据挂载在宿主机。',
+    description: t('welcome.deployModes.docker.description'),
     icon: 'boxes',
   },
-]
+])
 
-const domainOptions: Array<{
+const domainOptions = computed<Array<{
   value: DomainMode
   label: string
   description: string
   icon: string
-}> = [
+}>>(() => [
   {
     value: 'has-domain',
-    label: '有',
-    description: '推荐 HTTPS 和自动证书。',
+    label: t('welcome.domainOptions.hasDomain.label'),
+    description: t('welcome.domainOptions.hasDomain.description'),
     icon: 'globe',
   },
   {
     value: 'no-domain',
-    label: '没有',
-    description: '仍然可以使用 IP + 端口。',
+    label: t('welcome.domainOptions.noDomain.label'),
+    description: t('welcome.domainOptions.noDomain.description'),
     icon: 'network',
   },
   {
     value: 'skip-domain',
-    label: '暂时不用',
-    description: '先完成隧道，之后再绑定域名。',
+    label: t('welcome.domainOptions.skipDomain.label'),
+    description: t('welcome.domainOptions.skipDomain.description'),
     icon: 'clock',
   },
-]
+])
 
-const tourItems = [
+const tourItems = computed(() => [
   {
     target: 'dashboard',
-    title: '首页',
-    body: '这里看整体状态、运行情况和最近活动。',
+    title: t('welcome.tour.items.dashboard.title'),
+    body: t('welcome.tour.items.dashboard.body'),
   },
   {
     target: 'tunnels',
-    title: '隧道',
-    body: '这里管理刚创建的隧道，启动、停止和查看访问地址。',
+    title: t('welcome.tour.items.tunnels.title'),
+    body: t('welcome.tour.items.tunnels.body'),
   },
   {
     target: 'logs',
     title: 'Log',
-    body: '连接失败或回调异常时，先到这里看发生了什么。',
+    body: t('welcome.tour.items.logs.body'),
   },
   {
     target: 'settings',
-    title: '设置',
-    body: '需要重新打开新手引导、调整主题或清理本地缓存时来这里。',
+    title: t('welcome.tour.items.settings.title'),
+    body: t('welcome.tour.items.settings.body'),
   },
-]
+])
 
+const localizedKnowledgeCards = computed(() =>
+  knowledgeCards.map((card) => ({
+    ...card,
+    title: t(`welcome.knowledge.${card.localeKey}.title`),
+    body: t(`welcome.knowledge.${card.localeKey}.body`),
+  })),
+)
+const localizedCloudProviders = computed(() =>
+  cloudProviders.map((provider) => ({
+    ...provider,
+    name: t(`welcome.cloudProviders.${provider.localeKey}.name`),
+    note: t(`welcome.cloudProviders.${provider.localeKey}.note`),
+  })),
+)
+const localizedServerEnvironmentOptions = computed(() =>
+  serverEnvironmentOptions.map((environment) => ({
+    ...environment,
+    title: t(`welcome.environments.${environment.localeKey}.title`),
+    description: t(`welcome.environments.${environment.localeKey}.description`),
+    recommendedDeploy: t(`welcome.environments.${environment.localeKey}.recommendedDeploy`),
+  })),
+)
+const localizedScenarioRecommendations = computed(() =>
+  scenarioRecommendations.map((scenario) => ({
+    ...scenario,
+    title: t(`welcome.scenarios.${scenario.localeKey}.title`),
+    description: t(`welcome.scenarios.${scenario.localeKey}.description`),
+  })),
+)
 const selectedScenario = computed(() => findScenario(answers.scenarioId))
-const recommendation = computed(() => buildSmartRecommendation(answers))
-const currentTour = computed(() => tourItems[tourIndex.value])
+const selectedScenarioTitle = computed(() =>
+  t(`welcome.scenarios.${selectedScenario.value.localeKey}.title`),
+)
+const recommendation = computed(() => buildSmartRecommendation(answers, t as TranslateFn))
+const currentTour = computed(() => tourItems.value[tourIndex.value])
+const inlineError = computed(() =>
+  inlineErrorKey.value ? t(inlineErrorKey.value, inlineErrorParams.value) : '',
+)
 const serverAddressForTest = computed(() => ({
   host: answers.serverAddress.trim(),
   port: answers.serverPort,
@@ -681,44 +735,52 @@ const activeDeployCommand = computed(() =>
 )
 const visibleKnowledgeCards = computed(() => {
   if (screen.value === 'server-question' || screen.value === 'server-education') {
-    return knowledgeCards.filter((card) => ['public-server', 'tunnel', 'domain'].includes(card.id))
+    return localizedKnowledgeCards.value.filter((card) =>
+      ['public-server', 'tunnel', 'domain'].includes(card.id),
+    )
   }
   if (screen.value === 'deployment') {
-    return knowledgeCards.filter((card) => ['public-server', 'tunnel', 'https'].includes(card.id))
+    return localizedKnowledgeCards.value.filter((card) =>
+      ['public-server', 'tunnel', 'https'].includes(card.id),
+    )
   }
   if (screen.value === 'domain' || screen.value === 'review') {
-    return knowledgeCards.filter((card) => ['domain', 'https', 'certificate'].includes(card.id))
+    return localizedKnowledgeCards.value.filter((card) =>
+      ['domain', 'https', 'certificate'].includes(card.id),
+    )
   }
-  return knowledgeCards.slice(0, 3)
+  return localizedKnowledgeCards.value.slice(0, 3)
 })
 
 const screenTitle = computed(() => {
-  const titles: Record<WizardScreen, string> = {
-    welcome: '欢迎使用 Gate',
-    'server-question': '你已经拥有公网服务器了吗？',
+  const titleKeys: Record<WizardScreen, string> = {
+    welcome: 'welcome.screens.welcome.title',
+    'server-question': 'welcome.screens.serverQuestion.title',
     'server-education':
-      answers.serverOwnership === 'unknown-server' ? '先理解公网服务器' : '没有服务器也没关系',
-    environment: '你的服务器是什么环境？',
-    deployment: '部署 Gate Server 并测试连接',
-    domain: '你拥有域名吗？',
-    scenario: '你想用 Gate 做什么？',
-    review: '推荐配置已生成',
+      answers.serverOwnership === 'unknown-server'
+        ? 'welcome.screens.serverEducationUnknown.title'
+        : 'welcome.screens.serverEducation.title',
+    environment: 'welcome.screens.environment.title',
+    deployment: 'welcome.screens.deployment.title',
+    domain: 'welcome.screens.domain.title',
+    scenario: 'welcome.screens.scenario.title',
+    review: 'welcome.screens.review.title',
   }
-  return titles[screen.value]
+  return t(titleKeys[screen.value])
 })
 
 const screenCaption = computed(() => {
-  const captions: Record<WizardScreen, string> = {
-    welcome: '约 3-5 分钟',
-    'server-question': '第一个关键判断',
-    'server-education': '基础概念',
-    environment: '部署方式推荐',
-    deployment: '服务器部署向导',
-    domain: '访问地址',
-    scenario: '使用场景',
-    review: '确认即可创建',
+  const captionKeys: Record<WizardScreen, string> = {
+    welcome: 'welcome.screens.welcome.caption',
+    'server-question': 'welcome.screens.serverQuestion.caption',
+    'server-education': 'welcome.screens.serverEducation.caption',
+    environment: 'welcome.screens.environment.caption',
+    deployment: 'welcome.screens.deployment.caption',
+    domain: 'welcome.screens.domain.caption',
+    scenario: 'welcome.screens.scenario.caption',
+    review: 'welcome.screens.review.caption',
   }
-  return captions[screen.value]
+  return t(captionKeys[screen.value])
 })
 
 const progressPercent = computed(() => {
@@ -736,30 +798,32 @@ const progressPercent = computed(() => {
 })
 
 const pathItems = computed(() => {
-  const list = ['欢迎']
+  const list = [t('welcome.path.welcome')]
   if (answers.serverOwnership) {
-    const option = serverOwnershipOptions.find((item) => item.value === answers.serverOwnership)
-    list.push(option?.label ?? '服务器')
+    const option = serverOwnershipOptions.value.find(
+      (item) => item.value === answers.serverOwnership,
+    )
+    list.push(option?.label ?? t('welcome.path.serverFallback'))
   }
   if (answers.serverEnvironment) {
-    const environment = serverEnvironmentOptions.find(
+    const environment = localizedServerEnvironmentOptions.value.find(
       (item) => item.id === answers.serverEnvironment,
     )
-    list.push(environment?.title ?? '环境')
+    list.push(environment?.title ?? t('welcome.path.environmentFallback'))
   }
   if (
     answers.serverOwnership === 'has-server' &&
     ['deployment', 'domain', 'scenario', 'review'].includes(screen.value)
   ) {
-    const option = deployModeOptions.find((item) => item.value === answers.deployMode)
-    list.push(option?.label ?? '部署')
+    const option = deployModeOptions.value.find((item) => item.value === answers.deployMode)
+    list.push(option?.label ?? t('welcome.path.deployFallback'))
   }
   if (answers.domainMode) {
-    const option = domainOptions.find((item) => item.value === answers.domainMode)
-    list.push(option?.label ?? '域名')
+    const option = domainOptions.value.find((item) => item.value === answers.domainMode)
+    list.push(option?.label ?? t('welcome.path.domainFallback'))
   }
   if (answers.scenarioId && (screen.value === 'scenario' || screen.value === 'review')) {
-    list.push(selectedScenario.value.title)
+    list.push(selectedScenarioTitle.value)
   }
   return list
 })
@@ -822,7 +886,7 @@ function handleOpenEvent(event: CustomEvent<{ restart?: boolean }>) {
 }
 
 function openWizard(restart: boolean) {
-  inlineError.value = ''
+  clearInlineError()
   visible.value = true
   if (restart) {
     resetWizard()
@@ -846,7 +910,7 @@ function resetWizard() {
   screen.value = 'welcome'
   screenHistory.value = []
   conversation.value = []
-  inlineError.value = ''
+  clearInlineError()
   createdTunnelName.value = ''
   deploymentReport.value = null
   localStorage.removeItem(smartOnboardingKeys.draft)
@@ -867,95 +931,107 @@ function createOpeningConversation(): ChatMessage[] {
     {
       id: makeId(),
       role: 'gate',
-      title: '我们先从最关键的问题开始',
-      body: 'Gate 需要一个公网入口。你不用懂网络，我会根据你的回答继续问。',
+      titleKey: 'welcome.chat.openingTitle',
+      bodyKey: 'welcome.chat.openingBody',
     },
   ]
 }
 
 function chooseServerOwnership(value: ServerOwnership) {
-  inlineError.value = ''
+  clearInlineError()
   answers.serverOwnership = value
-  const option = serverOwnershipOptions.find((item) => item.value === value)
+  const option = serverOwnershipOptions.value.find((item) => item.value === value)
   pushUser(option?.label ?? value)
   if (value === 'has-server') {
-    pushGate('太好了。接下来我只需要知道服务器环境，这样能推荐最省心的部署方式。')
+    pushGate('welcome.chat.hasServerNext')
     navigateTo('environment')
     return
   }
   pushGate(
     value === 'unknown-server'
-      ? '没关系，我们先把公网服务器讲清楚。你可以先了解，再继续生成配置。'
-      : '没有服务器也可以先走完配置思路。拿到服务器后，可以从设置里重新打开引导补齐。',
+      ? 'welcome.chat.unknownServerExplain'
+      : 'welcome.chat.noServerExplain',
   )
   navigateTo('server-education')
 }
 
 function continueWithoutServer() {
-  pushUser('我先了解，继续')
-  pushGate('好的。下一步看域名。即使没有域名，也可以先用 IP 加端口访问。')
+  pushUser(t('welcome.actions.continueAfterLearning'))
+  pushGate('welcome.chat.domainNext')
   navigateTo('domain')
 }
 
 function switchToEnvironmentFromEducation() {
   answers.serverOwnership = 'has-server'
-  pushUser('我已经准备好服务器')
-  pushGate('很好。选择服务器环境后，我会推荐部署方式。')
+  pushUser(t('welcome.actions.serverReady'))
+  pushGate('welcome.chat.environmentNext')
   navigateTo('environment')
 }
 
 function chooseEnvironment(id: ServerEnvironmentId) {
-  const environment = serverEnvironmentOptions.find((item) => item.id === id)
+  const environment = localizedServerEnvironmentOptions.value.find((item) => item.id === id)
   if (!environment || environment.reserved) return
   answers.serverEnvironment = id
-  inlineError.value = ''
+  clearInlineError()
   deploymentReport.value = null
 }
 
 function continueFromEnvironment() {
-  inlineError.value = ''
+  clearInlineError()
   if (!answers.serverAddress.trim()) {
-    inlineError.value = '请填写服务器 IP 或域名。'
+    setInlineError('welcome.validation.serverAddressRequired')
     return
   }
   if (!answers.serverEnvironment) {
-    inlineError.value = '请选择服务器环境。'
+    setInlineError('welcome.validation.environmentRequired')
     return
   }
-  const environment = serverEnvironmentOptions.find((item) => item.id === answers.serverEnvironment)
-  pushUser(`${answers.serverAddress}，${environment?.title ?? '服务器'}`)
-  pushGate(`${environment?.recommendedDeploy ?? '已记录服务器环境'} 下一步配置 Token，并测试连接。`)
+  const environment = localizedServerEnvironmentOptions.value.find(
+    (item) => item.id === answers.serverEnvironment,
+  )
+  pushUser(
+    t('welcome.chat.environmentUser', {
+      address: answers.serverAddress,
+      environment: environment?.title ?? t('welcome.path.serverFallback'),
+    }),
+  )
+  pushGate('welcome.chat.deploymentNext')
   navigateTo('deployment')
 }
 
 function continueFromDeployment() {
-  inlineError.value = ''
+  clearInlineError()
   if (!Number.isInteger(answers.serverPort) || answers.serverPort < 1 || answers.serverPort > 65535) {
-    inlineError.value = 'Gate Server 端口必须在 1-65535 之间。'
+    setInlineError('welcome.validation.serverPortRange')
     return
   }
   if (!answers.serverToken.trim()) {
-    inlineError.value = '请填写服务端 Token。'
+    setInlineError('welcome.validation.serverTokenRequired')
     return
   }
-  const mode = deployModeOptions.find((item) => item.value === answers.deployMode)
-  pushUser(`${mode?.label ?? '部署'}，端口 ${answers.serverPort}`)
-  pushGate('部署信息已记录。现在选择是否使用域名。')
+  const mode = deployModeOptions.value.find((item) => item.value === answers.deployMode)
+  pushUser(
+    t('welcome.chat.deploymentUser', {
+      mode: mode?.label ?? t('welcome.path.deployFallback'),
+      port: answers.serverPort,
+    }),
+  )
+  pushGate('welcome.chat.deploymentRecorded')
   navigateTo('domain')
 }
 
 async function testDeploymentConnection() {
-  inlineError.value = ''
+  clearInlineError()
   if (!answers.serverAddress.trim()) {
-    inlineError.value = '请先填写服务器 IP 或域名。'
+    setInlineError('welcome.validation.serverAddressBeforeTest')
     return
   }
   if (!Number.isInteger(answers.serverPort) || answers.serverPort < 1 || answers.serverPort > 65535) {
-    inlineError.value = 'Gate Server 端口必须在 1-65535 之间。'
+    setInlineError('welcome.validation.serverPortRange')
     return
   }
   if (!answers.serverToken.trim()) {
-    inlineError.value = '请填写服务端 Token 后再测试。'
+    setInlineError('welcome.validation.serverTokenBeforeTest')
     return
   }
 
@@ -963,7 +1039,12 @@ async function testDeploymentConnection() {
   try {
     deploymentReport.value = await diagnosticsService.testConnection(serverAddressForTest.value)
   } catch (error) {
-    inlineError.value = error instanceof Error ? error.message : '连接测试失败，请检查服务器。'
+    setInlineError(
+      error instanceof Error
+        ? 'welcome.validation.connectionTestFailedWithMessage'
+        : 'welcome.validation.connectionTestFailed',
+      error instanceof Error ? { message: error.message } : {},
+    )
   } finally {
     deploymentTesting.value = false
   }
@@ -971,30 +1052,32 @@ async function testDeploymentConnection() {
 
 async function copyDeployCommand() {
   await navigator.clipboard?.writeText(activeDeployCommand.value)
-  pushGate('部署命令已复制。执行后回到这里点击“测试连接”。')
+  pushGate('welcome.chat.deployCommandCopied')
 }
 
 function chooseDomainMode(value: DomainMode) {
   answers.domainMode = value
   if (value !== 'has-domain') answers.domainName = ''
-  inlineError.value = ''
+  clearInlineError()
 }
 
 function continueFromDomain() {
-  inlineError.value = ''
+  clearInlineError()
   if (!answers.domainMode) {
-    inlineError.value = '请选择域名状态。'
+    setInlineError('welcome.validation.domainModeRequired')
     return
   }
   if (answers.domainMode === 'has-domain' && !answers.domainName.trim()) {
-    inlineError.value = '请填写域名，例如 api.example.com。'
+    setInlineError('welcome.validation.domainRequired')
     return
   }
-  const option = domainOptions.find((item) => item.value === answers.domainMode)
+  const option = domainOptions.value.find((item) => item.value === answers.domainMode)
   pushUser(
-    answers.domainMode === 'has-domain' ? answers.domainName : (option?.label ?? '暂不使用域名'),
+    answers.domainMode === 'has-domain'
+      ? answers.domainName
+      : (option?.label ?? t('welcome.domainOptions.skipDomain.label')),
   )
-  pushGate('收到。现在告诉我你的使用场景，我会自动选择隧道类型和默认端口。')
+  pushGate('welcome.chat.scenarioNext')
   navigateTo('scenario')
 }
 
@@ -1003,23 +1086,23 @@ function chooseScenario(id: string) {
   answers.scenarioId = scenario.id
   answers.customName = scenario.defaultName
   answers.customLocalPort = scenario.localPort
-  inlineError.value = ''
+  clearInlineError()
 }
 
 function continueFromScenario() {
-  inlineError.value = ''
+  clearInlineError()
   const port = answers.customLocalPort ?? selectedScenario.value.localPort
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    inlineError.value = '本地端口必须在 1-65535 之间。'
+    setInlineError('welcome.validation.localPortRange')
     return
   }
-  pushUser(`${selectedScenario.value.title}，本地端口 ${port}`)
-  pushGate('我已经生成推荐配置。你只需要确认；下面也会解释为什么这样选。')
+  pushUser(t('welcome.chat.scenarioUser', { scenario: selectedScenarioTitle.value, port }))
+  pushGate('welcome.chat.reviewReady')
   navigateTo('review')
 }
 
 async function createFirstTunnel() {
-  inlineError.value = ''
+  clearInlineError()
   creating.value = true
   try {
     const created = await tunnelStore.createTunnel(recommendation.value.form)
@@ -1030,7 +1113,12 @@ async function createFirstTunnel() {
     await nextTick()
     startTour()
   } catch (error) {
-    inlineError.value = error instanceof Error ? error.message : '创建隧道失败，请稍后重试。'
+    setInlineError(
+      error instanceof Error
+        ? 'welcome.validation.createTunnelFailedWithMessage'
+        : 'welcome.validation.createTunnelFailed',
+      error instanceof Error ? { message: error.message } : {},
+    )
   } finally {
     creating.value = false
   }
@@ -1055,7 +1143,7 @@ function navigateTo(nextScreen: WizardScreen) {
 }
 
 function goBack() {
-  inlineError.value = ''
+  clearInlineError()
   const previous = screenHistory.value.pop()
   if (previous) {
     screen.value = previous
@@ -1114,8 +1202,18 @@ function readDraft(): WizardDraft | null {
   }
 }
 
-function pushGate(body: string, title?: string) {
-  conversation.value.push({ id: makeId(), role: 'gate', title, body })
+function clearInlineError() {
+  inlineErrorKey.value = ''
+  inlineErrorParams.value = {}
+}
+
+function setInlineError(key: string, params: Record<string, unknown> = {}) {
+  inlineErrorKey.value = key
+  inlineErrorParams.value = params
+}
+
+function pushGate(bodyKey: string, params?: Record<string, unknown>, titleKey?: string) {
+  conversation.value.push({ id: makeId(), role: 'gate', titleKey, bodyKey, params })
 }
 
 function pushUser(body: string) {
@@ -1133,7 +1231,7 @@ function startTour() {
 }
 
 function nextTour() {
-  if (tourIndex.value >= tourItems.length - 1) {
+  if (tourIndex.value >= tourItems.value.length - 1) {
     finishTour()
     return
   }

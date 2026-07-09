@@ -1,8 +1,8 @@
 <template>
   <header class="settings-header">
     <div class="settings-header__title">
-      <h1>设置</h1>
-      <span>{{ resultCount }} 项设置</span>
+      <h1>{{ t('settings.title') }}</h1>
+      <span>{{ t('settings.legacy.resultCount', { count: resultCount }) }}</span>
     </div>
 
     <SettingsSearch
@@ -15,7 +15,7 @@
 
     <div class="settings-header__actions">
       <span v-if="modifiedCount" class="settings-header__modified"
-        >{{ modifiedCount }} 项已修改</span
+        >{{ t('settings.legacy.modifiedCount', { count: modifiedCount }) }}</span
       >
       <GButton
         size="sm"
@@ -23,7 +23,7 @@
         icon="refresh"
         :disabled="!modifiedCount"
         @click="emit('reset-all')">
-        重置
+        {{ t('common.reset') }}
       </GButton>
     </div>
   </header>
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import type { SettingCategory, SettingCategoryId } from '../types'
 import SettingsSearch from './SettingsSearch.vue'
@@ -49,6 +50,7 @@ const emit = defineEmits<{
   'reset-all': []
 }>()
 
+const { t } = useI18n()
 const searchRef = ref<InstanceType<typeof SettingsSearch> | null>(null)
 
 function focusSearch() {

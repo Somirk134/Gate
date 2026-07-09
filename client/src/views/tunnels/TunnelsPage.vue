@@ -225,7 +225,7 @@
                   <GIcon name="tag" :size="16" />
                 </div>
                 <div class="tag-list">
-                  <span v-for="tag in selectedTunnel.tags" :key="tag">{{ tag }}</span>
+                  <span v-for="tag in selectedTunnel.tags" :key="tag">{{ tagLabel(tag) }}</span>
                   <span v-if="!selectedTunnel.tags.length">{{ t('tunnel.detail.noTags') }}</span>
                 </div>
               </section>
@@ -298,7 +298,7 @@ import './styles/tunnel.css'
 
 const route = useRoute()
 const router = useRouter()
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 const { toast, notify, confirm, confirmDanger } = useFeedback()
 const {
   tunnels,
@@ -587,9 +587,9 @@ async function openTestUrl(tunnel: Tunnel) {
     }
 
     const target = window.open(url, '_blank', 'noopener,noreferrer')
-    if (!target) throw new Error('浏览器阻止了新窗口打开')
+    if (!target) throw new Error(t('tunnel.notifications.popupBlocked'))
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : '打开链接失败')
+    toast.error(err instanceof Error ? err.message : t('tunnel.notifications.openUrlFailed'))
   }
 }
 
@@ -616,13 +616,18 @@ function formatSpeed(bytesPerSecond: number): string {
 }
 
 function formatDuration(seconds: number): string {
-  if (seconds <= 0) return '-'
+  if (seconds <= 0) return t('common.emptyValue')
   const day = Math.floor(seconds / 86400)
   const hour = Math.floor((seconds % 86400) / 3600)
   const minute = Math.floor((seconds % 3600) / 60)
-  if (day) return `${day}d ${hour}h`
-  if (hour) return `${hour}h ${minute}m`
-  return `${Math.max(1, minute)}m`
+  if (day) return t('common.time.shortDaysHours', { days: day, hours: hour })
+  if (hour) return t('common.time.shortHoursMinutes', { hours: hour, minutes: minute })
+  return t('common.time.shortMinutes', { count: Math.max(1, minute) })
+}
+
+function tagLabel(tag: string): string {
+  const key = `tunnel.tags.${tag}`
+  return te(key) ? t(key) : tag
 }
 
 function formatLogTime(timestamp: number): string {

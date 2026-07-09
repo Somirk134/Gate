@@ -46,6 +46,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GIconButton from '@components/base/GIconButton.vue'
 import GBadge from '@components/base/GBadge.vue'
@@ -58,15 +59,9 @@ const props = defineProps<{
 
 defineEmits<{ select: [tunnel: ProjectTunnelSummary] }>()
 
-const statusLabel = computed(() => {
-  const map: Record<string, string> = {
-    online: '在线',
-    offline: '离线',
-    starting: '启动中',
-    error: '错误',
-  }
-  return map[props.tunnel.status] ?? '未知'
-})
+const { t } = useI18n()
+
+const statusLabel = computed(() => t(`project.tunnelStatus.${props.tunnel.status}`))
 </script>
 
 <style scoped>

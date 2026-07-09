@@ -19,7 +19,11 @@ export type {
   BackupSecurity,
 } from './backup.service'
 export type { RuntimeServerList, RuntimeServerRecord } from './server.service'
-export { diagnosticsService } from './diagnostics.service'
+export {
+  DIAGNOSTIC_VALUE_DISCONNECTED,
+  DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED,
+  diagnosticsService,
+} from './diagnostics.service'
 export type {
   ConnectionHistoryEntry,
   ConnectionTestReport,

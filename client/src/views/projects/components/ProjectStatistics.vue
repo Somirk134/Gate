@@ -9,11 +9,11 @@
     <div class="project-section__head">
       <div class="project-section__title">
         <GIcon name="chart-bar" :size="16" class="project-section__title-icon" />
-        <span>统计概览</span>
+        <span>{{ t('project.stats.overview') }}</span>
       </div>
     </div>
     <div class="project-stat-grid">
-      <GCard v-for="item in stats" :key="item.label" variant="plain" padding="md" class="stat-card">
+      <GCard v-for="item in stats" :key="item.key" variant="plain" padding="md" class="stat-card">
         <div class="stat-card__icon" :style="{ color: item.color, background: item.color + '1f' }">
           <GIcon :name="item.icon" :size="18" />
         </div>
@@ -28,40 +28,47 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import type { Project } from '../types'
 import { formatBytes, formatDuration } from '../utils'
 
 const props = defineProps<{ project: Project }>()
+const { t } = useI18n()
 
 const stats = computed(() => [
   {
-    label: '今日流量',
+    key: 'todayTraffic',
+    label: t('project.stats.todayTraffic'),
     value: formatBytes(props.project.statistics.todayTraffic),
     icon: 'download',
     color: '#5B8DEF',
   },
   {
-    label: '累计流量',
+    key: 'totalTraffic',
+    label: t('project.stats.totalTraffic'),
     value: formatBytes(props.project.statistics.totalTraffic),
     icon: 'cloud',
     color: '#7C6FF2',
   },
   {
-    label: '运行时间',
+    key: 'uptime',
+    label: t('project.stats.uptime'),
     value: formatDuration(props.project.statistics.uptime),
     icon: 'clock',
     color: '#22C55E',
   },
   {
-    label: '连接数',
+    key: 'connections',
+    label: t('project.stats.connections'),
     value: String(props.project.statistics.connections),
     icon: 'link',
     color: '#F59E0B',
   },
   {
-    label: '隧道数量',
+    key: 'tunnelCount',
+    label: t('project.stats.tunnelCount'),
     value: String(props.project.tunnelCount),
     icon: 'router',
     color: '#06B6D4',

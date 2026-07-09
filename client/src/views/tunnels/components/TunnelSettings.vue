@@ -9,10 +9,10 @@
   <div class="tunnel-settings">
     <!-- 名称 -->
     <GFormField :error="errors.name" required>
-      <template #label> 隧道名称 </template>
+      <template #label>{{ t('tunnel.settings.name') }}</template>
       <GInput
         v-model="form.name"
-        placeholder="例如：api-gateway"
+        :placeholder="t('tunnel.settings.namePlaceholder')"
         :state="errors.name ? 'error' : 'normal'"
         :maxlength="40"
         clearable
@@ -21,13 +21,13 @@
 
     <!-- 协议 -->
     <GFormField>
-      <template #label> 协议 </template>
+      <template #label>{{ t('tunnel.settings.protocol') }}</template>
       <TunnelProtocolSelect v-model="form.protocol" />
     </GFormField>
 
     <div v-if="isHttpLike" class="tunnel-port-row">
       <GFormField :error="errors.host" :required="form.protocol === 'https'">
-        <template #label> 绑定域名 </template>
+        <template #label>{{ t('tunnel.settings.host') }}</template>
         <GInput
           v-model="form.host"
           placeholder="api.example.com"
@@ -36,7 +36,7 @@
           @update:model-value="validateField('host')" />
       </GFormField>
       <GFormField :error="errors.path">
-        <template #label> 路径 </template>
+        <template #label>{{ t('tunnel.settings.path') }}</template>
         <GInput
           v-model="form.path"
           placeholder="/"
@@ -48,7 +48,7 @@
 
     <!-- 本地主机 -->
     <GFormField :error="errors.localHost">
-      <template #label> 本地主机 </template>
+      <template #label>{{ t('tunnel.settings.localHost') }}</template>
       <GInput
         v-model="form.localHost"
         placeholder="127.0.0.1"
@@ -60,21 +60,21 @@
     <!-- 本地端口 / 公网端口 -->
     <div class="tunnel-port-row">
       <GFormField :error="errors.localPort" required>
-        <template #label> 本地端口 </template>
+        <template #label>{{ t('tunnel.settings.localPort') }}</template>
         <TunnelPortInput v-model="form.localPort" />
       </GFormField>
       <GFormField :error="errors.remotePort" required>
-        <template #label> 公网端口 </template>
+        <template #label>{{ t('tunnel.settings.remotePort') }}</template>
         <TunnelPortInput v-model="form.remotePort" />
       </GFormField>
     </div>
 
     <!-- 备注 -->
     <GFormField>
-      <template #label> 备注 </template>
+      <template #label>{{ t('tunnel.settings.remark') }}</template>
       <GTextarea
         v-model="form.remark"
-        placeholder="内部备注，仅自己可见…"
+        :placeholder="t('tunnel.settings.remarkPlaceholder')"
         :rows="2"
         :maxlength="200"
         resizable />
@@ -83,8 +83,8 @@
     <!-- 自动启动 -->
     <div class="tunnel-settings__row">
       <div class="tunnel-settings__row-text">
-        <span class="tunnel-settings__row-label">自动启动</span>
-        <span class="tunnel-settings__row-hint">应用启动时自动运行该隧道</span>
+        <span class="tunnel-settings__row-label">{{ t('tunnel.settings.autoStart') }}</span>
+        <span class="tunnel-settings__row-hint">{{ t('tunnel.settings.autoStartHint') }}</span>
       </div>
       <button
         type="button"
@@ -99,10 +99,12 @@
     <div class="tunnel-settings__row tunnel-settings__row--reserved">
       <div class="tunnel-settings__row-text">
         <span class="tunnel-settings__row-label">
-          压缩
-          <GBadge variant="neutral" type="soft" size="sm">预留</GBadge>
+          {{ t('tunnel.settings.compression') }}
+          <GBadge variant="neutral" type="soft" size="sm">
+            {{ t('tunnel.settings.reserved') }}
+          </GBadge>
         </span>
-        <span class="tunnel-settings__row-hint">启用数据压缩，降低带宽占用（即将支持）</span>
+        <span class="tunnel-settings__row-hint">{{ t('tunnel.settings.compressionHint') }}</span>
       </div>
       <button
         type="button"
@@ -117,10 +119,12 @@
     <div class="tunnel-settings__row tunnel-settings__row--reserved">
       <div class="tunnel-settings__row-text">
         <span class="tunnel-settings__row-label">
-          加密
-          <GBadge variant="neutral" type="soft" size="sm">预留</GBadge>
+          {{ t('tunnel.settings.encryption') }}
+          <GBadge variant="neutral" type="soft" size="sm">
+            {{ t('tunnel.settings.reserved') }}
+          </GBadge>
         </span>
-        <span class="tunnel-settings__row-hint">端到端加密传输（即将支持）</span>
+        <span class="tunnel-settings__row-hint">{{ t('tunnel.settings.encryptionHint') }}</span>
       </div>
       <button
         type="button"
@@ -133,14 +137,16 @@
 
     <!-- 保存按钮 -->
     <div class="tunnel-settings__actions">
-      <GButton variant="ghost" icon="refresh" @click="reset"> 重置 </GButton>
+      <GButton variant="ghost" icon="refresh" @click="reset">
+        {{ t('common.reset') }}
+      </GButton>
       <GButton
         variant="primary"
         icon="save"
         :loading="saving"
         :disabled="!isValid || !dirty"
         @click="handleSave">
-        保存设置
+        {{ t('tunnel.settings.save') }}
       </GButton>
     </div>
   </div>
@@ -148,6 +154,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import GBadge from '@components/base/GBadge.vue'
 import GInput from '@components/form/GInput.vue'
@@ -164,6 +171,7 @@ const props = defineProps<{ tunnel: Tunnel }>()
 const emit = defineEmits<{ save: [id: string, patch: Partial<TunnelFormData>] }>()
 
 const { toast } = useFeedback()
+const { t } = useI18n()
 
 interface SettingsForm {
   name: string
@@ -252,39 +260,39 @@ const isValid = computed(
 function validateField(field: keyof typeof errors) {
   if (field === 'name') {
     const v = form.name.trim()
-    if (v.length === 0) errors.name = '名称不能为空'
-    else if (v.length < 2) errors.name = '名称至少 2 个字符'
-    else if (v.length > 40) errors.name = '名称不能超过 40 个字符'
+    if (v.length === 0) errors.name = t('tunnel.settings.validation.nameRequired')
+    else if (v.length < 2) errors.name = t('tunnel.settings.validation.nameMin')
+    else if (v.length > 40) errors.name = t('tunnel.settings.validation.nameMax')
     else errors.name = undefined
   }
   if (field === 'localHost') {
-    if (!form.localHost.trim()) errors.localHost = '本地主机不能为空'
+    if (!form.localHost.trim()) errors.localHost = t('tunnel.settings.validation.localHostRequired')
     else errors.localHost = undefined
   }
   if (field === 'localPort') {
-    if (!isValidPort(form.localPort)) errors.localPort = '端口范围 1-65535'
+    if (!isValidPort(form.localPort)) errors.localPort = t('tunnel.settings.validation.portRange')
     else errors.localPort = undefined
   }
   if (field === 'remotePort') {
-    if (!isValidPort(form.remotePort)) errors.remotePort = '端口范围 1-65535'
+    if (!isValidPort(form.remotePort)) errors.remotePort = t('tunnel.settings.validation.portRange')
     else errors.remotePort = undefined
   }
   if (field === 'host') {
     const value = form.host.trim()
-    if (form.protocol === 'https' && !value) errors.host = 'HTTPS 隧道必须绑定域名'
-    else if (value && /[/:?#\s]/.test(value)) errors.host = '请输入域名，不要包含协议、路径或空格'
+    if (form.protocol === 'https' && !value) errors.host = t('tunnel.settings.validation.httpsHostRequired')
+    else if (value && /[/:?#\s]/.test(value)) errors.host = t('tunnel.settings.validation.hostInvalid')
     else errors.host = undefined
   }
   if (field === 'path') {
     const value = form.path.trim()
-    if (value && !value.startsWith('/')) errors.path = '路径必须以 / 开头'
+    if (value && !value.startsWith('/')) errors.path = t('tunnel.settings.validation.pathPrefix')
     else errors.path = undefined
   }
 }
 
 function reset() {
   syncForm()
-  toast.info('已重置未保存的更改')
+  toast.info(t('tunnel.settings.resetToast'))
 }
 
 function handleSave() {
@@ -308,7 +316,7 @@ function handleSave() {
     autoStart: form.autoStart,
   })
   snapshot = JSON.stringify(form)
-  toast.success(`隧道「${form.name}」设置已保存`)
+  toast.success(t('tunnel.settings.savedToast', { name: form.name }))
 }
 </script>
 

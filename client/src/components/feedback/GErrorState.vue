@@ -1,7 +1,6 @@
 <!--
-  GErrorState — 错误状态
-  ------------------------------------------------------------------
-  用途：加载失败/请求出错时的占位与重试入口。
+  GErrorState - 通用错误状态。
+  默认重试文案由 i18n 提供，自定义 action slot 不受影响。
 -->
 <template>
   <div class="g-error-state">
@@ -17,7 +16,7 @@
     <div v-if="$slots.action || retry" class="g-error-state__action">
       <slot name="action">
         <GButton v-if="retry" variant="secondary" size="sm" icon="refresh" @click="emit('retry')">
-          重试
+          {{ t('feedback.retry') }}
         </GButton>
       </slot>
     </div>
@@ -25,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 
@@ -35,6 +35,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ retry: [] }>()
+const { t } = useI18n()
 </script>
 
 <style scoped>

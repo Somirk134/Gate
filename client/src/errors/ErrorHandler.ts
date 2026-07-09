@@ -4,6 +4,7 @@ import type { LoggerService } from '@/logger/LoggerService'
 import type { NotificationService } from '@/services/NotificationService'
 import type { AppEventMap } from '@/types/application'
 import type { Disposable } from '@/utils/disposable'
+import { i18n } from '@/i18n'
 
 export interface ErrorHandler extends Disposable {
   capture(error: unknown, context?: string, fatal?: boolean): void
@@ -47,7 +48,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   capture(error: unknown, context = 'application', fatal = false) {
     const message = this.toMessage(error)
     this.logger.error(message, { error, context, fatal })
-    this.notifications.error('应用错误', message)
+    this.notifications.error(this.t('errors.application.title'), message)
     void this.events.publish('app:error', {
       error,
       message,
@@ -75,6 +76,14 @@ export class GlobalErrorHandler implements ErrorHandler {
       return error
     }
 
-    return '未知应用错误'
+    return this.t('errors.application.unknown')
+  }
+
+  private t(key: string) {
+    try {
+      return (i18n.global as unknown as { t: (key: string) => string }).t(key)
+    } catch {
+      return key
+    }
   }
 }

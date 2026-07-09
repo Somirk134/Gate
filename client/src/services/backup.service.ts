@@ -31,6 +31,7 @@ export interface BackupPreview {
   valid: boolean
   path: string
   product: string
+  version: string
   schemaVersion: number
   appVersion: string
   createdAt: string
@@ -44,20 +45,20 @@ export interface BackupRestoreResult {
   ok: boolean
   restoredAt: number
   contents: BackupContents
-  message: string
+  messageKey: string
 }
 
 const backupFilters = [
   {
     name: 'Gate Backup',
-    extensions: ['zip'],
+    extensions: ['gatebackup'],
   },
 ]
 
 export const backupService = {
   async chooseExportPath(): Promise<string | null> {
     return save({
-      defaultPath: 'gate-backup.zip',
+      defaultPath: 'gate-v0.9.gatebackup',
       filters: backupFilters,
     })
   },

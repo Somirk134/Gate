@@ -8,7 +8,7 @@
   <div class="project-inspector" :style="colorVars">
     <header class="project-inspector__header">
       <GIcon name="info-circle" :size="14" />
-      <span>项目信息</span>
+      <span>{{ t('project.inspector.title') }}</span>
     </header>
 
     <div class="project-inspector__body">
@@ -25,38 +25,38 @@
 
       <!-- 基础信息 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">基础信息</div>
+        <div class="project-inspector__group-title">{{ t('project.inspector.basic') }}</div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">项目 ID</span>
+          <span class="project-inspector__label">{{ t('project.inspector.projectId') }}</span>
           <span class="project-inspector__value mono">{{ project.id }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">服务器</span>
+          <span class="project-inspector__label">{{ t('project.inspector.server') }}</span>
           <span class="project-inspector__value">{{ project.serverName }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">自动启动</span>
+          <span class="project-inspector__label">{{ t('project.inspector.autoStart') }}</span>
           <span class="project-inspector__value">
             <GIcon
               :name="project.autoStart ? 'check' : 'close'"
               :size="12"
               :class="project.autoStart ? 'on' : 'off'" />
-            {{ project.autoStart ? '已启用' : '未启用' }}
+            {{ project.autoStart ? t('common.enabled') : t('common.disabled') }}
           </span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">创建时间</span>
+          <span class="project-inspector__label">{{ t('project.inspector.createdAt') }}</span>
           <span class="project-inspector__value">{{ dateLabel(project.createdAt) }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">更新时间</span>
+          <span class="project-inspector__label">{{ t('project.inspector.updatedAt') }}</span>
           <span class="project-inspector__value">{{ dateLabel(project.updatedAt) }}</span>
         </div>
       </div>
 
       <!-- 标签 -->
       <div v-if="project.tags.length" class="project-inspector__group">
-        <div class="project-inspector__group-title">标签</div>
+        <div class="project-inspector__group-title">{{ t('project.inspector.tags') }}</div>
         <div class="project-inspector__tags">
           <ProjectTag v-for="tag in project.tags" :key="tag" :name="tag" />
         </div>
@@ -64,34 +64,34 @@
 
       <!-- 统计 -->
       <div class="project-inspector__group">
-        <div class="project-inspector__group-title">运行统计</div>
+        <div class="project-inspector__group-title">{{ t('project.inspector.runtimeStats') }}</div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">今日流量</span>
+          <span class="project-inspector__label">{{ t('project.stats.todayTraffic') }}</span>
           <span class="project-inspector__value mono">{{
             formatBytes(project.statistics.todayTraffic)
           }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">累计流量</span>
+          <span class="project-inspector__label">{{ t('project.stats.totalTraffic') }}</span>
           <span class="project-inspector__value mono">{{
             formatBytes(project.statistics.totalTraffic)
           }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">运行时间</span>
+          <span class="project-inspector__label">{{ t('project.stats.uptime') }}</span>
           <span class="project-inspector__value mono">{{
             formatDuration(project.statistics.uptime)
           }}</span>
         </div>
         <div class="project-inspector__row">
-          <span class="project-inspector__label">连接数</span>
+          <span class="project-inspector__label">{{ t('project.stats.connections') }}</span>
           <span class="project-inspector__value">{{ project.statistics.connections }}</span>
         </div>
       </div>
 
       <!-- 备注 -->
       <div v-if="project.remark" class="project-inspector__group">
-        <div class="project-inspector__group-title">备注</div>
+        <div class="project-inspector__group-title">{{ t('project.inspector.remark') }}</div>
         <p class="project-inspector__remark">
           {{ project.remark }}
         </p>
@@ -105,13 +105,17 @@
           icon="play"
           block
           @click="$emit('start', project.id)">
-          启动项目
+          {{ t('project.inspector.startProject') }}
         </GButton>
         <GButton v-else variant="secondary" icon="stop" block @click="$emit('stop', project.id)">
-          停止项目
+          {{ t('project.inspector.stopProject') }}
         </GButton>
-        <GButton variant="ghost" icon="edit" block @click="$emit('edit')"> 编辑项目 </GButton>
-        <GButton variant="ghost" icon="trash" block @click="$emit('delete')"> 删除项目 </GButton>
+        <GButton variant="ghost" icon="edit" block @click="$emit('edit')">
+          {{ t('project.inspector.editProject') }}
+        </GButton>
+        <GButton variant="ghost" icon="trash" block @click="$emit('delete')">
+          {{ t('project.inspector.deleteProject') }}
+        </GButton>
       </div>
     </div>
   </div>
@@ -119,14 +123,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import GButton from '@components/base/GButton.vue'
 import GStatusBadge from '@components/status/GStatusBadge.vue'
 import ProjectTag from './ProjectTag.vue'
 import type { Project } from '../types'
-import { STATUS_CONFIG, projectColorVars, formatBytes, formatDuration } from '../utils'
+import { projectColorVars, formatBytes, formatDuration } from '../utils'
 
 const props = defineProps<{ project: Project }>()
+const { t } = useI18n()
 
 defineEmits<{
   start: [id: string]
@@ -136,8 +142,7 @@ defineEmits<{
 }>()
 
 const colorVars = computed(() => projectColorVars(props.project.color))
-const statusConfig = computed(() => STATUS_CONFIG[props.project.status])
-const statusLabel = computed(() => statusConfig.value.label)
+const statusLabel = computed(() => t(`project.statusLabels.${props.project.status}`))
 
 const statusDotType = computed(() => {
   const map: Record<

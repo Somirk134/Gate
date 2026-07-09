@@ -2,9 +2,9 @@
   <section class="help-center-page">
     <header class="help-hero">
       <div>
-        <p>Support Center</p>
-        <h1>帮助与诊断</h1>
-        <span>检测 Gate 状态，生成诊断报告，帮助定位连接和部署问题。</span>
+        <p>{{ t('help.hero.kicker') }}</p>
+        <h1>{{ t('help.hero.title') }}</h1>
+        <span>{{ t('help.hero.description') }}</span>
       </div>
       <div class="help-hero__actions">
         <div v-if="diagnosticRunMessage" class="diagnostic-run-state" :class="diagnosticRunTone">
@@ -12,19 +12,19 @@
           <span>{{ diagnosticRunMessage }}</span>
         </div>
         <GButton variant="primary" icon="activity" :loading="loading" @click="refreshDiagnostics()">
-          {{ loading ? '诊断中' : '开始诊断' }}
+          {{ loading ? t('help.actions.running') : t('help.actions.start') }}
         </GButton>
         <GButton variant="secondary" icon="copy" @click="copyDiagnosticReport()">
-          复制诊断报告
+          {{ t('help.actions.copyReport') }}
         </GButton>
       </div>
     </header>
 
-    <section class="help-section" aria-label="System Status">
+    <section class="help-section" :aria-label="t('help.sections.systemStatusKicker')">
       <header class="section-heading">
         <div>
-          <p>System Status</p>
-          <h2>系统状态</h2>
+          <p>{{ t('help.sections.systemStatusKicker') }}</p>
+          <h2>{{ t('help.sections.systemStatus') }}</h2>
         </div>
       </header>
 
@@ -46,8 +46,8 @@
         <section class="help-section">
           <header class="section-heading">
             <div>
-              <p>Diagnostic Checklist</p>
-              <h2>诊断清单</h2>
+              <p>{{ t('help.sections.checklistKicker') }}</p>
+              <h2>{{ t('help.sections.checklist') }}</h2>
             </div>
             <span>{{ checklistSummary }}</span>
           </header>
@@ -68,15 +68,15 @@
         <section v-if="deploymentFindings.length" class="help-section">
           <header class="section-heading">
             <div>
-              <p>Deployment Findings</p>
-              <h2>部署检查结果</h2>
+              <p>{{ t('help.sections.deploymentKicker') }}</p>
+              <h2>{{ t('help.sections.deployment') }}</h2>
             </div>
-            <span>{{ deploymentReport?.summary }}</span>
+            <span>{{ deploymentSummary }}</span>
           </header>
 
           <div class="finding-strip">
             <article
-              v-for="finding in deploymentFindings"
+              v-for="finding in localizedDeploymentFindings"
               :key="finding.id"
               :class="`is-${finding.status}`">
               <GIcon :name="findingIcon(finding.status)" :size="16" />
@@ -91,40 +91,40 @@
         <section class="help-section">
           <header class="section-heading">
             <div>
-              <p>Report Center</p>
-              <h2>报告中心</h2>
+              <p>{{ t('help.sections.reportKicker') }}</p>
+              <h2>{{ t('help.sections.report') }}</h2>
             </div>
             <span>{{ reportFreshness }}</span>
           </header>
 
           <div class="report-grid">
             <ReportCard
-              title="复制诊断信息"
-              description="复制可直接粘贴到 Issue 或协作工具中的结构化报告。"
+              :title="t('help.report.copy.title')"
+              :description="t('help.report.copy.description')"
               icon="copy"
               tone="primary"
               @action="copyDiagnosticReport" />
             <ReportCard
-              title="导出 Debug Bundle"
-              description="导出包含系统、运行时、隧道、错误和日志摘要的 JSON 文件。"
+              :title="t('help.report.bundle.title')"
+              :description="t('help.report.bundle.description')"
               icon="package"
               @action="exportDebugBundle" />
             <ReportCard
-              title="打开 GitHub Issue"
-              description="打开问题提交入口，并先复制当前诊断报告。"
+              :title="t('help.report.issue.title')"
+              :description="t('help.report.issue.description')"
               icon="github"
               @action="openIssue" />
           </div>
 
           <SystemInfoCard
-            title="报告内容"
-            description="报告只聚合已有前端可见能力。"
+            :title="t('help.report.contentsTitle')"
+            :description="t('help.report.contentsDescription')"
             :rows="reportRows" />
 
           <div class="recent-errors">
             <header>
-              <strong>Recent Errors</strong>
-              <span>{{ recentErrors.length }} 条</span>
+              <strong>{{ t('help.recentErrors.title') }}</strong>
+              <span>{{ t('help.units.entries', { count: recentErrors.length }) }}</span>
             </header>
             <article v-for="error in recentErrors" :key="error.id">
               <span>{{ error.source }}</span>
@@ -133,15 +133,17 @@
                 <p>{{ error.detail }}</p>
               </div>
             </article>
-            <p v-if="!recentErrors.length" class="empty-copy">暂无近期错误。</p>
+            <p v-if="!recentErrors.length" class="empty-copy">
+              {{ t('help.recentErrors.empty') }}
+            </p>
           </div>
         </section>
       </main>
 
       <aside class="help-side">
         <SystemInfoCard
-          title="System Info"
-          description="来自桌面运行时的系统信息。"
+          :title="t('help.side.systemInfo')"
+          :description="t('help.side.systemInfoDescription')"
           :rows="systemRows">
           <template #actions>
             <GButton variant="ghost" size="sm" icon="copy" @click="copySystemInfo" />
@@ -149,43 +151,43 @@
         </SystemInfoCard>
 
         <SystemInfoCard
-          title="Runtime State"
-          description="运行时、隧道和服务器快照。"
+          :title="t('help.side.runtimeState')"
+          :description="t('help.side.runtimeStateDescription')"
           :rows="runtimeRows" />
 
         <section class="advanced-tools">
           <header class="section-heading compact">
             <div>
-              <p>Advanced Tools</p>
-              <h2>高级工具</h2>
+              <p>{{ t('help.sections.toolsKicker') }}</p>
+              <h2>{{ t('help.sections.tools') }}</h2>
             </div>
           </header>
 
           <div class="tool-grid">
             <ReportCard
-              title="打开日志目录"
-              :description="systemInfo?.logDir ?? '等待系统信息'"
+              :title="t('help.tools.openLogs.title')"
+              :description="systemInfo?.logDir ?? t('help.states.waitingSystemInfo')"
               icon="logs"
               @action="openLogDirectory" />
             <ReportCard
-              title="打开配置目录"
-              :description="systemInfo?.configDir ?? '等待系统信息'"
+              :title="t('help.tools.openConfig.title')"
+              :description="systemInfo?.configDir ?? t('help.states.waitingSystemInfo')"
               icon="settings"
               @action="openConfigDirectory" />
             <ReportCard
-              title="刷新诊断"
-              description="重新读取状态、日志、证书和部署检查。"
+              :title="t('help.tools.refresh.title')"
+              :description="t('help.tools.refresh.description')"
               icon="refresh"
               @action="refreshDiagnostics" />
             <ReportCard
-              title="清理缓存"
-              description="清理帮助中心使用的最近服务器和连接历史。"
+              :title="t('help.tools.clearCache.title')"
+              :description="t('help.tools.clearCache.description')"
               icon="trash"
               tone="danger"
               @action="clearSupportCache" />
             <ReportCard
-              title="导出日志"
-              description="导出当前可见运行时日志文本。"
+              :title="t('help.tools.exportLogs.title')"
+              :description="t('help.tools.exportLogs.description')"
               icon="download"
               @action="exportLogs" />
           </div>
@@ -197,16 +199,23 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { open as openExternal } from '@tauri-apps/plugin-shell'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import { useFeedback } from '@composables/useFeedback'
 import { TauriIpcClient } from '@/ipc'
 import { GITHUB_ISSUE_URL } from '@/constants'
-import { diagnosticsService, serverService } from '@/services'
+import {
+  DIAGNOSTIC_VALUE_DISCONNECTED,
+  DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED,
+  diagnosticsService,
+  serverService,
+} from '@/services'
 import type {
   ConnectionHistoryEntry,
   ConnectionTestReport,
+  DiagnosticFinding,
   DeploymentCheckReport,
   DiagnosticStatus,
   RecentServer,
@@ -261,13 +270,23 @@ interface RecentErrorItem {
   detail: string
 }
 
+interface DiagnosticRunMessage {
+  key: string
+  params?: Record<string, unknown>
+}
+
+interface DiagnosticRunSummary extends DiagnosticRunMessage {
+  tone: 'success' | 'warning' | 'error'
+}
+
 const ipc = new TauriIpcClient()
 const logStore = useLogStore()
 const { toast } = useFeedback()
+const { t, te } = useI18n()
 
 const loading = ref(false)
 const lastGeneratedAt = ref(0)
-const diagnosticRunMessage = ref('')
+const diagnosticRunMessageKey = ref<DiagnosticRunMessage | null>(null)
 const diagnosticRunTone = ref<'info' | 'success' | 'warning' | 'error'>('info')
 const systemInfo = ref<SystemInfoReport | null>(null)
 const serverList = ref<RuntimeServerList | null>(null)
@@ -320,10 +339,16 @@ const diagnosticRunIcon = computed(() => {
   return 'info-circle'
 })
 
+const diagnosticRunMessage = computed(() =>
+  diagnosticRunMessageKey.value
+    ? t(diagnosticRunMessageKey.value.key, diagnosticRunMessageKey.value.params ?? {})
+    : '',
+)
+
 const clientStatus = computed<StatusItem>(() => {
   if (systemInfo.value) {
     return {
-      title: 'Client Status',
+      title: t('help.status.client.title'),
       value: `v${systemInfo.value.clientVersion}`,
       detail: `${systemInfo.value.os} / ${systemInfo.value.arch}`,
       status: 'ok',
@@ -331,9 +356,9 @@ const clientStatus = computed<StatusItem>(() => {
     }
   }
   return {
-    title: 'Client Status',
-    value: errors.system ? '不可用' : '等待检测',
-    detail: errors.system || '尚未读取桌面客户端信息。',
+    title: t('help.status.client.title'),
+    value: errors.system ? t('help.states.unavailable') : t('help.states.waitingCheck'),
+    detail: errors.system || t('help.status.client.waitingDetail'),
     status: errors.system ? 'error' : 'unknown',
     icon: 'monitor',
   }
@@ -343,9 +368,9 @@ const serverStatus = computed<StatusItem>(() => {
   const list = serverList.value
   if (!list) {
     return {
-      title: 'Server Status',
-      value: errors.servers ? '不可用' : '等待检测',
-      detail: errors.servers || '尚未读取服务器列表。',
+      title: t('help.status.server.title'),
+      value: errors.servers ? t('help.states.unavailable') : t('help.states.waitingCheck'),
+      detail: errors.servers || t('help.status.server.waitingDetail'),
       status: errors.servers ? 'error' : 'unknown',
       icon: 'servers',
     }
@@ -353,8 +378,8 @@ const serverStatus = computed<StatusItem>(() => {
   const active = selectedServer.value
   if (list.connected && active) {
     return {
-      title: 'Server Status',
-      value: '已连接',
+      title: t('help.status.server.title'),
+      value: t('help.states.connected'),
       detail: `${active.name || active.host} · ${active.host}:${active.port}`,
       status: 'ok',
       icon: 'servers',
@@ -362,17 +387,17 @@ const serverStatus = computed<StatusItem>(() => {
   }
   if (list.items.length) {
     return {
-      title: 'Server Status',
-      value: '未连接',
-      detail: `${list.items.length} 个服务器配置可用，当前没有活跃连接。`,
+      title: t('help.status.server.title'),
+      value: t('help.states.disconnected'),
+      detail: t('help.status.server.savedButDisconnected', { count: list.items.length }),
       status: 'warning',
       icon: 'servers',
     }
   }
   return {
-    title: 'Server Status',
-    value: '未配置',
-    detail: '尚未添加 Gate Server。',
+    title: t('help.status.server.title'),
+    value: t('help.states.notConfigured'),
+    detail: t('help.status.server.notConfiguredDetail'),
     status: 'warning',
     icon: 'servers',
   }
@@ -382,8 +407,8 @@ const runtimeStatus = computed<StatusItem>(() => {
   const runtimeError = errors.runtime || errors.health
   if (runtimeError) {
     return {
-      title: 'Runtime Status',
-      value: '不可用',
+      title: t('help.status.runtime.title'),
+      value: t('help.states.unavailable'),
       detail: runtimeError,
       status: 'error',
       icon: 'cpu',
@@ -391,17 +416,20 @@ const runtimeStatus = computed<StatusItem>(() => {
   }
   if (!health.value) {
     return {
-      title: 'Runtime Status',
-      value: '等待检测',
-      detail: '尚未读取运行时健康状态。',
+      title: t('help.status.runtime.title'),
+      value: t('help.states.waitingCheck'),
+      detail: t('help.status.runtime.waitingDetail'),
       status: 'unknown',
       icon: 'cpu',
     }
   }
   return {
-    title: 'Runtime Status',
+    title: t('help.status.runtime.title'),
     value: healthLabel(health.value.overall),
-    detail: `${health.value.signals.length} 个健康信号 · ${formatTime(health.value.updatedAt)}`,
+    detail: t('help.status.runtime.signalDetail', {
+      count: health.value.signals.length,
+      time: formatTime(health.value.updatedAt),
+    }),
     status: mapHealthStatus(health.value.overall),
     icon: 'cpu',
   }
@@ -411,9 +439,9 @@ const tunnelStatus = computed<StatusItem>(() => {
   const data = dashboard.value
   if (!data) {
     return {
-      title: 'Tunnel Status',
-      value: errors.runtime ? '不可用' : '等待检测',
-      detail: errors.runtime || '尚未读取隧道状态。',
+      title: t('help.status.tunnel.title'),
+      value: errors.runtime ? t('help.states.unavailable') : t('help.states.waitingCheck'),
+      detail: errors.runtime || t('help.status.tunnel.waitingDetail'),
       status: errors.runtime ? 'error' : 'unknown',
       icon: 'router',
     }
@@ -422,17 +450,22 @@ const tunnelStatus = computed<StatusItem>(() => {
   const running = data.tunnels.filter((tunnel) => tunnel.status === 'running').length
   if (running > 0) {
     return {
-      title: 'Tunnel Status',
-      value: `${running}/${total} 运行中`,
-      detail: `当前连接 ${data.overview.currentConnection} 个，平均 RTT ${data.overview.averageRttMs}ms。`,
+      title: t('help.status.tunnel.title'),
+      value: t('help.status.tunnel.running', { running, total }),
+      detail: t('help.status.tunnel.connectionDetail', {
+        count: data.overview.currentConnection,
+        rtt: data.overview.averageRttMs,
+      }),
       status: 'ok',
       icon: 'router',
     }
   }
   return {
-    title: 'Tunnel Status',
-    value: total ? '全部停止' : '未配置',
-    detail: total ? `${total} 个隧道已配置但未运行。` : '暂无隧道数据。',
+    title: t('help.status.tunnel.title'),
+    value: total ? t('help.states.allStopped') : t('help.states.notConfigured'),
+    detail: total
+      ? t('help.status.tunnel.configuredStopped', { count: total })
+      : t('help.status.tunnel.emptyDetail'),
     status: 'warning',
     icon: 'router',
   }
@@ -442,18 +475,18 @@ const certificateStatus = computed<StatusItem>(() => {
   const list = certificates.value
   if (!list) {
     return {
-      title: 'Certificate Status',
-      value: errors.certificates ? '不可用' : '等待检测',
-      detail: errors.certificates || '尚未读取证书状态。',
+      title: t('help.status.certificate.title'),
+      value: errors.certificates ? t('help.states.unavailable') : t('help.states.waitingCheck'),
+      detail: errors.certificates || t('help.status.certificate.waitingDetail'),
       status: errors.certificates ? 'error' : 'unknown',
       icon: 'shield-check',
     }
   }
   if (!list.certificates.length) {
     return {
-      title: 'Certificate Status',
-      value: '无证书',
-      detail: '证书库为空，HTTPS 隧道会依赖后续配置。',
+      title: t('help.status.certificate.title'),
+      value: t('help.states.noCertificate'),
+      detail: t('help.status.certificate.emptyDetail'),
       status: 'warning',
       icon: 'shield-check',
     }
@@ -461,9 +494,9 @@ const certificateStatus = computed<StatusItem>(() => {
   const severe = list.certificates.filter((cert) => isSevereCertificateStatus(cert.status))
   if (severe.length) {
     return {
-      title: 'Certificate Status',
-      value: `${severe.length} 个异常`,
-      detail: severe.map((cert) => cert.domain).join('、'),
+      title: t('help.status.certificate.title'),
+      value: t('help.status.certificate.abnormal', { count: severe.length }),
+      detail: severe.map((cert) => cert.domain).join(t('help.punctuation.listSeparator')),
       status: 'error',
       icon: 'shield-check',
     }
@@ -471,17 +504,17 @@ const certificateStatus = computed<StatusItem>(() => {
   const expiring = list.certificates.filter((cert) => cert.status === 'expiringSoon')
   if (expiring.length) {
     return {
-      title: 'Certificate Status',
-      value: `${expiring.length} 个即将过期`,
-      detail: expiring.map((cert) => cert.domain).join('、'),
+      title: t('help.status.certificate.title'),
+      value: t('help.status.certificate.expiring', { count: expiring.length }),
+      detail: expiring.map((cert) => cert.domain).join(t('help.punctuation.listSeparator')),
       status: 'warning',
       icon: 'shield-check',
     }
   }
   return {
-    title: 'Certificate Status',
-    value: `${list.certificates.length} 个有效`,
-    detail: `证书库：${list.storeRoot}`,
+    title: t('help.status.certificate.title'),
+    value: t('help.status.certificate.valid', { count: list.certificates.length }),
+    detail: t('help.status.certificate.storeDetail', { path: list.storeRoot }),
     status: 'ok',
     icon: 'shield-check',
   }
@@ -502,24 +535,26 @@ const serverConnectionCheck = computed<ChecklistItem>(() => {
   if (report) {
     return {
       id: 'server-connection',
-      title: 'Server Connection Check',
-      description: '检查客户端能否连接到当前 Gate Server。',
+      title: t('help.checks.serverConnection.title'),
+      description: t('help.checks.serverConnection.description'),
       status: report.ok ? 'ok' : 'error',
-      reason: report.title,
-      solution: report.solution,
+      reason: connectionReportTitle(report),
+      solution: connectionReportSolution(report),
       meta: `${report.elapsedMs}ms`,
     }
   }
   return {
     id: 'server-connection',
-    title: 'Server Connection Check',
-    description: '检查客户端能否连接到当前 Gate Server。',
+    title: t('help.checks.serverConnection.title'),
+    description: t('help.checks.serverConnection.description'),
     status: 'warning',
-    reason: selectedServer.value ? '尚未运行连接测试。' : '没有可用于测试的服务器配置。',
+    reason: selectedServer.value
+      ? t('help.checks.serverConnection.pendingReason')
+      : t('help.checks.serverConnection.noServerReason'),
     solution: selectedServer.value
-      ? '点击开始诊断重新执行连接测试。'
-      : '先在服务器页面添加 Gate Server。',
-    meta: selectedServerAddr.value ?? '未配置',
+      ? t('help.checks.serverConnection.pendingSolution')
+      : t('help.checks.serverConnection.noServerSolution'),
+    meta: selectedServerAddr.value ?? t('help.states.notConfigured'),
   }
 })
 
@@ -528,12 +563,12 @@ const networkCheck = computed<ChecklistItem>(() => {
   if (!report) {
     return {
       id: 'network',
-      title: 'Network Check',
-      description: '检查 DNS、网络链路和连接超时。',
+      title: t('help.checks.network.title'),
+      description: t('help.checks.network.description'),
       status: 'warning',
-      reason: '等待连接诊断结果。',
-      solution: '开始诊断后会基于真实连接结果判断网络状态。',
-      meta: selectedServerAddr.value ?? '未配置',
+      reason: t('help.checks.network.pendingReason'),
+      solution: t('help.checks.network.pendingSolution'),
+      meta: selectedServerAddr.value ?? t('help.states.notConfigured'),
     }
   }
   const ok = report.ok || report.code === 'TOKEN_ERROR'
@@ -545,11 +580,11 @@ const networkCheck = computed<ChecklistItem>(() => {
   ].includes(report.code)
   return {
     id: 'network',
-    title: 'Network Check',
-    description: '检查 DNS、网络链路和连接超时。',
+    title: t('help.checks.network.title'),
+    description: t('help.checks.network.description'),
     status: ok ? 'ok' : networkFailed ? 'error' : 'warning',
-    reason: ok ? '网络链路已到达服务端。' : report.reason,
-    solution: ok ? '继续检查认证和协议版本。' : report.solution,
+    reason: ok ? t('help.checks.network.okReason') : connectionReportReason(report),
+    solution: ok ? t('help.checks.network.okSolution') : connectionReportSolution(report),
     meta: report.code,
   }
 })
@@ -559,21 +594,22 @@ const portCheck = computed<ChecklistItem>(() => {
   if (!finding) {
     return {
       id: 'port',
-      title: 'Port Check',
-      description: '检查服务端端口是否可解析、可访问。',
+      title: t('help.checks.port.title'),
+      description: t('help.checks.port.description'),
       status: 'warning',
-      reason: errors.deployment || '尚未收到端口检查结果。',
-      solution: '开始诊断后会读取桌面运行时的部署检查。',
-      meta: selectedServerAddr.value ?? '未配置',
+      reason: errors.deployment || t('help.checks.port.pendingReason'),
+      solution: t('help.checks.port.pendingSolution'),
+      meta: selectedServerAddr.value ?? t('help.states.notConfigured'),
     }
   }
+  const localizedFinding = localizeDeploymentFinding(finding)
   return {
     id: 'port',
-    title: 'Port Check',
-    description: '检查服务端端口是否可解析、可访问。',
-    status: normalizeDiagnosticStatus(finding.status),
-    reason: finding.reason,
-    solution: finding.solution,
+    title: t('help.checks.port.title'),
+    description: t('help.checks.port.description'),
+    status: normalizeDiagnosticStatus(localizedFinding.status),
+    reason: localizedFinding.reason,
+    solution: localizedFinding.solution,
     meta: finding.elapsedMs ? `${finding.elapsedMs}ms` : selectedServerAddr.value,
   }
 })
@@ -584,31 +620,31 @@ const tokenCheck = computed<ChecklistItem>(() => {
   if (!server?.token) {
     return {
       id: 'token',
-      title: 'Token Check',
-      description: '检查当前服务器 Token 是否可通过认证。',
+      title: t('help.checks.token.title'),
+      description: t('help.checks.token.description'),
       status: 'warning',
-      reason: '当前服务器没有可用于测试的 Token。',
-      solution: '在服务器配置中填入 Token 后重新诊断。',
+      reason: t('help.checks.token.emptyReason'),
+      solution: t('help.checks.token.emptySolution'),
     }
   }
   if (!report) {
     return {
       id: 'token',
-      title: 'Token Check',
-      description: '检查当前服务器 Token 是否可通过认证。',
+      title: t('help.checks.token.title'),
+      description: t('help.checks.token.description'),
       status: 'warning',
-      reason: '等待连接测试返回认证结果。',
-      solution: '点击开始诊断。',
+      reason: t('help.checks.token.pendingReason'),
+      solution: t('help.checks.token.pendingSolution'),
     }
   }
   const tokenFailed = report.code === 'TOKEN_ERROR' || report.code === 'TOKEN_EMPTY'
   return {
     id: 'token',
-    title: 'Token Check',
-    description: '检查当前服务器 Token 是否可通过认证。',
+    title: t('help.checks.token.title'),
+    description: t('help.checks.token.description'),
     status: report.ok ? 'ok' : tokenFailed ? 'error' : 'warning',
-    reason: report.ok ? 'Token 已通过服务端认证。' : report.title,
-    solution: report.ok ? '继续创建或恢复隧道。' : report.solution,
+    reason: report.ok ? t('help.checks.token.okReason') : connectionReportTitle(report),
+    solution: report.ok ? t('help.checks.token.okSolution') : connectionReportSolution(report),
     meta: report.code,
   }
 })
@@ -618,45 +654,50 @@ const versionCheck = computed<ChecklistItem>(() => {
   if (!info) {
     return {
       id: 'version',
-      title: 'Version Check',
-      description: '检查客户端、服务端和协议版本。',
+      title: t('help.checks.version.title'),
+      description: t('help.checks.version.description'),
       status: errors.system ? 'error' : 'warning',
-      reason: errors.system || '尚未读取版本信息。',
-      solution: '在 Gate Desktop 中重新打开帮助中心。',
+      reason: errors.system || t('help.checks.version.pendingReason'),
+      solution: t('help.checks.version.pendingSolution'),
     }
   }
-  const serverUnknown = info.serverVersion === '未连接'
+  const serverUnknown = info.serverVersion === DIAGNOSTIC_VALUE_DISCONNECTED
   const mismatch = !serverUnknown && info.clientVersion !== info.serverVersion
   return {
     id: 'version',
-    title: 'Version Check',
-    description: '检查客户端、服务端和协议版本。',
+    title: t('help.checks.version.title'),
+    description: t('help.checks.version.description'),
     status: mismatch || serverUnknown ? 'warning' : 'ok',
     reason: serverUnknown
-      ? '服务端版本暂未返回。'
+      ? t('help.checks.version.serverUnknownReason')
       : mismatch
-        ? `客户端 ${info.clientVersion}，服务端 ${info.serverVersion}。`
-        : `客户端与服务端版本一致：${info.clientVersion}。`,
+        ? t('help.checks.version.mismatchReason', {
+            client: info.clientVersion,
+            server: info.serverVersion,
+          })
+        : t('help.checks.version.matchReason', { version: info.clientVersion }),
     solution: mismatch
-      ? '建议升级到同一版本后重试。'
+      ? t('help.checks.version.mismatchSolution')
       : serverUnknown
-        ? '连接服务器后重新诊断。'
-        : `协议版本 ${info.protocolVersion} 可用。`,
+        ? t('help.checks.version.serverUnknownSolution')
+        : t('help.checks.version.matchSolution', { protocol: info.protocolVersion }),
     meta: info.protocolVersion,
   }
 })
 
 const timeSyncCheck = computed<ChecklistItem>(() => ({
   id: 'time-sync',
-  title: 'Time Sync',
-  description: '检查诊断数据时间戳是否可用于定位问题。',
+  title: t('help.checks.timeSync.title'),
+  description: t('help.checks.timeSync.description'),
   status: health.value?.updatedAt || dashboard.value?.generatedAt ? 'warning' : 'warning',
   reason:
     health.value?.updatedAt || dashboard.value?.generatedAt
-      ? `本地运行时最近更新时间：${formatTime(health.value?.updatedAt ?? dashboard.value?.generatedAt ?? 0)}。`
-      : '当前诊断命令没有返回服务端时间戳。',
-  solution: '如遇认证过期或证书异常，请同时确认本机和服务器系统时间。',
-  meta: lastGeneratedAt.value ? formatTime(lastGeneratedAt.value) : '未生成',
+      ? t('help.checks.timeSync.localTimeReason', {
+          time: formatTime(health.value?.updatedAt ?? dashboard.value?.generatedAt ?? 0),
+        })
+      : t('help.checks.timeSync.noTimestampReason'),
+  solution: t('help.checks.timeSync.solution'),
+  meta: lastGeneratedAt.value ? formatTime(lastGeneratedAt.value) : t('help.states.notGenerated'),
 }))
 
 const tlsCheck = computed<ChecklistItem>(() => {
@@ -668,32 +709,34 @@ const tlsCheck = computed<ChecklistItem>(() => {
   if (tlsErrors || severe.length) {
     return {
       id: 'tls',
-      title: 'TLS Check',
-      description: '检查 HTTPS 隧道和证书状态。',
+      title: t('help.checks.tls.title'),
+      description: t('help.checks.tls.description'),
       status: 'error',
-      reason: tlsErrors ? `TLS 错误计数 ${tlsErrors}。` : `${severe.length} 个证书异常。`,
-      solution: '查看证书页和日志，修复证书状态后重新诊断。',
+      reason: tlsErrors
+        ? t('help.checks.tls.errorReason', { count: tlsErrors })
+        : t('help.checks.tls.certificateErrorReason', { count: severe.length }),
+      solution: t('help.checks.tls.errorSolution'),
       meta: `${tlsTunnels.length} HTTPS`,
     }
   }
   if (tlsTunnels.length || certs.length) {
     return {
       id: 'tls',
-      title: 'TLS Check',
-      description: '检查 HTTPS 隧道和证书状态。',
+      title: t('help.checks.tls.title'),
+      description: t('help.checks.tls.description'),
       status: 'ok',
-      reason: '未发现 TLS 错误或异常证书。',
-      solution: '继续保持证书自动续期和日志观察。',
+      reason: t('help.checks.tls.okReason'),
+      solution: t('help.checks.tls.okSolution'),
       meta: `${tlsTunnels.length} HTTPS`,
     }
   }
   return {
     id: 'tls',
-    title: 'TLS Check',
-    description: '检查 HTTPS 隧道和证书状态。',
+    title: t('help.checks.tls.title'),
+    description: t('help.checks.tls.description'),
     status: 'warning',
-    reason: '当前没有 HTTPS 隧道或证书数据。',
-    solution: '如果要排查 HTTPS，请先创建证书或 HTTPS 隧道后重新诊断。',
+    reason: t('help.checks.tls.emptyReason'),
+    solution: t('help.checks.tls.emptySolution'),
   }
 })
 
@@ -705,56 +748,88 @@ const checklistSummary = computed(() => {
     },
     { ok: 0, warning: 0, error: 0 },
   )
-  return `${counts.ok} 通过 · ${counts.warning} 警告 · ${counts.error} 失败`
+  return t('help.summary.checklist', counts)
 })
 
 const deploymentFindings = computed(() => deploymentReport.value?.findings ?? [])
+const localizedDeploymentFindings = computed(() =>
+  deploymentFindings.value.map((finding) => localizeDeploymentFinding(finding)),
+)
+const deploymentSummary = computed(() => {
+  const report = deploymentReport.value
+  if (!report) return ''
+  return report.ok
+    ? t('help.deployment.summaryOk')
+    : t('help.deployment.summaryIssue', {
+        count: report.findings.filter((finding) => finding.status !== 'ok').length,
+      })
+})
 
 const reportFreshness = computed(() =>
-  lastGeneratedAt.value ? `更新于 ${formatTime(lastGeneratedAt.value)}` : '尚未生成',
+  lastGeneratedAt.value
+    ? t('help.report.updatedAt', { time: formatTime(lastGeneratedAt.value) })
+    : t('help.states.notGenerated'),
 )
 
 const reportRows = computed(() => [
-  { label: 'System Info', value: systemInfo.value ? '已采集' : '不可用', muted: !systemInfo.value },
-  { label: 'Runtime State', value: dashboard.value ? '已采集' : '不可用', muted: !dashboard.value },
   {
-    label: 'Tunnel State',
-    value: dashboard.value ? `${dashboard.value.tunnels.length} 个隧道` : '不可用',
+    label: t('help.rows.systemInfo'),
+    value: systemInfo.value ? t('help.states.collected') : t('help.states.unavailable'),
+    muted: !systemInfo.value,
+  },
+  {
+    label: t('help.rows.runtimeState'),
+    value: dashboard.value ? t('help.states.collected') : t('help.states.unavailable'),
     muted: !dashboard.value,
   },
   {
-    label: 'Connection History',
-    value: `${connectionHistory.value.length} 条记录`,
+    label: t('help.rows.tunnelState'),
+    value: dashboard.value
+      ? t('help.units.tunnels', { count: dashboard.value.tunnels.length })
+      : t('help.states.unavailable'),
+    muted: !dashboard.value,
+  },
+  {
+    label: t('help.rows.connectionHistory'),
+    value: t('help.units.records', { count: connectionHistory.value.length }),
     muted: !connectionHistory.value.length,
   },
   {
-    label: 'Recent Errors',
-    value: `${recentErrors.value.length} 条`,
+    label: t('help.rows.recentErrors'),
+    value: t('help.units.entries', { count: recentErrors.value.length }),
     muted: !recentErrors.value.length,
   },
-  { label: 'Logs', value: `${logStore.logs.length} 条`, muted: !logStore.logs.length },
+  {
+    label: t('help.rows.logs'),
+    value: t('help.units.entries', { count: logStore.logs.length }),
+    muted: !logStore.logs.length,
+  },
 ])
 
 const systemRows = computed(() => {
   const info = systemInfo.value
   if (!info) {
     return [
-      { label: '状态', value: errors.system || '尚未采集', muted: true },
-      { label: '数据源', value: 'diagnostics_collect_system_info', muted: true },
+      {
+        label: t('help.rows.status'),
+        value: errors.system || t('help.states.notCollected'),
+        muted: true,
+      },
+      { label: t('help.rows.dataSource'), value: 'diagnostics_collect_system_info', muted: true },
     ]
   }
   return [
-    { label: '客户端版本', value: info.clientVersion },
-    { label: '服务端版本', value: info.serverVersion },
-    { label: '协议版本', value: info.protocolVersion },
+    { label: t('help.rows.clientVersion'), value: info.clientVersion },
+    { label: t('help.rows.serverVersion'), value: localizeRuntimeValue(info.serverVersion) },
+    { label: t('help.rows.protocolVersion'), value: info.protocolVersion },
     { label: 'Rust', value: info.rustVersion },
-    { label: '系统', value: info.os },
-    { label: '架构', value: info.arch },
+    { label: t('help.rows.system'), value: info.os },
+    { label: t('help.rows.arch'), value: info.arch },
     { label: 'CPU', value: info.cpu },
-    { label: '内存', value: info.memory },
-    { label: '配置目录', value: info.configDir },
-    { label: '日志目录', value: info.logDir },
-    { label: '工作目录', value: info.currentDir },
+    { label: t('help.rows.memory'), value: localizeRuntimeValue(info.memory) },
+    { label: t('help.rows.configDir'), value: info.configDir },
+    { label: t('help.rows.logDir'), value: info.logDir },
+    { label: t('help.rows.currentDir'), value: info.currentDir },
   ]
 })
 
@@ -763,30 +838,37 @@ const runtimeRows = computed(() => {
   const active = selectedServer.value
   return [
     {
-      label: '运行时健康',
-      value: health.value ? healthLabel(health.value.overall) : errors.health || '未读取',
+      label: t('help.rows.runtimeHealth'),
+      value: health.value ? healthLabel(health.value.overall) : errors.health || t('help.states.notRead'),
       muted: !health.value,
     },
     {
-      label: '服务器',
+      label: t('help.rows.server'),
       value: active
         ? `${active.name || active.host} (${active.status})`
-        : errors.servers || '未配置',
+        : errors.servers || t('help.states.notConfigured'),
       muted: !active,
     },
     {
-      label: '隧道',
-      value: data ? `${data.overview.runningTunnel}/${data.overview.tunnelCount} 运行中` : '未读取',
+      label: t('help.rows.tunnels'),
+      value: data
+        ? t('help.status.tunnel.running', {
+            running: data.overview.runningTunnel,
+            total: data.overview.tunnelCount,
+          })
+        : t('help.states.notRead'),
       muted: !data,
     },
     {
-      label: '连接',
-      value: data ? `${data.overview.currentConnection} 当前连接` : '未读取',
+      label: t('help.rows.connections'),
+      value: data
+        ? t('help.units.currentConnections', { count: data.overview.currentConnection })
+        : t('help.states.notRead'),
       muted: !data,
     },
     {
-      label: '运行时在线',
-      value: data ? formatDuration(data.overview.runtimeUptimeSeconds) : '未读取',
+      label: t('help.rows.runtimeOnline'),
+      value: data ? formatDuration(data.overview.runtimeUptimeSeconds) : t('help.states.notRead'),
       muted: !data,
     },
   ]
@@ -800,7 +882,7 @@ const recentErrors = computed<RecentErrorItem[]>(() => {
       id: `history-${entry.id}`,
       source: 'Connection',
       title: entry.serverAddr,
-      detail: entry.failureReason || '连接失败',
+      detail: entry.failureReason || t('help.states.connectionFailed'),
     }))
 
   const logErrors = logStore.logs
@@ -825,7 +907,7 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
   const startedAt = Date.now()
   loading.value = true
   diagnosticRunTone.value = 'info'
-  diagnosticRunMessage.value = '正在运行诊断...'
+  setDiagnosticRunMessage('info', 'help.run.running')
   resetErrors()
   try {
     // 统一从现有 IPC、服务和日志 Store 聚合数据，不在前端制造状态。
@@ -860,14 +942,17 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
 
     const summary = buildRunSummary()
     diagnosticRunTone.value = summary.tone
-    diagnosticRunMessage.value = summary.message
+    diagnosticRunMessageKey.value = summary
     if (!options.silent) {
-      toast[summary.tone](summary.message)
+      toast[summary.tone](diagnosticRunMessage.value)
     }
   } catch (error) {
     const message = toErrorMessage(error)
     diagnosticRunTone.value = 'error'
-    diagnosticRunMessage.value = `诊断失败：${message}`
+    diagnosticRunMessageKey.value = {
+      key: 'help.run.failed',
+      params: { message },
+    }
     if (!options.silent) toast.error(diagnosticRunMessage.value)
   } finally {
     await waitForVisibleLoading(startedAt)
@@ -878,11 +963,11 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
 async function loadLogs() {
   await logStore.refresh()
   if (logStore.status === 'error') {
-    throw new Error(logStore.error || '日志加载失败')
+    throw new Error(logStore.error || t('help.errors.logLoadFailed'))
   }
 }
 
-function buildRunSummary() {
+function buildRunSummary(): DiagnosticRunSummary {
   const counts = diagnosticChecklist.value.reduce(
     (acc, item) => {
       acc[item.status] += 1
@@ -895,27 +980,30 @@ function buildRunSummary() {
   if (counts.error || sourceErrors) {
     return {
       tone: 'error' as const,
-      message: `诊断完成：${counts.error} 项失败，${counts.warning} 项警告。`,
+      key: 'help.run.completedWithErrors',
+      params: { errors: counts.error, warnings: counts.warning },
     }
   }
 
   if (!selectedServer.value) {
     return {
       tone: 'warning' as const,
-      message: '诊断完成：尚未配置服务器，已检查本机、运行时、隧道、证书和日志。',
+      key: 'help.run.completedNoServer',
     }
   }
 
   if (counts.warning) {
     return {
       tone: 'warning' as const,
-      message: `诊断完成：${counts.ok} 项通过，${counts.warning} 项需要确认。`,
+      key: 'help.run.completedWithWarnings',
+      params: { ok: counts.ok, warnings: counts.warning },
     }
   }
 
   return {
     tone: 'success' as const,
-    message: `诊断完成：${counts.ok} 项全部通过。`,
+    key: 'help.run.completedSuccess',
+    params: { ok: counts.ok },
   }
 }
 
@@ -933,21 +1021,30 @@ function refreshMemory() {
   connectionHistory.value = diagnosticsService.getConnectionHistory()
 }
 
+function setDiagnosticRunMessage(
+  tone: 'info' | 'success' | 'warning' | 'error',
+  key: string,
+  params?: Record<string, unknown>,
+) {
+  diagnosticRunTone.value = tone
+  diagnosticRunMessageKey.value = { key, params }
+}
+
 async function copyDiagnosticReport(showToast = true) {
   if (!lastGeneratedAt.value && !loading.value) {
     await refreshDiagnostics()
   }
   await diagnosticsService.copyText(JSON.stringify(buildReportPayload(), null, 2))
-  if (showToast) toast.success('诊断报告已复制')
+  if (showToast) toast.success(t('help.toast.reportCopied'))
 }
 
 async function copySystemInfo() {
   if (!systemInfo.value) {
-    toast.warning('系统信息尚不可用')
+    toast.warning(t('help.toast.systemInfoUnavailable'))
     return
   }
   await diagnosticsService.copyText(JSON.stringify(systemInfo.value, null, 2))
-  toast.success('系统信息已复制')
+  toast.success(t('help.toast.systemInfoCopied'))
 }
 
 async function exportDebugBundle() {
@@ -955,27 +1052,27 @@ async function exportDebugBundle() {
     await refreshDiagnostics()
   }
   downloadJson(`gate-debug-bundle-${timestampForFilename()}.json`, buildReportPayload())
-  toast.success('Debug Bundle 已导出')
+  toast.success(t('help.toast.bundleExported'))
 }
 
 async function openIssue() {
   await copyDiagnosticReport(false)
   await openUrl(GITHUB_ISSUE_URL)
-  toast.success('诊断报告已复制，可粘贴到 Issue')
+  toast.success(t('help.toast.issueReady'))
 }
 
 async function openLogDirectory() {
-  await openDirectory(systemInfo.value?.logDir, '日志目录')
+  await openDirectory(systemInfo.value?.logDir, t('help.rows.logDir'))
 }
 
 async function openConfigDirectory() {
-  await openDirectory(systemInfo.value?.configDir, '配置目录')
+  await openDirectory(systemInfo.value?.configDir, t('help.rows.configDir'))
 }
 
 function clearSupportCache() {
   diagnosticsService.clearSupportCache()
   refreshMemory()
-  toast.success('帮助中心缓存已清理')
+  toast.success(t('help.toast.cacheCleared'))
 }
 
 async function exportLogs() {
@@ -983,7 +1080,7 @@ async function exportLogs() {
     await capture('logs', loadLogs)
   }
   downloadLogs(logStore.logs, 'txt')
-  toast.success('日志已导出')
+  toast.success(t('help.toast.logsExported'))
 }
 
 function buildReportPayload() {
@@ -1039,6 +1136,69 @@ function normalizeDiagnosticStatus(status: DiagnosticStatus): ChecklistStatus {
   return 'error'
 }
 
+function connectionReportTitle(report: ConnectionTestReport) {
+  return connectionReportText(report, 'title')
+}
+
+function connectionReportReason(report: ConnectionTestReport) {
+  return connectionReportText(report, 'reason')
+}
+
+function connectionReportSolution(report: ConnectionTestReport) {
+  return connectionReportText(report, 'solution')
+}
+
+function connectionReportText(
+  report: ConnectionTestReport,
+  field: 'title' | 'reason' | 'solution',
+) {
+  const key = `help.connectionReport.${toLocaleCode(report.code)}.${field}`
+  if (te(key)) {
+    return t(key, {
+      serverAddr: selectedServerAddr.value ?? '',
+      reason: report.reason,
+      title: report.title,
+      solution: report.solution,
+    })
+  }
+  return report[field]
+}
+
+function localizeDeploymentFinding(finding: DiagnosticFinding): DiagnosticFinding {
+  const baseKey = `help.deployment.findings.${toLocaleCode(finding.id)}`
+  const params = {
+    reason: finding.reason,
+    serverAddr: selectedServerAddr.value ?? '',
+  }
+  return {
+    ...finding,
+    label: localizeDiagnosticText(finding.label, `${baseKey}.label`, params),
+    reason: localizeDiagnosticText(finding.reason, `${baseKey}.reason`, params),
+    possibleCause: localizeDiagnosticText(
+      finding.possibleCause,
+      `${baseKey}.possibleCause`,
+      params,
+    ),
+    solution: localizeDiagnosticText(finding.solution, `${baseKey}.solution`, params),
+  }
+}
+
+function localizeDiagnosticText(
+  value: string,
+  fallbackKey: string,
+  params: Record<string, unknown>,
+) {
+  if (te(value)) return t(value, params)
+  if (te(fallbackKey)) return t(fallbackKey, { ...params, reason: value })
+  return value
+}
+
+function toLocaleCode(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+([a-z0-9])/g, (_, char: string) => char.toUpperCase())
+}
+
 function findingIcon(status: DiagnosticStatus) {
   if (status === 'ok') return 'check-circle'
   if (status === 'warning') return 'alert-triangle'
@@ -1052,10 +1212,10 @@ function mapHealthStatus(status: HealthStatus): SupportStatus {
 }
 
 function healthLabel(status: HealthStatus) {
-  if (status === 'healthy') return '健康'
-  if (status === 'warning') return '警告'
-  if (status === 'critical') return '严重'
-  return '离线'
+  if (status === 'healthy') return t('help.health.healthy')
+  if (status === 'warning') return t('help.health.warning')
+  if (status === 'critical') return t('help.health.critical')
+  return t('help.health.offline')
 }
 
 function isSevereCertificateStatus(status: CertificateStatus) {
@@ -1064,14 +1224,14 @@ function isSevereCertificateStatus(status: CertificateStatus) {
 
 async function openDirectory(path: string | undefined, label: string) {
   if (!path) {
-    toast.warning(`${label}尚不可用`)
+    toast.warning(t('help.toast.directoryUnavailable', { label }))
     return
   }
   try {
     await openExternal(path)
   } catch {
     await diagnosticsService.copyText(path)
-    toast.warning(`${label}无法直接打开，路径已复制`)
+    toast.warning(t('help.toast.directoryCopied', { label }))
   }
 }
 
@@ -1100,8 +1260,16 @@ function timestampForFilename() {
 }
 
 function formatTime(timestamp: number) {
-  if (!timestamp) return '未知'
+  if (!timestamp) return t('help.states.unknown')
   return new Date(timestamp).toLocaleString()
+}
+
+function localizeRuntimeValue(value: string) {
+  if (value === DIAGNOSTIC_VALUE_DISCONNECTED) return t('help.states.disconnected')
+  if (value === DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED)
+    return t('help.system.memoryNeedsPermission')
+  if (value === 'unknown') return t('help.states.unknown')
+  return value
 }
 
 function formatDuration(seconds: number) {

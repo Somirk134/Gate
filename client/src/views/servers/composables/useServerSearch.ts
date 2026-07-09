@@ -5,13 +5,16 @@
    ================================================================== */
 
 import { computed, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Server } from '../types'
-import { KIND_MAP, SERVER_STATUS_CONFIG } from '../utils'
+import { KIND_MAP } from '../utils'
 
 export function useServerSearch(servers: Ref<Server[]>, query: Ref<string>) {
+  const { t, te, locale } = useI18n()
   const normalizedQuery = computed(() => query.value.trim().toLowerCase())
 
   const results = computed(() => {
+    void locale.value
     const q = normalizedQuery.value
     if (!q) return servers.value
     return servers.value.filter((s) => {
@@ -24,16 +27,22 @@ export function useServerSearch(servers: Ref<Server[]>, query: Ref<string>) {
       // 版本
       if (s.version.toLowerCase().includes(q)) return true
       // 类型
-      if (KIND_MAP[s.kind]?.label.toLowerCase().includes(q)) return true
+      if (t(`server.kinds.${KIND_MAP[s.kind]?.label}.label`).toLowerCase().includes(q)) return true
       // 主机
       if (s.settings.host.toLowerCase().includes(q)) return true
       // 标签
       if (s.tags.some((tag) => tag.toLowerCase().includes(q))) return true
+      if (s.tags.some((tag) => localizedTag(tag).toLowerCase().includes(q))) return true
       // 状态文本
-      if (SERVER_STATUS_CONFIG[s.status].label.toLowerCase().includes(q)) return true
+      if (t(`server.statusLabels.${s.status}`).toLowerCase().includes(q)) return true
       return false
     })
   })
+
+  function localizedTag(tag: string): string {
+    const key = `server.tags.${tag}`
+    return te(key) ? t(key) : tag
+  }
 
   const hasQuery = computed(() => normalizedQuery.value.length > 0)
   const matchCount = computed(() => results.value.length)

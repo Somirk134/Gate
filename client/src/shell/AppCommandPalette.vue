@@ -7,7 +7,7 @@
           ref="inputRef"
           v-model="query"
           type="text"
-          placeholder="输入命令或搜索..."
+          :placeholder="t('commands.palette.placeholder')"
           @keydown.down.prevent="selectNext"
           @keydown.up.prevent="selectPrev"
           @keydown.enter.prevent="executeSelected"
@@ -18,7 +18,7 @@
       <div class="command-palette-results">
         <div v-if="filteredCommands.length === 0" class="no-results">
           <GIcon name="search" size="lg" />
-          <p>没有找到命令</p>
+          <p>{{ t('commands.palette.noResults') }}</p>
         </div>
 
         <div
@@ -51,6 +51,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCommandPalette } from '@composables/useCommandPalette'
 import GIcon from '@components/icons/GIcon.vue'
 
@@ -66,6 +67,7 @@ const {
 } = useCommandPalette()
 
 const inputRef = ref<HTMLInputElement | null>(null)
+const { t } = useI18n()
 
 onMounted(() => {
   nextTick(() => {
