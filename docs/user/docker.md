@@ -2,6 +2,12 @@
 
 Gate includes a server Dockerfile and Compose templates for self-hosted deployments.
 
+Before starting the server, generate a deployment token and export it in the shell that runs Docker:
+
+```bash
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
+```
+
 ## Recommended Linux deployment: host network
 
 Gate creates public tunnel listeners dynamically from each tunnel `remotePort`. On Linux servers, the recommended Docker mode is `network_mode: host` so users only need to open the selected ports in the cloud security group or host firewall. No Compose port mapping changes are required when a new tunnel port is used.
@@ -9,15 +15,13 @@ Gate creates public tunnel listeners dynamically from each tunnel `remotePort`. 
 From the repository root:
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
-  docker compose up -d --build
+docker compose up -d --build
 ```
 
 Or use the copy under `docker/`:
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
-  docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 Open these ports on the server firewall/security group:
@@ -27,24 +31,21 @@ Open these ports on the server firewall/security group:
 
 `network_mode: host` is intended for Linux servers. For Docker Desktop on Windows/macOS or environments where host networking is not desired, use the bridge template below.
 
-
 ## Run from a published image
 
 After the image is published to Docker Hub, users do not need source code. They can use the release template:
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
-  docker compose -f docker/docker-compose.release.yml up -d
+docker compose -f docker/docker-compose.release.yml up -d
 ```
 
-The default image is `qwe1235/gate-server:0.9.0`. Override it with `GATE_SERVER_IMAGE` if a different registry, repository, or tag is required.
+The default image is `qwe1235/gate-server:0.9.1`. Override it with `GATE_SERVER_IMAGE` if a different registry, repository, or tag is required.
 
 ## Bridge network fallback
 
 The bridge template keeps Docker port mappings explicit:
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 GATE_PORT=5800 \
 GATE_TUNNEL_PORT_RANGE=18080-18100 \
   docker compose -f docker/docker-compose.bridge.yml up -d --build
@@ -65,7 +66,7 @@ For Linux host networking:
 ```bash
 docker run --rm --network host \
   -e GATE_SERVER_ADDR=0.0.0.0:5800 \
-  -e GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+  -e GATE_AUTH_TOKEN="$GATE_AUTH_TOKEN" \
   gate-server:local
 ```
 
@@ -74,7 +75,7 @@ For bridge networking:
 ```bash
 docker run --rm -p 5800:5800 -p 18080-18100:18080-18100 \
   -e GATE_SERVER_ADDR=0.0.0.0:5800 \
-  -e GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+  -e GATE_AUTH_TOKEN="$GATE_AUTH_TOKEN" \
   gate-server:local
 ```
 

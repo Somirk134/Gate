@@ -20,7 +20,6 @@ pub enum TransportKind {
     Tcp,
     WebSocket,
     Quic,
-    Mock,
     Custom,
 }
 
@@ -156,7 +155,7 @@ impl TcpTransport {
             .flush()
             .await
             .map_err(|source| TransportError::Write(source.to_string()))?;
-        CommunicationLogger::send(None, &message);
+        CommunicationLogger::send(&message);
         Ok(())
     }
 
@@ -187,7 +186,7 @@ impl TcpTransport {
                 .map_err(|source| TransportError::Read(source.to_string()))?
         };
 
-        CommunicationLogger::receive(None, &message);
+        CommunicationLogger::receive(&message);
         Ok(Some(message))
     }
 }

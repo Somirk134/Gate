@@ -1,39 +1,26 @@
 /* ==================================================================
    Server 模块类型系统
    ------------------------------------------------------------------
-   Server 是整个系统的资源管理中心。所有 Tunnel 必须绑定一个 Server。
-   一个客户端可管理多个 Server（个人服务器 / 云服务器 / 家庭 NAS /
-   公司服务器 / Docker 部署 / Kubernetes 未来扩展）。
-
-   设计原则：
-     - 类型契约与运行时实现解耦，未来替换为真实 Rust Server 时
-       仅需保持类型不变即可无缝迁移 UI。
-     - Server 不是配置，是资源。用户管理 Server Cluster。
+   Server 是整个系统的资源管理中心；所有 Tunnel 必须绑定一个 Server。
+   一个客户端可管理多个 Server（个人服务器 / 云服务器 / 家庭 NAS / 公司服务器 / Docker 部署）。
+   设计原则：类型契约与运行时实现解耦，Server 是资源而不是前端假配置。
    ================================================================== */
 
 /* ── 连接状态（统一全模块） ── */
 export type ServerStatus =
-  | 'connected' // 已连接
-  | 'disconnected' // 已断开
-  | 'connecting' // 连接中
-  | 'reconnecting' // 重连中
-  | 'offline' // 离线
-  | 'maintenance' // 维护中
-  | 'error' // 错误
+  | 'connected'
+  | 'disconnected'
+  | 'connecting'
+  | 'reconnecting'
+  | 'offline'
+  | 'maintenance'
+  | 'error'
 
-/* ── 服务器类型 ──
-   V1 启用：personal / cloud / nas / company / docker
-   未来扩展：kubernetes */
-export type ServerKind =
-  | 'personal' // 个人服务器
-  | 'cloud' // 云服务器
-  | 'nas' // 家庭 NAS
-  | 'company' // 公司服务器
-  | 'docker' // Docker 部署
-  | 'kubernetes' // Kubernetes（未来）
+/* ── 服务器类型 ── */
+export type ServerKind = 'personal' | 'cloud' | 'nas' | 'company' | 'docker'
 
 /* ── 类型可用性 ── */
-export type KindAvailability = 'enabled' | 'soon' | 'planned'
+export type KindAvailability = 'enabled'
 
 /* ── 连接方式 ── */
 export type ConnectionMethod = 'tcp' | 'ws' | 'wss' | 'grpc'

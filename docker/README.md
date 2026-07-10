@@ -16,8 +16,8 @@ This directory contains Docker assets for the Gate server.
 Gate listens on tunnel ports dynamically. On Linux servers, use host networking so operators only need to open the Gate control port and the selected tunnel ports in the firewall/security group.
 
 ```bash
-GATE_AUTH_TOKEN=replace-me \
-  docker compose -f docker/docker-compose.yml up -d --build
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 Required firewall/security-group ports:
@@ -31,16 +31,16 @@ Required firewall/security-group ports:
 After publishing the image to Docker Hub, users can run without source code:
 
 ```bash
-GATE_AUTH_TOKEN=replace-me \
-  docker compose -f docker/docker-compose.release.yml up -d
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
+docker compose -f docker/docker-compose.release.yml up -d
 ```
 
-The default image is `qwe1235/gate-server:0.9.0`. Override it with `GATE_SERVER_IMAGE` if needed.
+The default image is `qwe1235/gate-server:0.9.1`. Override it with `GATE_SERVER_IMAGE` if needed.
 
 ## Bridge fallback
 
 ```bash
-GATE_AUTH_TOKEN=replace-me \
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 GATE_PORT=5800 \
 GATE_TUNNEL_PORT_RANGE=18080-18100 \
   docker compose -f docker/docker-compose.bridge.yml up -d --build
@@ -56,7 +56,7 @@ docker build -f docker/Dockerfile.server -t gate-server:local .
 
 ## Production Notes
 
-- Replace development defaults before production use.
+- Generate a strong `GATE_AUTH_TOKEN` before starting the container.
 - Store secrets outside Compose files.
 - Use Linux host networking when dynamic tunnel ports are required.
 - Put TLS at a reverse proxy or native TLS endpoint.

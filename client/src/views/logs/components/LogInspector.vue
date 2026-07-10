@@ -90,7 +90,7 @@ const contextItems = computed(() => {
   ]
 })
 
-const stackText = computed(() => props.log?.stack?.join('\n') ?? t('logs.stackReserved'))
+const stackText = computed(() => props.log?.stack?.join('\n') ?? t('logs.stackUnavailable'))
 
 function sourceLabel(source: LogSource): string {
   return t(`logs.source.${source.toLowerCase()}`)

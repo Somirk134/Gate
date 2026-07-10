@@ -9,7 +9,9 @@ async fn statistics_query_returns_runtime_counters_from_real_flow() -> anyhow::R
 
     let mut client = AlphaClient::new();
     client.connect(addr).await?;
-    client.authenticate("gate-alpha-token").await?;
+    client
+        .authenticate("gate-integration-test-token-20260710-release-audit")
+        .await?;
     client.send_heartbeat().await?;
     let response = client.request(Command::StatisticsQuery, json!({})).await?;
 

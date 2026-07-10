@@ -12,8 +12,8 @@ pub struct Alias(Host);
 impl Host {
     /// Normalizes a host without performing full RFC validation.
     ///
-    /// Full validation belongs to the validator layer so future wildcard and IDN
-    /// policies can be swapped without changing the model.
+    /// Full validation belongs to the validator layer so wildcard and IDN
+    /// policies stay centralized outside the model.
     pub fn new(value: impl AsRef<str>) -> Result<Self, ValidateError> {
         let normalized = normalize_host(value.as_ref());
         if normalized.is_empty() {

@@ -1,4 +1,5 @@
 import { TauriIpcClient } from '@/ipc'
+import { createId } from '@/utils/id'
 
 const ipc = new TauriIpcClient()
 
@@ -104,7 +105,7 @@ export const diagnosticsService = {
   },
 
   async runDeployment(serverAddr?: string): Promise<DeploymentCheckReport> {
-    // 帮助中心需要真实部署检查结果，IPC 失败交给页面展示为不可用。
+    // 帮助中心只展示真实部署检查结果；IPC 失败交给页面显示不可用状态。
     return ipc.invoke<DeploymentCheckReport>('diagnostics_run_deployment', {
       serverAddr,
     })
@@ -221,7 +222,7 @@ function saveRecentServer(serverAddr: string) {
 function saveHistory(serverAddr: string, report: ConnectionTestReport) {
   const list = readJson<ConnectionHistoryEntry[]>(CONNECTION_HISTORY_KEY, [])
   list.unshift({
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: createId('connection-history'),
     serverAddr,
     connectedAt: Date.now(),
     result: report.ok ? 'success' : 'failed',

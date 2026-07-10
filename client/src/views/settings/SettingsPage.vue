@@ -205,7 +205,6 @@ import { APP_RELEASE_CHANNEL, APP_VERSION } from '@/constants'
 import { useProjectStore } from '@views/projects/store/project'
 import { useServerStore } from '@views/servers'
 import { useTunnelStore } from '@views/tunnels'
-import './styles/settings.css'
 
 type SettingControl = 'switch' | 'select' | 'number' | 'readonly' | 'action'
 type SettingAction =

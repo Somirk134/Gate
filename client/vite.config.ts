@@ -38,7 +38,6 @@ export default defineConfig({
             '@components': resolve(__dirname, 'src/components'),
             '@composables': resolve(__dirname, 'src/composables'),
             '@stores': resolve(__dirname, 'src/stores'),
-            '@api': resolve(__dirname, 'src/api'),
             '@utils': resolve(__dirname, 'src/utils'),
             '@types': resolve(__dirname, 'src/types'),
             '@assets': resolve(__dirname, 'src/assets'),
@@ -55,7 +54,7 @@ export default defineConfig({
     },
     build: {
         target: 'esnext',
-        minify: 'esbuild',
+        minify: true,
         rollupOptions: {
             output: {
                 // 将稳定依赖拆出，降低入口 chunk 大小并提高升级后的浏览器缓存命中率。

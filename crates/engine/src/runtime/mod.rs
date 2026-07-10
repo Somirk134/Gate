@@ -15,7 +15,6 @@ pub mod https;
 pub mod lifecycle;
 pub mod listener;
 pub mod manager;
-pub mod mock;
 pub mod monitor;
 pub mod reliability;
 pub mod scheduler;
@@ -50,7 +49,6 @@ pub use https::{
 pub use lifecycle::RuntimeLifecycle;
 pub use listener::TcpListenerService;
 pub use manager::RuntimeManager;
-pub use mock::{MockForward, MockRuntime, MockSession, MockTraffic};
 pub use monitor::{RuntimeMetrics, RuntimeMonitor, TrafficSnapshot, TrafficStatistics};
 pub use reliability::{
     CircuitBreakerConfig, CircuitBreakerState, ConnectionManagerError, ConnectionPolicy,

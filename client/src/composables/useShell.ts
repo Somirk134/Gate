@@ -27,10 +27,8 @@ export function useShell() {
     // Layout
     layout,
     toggleSidebar: layout.toggleSidebar,
-    toggleInspector: layout.toggleInspector,
     openCommandPalette: layout.openCommandPalette,
     closeCommandPalette: layout.closeCommandPalette,
-    openGlobalSearch: layout.openGlobalSearch,
 
     // Navigation
     navigation,

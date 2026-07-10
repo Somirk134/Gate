@@ -10,8 +10,6 @@ pub enum MetricKind {
     Gauge,
     /// Distribution bucket metric.
     Histogram,
-    /// Reserved summary metric for quantiles.
-    Summary,
     /// Derived per-second value.
     Rate,
     /// Derived average value.
@@ -328,39 +326,4 @@ impl MetricInstrument for HistogramMetric {
     fn reset(&mut self) {
         self.samples.clear();
     }
-}
-
-/// Reserved summary instrument for future quantile support.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SummaryMetric {
-    descriptor: MetricDescriptor,
-}
-
-impl SummaryMetric {
-    /// Creates a summary placeholder metric.
-    pub fn new(descriptor: MetricDescriptor) -> Self {
-        Self { descriptor }
-    }
-}
-
-impl MetricInstrument for SummaryMetric {
-    fn descriptor(&self) -> &MetricDescriptor {
-        &self.descriptor
-    }
-
-    fn kind(&self) -> MetricKind {
-        MetricKind::Summary
-    }
-
-    fn record(&mut self, _value: f64) {}
-
-    fn snapshot(&self) -> Metric {
-        Metric::new(
-            self.descriptor.clone(),
-            MetricKind::Summary,
-            MetricValue::Distribution(Vec::new()),
-        )
-    }
-
-    fn reset(&mut self) {}
 }

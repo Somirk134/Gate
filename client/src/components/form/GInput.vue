@@ -7,7 +7,7 @@
   Props:
     modelValue  v-model 值
     size        sm(28) | md(32) | lg(36)
-    placeholder 占位符
+    placeholder 输入提示
     disabled / readonly
     state       normal | error | success（边框反馈）
     clearable   是否显示清除按钮

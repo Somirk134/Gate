@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { i18n } from '@/i18n'
+import { GateAppError } from '@/ipc'
 import { tunnelService } from '@/services/tunnel.service'
 import { useServerStore } from '@views/servers'
 import type { DashboardTunnel } from '@/monitoring/types'
@@ -47,18 +48,10 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   const isReady = computed(() => status.value === 'success')
   const hasTunnels = computed(() => tunnels.value.length > 0)
 
-  const pinnedTunnels = computed(() => tunnels.value.filter((t) => t.pinned))
-  const favoriteTunnels = computed(() => tunnels.value.filter((t) => t.favorite))
   const runningTunnels = computed(() => tunnels.value.filter((t) => isRunningStatus(t.status)))
   const stoppedTunnels = computed(() =>
     tunnels.value.filter((t) => t.status === 'stopped' || t.status === 'offline'),
   )
-  const recentTunnels = computed(() =>
-    [...tunnels.value]
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 10),
-  )
-
   const httpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === 'http'))
   const tcpTunnels = computed(() => tunnels.value.filter((t) => t.protocol === 'tcp'))
 
@@ -66,7 +59,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     tunnels.value.reduce((sum, t) => sum + t.statistics.connections, 0),
   )
   const totalTraffic = computed(() =>
-    tunnels.value.reduce((sum, t) => sum + t.traffic.totalUpload + t.traffic.totalDownload, 0),
+    tunnels.value.reduce((sum, t) => sum + t.traffic.total, 0),
   )
   const totalUploadSpeed = computed(() =>
     tunnels.value.reduce((sum, t) => sum + t.traffic.uploadSpeed, 0),
@@ -112,7 +105,11 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       serverStore.servers.find((server) => server.id === form.serverId) ??
       serverStore.servers.find((server) => server.name === form.serverName)
     if (!selectedServer || selectedServer.status !== 'connected') {
-      throw new Error(t('tunnel.errors.needConnectedServer'))
+      throw new GateAppError({
+        code: 'TUNNEL_SERVER_REQUIRED',
+        messageKey: 'tunnel.errors.needConnectedServer',
+        timestamp: Date.now(),
+      })
     }
 
     const id = await tunnelService.create({
@@ -139,7 +136,12 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     await refresh()
     const created = getById(id)
     if (!created) {
-      throw new Error(t('tunnel.errors.savedReloadFailed'))
+      throw new GateAppError({
+        code: 'TUNNEL_RELOAD_FAILED',
+        messageKey: 'tunnel.errors.savedReloadFailed',
+        details: { tunnelId: id },
+        timestamp: Date.now(),
+      })
     }
 
     if (form.autoStart) {
@@ -218,23 +220,6 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     }
   }
 
-  function cloneTunnel(_id: string): Tunnel | undefined {
-    error.value = t('common.notImplemented')
-    return undefined
-  }
-
-  function togglePin(_id: string): void {
-    error.value = t('common.notImplemented')
-  }
-
-  function toggleFavorite(_id: string): void {
-    error.value = t('common.notImplemented')
-  }
-
-  function tick(): void {
-    // Realtime samples are supplied by the Rust runtime dashboard.
-  }
-
   return {
     tunnels,
     status,
@@ -244,11 +229,8 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     isError,
     isReady,
     hasTunnels,
-    pinnedTunnels,
-    favoriteTunnels,
     runningTunnels,
     stoppedTunnels,
-    recentTunnels,
     httpTunnels,
     tcpTunnels,
     totalConnections,
@@ -264,16 +246,10 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     startTunnel,
     stopTunnel,
     restartTunnel,
-    cloneTunnel,
-    togglePin,
-    toggleFavorite,
-    tick,
   }
 })
 
 function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
-  const nowIso = new Date().toISOString()
-  const createdAt = nowIso
   const protocol = normalizeProtocol(row.protocol)
   const status = normalizeStatus(row.status)
 
@@ -290,22 +266,15 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
     remark: '',
     status,
     autoStart: false,
-    compression: false,
-    encryption: false,
     tags: [],
     serverId: row.serverId ?? '',
     serverName: row.serverName ?? '',
     projectName: '',
     projectId: '',
-    pinned: false,
-    favorite: false,
     traffic: {
       uploadSpeed: row.uploadSpeedBps,
       downloadSpeed: row.downloadSpeedBps,
-      totalUpload: 0,
-      totalDownload: 0,
-      todayUpload: 0,
-      todayDownload: 0,
+      total: row.trafficBytes ?? 0,
       history: [],
     },
     statistics: {
@@ -325,13 +294,11 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
       source: log.source,
     })),
     lastStartedAt: row.uptimeSeconds > 0 ? `${row.uptimeSeconds}s` : '',
-    createdAt,
-    updatedAt: nowIso,
   }
 }
 
 function normalizeProtocol(protocol: DashboardTunnel['protocol']): TunnelProtocol {
-  if (protocol === 'http' || protocol === 'tcp' || protocol === 'https' || protocol === 'udp') {
+  if (protocol === 'http' || protocol === 'tcp' || protocol === 'https') {
     return protocol
   }
   return 'tcp'

@@ -4,7 +4,7 @@
       <section class="wizard" role="dialog" aria-modal="true" tabindex="-1">
         <header class="wizard__header">
           <div>
-            <p>Gate UX 1.0</p>
+            <p>{{ t('tunnel.wizard.flow.brandTag') }}</p>
             <h2>{{ stepTitle }}</h2>
           </div>
           <button type="button" class="wizard__close" @click="close">
@@ -24,12 +24,12 @@
         <main class="wizard__body">
           <section v-if="step === 1" class="wizard-step">
             <div class="wizard-copy">
-              <strong>选择服务器</strong>
-              <p>显示已创建服务器，隧道会绑定到你为当前项目选择的服务器。</p>
+              <strong>{{ t('tunnel.wizard.flow.step1Title') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step1Desc') }}</p>
             </div>
             <div v-if="!servers.length" class="empty-state">
               <GIcon name="servers" :size="24" />
-              <span>还没有创建服务器，请先在 Server 页面添加服务器。</span>
+              <span>{{ t('tunnel.wizard.flow.noServers') }}</span>
             </div>
             <div v-else class="server-grid">
               <button
@@ -48,9 +48,9 @@
                   {{ serverStatusLabel(server.status) }}
                 </span>
                 <span class="server-card__meta">
-                  <span>{{ server.region || 'Region 未知' }}</span>
-                  <span>{{ server.ping ? `${server.ping}ms` : '未测速' }}</span>
-                  <span>{{ server.overview.os || 'OS 未知' }}</span>
+                  <span>{{ server.region || t('tunnel.wizard.flow.regionUnknown') }}</span>
+                  <span>{{ server.ping ? `${server.ping}ms` : t('tunnel.wizard.flow.notTested') }}</span>
+                  <span>{{ server.overview.os || t('tunnel.wizard.flow.osUnknown') }}</span>
                 </span>
               </button>
             </div>
@@ -58,42 +58,42 @@
 
           <section v-else-if="step === 2" class="wizard-step">
             <div class="wizard-copy">
-              <strong>选择本地服务</strong>
-              <p>来自本机 LISTEN 端口扫描；如果没有扫到，可以手动搜索或添加。</p>
+              <strong>{{ t('tunnel.wizard.flow.step2Title') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step2Desc') }}</p>
             </div>
             <div class="service-tools">
               <label>
-                <span>搜索服务</span>
+                <span>{{ t('tunnel.wizard.flow.searchService') }}</span>
                 <input
                   v-model.trim="serviceQuery"
                   autocomplete="off"
-                  placeholder="输入端口、进程名或技术栈，例如 8088 / Spring"
+                  :placeholder="t('tunnel.wizard.flow.searchPlaceholder')"
                   @keydown.enter.prevent="searchLocalService" />
               </label>
               <div class="service-tools__actions">
                 <GButton variant="secondary" icon="search" @click="searchLocalService">
-                  手动搜索
+                  {{ t('tunnel.wizard.flow.manualSearch') }}
                 </GButton>
                 <GButton variant="ghost" icon="refresh" @click="loadDiscovery">
-                  重新扫描
+                  {{ t('tunnel.wizard.flow.rescan') }}
                 </GButton>
               </div>
             </div>
             <div class="manual-service">
               <label>
-                <span>Host</span>
+                <span>{{ t('tunnel.wizard.flow.labels.host') }}</span>
                 <input v-model.trim="manualService.host" autocomplete="off" placeholder="127.0.0.1" />
               </label>
               <label>
-                <span>Port</span>
+                <span>{{ t('tunnel.wizard.flow.labels.port') }}</span>
                 <input v-model.number="manualService.port" inputmode="numeric" type="number" placeholder="8088" />
               </label>
               <label>
-                <span>名称</span>
+                <span>{{ t('tunnel.wizard.flow.serviceLabel') }}</span>
                 <input v-model.trim="manualService.name" autocomplete="off" placeholder="Spring Boot" />
               </label>
               <GButton variant="secondary" icon="plus" @click="addManualService">
-                手动添加
+                {{ t('tunnel.wizard.flow.manualAdd') }}
               </GButton>
             </div>
             <p v-if="serviceSearchMessage" class="wizard-alert">{{ serviceSearchMessage }}</p>
@@ -115,14 +115,14 @@
             </div>
             <div v-if="!filteredLocalServices.length" class="empty-state">
               <GIcon name="search" :size="22" />
-              <span>没有匹配的本地服务，可以输入端口手动搜索，或直接手动添加。</span>
+              <span>{{ t('tunnel.wizard.flow.noMatchingService') }}</span>
             </div>
           </section>
 
           <section v-else-if="step === 3" class="wizard-step">
             <div class="wizard-copy">
-              <strong>推荐 Tunnel Type</strong>
-              <p>根据本地端口和进程名自动判断，仍允许手动修改。</p>
+              <strong>{{ t('tunnel.wizard.flow.step3Title') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step3Desc') }}</p>
             </div>
             <div class="protocol-grid">
               <button
@@ -133,33 +133,33 @@
                 @click="form.protocol = protocol">
                 <GIcon :name="protocol === 'tcp' ? 'router' : protocol === 'https' ? 'shield-check' : 'globe'" :size="20" />
                 <strong>{{ protocol.toUpperCase() }}</strong>
-                <small v-if="protocol === recommendedProtocol">Recommended</small>
+                <small v-if="protocol === recommendedProtocol">{{ t('tunnel.wizard.flow.recommended') }}</small>
               </button>
             </div>
           </section>
 
           <section v-else-if="step === 4" class="wizard-step">
             <div class="wizard-copy">
-              <strong>推荐 Remote Port</strong>
-              <p>默认 Auto Allocate，由后端按服务端真实占用情况分配。</p>
+              <strong>{{ t('tunnel.wizard.flow.step4Title') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step4Desc') }}</p>
             </div>
             <label class="wizard-check">
               <input v-model="autoAllocate" type="checkbox" />
-              <span>Auto Allocate</span>
+              <span>{{ t('tunnel.wizard.flow.autoAllocate') }}</span>
             </label>
             <label v-if="!autoAllocate">
-              <span>Recommended Port</span>
+              <span>{{ t('tunnel.wizard.flow.recommendedPort') }}</span>
               <select v-model.number="form.remotePort">
                 <option
                   v-for="port in remotePorts.availablePorts"
                   :key="port.port"
                   :value="port.port">
-                  {{ port.port }}{{ port.recommended ? ' · Recommended' : '' }}
+                  {{ port.port }}{{ port.recommended ? ` · ${t('tunnel.wizard.flow.recommended')}` : '' }}
                 </option>
               </select>
             </label>
             <label v-if="!autoAllocate">
-              <span>Manual Port</span>
+              <span>{{ t('tunnel.wizard.flow.manualPort') }}</span>
               <input v-model.number="manualRemotePort" inputmode="numeric" type="number" />
             </label>
             <p v-if="portCheckMessage" class="wizard-alert" :class="{ error: portConflict }">
@@ -169,35 +169,35 @@
 
           <section v-else-if="step === 5" class="wizard-step">
             <div class="wizard-copy">
-              <strong>Domain 与 Certificate</strong>
-              <p>HTTP 可选域名；HTTPS 会检查真实证书列表。</p>
+              <strong>{{ t('tunnel.wizard.flow.step5Title') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step5Desc') }}</p>
             </div>
             <label v-if="isHttpLike">
-              <span>Domain</span>
+              <span>{{ t('tunnel.wizard.flow.labels.domain') }}</span>
               <input v-model.trim="form.host" autocomplete="off" placeholder="api.example.com" />
             </label>
             <label v-if="isHttpLike">
-              <span>Path</span>
+              <span>{{ t('tunnel.wizard.flow.labels.path') }}</span>
               <input v-model.trim="form.path" autocomplete="off" placeholder="/" />
             </label>
             <div v-if="form.protocol === 'https'" class="certificate-state">
               <GIcon :name="hasCertificate ? 'check-circle' : 'alert-circle'" :size="18" />
               <span>{{ certificateMessage }}</span>
             </div>
-            <p v-if="form.protocol === 'tcp'" class="wizard-alert">TCP 服务无需域名和证书。</p>
+            <p v-if="form.protocol === 'tcp'" class="wizard-alert">{{ t('tunnel.wizard.flow.tcpNoDomainCert') }}</p>
           </section>
 
           <section v-else class="wizard-step">
             <div class="wizard-copy">
-              <strong>确认创建</strong>
-              <p>启动前可运行自动诊断，避免把错误留到启动失败后才发现。</p>
+              <strong>{{ t('tunnel.wizard.confirmCreate') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step6Desc') }}</p>
             </div>
             <div class="confirm-list">
-              <div><span>Server</span><strong>{{ form.serverName }}</strong></div>
-              <div><span>Local Service</span><strong>{{ form.localHost }}:{{ form.localPort }}</strong></div>
-              <div><span>Protocol</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
-              <div><span>Remote Port</span><strong>{{ autoAllocate ? 'Auto Allocate' : form.remotePort }}</strong></div>
-              <div v-if="isHttpLike"><span>Domain</span><strong>{{ form.host || '-' }}</strong></div>
+              <div><span>{{ t('tunnel.wizard.flow.confirmList.server') }}</span><strong>{{ form.serverName }}</strong></div>
+              <div><span>{{ t('tunnel.wizard.flow.confirmList.localService') }}</span><strong>{{ form.localHost }}:{{ form.localPort }}</strong></div>
+              <div><span>{{ t('tunnel.wizard.flow.confirmList.protocol') }}</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
+              <div><span>{{ t('tunnel.wizard.flow.confirmList.remotePort') }}</span><strong>{{ autoAllocate ? t('tunnel.wizard.flow.autoAllocate') : form.remotePort }}</strong></div>
+              <div v-if="isHttpLike"><span>{{ t('tunnel.wizard.flow.confirmList.domain') }}</span><strong>{{ form.host || '-' }}</strong></div>
             </div>
             <div v-if="diagnosis" class="diagnosis-list">
               <article
@@ -212,16 +212,16 @@
         </main>
 
         <footer class="wizard__footer">
-          <GButton v-if="step > 1" variant="ghost" @click="step -= 1">上一步</GButton>
+          <GButton v-if="step > 1" variant="ghost" @click="step -= 1">{{ t('tunnel.wizard.previous') }}</GButton>
           <span class="wizard__error">{{ errorMessage }}</span>
           <GButton v-if="step < 6" variant="primary" trailing-icon="arrow-right" @click="next">
-            下一步
+            {{ t('tunnel.wizard.next') }}
           </GButton>
           <GButton v-else variant="secondary" icon="activity" @click="runDiagnosis">
-            Health Check
+            {{ t('tunnel.wizard.flow.healthCheck') }}
           </GButton>
           <GButton v-if="step === 6" variant="primary" icon="plus" @click="createTunnel">
-            Finish
+            {{ t('tunnel.wizard.finish') }}
           </GButton>
         </footer>
       </section>
@@ -231,6 +231,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import { certificateService } from '@views/certificates/service'
@@ -251,14 +252,15 @@ const emit = defineEmits<{
 }>()
 
 const protocols: Array<'tcp' | 'http' | 'https'> = ['tcp', 'http', 'https']
-const steps = [
-  { index: 1, title: '选择服务器' },
-  { index: 2, title: '选择本地服务' },
-  { index: 3, title: '推荐协议' },
-  { index: 4, title: '推荐端口' },
-  { index: 5, title: '域名与证书' },
-  { index: 6, title: '完成' },
-]
+const { t } = useI18n()
+const steps = computed(() => [
+  { index: 1, title: t('tunnel.wizard.flow.step1Title') },
+  { index: 2, title: t('tunnel.wizard.flow.step2Title') },
+  { index: 3, title: t('tunnel.wizard.flow.step3Title') },
+  { index: 4, title: t('tunnel.wizard.flow.step4Title') },
+  { index: 5, title: t('tunnel.wizard.flow.step5Title') },
+  { index: 6, title: t('tunnel.wizard.flow.step6Title') },
+])
 
 const step = ref(1)
 const errorMessage = ref('')
@@ -306,7 +308,7 @@ const form = reactive<TunnelFormData>({
   tags: [],
 })
 
-const stepTitle = computed(() => steps.find((item) => item.index === step.value)?.title ?? '完成')
+const stepTitle = computed(() => steps.value.find((item) => item.index === step.value)?.title ?? t('tunnel.wizard.flow.step6Title'))
 const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 const recommendedProtocol = computed(() => selectedService.value?.recommendedProtocol ?? 'tcp')
 const selectedServer = computed(
@@ -337,8 +339,8 @@ const hasCertificate = computed(
   () => Boolean(normalizedHost.value) && certificateDomains.value.includes(normalizedHost.value),
 )
 const certificateMessage = computed(() => {
-  if (!normalizedHost.value) return '请输入 HTTPS 域名后检查证书。'
-  return hasCertificate.value ? '已发现匹配证书。' : '未发现匹配证书，请先签发或导入证书。'
+  if (!normalizedHost.value) return t('tunnel.wizard.flow.certPromptHttps')
+  return hasCertificate.value ? t('tunnel.wizard.flow.certFound') : t('tunnel.wizard.flow.certNotFound')
 })
 
 watch(
@@ -366,7 +368,7 @@ watch(autoAllocate, (enabled) => {
   if (enabled) {
     form.remotePort = null
     portConflict.value = false
-    portCheckMessage.value = '后端将在创建时按服务端真实占用情况自动分配。'
+    portCheckMessage.value = t('tunnel.wizard.flow.autoAllocateHint')
   } else {
     const recommended = remotePorts.value.availablePorts[0]?.port ?? null
     form.remotePort = recommended
@@ -424,7 +426,7 @@ async function loadDiscovery() {
     remotePorts.value = ports
     if (services[0]) selectService(services[0])
   } catch (error) {
-    discoveryError.value = error instanceof Error ? error.message : '自动发现失败。'
+    discoveryError.value = error instanceof Error ? error.message : t('tunnel.wizard.flow.discoveryFailed')
   }
 }
 
@@ -462,8 +464,8 @@ async function checkPort(port: number) {
   const result = await discoveryService.checkRemotePort(port, form.serverId || undefined)
   portConflict.value = !result.available
   portCheckMessage.value = result.available
-    ? `端口 ${port} 当前可用。`
-    : `端口 ${port} 已被占用，请选择推荐端口。`
+    ? t('tunnel.wizard.flow.portAvailable', { port })
+    : t('tunnel.wizard.flow.portOccupied', { port })
 }
 
 async function runDiagnosis() {
@@ -487,17 +489,17 @@ async function validateStep() {
   const server = selectedServer.value
   if (step.value === 1) {
     if (!server) {
-      errorMessage.value = '请选择已创建服务器。'
+      errorMessage.value = t('tunnel.wizard.flow.selectCreatedServer')
       return false
     }
     if (server.status !== 'connected') {
-      errorMessage.value = '所选服务器尚未连接，请先在 Server 页面连接后继续。'
+      errorMessage.value = t('tunnel.wizard.flow.serverNotConnected')
       return false
     }
   }
-  if (step.value === 2 && !selectedService.value) errorMessage.value = '请选择一个真实监听中的本地服务。'
+  if (step.value === 2 && !selectedService.value) errorMessage.value = t('tunnel.wizard.flow.selectLocalService')
   if (step.value === 4 && !autoAllocate.value && portConflict.value) {
-    errorMessage.value = 'Remote Port 冲突，请更换端口。'
+    errorMessage.value = t('tunnel.wizard.flow.remotePortConflict')
   }
   if (step.value === 5 && form.protocol === 'https' && !hasCertificate.value) {
     errorMessage.value = certificateMessage.value
@@ -529,21 +531,21 @@ async function searchLocalService() {
   const port = Number.parseInt(query, 10)
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     serviceSearchMessage.value = query
-      ? '已按关键字筛选；如需端口探测，请输入 1-65535 的端口号。'
-      : '请输入端口号或关键字。'
+      ? t('tunnel.wizard.flow.searchKeywordHint')
+      : t('tunnel.wizard.flow.searchEmpty')
     return
   }
   manualService.port = port
   const service = await discoveryService.probeLocalService(manualService.host || '127.0.0.1', port)
   upsertAndSelectService(service)
   serviceSearchMessage.value = service.reachable === false
-    ? `已添加 ${service.host}:${service.port}，但当前探测不可达。`
-    : `已发现并选择 ${service.host}:${service.port}。`
+    ? t('tunnel.wizard.flow.probeAddedUnreachable', { host: service.host, port: service.port })
+    : t('tunnel.wizard.flow.probeFoundAndSelected', { host: service.host, port: service.port })
 }
 
 async function addManualService() {
   if (!manualService.port || manualService.port <= 0 || manualService.port > 65535) {
-    serviceSearchMessage.value = '请输入 1-65535 的本地端口。'
+    serviceSearchMessage.value = t('tunnel.wizard.flow.manualPortRange')
     return
   }
   const service = await discoveryService.probeLocalService(
@@ -556,8 +558,8 @@ async function addManualService() {
   }
   upsertAndSelectService({ ...service, manual: true })
   serviceSearchMessage.value = service.reachable === false
-    ? '已手动添加；当前端口探测不可达，启动前可用 Health Check 诊断。'
-    : '已手动添加并选择该本地服务。'
+    ? t('tunnel.wizard.flow.manualAddedUnreachable')
+    : t('tunnel.wizard.flow.manualAddedSelected')
 }
 
 function upsertAndSelectService(service: LocalServiceRecord) {
@@ -576,9 +578,9 @@ function serviceKey(service: LocalServiceRecord) {
 function serviceMeta(service: LocalServiceRecord) {
   const chunks = [
     service.process || service.executable || 'TCP LISTEN',
-    service.bindAddress && service.bindAddress !== service.host ? `绑定 ${service.bindAddress}` : '',
-    service.manual ? '手动' : '',
-    service.reachable === false ? '未探测到连接' : '',
+    service.bindAddress && service.bindAddress !== service.host ? t('tunnel.wizard.flow.boundTo', { address: service.bindAddress }) : '',
+    service.manual ? t('tunnel.wizard.flow.manualLabel') : '',
+    service.reachable === false ? t('tunnel.wizard.flow.notProbed') : '',
   ].filter(Boolean)
   return chunks.join(' · ')
 }

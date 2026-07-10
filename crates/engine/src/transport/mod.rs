@@ -5,7 +5,7 @@ use crate::connection::ConnectionContext;
 use crate::error::{ConnectionError, ProtocolError};
 use futures::future::BoxFuture;
 
-/// Protocol abstraction for future HTTP, TCP, HTTPS, UDP, and P2P engines.
+/// Protocol abstraction for the HTTP, TCP, and HTTPS engine boundary.
 pub trait Protocol: Send + Sync {
     fn kind(&self) -> ProtocolKind;
 

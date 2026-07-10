@@ -17,7 +17,6 @@ export interface IpcClient {
     handler: (payload: IpcEvent<TPayload>) => void | Promise<void>,
   ): Promise<Disposable>
   emit<TPayload = unknown>(event: string, payload?: TPayload): Promise<void>
-  remove(event: string): Promise<void>
 }
 
 export interface AppErrorModel {
@@ -77,9 +76,6 @@ export class TauriIpcClient implements IpcClient {
     await tauriEmit(event, payload)
   }
 
-  async remove(_event: string) {
-    return undefined
-  }
 }
 
 export function normalizeIpcError(error: unknown, command = 'unknown'): GateAppError {

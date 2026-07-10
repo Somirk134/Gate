@@ -92,7 +92,7 @@ impl Header {
     }
 }
 
-/// Supported body envelope. Binary and plugin payloads are reserved wire shapes.
+/// Supported body envelope for JSON, binary, plugin, and empty payloads.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(tag = "kind", content = "value")]
 pub enum Body {

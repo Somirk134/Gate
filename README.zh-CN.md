@@ -66,7 +66,7 @@ flowchart LR
 ### 1. 拉取镜像
 
 ```bash
-docker pull qwe1235/gate-server:0.9.0
+docker pull qwe1235/gate-server:0.9.1
 ```
 
 也可以使用 `latest` 标签：
@@ -96,7 +96,7 @@ openssl rand -hex 32
 ```yaml
 services:
   gate-server:
-    image: qwe1235/gate-server:0.9.0
+    image: qwe1235/gate-server:0.9.1
     network_mode: host
     restart: unless-stopped
     environment:
@@ -174,20 +174,20 @@ docker compose logs -f   # 查看实时日志
 
 ### 1. 服务端：下载并启动 `gate-server`
 
-到 [GitHub Releases v0.9.0](https://github.com/Somirk134/Gate/releases/tag/v0.9.0) 下载对应服务器系统的二进制：
+到 [GitHub Releases v0.9.1](https://github.com/Somirk134/Gate/releases/tag/v0.9.1) 下载对应服务器系统的二进制：
 
 | 服务器系统 | 下载文件 |
 |----------|----------|
-| Linux x64 | `gate-server-v0.9.0-linux-x64` |
-| macOS Apple Silicon | `gate-server-v0.9.0-macos-arm64` |
-| macOS Intel | `gate-server-v0.9.0-macos-x64` |
-| Windows x64 | `gate-server-v0.9.0-windows-x64.exe` |
+| Linux x64 | `gate-server-v0.9.1-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.1-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.1-macos-x64` |
+| Windows x64 | `gate-server-v0.9.1-windows-x64.exe` |
 
 以 **Linux 服务器** 为例：
 
 ```bash
 # 下载二进制
-curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.0/gate-server-v0.9.0-linux-x64
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.1/gate-server-v0.9.1-linux-x64
 chmod +x gate-server
 
 # 生成一个强随机 token 并保存
@@ -199,7 +199,7 @@ GATE_AUTH_TOKEN=$TOKEN \
 ./gate-server
 ```
 
-启动成功后控制台会打印关键信息（**务必记下 `Auth token` 和 `Access address`**）：
+启动成功后控制台只打印公开连接信息，认证 Token 不会写入标准输出或日志：
 
 ```
 ========================================
@@ -208,13 +208,13 @@ GATE_AUTH_TOKEN=$TOKEN \
   Listen address : 0.0.0.0:5800
   Local IP       : 203.0.113.50
   Access address : 203.0.113.50:5800
-  Auth token     : a1b2c3...（你生成的 token）
+  Authentication : configured
 ========================================
 ```
 
-> **Windows 用户**：直接双击 `gate-server-v0.9.0-windows-x64.exe` 即可，控制台同样会打印上述信息。
-> **macOS 用户**：`chmod +x gate-server-v0.9.0-macos-*` 后执行 `./gate-server-v0.9.0-macos-*`。
-> ⚠️ 双击 / 直接运行时不会自动设置环境变量，默认监听 `127.0.0.1:7000`、token 为 `gate-alpha-token`。**必须**先设置 `GATE_SERVER_ADDR=0.0.0.0:5800` 和你自己的 `GATE_AUTH_TOKEN`，外网客户端才能连上。
+> **Windows 用户**：先设置 `GATE_AUTH_TOKEN`，再从终端运行 `gate-server-v0.9.1-windows-x64.exe`。
+> **macOS 用户**：`chmod +x gate-server-v0.9.1-macos-*`，设置 `GATE_AUTH_TOKEN` 后再运行二进制。
+> `GATE_AUTH_TOKEN` 缺失、少于 16 个字符或使用已知弱默认值时，服务端会拒绝启动。
 
 **进阶：让服务端后台常驻（Linux）**
 
@@ -346,7 +346,7 @@ docker compose restart
 docker compose logs -f --tail=100
 
 # 更新到新版本镜像
-docker pull qwe1235/gate-server:0.9.0
+docker pull qwe1235/gate-server:0.9.1
 docker compose up -d
 ```
 
@@ -368,7 +368,7 @@ docker compose up -d
 |------|--------|------|
 | `GATE_ENV` | `production` | 运行模式：`development` 或 `production` |
 | `GATE_SERVER_ADDR` | `0.0.0.0:5800` | 客户端连接监听地址 |
-| `GATE_AUTH_TOKEN` | `change-me` | **必填。** 桌面客户端认证令牌 |
+| `GATE_AUTH_TOKEN` | 无 | **必填。** 桌面客户端认证令牌；已知弱默认值会被拒绝 |
 | `GATE_TUNNEL_BIND_ADDR` | `0.0.0.0` | 隧道监听绑定地址 |
 | `GATE_DATA_DIR` | `/var/lib/gate` | 数据存储目录 |
 | `GATE_CONFIG` | `/etc/gate/gate.toml` | 配置文件路径 |
@@ -402,7 +402,7 @@ git clone https://github.com/Somirk134/Gate.git && cd Gate
 docker build -f docker/Dockerfile.server -t gate-server:local .
 ```
 
-然后在 Compose 文件中将 `image: qwe1235/gate-server:0.9.0` 替换为 `image: gate-server:local`。
+然后在 Compose 文件中将 `image: qwe1235/gate-server:0.9.1` 替换为 `image: gate-server:local`。
 
 完整文档见 [Docker 文档](docs/user/docker.md) 和 [部署指南](docs/user/deployment.md)。
 
@@ -447,7 +447,7 @@ npm run dev:desktop
 本地开发默认值：
 
 - Server：`127.0.0.1:7000`
-- Token：`gate-alpha-token`
+- Token：启动服务端时显式设置的 `GATE_AUTH_TOKEN`
 
 不要在共享或公网环境使用开发默认 token。
 

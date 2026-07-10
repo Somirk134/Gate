@@ -6,8 +6,6 @@ pub enum RecordType {
     Aaaa,
     Cname,
     Txt,
-    MxReserved,
-    SrvReserved,
 }
 
 impl RecordType {
@@ -17,8 +15,6 @@ impl RecordType {
             Self::Aaaa => "AAAA",
             Self::Cname => "CNAME",
             Self::Txt => "TXT",
-            Self::MxReserved => "MX_RESERVED",
-            Self::SrvReserved => "SRV_RESERVED",
         }
     }
 
@@ -28,8 +24,6 @@ impl RecordType {
             "AAAA" => Some(Self::Aaaa),
             "CNAME" => Some(Self::Cname),
             "TXT" => Some(Self::Txt),
-            "MX_RESERVED" => Some(Self::MxReserved),
-            "SRV_RESERVED" => Some(Self::SrvReserved),
             _ => None,
         }
     }

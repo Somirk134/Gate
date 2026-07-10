@@ -65,14 +65,11 @@ export interface AppEventMap {
   'command-palette:toggle': undefined
   'command:executed': { id: string; source?: string }
   'command:failed': { id: string; source?: string; error: unknown }
-  'command:reserved': { id: string; args?: unknown }
   'configuration:changed': ConfigurationChangedPayload
   'dialog:show': DialogPayload
   'lifecycle:transition': AppLifecycleTransition
   'navigation:request': { path: string; replace?: boolean }
   'notification:show': NotificationPayload
-  'global-search:toggle': undefined
-  'inspector:toggle': undefined
   'plugin:activated': { id: string }
   'plugin:deactivated': { id: string }
   'sidebar:toggle': undefined

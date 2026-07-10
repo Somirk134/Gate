@@ -16,10 +16,6 @@ export { useTunnelStore } from './store/tunnel'
 
 // ── Composables ──
 export { useTunnel } from './composables/useTunnel'
-export { useTunnelSearch } from './composables/useTunnelSearch'
-export { useTunnelFilter } from './composables/useTunnelFilter'
-export { useTunnelSort } from './composables/useTunnelSort'
-export { useTunnelStatistics } from './composables/useTunnelStatistics'
 export { useTunnelMonitor } from './composables/useTunnelMonitor'
 
 export { defaultTunnelForm } from './store/tunnel'

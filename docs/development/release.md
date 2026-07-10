@@ -4,7 +4,7 @@ This page describes the Gate v0.9 release process.
 
 ## Version policy
 
-Gate v0.9 uses `0.9.0` across:
+Gate v0.9.1 uses `0.9.1` across:
 
 - Rust workspace package version.
 - Root npm workspace package version.
@@ -26,8 +26,8 @@ Gate v0.9 uses `0.9.0` across:
 3. Create and push a tag:
 
    ```bash
-   git tag v0.9.0
-   git push origin v0.9.0
+   git tag v0.9.1
+   git push origin v0.9.1
    ```
 
 4. Let GitHub Actions build server binaries, desktop packages, and Docker image.
@@ -42,7 +42,7 @@ Gate v0.9 uses `0.9.0` across:
 | macOS Intel | Server archive and desktop `.dmg`. |
 | macOS Apple Silicon | Server archive and desktop `.dmg`. |
 | Linux | Server archive, `.AppImage`, and `.deb`. |
-| Docker | `ghcr.io/<owner>/gate-server:v0.9.0`. |
+| Docker | `ghcr.io/<owner>/gate-server:v0.9.1`. |
 
 ## Updater policy
 

@@ -28,8 +28,9 @@ npm run check:server
 Windows local server helper:
 
 ```powershell
+$env:GATE_AUTH_TOKEN = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLower()
 npm run dev:server:local
-npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"
+npm run dev:server:local -- -Addr "127.0.0.1:7001"
 ```
 
 JetBrains IDEs can use the shared `Gate Server Local` run configuration from `.run/`.

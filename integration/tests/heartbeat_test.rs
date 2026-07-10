@@ -7,7 +7,9 @@ async fn heartbeat_ping_pong_updates_rtt_and_statistics() -> anyhow::Result<()> 
 
     let mut client = AlphaClient::new();
     client.connect(addr).await?;
-    client.authenticate("gate-alpha-token").await?;
+    client
+        .authenticate("gate-integration-test-token-20260710-release-audit")
+        .await?;
     client.send_heartbeat().await?;
 
     assert_eq!(client.state(), AlphaClientState::Running);

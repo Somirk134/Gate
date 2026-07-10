@@ -54,7 +54,7 @@ pub struct CborCodec;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ProtobufCodec;
 
-macro_rules! reserved_codec {
+macro_rules! unsupported_codec {
     ($codec:ty, $name:literal) => {
         impl Codec for $codec {
             fn name(&self) -> &'static str {
@@ -76,6 +76,6 @@ macro_rules! reserved_codec {
     };
 }
 
-reserved_codec!(MessagePackCodec, "messagepack");
-reserved_codec!(CborCodec, "cbor");
-reserved_codec!(ProtobufCodec, "protobuf");
+unsupported_codec!(MessagePackCodec, "messagepack");
+unsupported_codec!(CborCodec, "cbor");
+unsupported_codec!(ProtobufCodec, "protobuf");

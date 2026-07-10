@@ -168,14 +168,6 @@
                   </article>
                 </div>
 
-                <div class="reserved-deploy">
-                  <GIcon name="rocket" :size="18" />
-                  <div>
-                    <strong>{{ t('welcome.education.reservedDeployTitle') }}</strong>
-                    <span>{{ t('welcome.education.reservedDeployBody') }}</span>
-                  </div>
-                </div>
-
                 <div class="deploy-command-panel">
                   <header>
                     <div>
@@ -218,11 +210,7 @@
                     :key="environment.id"
                     type="button"
                     class="environment-card"
-                    :class="{
-                      active: answers.serverEnvironment === environment.id,
-                      reserved: environment.reserved,
-                    }"
-                    :disabled="environment.reserved"
+                    :class="{ active: answers.serverEnvironment === environment.id }"
                     @click="chooseEnvironment(environment.id)">
                     <GIcon :name="environment.icon" :size="18" />
                     <strong>{{ environment.title }}</strong>
@@ -541,6 +529,7 @@ import {
   type TranslateFn,
 } from '@/onboarding/smartWizard'
 import { diagnosticsService, type ConnectionTestReport } from '@/services'
+import { createId } from '@/utils/id'
 import { useTunnelStore } from '@/views/tunnels/store/tunnel'
 
 type WizardScreen =
@@ -733,16 +722,16 @@ const serverAddressForTest = computed(() => ({
 }))
 const linuxDeployCommand = computed(
   () =>
-    `GATE_AUTH_TOKEN="${answers.serverToken.trim() || 'your-token'}" GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" ./gate-server`,
+    `GATE_AUTH_TOKEN="${answers.serverToken.trim()}" GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" ./gate-server`,
 )
 const dockerDeployCommand = computed(
   () =>
     [
       'docker run -d --name gate-server --restart unless-stopped \\',
-      `  -e GATE_AUTH_TOKEN="${answers.serverToken.trim() || 'your-token'}" \\`,
+      `  -e GATE_AUTH_TOKEN="${answers.serverToken.trim()}" \\`,
       `  -e GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" \\`,
       `  -p ${answers.serverPort || 7000}:${answers.serverPort || 7000} \\`,
-      '  ghcr.io/somirk134/gate-server:v0.9.0',
+      '  ghcr.io/somirk134/gate-server:v0.9.1',
     ].join('\n'),
 )
 const activeDeployCommand = computed(() =>
@@ -992,7 +981,7 @@ function switchToEnvironmentFromEducation() {
 
 function chooseEnvironment(id: ServerEnvironmentId) {
   const environment = localizedServerEnvironmentOptions.value.find((item) => item.id === id)
-  if (!environment || environment.reserved) return
+  if (!environment) return
   answers.serverEnvironment = id
   clearInlineError()
   deploymentReport.value = null
@@ -1248,7 +1237,7 @@ function pushUser(body: string) {
 }
 
 function makeId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  return createId('welcome-message')
 }
 
 function startTour() {
@@ -1748,11 +1737,6 @@ button.environment-card {
   font-size: var(--text-xs);
 }
 
-.environment-card.reserved {
-  opacity: 0.52;
-  cursor: not-allowed;
-}
-
 .education-panel,
 .environment-panel,
 .deployment-panel,
@@ -1873,7 +1857,6 @@ button.environment-card {
 }
 
 .explain-card,
-.reserved-deploy,
 .plain-note,
 .why-card {
   display: grid;
@@ -1887,14 +1870,12 @@ button.environment-card {
 }
 
 .explain-card svg,
-.reserved-deploy svg,
 .plain-note svg,
 .why-card svg {
   color: var(--color-info);
 }
 
 .explain-card p,
-.reserved-deploy span,
 .plain-note span,
 .why-card li {
   color: var(--text-secondary);

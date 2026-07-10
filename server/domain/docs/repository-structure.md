@@ -16,8 +16,8 @@ classDiagram
         unbind_tunnel(DomainId)
     }
 
-    class MemoryRepository {
-        storage: MemoryDomainStorage
+    class SqliteRepository {
+        storage: SqliteDomainStorage
     }
 
     class DomainStorage {
@@ -31,11 +31,11 @@ classDiagram
         exists(Host)
     }
 
-    class MemoryDomainStorage {
-        HashMap~DomainId, Domain~
+    class SqliteDomainStorage {
+        path: PathBuf
     }
 
-    DomainRepository <|.. MemoryRepository
-    DomainStorage <|.. MemoryDomainStorage
-    MemoryRepository --> MemoryDomainStorage
+    DomainRepository <|.. SqliteRepository
+    DomainStorage <|.. SqliteDomainStorage
+    SqliteRepository --> SqliteDomainStorage
 ```

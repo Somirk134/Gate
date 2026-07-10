@@ -1,8 +1,7 @@
 //! Tunnel Engine architecture for Gate.
 //!
 //! This crate defines the core engine boundaries, lifecycle, traits, events,
-//! errors, and extension points required by future HTTP, TCP, HTTPS, UDP, and
-//! P2P tunnel implementations.
+//! errors, and extension points required by HTTP, TCP, and HTTPS tunnels.
 
 pub mod config;
 pub mod connection;
@@ -14,10 +13,8 @@ pub mod forwarder;
 pub mod health;
 pub mod heartbeat;
 pub mod listener;
-pub mod mock;
 pub mod pipeline;
 pub mod reconnect;
-pub mod repository;
 pub mod router;
 pub mod runtime;
 pub mod session;

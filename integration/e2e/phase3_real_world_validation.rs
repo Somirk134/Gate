@@ -16,7 +16,7 @@ use tokio::{
 const SERVER_BIN: &str = env!("CARGO_BIN_EXE_gate-e2e-server");
 const CLIENT_BIN: &str = env!("CARGO_BIN_EXE_gate-e2e-client");
 const LOCAL_SERVICE_BIN: &str = env!("CARGO_BIN_EXE_gate-e2e-local-service");
-const AUTH_TOKEN: &str = "gate-alpha-token";
+const AUTH_TOKEN: &str = "gate-integration-test-token-20260710-release-audit";
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn normal_tcp_and_http_tunnels_relay_through_real_processes() -> Result<()> {

@@ -1,7 +1,8 @@
-use std::collections::HashMap;
 #[cfg(feature = "sqlite")]
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+#[cfg(test)]
+use std::{collections::HashMap, sync::RwLock};
 
 use crate::error::StorageError;
 #[cfg(feature = "sqlite")]
@@ -20,11 +21,13 @@ pub trait DomainStorage: Send + Sync {
     fn exists(&self, host: &Host) -> Result<bool, StorageError>;
 }
 
+#[cfg(test)]
 #[derive(Clone, Default)]
 pub struct MemoryDomainStorage {
     inner: Arc<RwLock<HashMap<DomainId, Domain>>>,
 }
 
+#[cfg(test)]
 impl MemoryDomainStorage {
     pub fn new() -> Self {
         Self::default()
@@ -40,6 +43,7 @@ impl MemoryDomainStorage {
     }
 }
 
+#[cfg(test)]
 impl DomainStorage for MemoryDomainStorage {
     fn insert(&self, domain: Domain) -> Result<(), StorageError> {
         let mut guard = self
@@ -142,6 +146,8 @@ impl SqliteDomainStorage {
         connection
             .execute_batch(
                 r#"
+                PRAGMA journal_mode = WAL;
+                PRAGMA busy_timeout = 5000;
                 PRAGMA foreign_keys = ON;
                 CREATE TABLE IF NOT EXISTS domains (
                     id TEXT PRIMARY KEY,
@@ -169,7 +175,9 @@ impl SqliteDomainStorage {
     }
 
     fn connection(&self) -> Result<rusqlite::Connection, StorageError> {
-        rusqlite::Connection::open(self.path.as_path()).map_err(sqlite_error)
+        let connection = rusqlite::Connection::open(self.path.as_path()).map_err(sqlite_error)?;
+        configure_connection(&connection)?;
+        Ok(connection)
     }
 
     fn upsert_domain(
@@ -475,7 +483,19 @@ fn sqlite_error(error: rusqlite::Error) -> StorageError {
     StorageError::Unavailable(error.to_string())
 }
 
-pub trait SqliteDomainStorageReserved: Send + Sync {}
-pub trait RedisDomainStorageReserved: Send + Sync {}
-pub trait JsonDomainStorageReserved: Send + Sync {}
-pub trait FileDomainStorageReserved: Send + Sync {}
+#[cfg(feature = "sqlite")]
+fn configure_connection(connection: &rusqlite::Connection) -> Result<(), StorageError> {
+    // 每个短连接都启用同一组运行参数，避免 SQLite 多入口读写时锁等待不可控。
+    connection
+        .busy_timeout(std::time::Duration::from_secs(5))
+        .map_err(sqlite_error)?;
+    connection
+        .execute_batch(
+            r#"
+            PRAGMA foreign_keys = ON;
+            PRAGMA busy_timeout = 5000;
+            "#,
+        )
+        .map_err(sqlite_error)?;
+    Ok(())
+}

@@ -2211,14 +2211,34 @@ impl TunnelGateway {
         let Ok(handle) = tokio::runtime::Handle::try_current() else {
             return;
         };
-        let gateway = self.clone();
+        let inner = Arc::downgrade(&self.inner);
         handle.spawn(async move {
             loop {
-                let interval = gateway.inner.renew_config.check_interval_seconds.max(60) as u64;
+                let Some(current) = inner.upgrade() else {
+                    break;
+                };
+                let interval = current.renew_config.check_interval_seconds.max(60) as u64;
+                drop(current);
                 sleep(Duration::from_secs(interval)).await;
-                gateway.run_certificate_renew_cycle().await;
+                let Some(current) = inner.upgrade() else {
+                    break;
+                };
+                TunnelGateway { inner: current }
+                    .run_certificate_renew_cycle()
+                    .await;
             }
         });
+    }
+
+    pub async fn shutdown(&self) {
+        // 关闭监听任务以打破 Gateway 与 JoinHandle 之间的持有环，并停止接收新连接。
+        let listeners = {
+            let mut listeners = self.inner.listeners.lock().await;
+            std::mem::take(&mut *listeners)
+        };
+        for listener in listeners.into_values() {
+            listener.handle.abort();
+        }
     }
 }
 

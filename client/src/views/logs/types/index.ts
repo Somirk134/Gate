@@ -1,7 +1,7 @@
 export type LogLevel = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL'
 
 export type LogSource =
-  'SYSTEM' | 'CLIENT' | 'SERVER' | 'PROJECT' | 'TUNNEL' | 'STATISTICS' | 'UPDATE' | 'PLUGIN'
+  'SYSTEM' | 'CLIENT' | 'SERVER' | 'PROJECT' | 'TUNNEL' | 'STATISTICS' | 'UPDATE'
 
 export type LogTimeRange = 'all' | '15m' | '1h' | '24h' | 'today'
 
@@ -75,7 +75,6 @@ export interface LogSourceNode {
   label: string
   icon: string
   children?: LogSourceNode[]
-  reserved?: boolean
 }
 
 export interface LogLevelOption {

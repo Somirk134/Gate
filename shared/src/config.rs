@@ -29,7 +29,6 @@ pub enum ConfigSource {
     File(PathBuf),
     Environment { prefix: String },
     Memory { name: String },
-    Remote { endpoint: String },
     Cli,
 }
 
@@ -325,7 +324,7 @@ impl Default for DomainConfig {
             enable_dns_check: false,
             default_ttl_seconds: 300,
             validation_mode: DomainValidationMode::Rfc,
-            storage_kind: DomainStorageKind::Memory,
+            storage_kind: DomainStorageKind::Sqlite,
             reserved_domains,
             server_addresses: Vec::new(),
         }
@@ -349,16 +348,12 @@ impl Default for DomainValidationMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DomainStorageKind {
-    Memory,
-    SqliteReserved,
-    RedisReserved,
-    JsonReserved,
-    FileReserved,
+    Sqlite,
 }
 
 impl Default for DomainStorageKind {
     fn default() -> Self {
-        Self::Memory
+        Self::Sqlite
     }
 }
 
@@ -733,41 +728,6 @@ impl ConfigProvider for MemoryConfigProvider {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct RemoteConfigProvider {
-    endpoint: String,
-}
-
-impl RemoteConfigProvider {
-    pub fn reserved(endpoint: impl Into<String>) -> Self {
-        Self {
-            endpoint: endpoint.into(),
-        }
-    }
-}
-
-impl ConfigProvider for RemoteConfigProvider {
-    fn name(&self) -> &str {
-        "remote"
-    }
-
-    fn source(&self) -> ConfigSource {
-        ConfigSource::Remote {
-            endpoint: self.endpoint.clone(),
-        }
-    }
-
-    fn priority(&self) -> ConfigPriority {
-        ConfigPriority::File
-    }
-
-    fn load(&self) -> Result<ConfigDocument, ConfigError> {
-        Err(ConfigError::RemoteReserved {
-            endpoint: self.endpoint.clone(),
-        })
-    }
-}
-
 pub trait ConfigCenter: Send + Sync {
     fn load(&self, sources: &[ConfigSource]) -> Result<AppConfig, ConfigError>;
 
@@ -883,9 +843,6 @@ impl UnifiedConfigCenter {
                     return Err(ConfigError::SourceUnavailable {
                         source_name: format!("memory provider `{name}` requires an explicit value"),
                     })
-                }
-                ConfigSource::Remote { endpoint } => {
-                    providers.push(Box::new(RemoteConfigProvider::reserved(endpoint.clone())))
                 }
                 ConfigSource::Cli => providers.push(Box::new(
                     MemoryConfigProvider::new("cli", Value::Object(Map::new()))

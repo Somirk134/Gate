@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use crate::version::ProtocolVersion;
 
-/// Stable protocol error codes reserved for wire-level reporting.
+/// Stable protocol error codes allocated for wire-level reporting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ErrorCode {
     Success,

@@ -9,7 +9,6 @@ Expose a local TCP service through a Gate server. This is the smallest tunnel sh
 ```toml
 [server]
 address = "127.0.0.1:7000"
-auth_token = "gate-alpha-token"
 
 [tunnel]
 name = "basic-tcp"
@@ -26,7 +25,7 @@ remote_port = 18080
 ## Run Steps
 
 1. Start a local service on `127.0.0.1:3000`.
-2. Start Gate server with `GATE_SERVER_ADDR=127.0.0.1:7000`.
+2. Generate a strong token and start Gate server with `GATE_SERVER_ADDR=127.0.0.1:7000` and `GATE_AUTH_TOKEN` set.
 3. Open the desktop client.
 4. Add the local server and token.
 5. Create a TCP tunnel with the configuration above.

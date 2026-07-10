@@ -1,4 +1,5 @@
 import type { AppContext } from '@/core/AppContext'
+import { GateAppError } from '@/ipc'
 import type { Disposable } from '@/utils/disposable'
 import type { Command, CommandId, ExecuteCommandOptions } from './types'
 
@@ -12,7 +13,9 @@ export class CommandRegistry implements Disposable {
 
   register<TArgs = unknown, TResult = unknown>(command: Command<TArgs, TResult>): Disposable {
     if (this.commands.has(command.id)) {
-      throw new Error(`Command already registered: ${command.id}`)
+      throw createCommandError('COMMAND_ALREADY_REGISTERED', 'errors.application.commandAlreadyRegistered', {
+        id: command.id,
+      })
     }
 
     this.commands.set(command.id, command as Command)
@@ -49,15 +52,17 @@ export class CommandRegistry implements Disposable {
     const command = this.commands.get(id) as Command<TArgs, TResult> | undefined
 
     if (!command) {
-      throw new Error(`Command not found: ${id}`)
+      throw createCommandError('COMMAND_NOT_FOUND', 'errors.application.commandNotFound', { id })
     }
 
     if (!this.context) {
-      throw new Error(`Command registry has no application context: ${id}`)
+      throw createCommandError('COMMAND_CONTEXT_MISSING', 'errors.application.commandContextMissing', {
+        id,
+      })
     }
 
     if (command.enabled && !command.enabled(this.context)) {
-      throw new Error(`Command is disabled: ${id}`)
+      throw createCommandError('COMMAND_DISABLED', 'errors.application.commandDisabled', { id })
     }
 
     try {
@@ -88,4 +93,17 @@ export class CommandRegistry implements Disposable {
     this.commands.clear()
     this.context = null
   }
+}
+
+function createCommandError(
+  code: string,
+  messageKey: string,
+  details: Record<string, unknown>,
+) {
+  return new GateAppError({
+    code,
+    messageKey,
+    details,
+    timestamp: Date.now(),
+  })
 }

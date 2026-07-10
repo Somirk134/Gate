@@ -7,15 +7,13 @@
 
 import type {
   KindPreset,
-  Server,
   ServerKind,
-  ServerLogLevel,
   ServerStatus,
   ServerStatusConfig,
   TagPreset,
 } from '../types'
 
-/* ── 类型预设（V1 启用 personal/cloud/nas/company/docker，kubernetes 预留） ── */
+/* ── 类型预设（V1 启用 personal/cloud/nas/company/docker） ── */
 export const KIND_PRESETS: KindPreset[] = [
   {
     key: 'personal',
@@ -56,14 +54,6 @@ export const KIND_PRESETS: KindPreset[] = [
     availability: 'enabled',
     icon: 'box',
     color: '#06B6D4',
-  },
-  {
-    key: 'kubernetes',
-    label: 'Kubernetes',
-    description: 'kubernetes',
-    availability: 'soon',
-    icon: 'layers',
-    color: '#EF4444',
   },
 ]
 
@@ -216,99 +206,4 @@ export function formatDuration(seconds: number, t: TranslateFn): string {
 /* ── 格式化：数字（千分位） ── */
 export function formatNumber(n: number): string {
   return n.toLocaleString('zh-CN')
-}
-
-/* ── 格式化：日期时间 ── */
-export function formatDateTime(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-/* ── 格式化：仅日期 ── */
-export function formatDate(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-/* ── 格式化：日志时间戳 ── */
-export function formatLogTime(ts: number): string {
-  const d = new Date(ts)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}`
-}
-
-/* ── 生成唯一 ID ── */
-export function genId(prefix = 's'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-}
-
-/* ── 端口校验 ── */
-export function isValidPort(port: number | null): boolean {
-  return port != null && port >= 1 && port <= 65535
-}
-
-/* ── IP 校验 ── */
-export function isValidIp(ip: string): boolean {
-  const v4 = /^(\d{1,3}\.){3}\d{1,3}$/
-  if (!v4.test(ip)) return false
-  return ip.split('.').every((p) => {
-    const n = Number(p)
-    return n >= 0 && n <= 255
-  })
-}
-
-/* ── 主机校验（IP 或域名） ── */
-export function isValidHost(host: string): boolean {
-  if (!host.trim()) return false
-  if (isValidIp(host)) return true
-  // 域名
-  return /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(
-    host,
-  )
-}
-
-/* ── Token 校验 ── */
-export function isValidToken(token: string): boolean {
-  return token.trim().length >= 8
-}
-
-/* ── 健康检查得分 ── */
-export function healthScore(server: Server): number {
-  return server.health.score
-}
-
-/* ── 健康状态颜色 ── */
-export function healthColor(overall: Server['health']['overall']): string {
-  switch (overall) {
-    case 'healthy':
-      return '#22C55E'
-    case 'warning':
-      return '#F59E0B'
-    case 'critical':
-      return '#EF4444'
-    default:
-      return '#6B6B72'
-  }
-}
-
-/* ── 取 Server 累计流量 ── */
-export function totalTraffic(s: Server): number {
-  return s.traffic.totalUpload + s.traffic.totalDownload
-}
-
-/* ── 推送日志工具（store 内部复用） ── */
-export function makeLog(
-  level: ServerLogLevel,
-  message: string,
-  source: string,
-): { id: string; level: ServerLogLevel; message: string; timestamp: number; source: string } {
-  return {
-    id: genId('slog'),
-    level,
-    message,
-    timestamp: Date.now(),
-    source,
-  }
 }

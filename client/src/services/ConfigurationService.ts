@@ -38,8 +38,6 @@ export const defaultConfiguration: AppConfiguration = {
   locale: 'zh-CN',
   shortcuts: {
     'app.commandPalette.toggle': 'Ctrl+K',
-    'project.create': 'Ctrl+N',
-    'project.quickOpen': 'Ctrl+P',
     'settings.open': 'Ctrl+,',
   },
   window: {

@@ -33,20 +33,6 @@ pub async fn runtime_clear_logs(state: State<'_, ClientRuntimeState>) -> Command
     state.clear_logs().await.map_err(runtime_error)
 }
 
-#[tauri::command]
-pub async fn runtime_get_store_report(
-    state: State<'_, ClientRuntimeState>,
-) -> CommandResult<Value> {
-    Ok(state.runtime_store_report().await)
-}
-
-#[tauri::command]
-pub async fn runtime_run_startup_diagnostics(
-    state: State<'_, ClientRuntimeState>,
-) -> CommandResult<Value> {
-    Ok(state.startup_diagnostics().await)
-}
-
 fn runtime_error(source: impl std::fmt::Display) -> AppError {
     AppError::from_source(
         "RUNTIME_OPERATION_FAILED",

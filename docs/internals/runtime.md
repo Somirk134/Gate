@@ -14,7 +14,7 @@ Runtime code owns local tunnel lifecycle, connection forwarding, statistics coll
 
 ## Maintainer checklist
 
-When touching runtime code in a future feature branch:
+When touching runtime code:
 
 1. Document the data-plane impact.
 2. Add focused tests for the protocol or forwarding behavior being changed.

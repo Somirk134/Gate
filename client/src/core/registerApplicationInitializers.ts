@@ -23,18 +23,6 @@ export function registerApplicationInitializers(context: AppContext, app: App, r
   })
 
   context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.project.create',
-    commandId: 'project.create',
-    shortcut: context.configuration.get<string>('shortcuts.project.create') ?? 'Ctrl+N',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.project.quickOpen',
-    commandId: 'project.quickOpen',
-    shortcut: context.configuration.get<string>('shortcuts.project.quickOpen') ?? 'Ctrl+P',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
     id: 'shortcut.settings.open',
     commandId: 'settings.open',
     shortcut: context.configuration.get<string>('shortcuts.settings.open') ?? 'Ctrl+,',
@@ -44,18 +32,6 @@ export function registerApplicationInitializers(context: AppContext, app: App, r
     id: 'shortcut.sidebar.toggle',
     commandId: 'app.sidebar.toggle',
     shortcut: 'Ctrl+\\',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.inspector.toggle',
-    commandId: 'app.inspector.toggle',
-    shortcut: 'Ctrl+Shift+I',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.globalSearch.toggle',
-    commandId: 'app.globalSearch.toggle',
-    shortcut: 'Ctrl+Shift+K',
   })
 
   context.initializers.register({

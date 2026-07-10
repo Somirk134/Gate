@@ -3,7 +3,7 @@ use super::error::StatisticsResult;
 use super::monitor::MonitoringCenter;
 use super::statistics::Statistics;
 
-/// Command-like handler for future application layer integration.
+/// Command-like handler used by the application layer.
 pub struct StatisticsHandler;
 
 impl StatisticsHandler {

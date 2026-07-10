@@ -7,12 +7,13 @@
 //! The boundary is designed for later integration by injection:
 //!
 //! - HTTP and HTTPS runtimes can depend only on [`resolver::HostResolver`].
-//! - TLS, ACME, certificate stores, and DNS providers can depend only on traits
-//!   from [`traits`] and [`resolver::DnsResolver`].
+//! - TLS, ACME, certificate stores, and DNS providers can depend on explicit
+//!   runtime adapters plus [`resolver::DnsResolver`].
 //! - Repository implementations can be swapped behind [`repository::DomainRepository`].
 //!
-//! The default implementation is in-memory only. It does not open sockets, query
-//! DNS, touch runtime state, or require Cargo workspace changes.
+//! The release implementation persists managed domains in SQLite when the
+//! default `sqlite` feature is enabled. The module does not open sockets or
+//! touch runtime state by itself.
 
 pub mod config;
 pub mod error;
@@ -22,7 +23,6 @@ pub mod repository;
 pub mod resolver;
 pub mod service;
 pub mod storage;
-pub mod traits;
 pub mod validator;
 
 #[cfg(test)]

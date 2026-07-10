@@ -21,11 +21,8 @@ export function useTunnel() {
     isError,
     isReady,
     hasTunnels,
-    pinnedTunnels,
-    favoriteTunnels,
     runningTunnels,
     stoppedTunnels,
-    recentTunnels,
     httpTunnels,
     tcpTunnels,
     totalConnections,
@@ -74,18 +71,6 @@ export function useTunnel() {
     return store.restartTunnel(id)
   }
 
-  function clone(id: string) {
-    return store.cloneTunnel(id)
-  }
-
-  function togglePin(id: string) {
-    store.togglePin(id)
-  }
-
-  function toggleFavorite(id: string) {
-    store.toggleFavorite(id)
-  }
-
   onMounted(() => {
     if (store.status === 'idle') {
       loadData()
@@ -103,11 +88,8 @@ export function useTunnel() {
     isError,
     isReady,
     hasTunnels,
-    pinnedTunnels,
-    favoriteTunnels,
     runningTunnels,
     stoppedTunnels,
-    recentTunnels,
     httpTunnels,
     tcpTunnels,
     totalConnections,
@@ -125,10 +107,7 @@ export function useTunnel() {
     start,
     stop,
     restart,
-    clone,
-    togglePin,
-    toggleFavorite,
-    // store（供 monitor 等 hook 直接调用 tick）
+    // Store 由 Runtime 轮询组合式函数复用。
     store,
   }
 }

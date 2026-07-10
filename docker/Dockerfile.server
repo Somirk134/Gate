@@ -19,7 +19,6 @@ WORKDIR /var/lib/gate
 
 ENV GATE_ENV=production
 ENV GATE_SERVER_ADDR=0.0.0.0:5800
-ENV GATE_AUTH_TOKEN=change-me
 ENV GATE_TUNNEL_BIND_ADDR=0.0.0.0
 ENV GATE_DATA_DIR=/var/lib/gate
 ENV GATE_CONFIG=/etc/gate/gate.toml

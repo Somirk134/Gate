@@ -1,8 +1,6 @@
 <!--
-  TunnelProtocolSelect — 协议选择器
-  ------------------------------------------------------------------
-  V1 启用 HTTP / TCP，未来 HTTPS / UDP / P2P 以"即将/计划"标记预留。
-  网格卡片形态，非传统下拉。
+  TunnelProtocolSelect - 协议选择器
+  仅展示 Runtime 当前支持的 HTTP / TCP / HTTPS。
 -->
 <template>
   <div class="tunnel-protocol-grid">
@@ -11,13 +9,9 @@
       :key="p.key"
       type="button"
       class="tunnel-protocol-option"
-      :class="{
-        'tunnel-protocol-option--active': modelValue === p.key,
-        'tunnel-protocol-option--disabled': p.availability !== 'enabled',
-      }"
+      :class="{ 'tunnel-protocol-option--active': modelValue === p.key }"
       :style="{ '--proto-color': p.color }"
-      :disabled="p.availability !== 'enabled'"
-      @click="onSelect(p.key, p.availability)">
+      @click="emit('update:modelValue', p.key)">
       <span class="tunnel-protocol-option__head">
         <span
           class="tunnel-protocol-option__icon"
@@ -27,14 +21,6 @@
         <span class="tunnel-protocol-option__name">{{ p.label }}</span>
       </span>
       <span class="tunnel-protocol-option__desc">{{ p.description }}</span>
-      <GBadge
-        v-if="p.availability !== 'enabled'"
-        class="tunnel-protocol-option__badge"
-        :variant="p.availability === 'soon' ? 'info' : 'neutral'"
-        type="soft"
-        size="sm">
-        {{ t(`tunnel.availability.${p.availability}`) }}
-      </GBadge>
     </button>
   </div>
 </template>
@@ -43,8 +29,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
-import GBadge from '@components/base/GBadge.vue'
-import type { ProtocolAvailability, TunnelProtocol } from '../types'
+import type { TunnelProtocol } from '../types'
 import { PROTOCOL_PRESETS } from '../utils'
 
 defineProps<{
@@ -62,9 +47,4 @@ const protocols = computed(() =>
     description: t(`tunnel.protocolDescriptions.${protocol.description}`),
   })),
 )
-
-function onSelect(key: TunnelProtocol, availability: ProtocolAvailability) {
-  if (availability !== 'enabled') return
-  emit('update:modelValue', key)
-}
 </script>

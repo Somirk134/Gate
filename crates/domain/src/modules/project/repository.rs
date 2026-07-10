@@ -1,7 +1,11 @@
 use std::{
-    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
+};
+
+#[cfg(test)]
+use std::{
+    collections::BTreeMap,
     sync::{Arc, RwLock},
 };
 
@@ -22,17 +26,20 @@ pub trait ProjectRepository: Send + Sync {
     fn list(&self) -> ProjectResult<Vec<Project>>;
 }
 
+#[cfg(test)]
 #[derive(Clone, Default)]
 pub struct MemoryProjectRepository {
     projects: Arc<RwLock<BTreeMap<String, Project>>>,
 }
 
+#[cfg(test)]
 impl MemoryProjectRepository {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
+#[cfg(test)]
 impl ProjectRepository for MemoryProjectRepository {
     fn create(&self, project: Project) -> ProjectResult<Project> {
         self.projects
@@ -98,13 +105,18 @@ impl SqliteProjectRepository {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
-        Ok(Connection::open(&self.path)?)
+        let connection = Connection::open(&self.path)?;
+        configure_connection(&connection)?;
+        Ok(connection)
     }
 
     fn ensure_schema(&self) -> ProjectResult<()> {
         let connection = self.connection()?;
         connection.execute_batch(
             r#"
+            PRAGMA journal_mode = WAL;
+            PRAGMA busy_timeout = 5000;
+            PRAGMA foreign_keys = ON;
             CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY NOT NULL,
                 name TEXT NOT NULL,
@@ -371,6 +383,18 @@ fn bool_to_i64(value: bool) -> i64 {
     } else {
         0
     }
+}
+
+fn configure_connection(connection: &Connection) -> ProjectResult<()> {
+    // 每个短连接都设置一致的 SQLite 运行参数，降低桌面端并发读写时的锁等待风险。
+    connection.busy_timeout(std::time::Duration::from_secs(5))?;
+    connection.execute_batch(
+        r#"
+        PRAGMA busy_timeout = 5000;
+        PRAGMA foreign_keys = ON;
+        "#,
+    )?;
+    Ok(())
 }
 
 #[cfg(test)]

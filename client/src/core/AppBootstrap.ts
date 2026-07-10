@@ -12,6 +12,7 @@ import { AppLifecycle } from './lifecycle'
 import { registerApplicationInitializers } from './registerApplicationInitializers'
 import { registerApplicationServices } from './registerApplicationServices'
 import { APP_VERSION } from '@/constants'
+import { createId } from '@/utils/id'
 
 export interface AppBootstrapOptions {
   app: App
@@ -63,10 +64,6 @@ export class AppBootstrap {
   }
 
   private static createAppId() {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-      return crypto.randomUUID()
-    }
-
-    return `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    return createId('app')
   }
 }

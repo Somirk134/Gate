@@ -1,6 +1,6 @@
 services:
   gate-server:
-    image: ${GATE_SERVER_IMAGE:-qwe1235/gate-server:0.9.0}
+    image: ${GATE_SERVER_IMAGE:-qwe1235/gate-server:0.9.1}
     network_mode: host
     restart: unless-stopped
     environment:

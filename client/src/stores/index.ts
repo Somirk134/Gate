@@ -4,7 +4,6 @@ export { useNavigationStore } from './modules/navigation'
 export { useDialogStore } from './modules/dialog'
 export { useNotificationStore } from './modules/notification'
 export { useLoadingStore } from './modules/loading'
-export { useSettingsStore } from '@views/settings/stores'
 
 // Legacy stores (保留旧业务 Store，后续逐步迁移)
 export { useAppStore } from './modules/app'

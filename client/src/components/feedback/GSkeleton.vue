@@ -1,7 +1,7 @@
 <!--
   GSkeleton — 骨架屏
   ------------------------------------------------------------------
-  用途：内容加载占位。支持 text / rect / circle 三种形态。
+  用途：内容加载骨架。支持 text / rect / circle 三种形态。
   Props:
     variant  text(行) | rect(矩形) | circle(圆)
     width    宽度（text 默认 100%）

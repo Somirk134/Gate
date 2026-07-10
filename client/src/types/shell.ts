@@ -85,7 +85,7 @@ export interface StatusBarItem {
 // ── Theme ──
 export type ThemeMode = 'dark' | 'light' | 'auto'
 
-// ── Window (Tauri 预留) ──
+// ── Window (Tauri) ──
 export interface WindowCapabilities {
   minimize: () => void
   maximize: () => void

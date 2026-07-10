@@ -204,7 +204,7 @@ import { open as openExternal } from '@tauri-apps/plugin-shell'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import { useFeedback } from '@composables/useFeedback'
-import { TauriIpcClient } from '@/ipc'
+import { GateAppError, TauriIpcClient } from '@/ipc'
 import { GITHUB_ISSUE_URL } from '@/constants'
 import {
   DIAGNOSTIC_VALUE_DISCONNECTED,
@@ -908,7 +908,6 @@ onMounted(() => {
 })
 
 async function refreshDiagnostics(options: { silent?: boolean } = {}) {
-  const startedAt = Date.now()
   loading.value = true
   diagnosticRunTone.value = 'info'
   setDiagnosticRunMessage('info', 'help.run.running')
@@ -931,11 +930,11 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
     certificates.value = nextCertificates
 
     const server = selectedServer.value
-    const [nextDeployment, nextConnection] = await Promise.all([
+    const [nextDeployment, nextConnection, _logsLoaded] = await Promise.all([
       capture('deployment', () => diagnosticsService.runDeployment(selectedServerAddr.value)),
       server
         ? capture('connection', () => diagnosticsService.testConnection(toConnectionInput(server)))
-        : Promise.resolve(null),
+        : capture('connection', async () => null),
       capture('logs', loadLogs),
     ])
 
@@ -959,7 +958,6 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
     }
     if (!options.silent) toast.error(diagnosticRunMessage.value)
   } finally {
-    await waitForVisibleLoading(startedAt)
     loading.value = false
   }
 }
@@ -967,7 +965,12 @@ async function refreshDiagnostics(options: { silent?: boolean } = {}) {
 async function loadLogs() {
   await logStore.refresh()
   if (logStore.status === 'error') {
-    throw new Error(logStore.error || t('help.errors.logLoadFailed'))
+    throw new GateAppError({
+      code: 'HELP_LOG_LOAD_FAILED',
+      messageKey: 'help.errors.logLoadFailed',
+      details: { source: logStore.error || t('help.errors.logLoadFailed') },
+      timestamp: Date.now(),
+    })
   }
 }
 
@@ -1288,11 +1291,6 @@ function toErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
-async function waitForVisibleLoading(startedAt: number) {
-  const elapsed = Date.now() - startedAt
-  if (elapsed >= 350) return
-  await new Promise((resolve) => window.setTimeout(resolve, 350 - elapsed))
-}
 </script>
 
 <style scoped>

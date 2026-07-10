@@ -7,7 +7,6 @@ pub enum ErrorCode {
     Unknown,
     Config,
     Network,
-    Tunnel,
     Internal,
 }
 
@@ -17,7 +16,6 @@ impl fmt::Display for ErrorCode {
             Self::Unknown => "UNKNOWN",
             Self::Config => "CONFIG",
             Self::Network => "NETWORK",
-            Self::Tunnel => "TUNNEL",
             Self::Internal => "INTERNAL",
         };
 
@@ -34,9 +32,6 @@ pub enum AppError {
     Network(#[from] NetworkError),
 
     #[error(transparent)]
-    Tunnel(#[from] TunnelError),
-
-    #[error(transparent)]
     Internal(#[from] InternalError),
 }
 
@@ -45,7 +40,6 @@ impl AppError {
         match self {
             Self::Config(_) => ErrorCode::Config,
             Self::Network(_) => ErrorCode::Network,
-            Self::Tunnel(_) => ErrorCode::Tunnel,
             Self::Internal(_) => ErrorCode::Internal,
         }
     }
@@ -81,8 +75,6 @@ pub enum ConfigError {
         message: String,
     },
 
-    #[error("remote configuration provider is reserved: {endpoint}")]
-    RemoteReserved { endpoint: String },
 }
 
 #[derive(Debug, Error)]
@@ -92,12 +84,6 @@ pub enum NetworkError {
 
     #[error("network component failed: {message}")]
     ComponentFailure { message: String },
-}
-
-#[derive(Debug, Error)]
-pub enum TunnelError {
-    #[error("tunnel capability is reserved for a future phase")]
-    Reserved,
 }
 
 #[derive(Debug, Error)]

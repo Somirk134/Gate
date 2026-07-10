@@ -1,9 +1,8 @@
 //! Monitoring and statistics center domain contracts.
 //!
 //! This module is intentionally infrastructure-free. It defines the contracts,
-//! value objects, configuration, events, and mock-ready runtime boundaries that
-//! future tunnel, server, runtime, authentication, and dashboard modules can
-//! plug into.
+//! value objects, configuration, events, and runtime boundaries used by tunnel,
+//! server, runtime, authentication, and dashboard modules.
 
 pub mod aggregator;
 pub mod alert;
@@ -26,7 +25,7 @@ pub mod types;
 
 pub use aggregator::{AggregationPeriod, AggregationWindow, Aggregator, StatisticsAggregator};
 pub use alert::{AlertEvent, AlertKind, AlertManager, AlertRule, AlertSeverity};
-pub use collector::{Collector, CollectorRegistry, CollectorState, MockMetricsCollector};
+pub use collector::{Collector, CollectorRegistry, CollectorState};
 pub use config::{
     AlertConfig, AlertConfigBuilder, CollectorConfig, CollectorConfigBuilder, DashboardConfig,
     DashboardConfigBuilder, SamplingConfig, SamplingConfigBuilder, StatisticsConfig,
@@ -46,7 +45,7 @@ pub use health::{
 pub use metrics::{
     AverageMetric, CounterMetric, GaugeMetric, HistogramMetric, MaxMetric, Metric,
     MetricDescriptor, MetricInstrument, MetricKind, MetricLabel, MetricScope, MetricUnit,
-    MetricValue, MetricsProvider, MinMetric, PeakMetric, RateMetric, SummaryMetric,
+    MetricValue, MetricsProvider, MinMetric, PeakMetric, RateMetric,
 };
 pub use monitor::{MonitorLifecycleState, MonitoringCenter};
 pub use repository::*;

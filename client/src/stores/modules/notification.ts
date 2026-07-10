@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onScopeDispose } from 'vue'
+import { createId } from '@/utils/id'
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
@@ -22,6 +23,7 @@ export const useNotificationStore = defineStore('notification', () => {
   /** 持久化通知历史 — 不自动消失，用于铃铛弹窗展示 */
   const history = ref<NotificationItem[]>([])
   const maxNotifications = ref(8)
+  const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   // === Getters ===
   const activeNotifications = computed(() => notifications.value.slice(0, maxNotifications.value))
@@ -30,7 +32,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   // === Actions ===
   function notify(options: Omit<NotificationItem, 'id' | 'timestamp'> & { persist?: boolean }) {
-    const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const id = createId('notif')
     const { duration, closable, persist, ...rest } = options
     const notif: NotificationItem = {
       id,
@@ -48,9 +50,11 @@ export const useNotificationStore = defineStore('notification', () => {
 
     // Auto dismiss — 仅对 toast 生效
     if (notif.duration && notif.duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        dismissTimers.delete(id)
         dismiss(id)
       }, notif.duration)
+      dismissTimers.set(id, timer)
     }
 
     return id
@@ -61,7 +65,7 @@ export const useNotificationStore = defineStore('notification', () => {
    * 用于隧道创建/删除、服务器连接等关键事件。
    */
   function pushHistory(item: Omit<NotificationItem, 'id' | 'timestamp' | 'duration'>) {
-    const id = `hist-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const id = createId('hist')
     const entry: NotificationItem = {
       id,
       duration: 0, // 不自动消失
@@ -94,8 +98,18 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   function dismiss(id: string) {
+    const timer = dismissTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      dismissTimers.delete(id)
+    }
     notifications.value = notifications.value.filter((n) => n.id !== id)
   }
+
+  onScopeDispose(() => {
+    dismissTimers.forEach(clearTimeout)
+    dismissTimers.clear()
+  })
 
   function dismissHistory(id: string) {
     history.value = history.value.filter((n) => n.id !== id)

@@ -1,7 +1,7 @@
 # Gate Server TLS Infrastructure
 
-This phase introduces TLS infrastructure only. It does not implement HTTPS, does
-not modify HTTP tunnel code, and does not connect to runtime services.
+This document describes the current TLS and certificate infrastructure used by
+the server release candidate.
 
 ## Certificate Lifecycle
 
@@ -13,12 +13,12 @@ stateDiagram-v2
     Issued --> Stored
     Stored --> Active
     Active --> ExpiringSoon: within 30 days
-    ExpiringSoon --> RenewPlanned
-    RenewPlanned --> Active: future ACME execution
+    ExpiringSoon --> RenewQueued
+    RenewQueued --> Active: ACME renewal completed
     Active --> Expired
     Active --> Revoked
     Active --> Deleted
-    Expired --> RenewPlanned
+    Expired --> RenewQueued
     Revoked --> [*]
     Deleted --> [*]
 ```
@@ -50,8 +50,8 @@ flowchart TD
     B --> C{Expires within 30 days?}
     C -->|No| D[Skip]
     C -->|Yes| E[Create renew decision]
-    E --> F[Return dry-run renewal plan]
-    F --> G[Future ACME executor]
+    E --> F[Return renewal decision]
+    F --> G[ACME executor]
 ```
 
 ## Module Relationship
@@ -63,10 +63,7 @@ flowchart LR
     Manager[CertificateManager Trait] --> Acme[AcmeProvider Trait]
     Manager --> Store
     Acme --> State[ACME State Machine]
-    Store --> File[FileStore Default]
-    Store -. reserved .-> SQLite[SQLite]
-    Store -. reserved .-> Redis[Redis]
-    Store -. reserved .-> S3[S3]
+    Store --> File[FileStore]
     Renew[Renew Scheduler] --> Store
     Renew --> Manager
     Crypto[Crypto Fingerprint] --> Parser[Certificate Parser]

@@ -1,37 +1,26 @@
 # Domain Management Infrastructure
 
-This directory is a zero-intrusion Domain Management Infrastructure for Gate.
-It is not wired into the current Cargo workspace, HTTP runtime, HTTPS runtime,
-TLS infrastructure, tunnel runtime, communication layer, dashboard, or existing
-configuration files.
+This crate provides Gate domain validation, repository, resolver, and service
+primitives. In the release build, managed domain records are persisted through
+the SQLite-backed repository when the default `sqlite` feature is enabled.
 
 ## Modules
 
 - `model`: DomainId, TunnelId, Domain, Host, Alias, RecordType, and status models.
-- `repository`: DomainRepository trait and MemoryRepository.
+- `repository`: DomainRepository trait and SQLite repository implementation.
 - `service`: DomainService use cases for create, delete, update, bind, unbind, enable, disable, rename, list, and search.
-- `resolver`: HostResolver, RepositoryHostResolver, DnsResolver, DnsChecker, and MockDnsResolver.
+- `resolver`: HostResolver, RepositoryHostResolver, DnsResolver, and DnsChecker.
 - `validator`: DomainValidator trait and RFC-oriented validator.
-- `storage`: DomainStorage trait and memory storage; SQLite, Redis, JSON, and file storage are reserved as traits.
+- `storage`: DomainStorage trait plus SQLite storage. In-memory storage is compiled only for tests.
 - `error`: unified error hierarchy and DomainFailure trait.
-- `traits`: future injection ports for HTTPS, TLS, Certificate, ACME, and DNS providers.
 - `config`: DomainConfig, ValidationMode, and storage kind configuration.
 - `event`: domain event values without EventBus integration.
-- `tests`: standalone unit tests compiled through `rustc --test server/domain/mod.rs`.
-- `examples`: standalone usage examples.
-
-## Standalone Test
-
-```powershell
-rustc --test server\domain\mod.rs -o target\domain_mod_tests.exe
-.\target\domain_mod_tests.exe
-```
+- `tests`: unit coverage for model, repository, resolver, service, storage, and validator behavior.
 
 ## Integration Rule
 
-Future runtimes should depend on traits only:
+Runtime adapters should keep this crate as a domain boundary:
 
-- HTTP runtime calls `HostResolver::resolve_host(host)` and receives `TunnelId`.
-- HTTPS runtime calls the same resolver, then its own TLS layer independently.
-- TLS/ACME infrastructure receives domain events or service outputs and calls reserved ports.
-- DNS providers implement `DnsProviderPort` or `DnsResolver`; no provider is hardcoded here.
+- HTTP and HTTPS routing resolve hosts through `HostResolver::resolve_host(host)`.
+- TLS and ACME flows consume validated domain records through explicit runtime adapters.
+- DNS checking is performed through `DnsResolver`; no provider credential or token is hardcoded here.

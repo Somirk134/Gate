@@ -7,7 +7,7 @@ Gate v0.9 keeps runtime configuration small and explicit.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `GATE_SERVER_ADDR` | `127.0.0.1:7000` in source server bootstrap | Server bind address. Docker sets `0.0.0.0:5800`. |
-| `GATE_AUTH_TOKEN` | `gate-alpha-token` for local source runs | Shared token used by clients. Replace it outside local development. |
+| `GATE_AUTH_TOKEN` | None; required | Shared token used by clients. Must contain at least 16 characters and must not be a known weak default. |
 | `GATE_TUNNEL_BIND_ADDR` | `0.0.0.0` in Docker | Optional bind address for dynamic tunnel listeners. Use `0.0.0.0` for public server deployments. |
 | `GATE_HEARTBEAT_TIMEOUT_MS` | Runtime default | Optional heartbeat timeout override. |
 | `GATE_CERT_DIR` | Deployment-specific | Certificate storage directory. |
@@ -31,7 +31,6 @@ Gate includes certificate management support. Enable ACME only when the deployme
 ```toml
 [server]
 address = "127.0.0.1:7000"
-auth_token = "gate-alpha-token"
 
 [tunnel]
 name = "local-web"
@@ -41,4 +40,4 @@ local_port = 3000
 remote_port = 18080
 ```
 
-Do not use `gate-alpha-token` for shared or public environments.
+Set `GATE_AUTH_TOKEN` in the process environment; do not store it in the configuration file.

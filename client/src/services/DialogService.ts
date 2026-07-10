@@ -1,5 +1,6 @@
 import type { EventBus } from '@/events/EventBus'
 import type { AppEventMap, DialogPayload } from '@/types/application'
+import { createId } from '@/utils/id'
 
 export interface DialogService {
   show(dialog: DialogPayload): Promise<unknown>
@@ -11,7 +12,7 @@ export class EventDialogService implements DialogService {
   constructor(private readonly events: EventBus<AppEventMap>) {}
 
   async show(dialog: DialogPayload) {
-    const id = dialog.id ?? `dialog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const id = dialog.id ?? createId('dialog')
 
     await this.events.publish('dialog:show', {
       ...dialog,

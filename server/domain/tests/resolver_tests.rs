@@ -2,7 +2,7 @@ use crate::config::DomainConfig;
 use crate::model::{Domain, DomainId, Host, RecordType, TunnelId};
 use crate::repository::{DomainRepository, MemoryRepository};
 use crate::resolver::{
-    DnsAnswer, DnsChecker, DnsQuery, HostResolver, MockDnsResolver, RepositoryHostResolver,
+    DnsAnswer, DnsChecker, DnsQuery, HostResolver, RepositoryHostResolver, TestDnsResolver,
 };
 
 #[test]
@@ -33,13 +33,13 @@ fn host_resolver_rejects_unbound_host() -> Result<(), Box<dyn std::error::Error>
 }
 
 #[test]
-fn mock_dns_checker_reports_match() -> Result<(), Box<dyn std::error::Error>> {
+fn test_dns_checker_reports_match() -> Result<(), Box<dyn std::error::Error>> {
     let host = Host::new("api.gate.dev")?;
     let query = DnsQuery {
         host,
         record_type: RecordType::A,
     };
-    let resolver = MockDnsResolver::new().with_record(
+    let resolver = TestDnsResolver::new().with_record(
         query.clone(),
         DnsAnswer {
             record_type: RecordType::A,

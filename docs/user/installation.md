@@ -35,8 +35,8 @@ cargo install --path server
 Run it with explicit configuration:
 
 ```bash
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 GATE_SERVER_ADDR=127.0.0.1:7000 \
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 gate-server
 ```
 

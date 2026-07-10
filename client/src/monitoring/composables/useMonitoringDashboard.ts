@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, readonly, shallowRef, ref } from 'vue'
+import { computed, onMounted, onUnmounted, readonly, ref, shallowRef } from 'vue'
 import { createEmptyDashboardData, dashboardService } from '../services'
 import type { DashboardData, RealtimeSpeedPoint } from '../types'
 
@@ -33,7 +33,7 @@ export function useMonitoringDashboard() {
     try {
       data.value = withRealtimeSpeedHistory(await dashboardService.getDashboard())
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to refresh monitoring data'
+      error.value = err instanceof Error ? err.message : 'errors.runtimeUnavailable'
     } finally {
       loading.value = false
     }
@@ -63,7 +63,7 @@ export function useMonitoringDashboard() {
   function withRealtimeSpeedHistory(next: DashboardData): DashboardData {
     const points = next.realtimeSpeed.length > 0 ? next.realtimeSpeed : [createCurrentSpeedPoint(next)]
 
-    // 后端推送的是当前真实采样点，前端保留最近 26 个点用于稳定展示趋势。
+    // 后端推送的是当前真实采样点，前端仅保留最近 26 个点用于稳定展示趋势。
     for (const point of points) {
       const normalized = normalizeSpeedPoint(point)
       const latest = realtimeSpeedHistory[realtimeSpeedHistory.length - 1]

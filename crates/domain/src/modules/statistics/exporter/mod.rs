@@ -5,7 +5,7 @@ use super::error::StatisticsResult;
 use super::metrics::Metric;
 use super::statistics::Statistics;
 
-/// Export formats supported or reserved by the monitoring center.
+/// Export formats supported by the monitoring center contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ExportFormat {
     Json,
@@ -35,7 +35,7 @@ impl ExportPayload {
     }
 }
 
-/// Exporter contract. Implementations are intentionally deferred.
+/// Exporter contract implemented by concrete monitoring integrations.
 pub trait Exporter {
     /// Returns the exporter format.
     fn format(&self) -> ExportFormat;

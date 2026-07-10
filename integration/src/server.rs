@@ -39,7 +39,7 @@ impl Default for AlphaServerConfig {
     fn default() -> Self {
         Self {
             listen_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
-            auth_token: "gate-alpha-token".to_string(),
+            auth_token: "gate-integration-test-token-20260710-release-audit".to_string(),
         }
     }
 }

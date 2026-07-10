@@ -1,4 +1,5 @@
 import type { EventBus } from '@/events/EventBus'
+import { GateAppError } from '@/ipc'
 import type { AppEventMap } from '@/types/application'
 import type { PluginAPI } from './PluginAPI'
 import { PluginRegistry, type PluginManifest } from './PluginRegistry'
@@ -63,7 +64,12 @@ export class DefaultPluginManager implements PluginManager {
     const plugin = this.registry.get(id)
 
     if (!plugin) {
-      throw new Error(`Plugin not registered: ${id}`)
+      throw new GateAppError({
+        code: 'PLUGIN_NOT_REGISTERED',
+        messageKey: 'errors.application.pluginNotRegistered',
+        details: { id },
+        timestamp: Date.now(),
+      })
     }
 
     return plugin

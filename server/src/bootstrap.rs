@@ -3,11 +3,12 @@ use crate::gateway::{
 };
 use chrono::Utc;
 use gate_protocol::{Command, ProtocolBuilder};
-use gate_shared::error::{AppError, NetworkError};
+use gate_shared::error::{AppError, ConfigError, NetworkError};
 use gate_shared::lifecycle::ServerState;
 use local_ip_address::local_ip;
 use serde_json::{json, Value};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{error, info, warn};
 
@@ -38,8 +39,8 @@ impl ServerBootstrap {
             .ok()
             .and_then(|value| value.parse::<SocketAddr>().ok())
             .unwrap_or_else(|| SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 7000));
-        let token =
-            std::env::var("GATE_AUTH_TOKEN").unwrap_or_else(|_| "gate-alpha-token".to_string());
+        // 鉴权凭据属于生产启动前置条件，禁止使用缺省值或已知弱值继续启动。
+        let token = load_auth_token()?;
 
         let listener = TcpListener::bind(addr).await.map_err(network_error)?;
         let bound_addr = listener.local_addr().map_err(network_error)?;
@@ -58,7 +59,7 @@ impl ServerBootstrap {
         println!("  Listen address : {}", bound_addr);
         println!("  Local IP       : {}", local_ip_str);
         println!("  Access address : {}", access_addr);
-        println!("  Auth token     : {}", token);
+        println!("  Authentication : configured");
         println!("========================================");
         println!();
         println!("Use this info to connect Gate client.");
@@ -68,7 +69,6 @@ impl ServerBootstrap {
             target: "gate_server",
             addr = %bound_addr,
             local_ip = %local_ip_str,
-            token = %token,
             "Server Boot"
         );
         info!(
@@ -81,6 +81,7 @@ impl ServerBootstrap {
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {
                     info!(target: "gate_server", "Server Shutdown");
+                    gateway.shutdown().await;
                     break;
                 }
                 accepted = listener.accept() => {
@@ -91,7 +92,7 @@ impl ServerBootstrap {
                                 remote_addr = %remote_addr,
                                 "Server Accept"
                             );
-                            let token = token.clone();
+                            let token = Arc::clone(&token);
                             let gateway = gateway.clone();
                             tokio::spawn(async move {
                                 if let Err(source) = handle_connection(stream, token, gateway).await {
@@ -121,7 +122,7 @@ impl ServerBootstrap {
 
 async fn handle_connection(
     mut stream: TcpStream,
-    token: String,
+    token: Arc<str>,
     gateway: TunnelGateway,
 ) -> anyhow::Result<()> {
     let protocol = ProtocolBuilder::new().build();
@@ -161,7 +162,7 @@ async fn handle_connection(
                     break;
                 };
 
-                if relay_token != Some(token.as_str()) {
+                if relay_token != Some(token.as_ref()) {
                     gateway.record_session_failure().await;
                     write_message(
                         &mut stream,
@@ -206,7 +207,7 @@ async fn handle_connection(
             Command::AuthLogin => {
                 info!(target: "gate_server", "Authenticate");
                 let body = json_body(&message);
-                if body.get("token").and_then(Value::as_str) == Some(token.as_str()) {
+                if body.get("token").and_then(Value::as_str) == Some(token.as_ref()) {
                     authenticated = true;
                     let client_id = body
                         .get("clientId")
@@ -461,4 +462,29 @@ fn network_error(source: std::io::Error) -> AppError {
         message: source.to_string(),
     }
     .into()
+}
+
+fn load_auth_token() -> Result<Arc<str>, AppError> {
+    let token = std::env::var("GATE_AUTH_TOKEN").map_err(|_| ConfigError::Validation {
+        key: "GATE_AUTH_TOKEN".to_string(),
+        message: "authentication token is required".to_string(),
+    })?;
+    let token = token.trim();
+    let known_weak = matches!(
+        token.to_ascii_lowercase().as_str(),
+        "gate-alpha-token"
+            | "change-me"
+            | "changeme"
+            | "replace-me"
+            | "replace-with-a-long-random-token"
+    );
+    if token.len() < 16 || known_weak {
+        return Err(ConfigError::Validation {
+            key: "GATE_AUTH_TOKEN".to_string(),
+            message: "authentication token must contain at least 16 characters and must not use a known default".to_string(),
+        }
+        .into());
+    }
+
+    Ok(Arc::from(token))
 }

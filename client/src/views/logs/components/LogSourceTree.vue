@@ -29,7 +29,6 @@
             <span class="log-source-node__toggle" />
             <GIcon :name="child.icon" :size="14" />
             <span>{{ sourceLabel(child.id) }}</span>
-            <em v-if="child.reserved">{{ t('logs.source.soon') }}</em>
             <strong>{{ getCount(child.id) }}</strong>
           </button>
         </div>

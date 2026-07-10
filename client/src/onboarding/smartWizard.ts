@@ -15,7 +15,6 @@ export type ServerEnvironmentId =
   | '1panel'
   | 'casaos'
   | 'unraid'
-  | 'synology'
 
 export interface KnowledgeCard {
   id: string
@@ -33,7 +32,6 @@ export interface ServerEnvironmentOption {
   id: ServerEnvironmentId
   localeKey: string
   icon: string
-  reserved?: boolean
 }
 
 export interface ScenarioRecommendation {
@@ -116,7 +114,6 @@ export const serverEnvironmentOptions: ServerEnvironmentOption[] = [
   { id: '1panel', localeKey: 'onePanel', icon: 'layout-grid' },
   { id: 'casaos', localeKey: 'casaos', icon: 'home' },
   { id: 'unraid', localeKey: 'unraid', icon: 'hard-drive' },
-  { id: 'synology', localeKey: 'synology', icon: 'database', reserved: true },
 ]
 
 export const scenarioRecommendations: ScenarioRecommendation[] = [

@@ -1,8 +1,7 @@
 //! Independent TLS infrastructure for Gate server.
 //!
-//! This crate intentionally does not connect to the server runtime, HTTP tunnel,
-//! communication layer, dashboard, or existing services. It provides only the
-//! abstractions and local primitives needed by a future HTTPS integration.
+//! This crate provides the TLS, ACME, certificate store, and renewal primitives
+//! used by the server-side HTTPS integration.
 
 pub mod config;
 pub mod error;

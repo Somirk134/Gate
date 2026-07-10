@@ -34,17 +34,11 @@ npm run build
 
 ## Start the server
 
-```bash
-npm run dev:server
-```
-
-By default, the source server listens on `127.0.0.1:7000` and uses the local development token `gate-alpha-token`.
-
-For a production-like local run, set an explicit bind address and token:
+Generate a token, then start the source server. The server refuses to start without an explicit token:
 
 ```bash
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 GATE_SERVER_ADDR=0.0.0.0:7000 \
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 cargo run -p gate-server --release
 ```
 
@@ -67,7 +61,7 @@ npm --prefix client run dev
 1. Start a local service, for example an app on `127.0.0.1:3000`.
 2. Open the Gate desktop client.
 3. Add the local Gate server `127.0.0.1:7000`.
-4. Use the development token `gate-alpha-token` only for local testing.
+4. Use the same `GATE_AUTH_TOKEN` value when adding the server.
 5. Create a TCP tunnel that maps local port `3000` to a remote port such as `18080`.
 6. Start the tunnel and check the Dashboard and Log Center.
 

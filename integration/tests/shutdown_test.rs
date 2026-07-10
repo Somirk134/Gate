@@ -13,7 +13,9 @@ async fn server_and_runtime_shutdown_gracefully() -> anyhow::Result<()> {
 
     let mut client = AlphaClient::new();
     client.connect(addr).await?;
-    client.authenticate("gate-alpha-token").await?;
+    client
+        .authenticate("gate-integration-test-token-20260710-release-audit")
+        .await?;
     let response = client.request(Command::SystemShutdown, json!({})).await?;
     assert_eq!(response.header.command, Command::SystemShutdown);
     client.disconnect().await?;

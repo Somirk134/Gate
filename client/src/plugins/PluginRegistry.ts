@@ -1,3 +1,4 @@
+import { GateAppError } from '@/ipc'
 import type { PluginLifecycle, PluginLifecycleState } from './lifecycle/PluginLifecycle'
 
 export interface PluginManifest {
@@ -23,7 +24,12 @@ export class PluginRegistry {
 
   register(manifest: PluginManifest, lifecycle: PluginLifecycle) {
     if (this.plugins.has(manifest.id)) {
-      throw new Error(`Plugin already registered: ${manifest.id}`)
+      throw new GateAppError({
+        code: 'PLUGIN_ALREADY_REGISTERED',
+        messageKey: 'errors.application.pluginAlreadyRegistered',
+        details: { id: manifest.id },
+        timestamp: Date.now(),
+      })
     }
 
     this.plugins.set(manifest.id, {

@@ -128,62 +128,51 @@
               <strong>{{ selectedServer.lastConnectedAt }}</strong>
             </article>
             <article>
-              <span>RTT</span>
+                <span>{{ t('server.ping') }}</span>
               <strong>{{ selectedServer.ping ? `${selectedServer.ping} ms` : '-' }}</strong>
             </article>
           </div>
 
           <section class="server-runtime-panel">
             <div class="server-info-section__head">
-              <h3>Runtime Monitor</h3>
+              <h3>{{ t('server.monitor.title') }}</h3>
               <span>{{ selectedServer.publicIp || selectedServer.overview.privateIp || '-' }}</span>
             </div>
             <div class="server-runtime-grid">
               <article>
-                <span>CPU</span>
-                <strong>{{ selectedServer.monitor.cpu.percent.toFixed(0) }}%</strong>
-                <RuntimeSparkline :values="selectedServer.monitor.cpu.history" label="Server CPU" />
+                <span>{{ t('server.cpu') }}</span>
+                <strong>{{ selectedServer.overview.cpu || t('common.unknown') }}</strong>
               </article>
               <article>
-                <span>Memory</span>
-                <strong>{{ selectedServer.monitor.memory.percent.toFixed(0) }}%</strong>
-                <RuntimeSparkline :values="selectedServer.monitor.memory.history" label="Server memory" />
+                <span>{{ t('server.ram') }}</span>
+                <strong>{{ formatMetricPercent(selectedServer.monitor.memory.percent, selectedServer.monitor.memory.total) }}</strong>
+                <RuntimeSparkline :values="selectedServer.monitor.memory.history" :label="t('server.monitor.memoryUsage')" />
               </article>
               <article>
-                <span>Network</span>
-                <strong>{{
-                  formatSpeed(
-                    selectedServer.monitor.network.uploadSpeed +
-                      selectedServer.monitor.network.downloadSpeed,
-                  )
-                }}</strong>
-                <RuntimeSparkline
-                  :values="selectedServer.monitor.network.history.map((point) => point.network)"
-                  label="Server network" />
+                <span>{{ t('server.network') }}</span>
+                <strong>{{ formatNetworkTotal(selectedServer) }}</strong>
               </article>
               <article>
-                <span>Disk</span>
-                <strong>{{ selectedServer.monitor.disk.percent.toFixed(0) }}%</strong>
-                <RuntimeSparkline :values="selectedServer.monitor.disk.history" label="Server disk" />
+                <span>{{ t('server.disk') }}</span>
+                <strong>{{ formatMetricPercent(selectedServer.monitor.disk.percent, selectedServer.monitor.disk.total) }}</strong>
+                <RuntimeSparkline :values="selectedServer.monitor.disk.history" :label="t('server.monitor.diskUsage')" />
               </article>
             </div>
             <div class="server-capability-grid">
               <article>
-                <span>Load</span>
-                <strong>{{
-                  `${selectedServer.monitor.load.load1.toFixed(2)} / ${selectedServer.monitor.load.load5.toFixed(2)} / ${selectedServer.monitor.load.load15.toFixed(2)}`
-                }}</strong>
+                <span>{{ t('server.metrics.load') }}</span>
+                <strong>{{ formatLoad(selectedServer.monitor.load) }}</strong>
               </article>
               <article>
-                <span>Docker</span>
-                <strong>{{ selectedServer.overview.dockerDetected ? 'Detected' : 'Not detected' }}</strong>
+                <span>{{ t('server.docker') }}</span>
+                <strong>{{ formatDetection(selectedServer.overview.dockerDetected) }}</strong>
               </article>
               <article>
-                <span>Firewall</span>
-                <strong>{{ selectedServer.overview.firewallDetected ? 'Detected' : 'Unknown' }}</strong>
+                <span>{{ t('server.firewall') }}</span>
+                <strong>{{ formatDetection(selectedServer.overview.firewallDetected) }}</strong>
               </article>
               <article>
-                <span>Version</span>
+                <span>{{ t('server.version') }}</span>
                 <strong>{{ selectedServer.overview.serverVersion || selectedServer.version }}</strong>
               </article>
             </div>
@@ -206,7 +195,7 @@
                 <dd>{{ selectedServer.settings.port }}</dd>
               </div>
               <div>
-                <dt>Token</dt>
+                <dt>{{ t('server.dialog.tokenHint') }}</dt>
                 <dd>{{ maskToken(selectedServer.settings.token) }}</dd>
               </div>
               <div>
@@ -335,7 +324,7 @@
 
               <label>
                 <span class="server-label-row">
-                  Token
+                  {{ t('server.dialog.tokenHint') }}
                   <em>{{ t('server.dialog.tokenHint') }}</em>
                 </span>
                 <div class="server-token-control">
@@ -583,7 +572,7 @@ import GIcon from '@components/icons/GIcon.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
 import { useServer } from './composables/useServer'
 import { defaultServerForm } from './store/server'
-import type { Server, ServerFormData, ServerKind, ServerStatus } from './types'
+import type { Server, ServerFormData, ServerKind, ServerLoadMetric, ServerStatus } from './types'
 import './styles/server.css'
 
 const router = useRouter()
@@ -620,15 +609,15 @@ const tokenVisible = ref(false)
 const form = reactive<ServerFormData>({ ...defaultServerForm, tags: [] })
 // 发布版本不在 UI 中内置或展示任何可直接使用的服务器口令。
 const localServerCommand =
-  'npm run dev:server:local -- -Token "replace-with-a-long-random-token"'
+  'npm run dev:server:local'
 const customLocalServerCommand =
-  'npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"'
+  'npm run dev:server:local -- -Addr "127.0.0.1:7001"'
 const remoteServerCommand =
-  'GATE_SERVER_ADDR=0.0.0.0:7000 GATE_AUTH_TOKEN=replace-with-a-long-random-token cargo run -p gate-server --release'
+  'GATE_SERVER_ADDR=0.0.0.0:7000 GATE_AUTH_TOKEN="$GATE_AUTH_TOKEN" cargo run -p gate-server --release'
 const remoteBinaryCommand =
-  'GATE_SERVER_ADDR=0.0.0.0:7000 GATE_AUTH_TOKEN=replace-with-a-long-random-token ./gate-server'
+  'GATE_SERVER_ADDR=0.0.0.0:7000 GATE_AUTH_TOKEN="$GATE_AUTH_TOKEN" ./gate-server'
 const dockerComposeCommand =
-  'GATE_AUTH_TOKEN=replace-with-a-long-random-token GATE_PORT=5800 docker compose up -d'
+  'GATE_AUTH_TOKEN="$GATE_AUTH_TOKEN" GATE_PORT=5800 docker compose up -d'
 const ufwCommand = 'sudo ufw allow 7000/tcp && sudo ufw allow 18080/tcp && sudo ufw reload'
 const firewalldCommand =
   'sudo firewall-cmd --permanent --add-port=7000/tcp && sudo firewall-cmd --permanent --add-port=18080/tcp && sudo firewall-cmd --reload'
@@ -942,13 +931,35 @@ function maskToken(token: string) {
   return `${token.slice(0, 4)}****${token.slice(-4)}`
 }
 
-function formatSpeed(bytesPerSecond: number): string {
-  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '0 B/s'
-  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s']
-  const index = Math.min(units.length - 1, Math.floor(Math.log(bytesPerSecond) / Math.log(1024)))
-  const value = bytesPerSecond / 1024 ** index
+function formatMetricPercent(percent: number, total: number): string {
+  return total > 0 ? `${percent.toFixed(0)}%` : t('common.unknown')
+}
+
+function formatLoad(load: ServerLoadMetric): string {
+  if (load.cores <= 0) return t('common.unknown')
+  return `${load.load1.toFixed(2)} / ${load.load5.toFixed(2)} / ${load.load15.toFixed(2)}`
+}
+
+function formatDetection(value?: boolean): string {
+  if (value === true) return t('server.detected')
+  if (value === false) return t('server.notDetected')
+  return t('common.unknown')
+}
+
+function formatNetworkTotal(server: Server): string {
+  const total =
+    (server.overview.networkReceivedBytes ?? 0) + (server.overview.networkTransmittedBytes ?? 0)
+  return total > 0 ? formatBytes(total) : t('common.unknown')
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return t('common.unknown')
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
+  const value = bytes / 1024 ** index
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
+
 </script>
 
 <style scoped>

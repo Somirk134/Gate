@@ -2,6 +2,21 @@
 
 All notable changes to Gate are documented in this file.
 
+## 0.9.1 - 2026-07-10
+
+### Security
+
+- Require an explicit authentication token of at least 16 characters and reject known weak defaults.
+- Remove authentication tokens from server startup output and structured logs.
+- Require `GATE_AUTH_TOKEN` in Docker Compose deployments.
+
+### Release hardening
+
+- Align Cargo, npm, Tauri, Docker, desktop UI, and release documentation on `0.9.1`.
+- Remove unreachable placeholder crates, modules, commands, components, and mock runtime exports.
+- Normalize updater IPC failures to the structured Gate application error contract.
+- Remove synthetic tunnel metadata and display only Runtime-sourced traffic fields.
+
 ## 0.9.0 - Release Candidate
 
 ### Release engineering

@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 /// Default maximum number of managed domains.
 pub const DEFAULT_MAX_DOMAINS: usize = 1_000;
 
-/// Default DNS TTL used by mock and future DNS checkers.
+/// Default DNS TTL used by DNS checkers.
 pub const DEFAULT_TTL_SECONDS: u32 = 300;
 
 /// Domain syntax validation strictness.
@@ -11,7 +11,6 @@ pub const DEFAULT_TTL_SECONDS: u32 = 300;
 pub enum ValidationMode {
     /// RFC-oriented host validation.
     Rfc,
-    /// Reserved for operators that need a softer migration mode.
     Relaxed,
     /// Strict production validation.
     Strict,
@@ -21,11 +20,7 @@ pub enum ValidationMode {
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StorageKind {
-    Memory,
     Sqlite,
-    RedisReserved,
-    JsonReserved,
-    FileReserved,
 }
 
 /// Domain infrastructure configuration.
@@ -162,7 +157,7 @@ impl Default for DomainConfigBuilder {
             enable_dns_check: false,
             default_ttl: DEFAULT_TTL_SECONDS,
             validation_mode: ValidationMode::Rfc,
-            storage_kind: StorageKind::Memory,
+            storage_kind: StorageKind::Sqlite,
             reserved_domains,
             server_addresses: Vec::new(),
         }

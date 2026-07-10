@@ -8,7 +8,6 @@
     - 单击进入详情
     - 始终展示操作栏（启动/停止/编辑/删除）
     - Pin / Favorite 快捷切换
-    - 右键菜单（预留）
 
   颜色通过 --project-color CSS 变量驱动，保持与 Sidebar/Dashboard 一致。
 -->

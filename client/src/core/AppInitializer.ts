@@ -1,4 +1,5 @@
 import type { AppContext } from './AppContext'
+import { GateAppError } from '@/ipc'
 
 export interface AppInitializer {
   id: string
@@ -11,7 +12,12 @@ export class AppInitializerRegistry {
 
   register(initializer: AppInitializer) {
     if (this.initializers.has(initializer.id)) {
-      throw new Error(`App initializer already registered: ${initializer.id}`)
+      throw new GateAppError({
+        code: 'APP_INITIALIZER_ALREADY_REGISTERED',
+        messageKey: 'errors.application.initializerAlreadyRegistered',
+        details: { id: initializer.id },
+        timestamp: Date.now(),
+      })
     }
 
     this.initializers.set(initializer.id, initializer)

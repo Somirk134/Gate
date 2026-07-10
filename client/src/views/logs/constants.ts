@@ -60,7 +60,6 @@ export const LOG_SOURCE_LIST: LogSource[] = [
   'TUNNEL',
   'STATISTICS',
   'UPDATE',
-  'PLUGIN',
 ]
 
 export const LOG_SOURCE_LABELS: Record<LogSource, string> = {
@@ -71,7 +70,6 @@ export const LOG_SOURCE_LABELS: Record<LogSource, string> = {
   TUNNEL: 'Tunnel',
   STATISTICS: 'Statistics',
   UPDATE: 'Update',
-  PLUGIN: 'Plugin',
 }
 
 export const LOG_SOURCES: LogSourceNode[] = [
@@ -83,7 +81,6 @@ export const LOG_SOURCES: LogSourceNode[] = [
       id: source,
       label: LOG_SOURCE_LABELS[source],
       icon: sourceIcon(source),
-      reserved: source === 'PLUGIN',
     })),
   },
 ]
@@ -118,7 +115,6 @@ function sourceIcon(source: LogSource) {
     TUNNEL: 'router',
     STATISTICS: 'chart-bar',
     UPDATE: 'refresh',
-    PLUGIN: 'plug',
   }
   return icons[source]
 }

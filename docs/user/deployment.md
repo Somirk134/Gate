@@ -16,7 +16,7 @@ This page covers production-style server deployment. Keep secrets out of source 
 | Variable | Purpose | Example |
 | --- | --- | --- |
 | `GATE_SERVER_ADDR` | Server bind address | `0.0.0.0:7000` |
-| `GATE_AUTH_TOKEN` | Client authentication token | `replace-with-a-long-random-token` |
+| `GATE_AUTH_TOKEN` | Client authentication token | Required; generate a unique secret for each environment |
 | `GATE_TUNNEL_BIND_ADDR` | Optional tunnel listener bind address | `0.0.0.0` |
 | `GATE_CERT_DIR` | Certificate storage directory | `/var/lib/gate/certificates` |
 | `GATE_ACME_EMAIL` | ACME account email when ACME is enabled | `ops@example.com` |
@@ -28,8 +28,8 @@ This page covers production-style server deployment. Keep secrets out of source 
 For Linux servers, Gate recommends Docker host networking because tunnel public listeners are created dynamically from each tunnel `remotePort`. With host networking, users only need to open the Gate control port and selected tunnel ports in the cloud security group or host firewall; they do not need to edit Compose whenever a new tunnel port is used.
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
-  docker compose up -d --build
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
+docker compose up -d --build
 ```
 
 Open `5800/tcp` for the desktop client and open each tunnel `remotePort` that should be reachable publicly.
@@ -38,8 +38,8 @@ Open `5800/tcp` for the desktop client and open each tunnel `remotePort` that sh
 
 ```bash
 cargo build -p gate-server --release
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 GATE_SERVER_ADDR=0.0.0.0:7000 \
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
 ./target/release/gate-server
 ```
 

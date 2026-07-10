@@ -1,4 +1,4 @@
-//! Mock statistics models for tunnels and traffic.
+//! Runtime statistics models for tunnels and traffic.
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;

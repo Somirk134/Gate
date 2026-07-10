@@ -14,7 +14,7 @@ pub trait Encoder: Send + Sync {
     fn encode(&self, input: Bytes) -> BoxFuture<'static, Result<Bytes, ProtocolError>>;
 }
 
-/// Intercepts traffic for future compression, encryption, audit, and metrics.
+/// Intercepts traffic for compression, encryption, audit, and metrics stages.
 pub trait Interceptor: Send + Sync {
     fn intercept(&self, input: Bytes) -> BoxFuture<'static, Result<Bytes, ProtocolError>>;
 }

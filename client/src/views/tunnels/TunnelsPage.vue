@@ -55,11 +55,8 @@
           <option value="stopped">{{ t('tunnel.filters.stopped') }}</option>
           <option value="http">HTTP</option>
           <option value="tcp">TCP</option>
-          <option value="favorite">{{ t('tunnel.filters.favorite') }}</option>
-          <option value="recent">{{ t('tunnel.filters.recent') }}</option>
         </select>
         <select v-model="sortBy">
-          <option value="updatedAt">{{ t('tunnel.sort.updatedAt') }}</option>
           <option value="name">{{ t('tunnel.sort.name') }}</option>
           <option value="status">{{ t('tunnel.sort.status') }}</option>
           <option value="traffic">{{ t('tunnel.sort.traffic') }}</option>
@@ -137,13 +134,6 @@
                 <button type="button" class="icon-action" @click="openEdit(selectedTunnel)">
                   <GIcon name="edit" :size="16" />
                 </button>
-                <button
-                  type="button"
-                  class="icon-action"
-                  :class="{ active: selectedTunnel.favorite }"
-                  @click="toggleFavorite(selectedTunnel.id)">
-                  <GIcon name="star" :size="16" />
-                </button>
                 <button type="button" class="icon-action" @click="deleteSelected">
                   <GIcon name="trash" :size="16" />
                 </button>
@@ -156,12 +146,8 @@
                 <strong>{{ selectedTunnel.publicAddr }}</strong>
               </article>
               <article>
-                <span>{{ t('tunnel.detail.todayTraffic') }}</span>
-                <strong>{{
-                  formatBytes(
-                    selectedTunnel.traffic.todayUpload + selectedTunnel.traffic.todayDownload,
-                  )
-                }}</strong>
+                <span>{{ t('tunnel.detail.totalTraffic') }}</span>
+                <strong>{{ formatBytes(selectedTunnel.traffic.total) }}</strong>
               </article>
               <article>
                 <span>{{ t('tunnel.detail.realtimeSpeed') }}</span>
@@ -379,6 +365,7 @@ import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import { GateAppError } from '@/ipc'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 import TunnelLoading from './components/TunnelLoading.vue'
 import TunnelCreateWizard from './components/TunnelCreateWizard.vue'
@@ -415,7 +402,6 @@ const {
   remove,
   start,
   stop,
-  toggleFavorite,
   store,
 } = useTunnel()
 const serverStore = useServerStore()
@@ -426,7 +412,7 @@ useTunnelMonitor(store)
 
 const query = ref('')
 const filter = ref<TunnelFilterType>('all')
-const sortBy = ref<TunnelSortType>('updatedAt')
+const sortBy = ref<TunnelSortType>('name')
 const direction = ref<SortDirection>('desc')
 const selectedId = ref<string | null>(null)
 const wizardVisible = ref(false)
@@ -457,9 +443,7 @@ const finalTunnels = computed(() => {
       filter.value === 'all' ||
       tunnel.protocol === filter.value ||
       (filter.value === 'running' && !canStart(tunnel.status)) ||
-      (filter.value === 'stopped' && canStart(tunnel.status)) ||
-      (filter.value === 'favorite' && tunnel.favorite) ||
-      filter.value === 'recent'
+      (filter.value === 'stopped' && canStart(tunnel.status))
     const matchesQuery =
       !keyword ||
       [
@@ -486,10 +470,10 @@ const finalTunnels = computed(() => {
     if (sortBy.value === 'connections') {
       return (a.statistics.connections - b.statistics.connections) * modifier
     }
-    return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * modifier
+    return a.name.localeCompare(b.name) * modifier
   })
 
-  return filter.value === 'recent' ? sorted.slice(0, 10) : sorted
+  return sorted
 })
 
 const selectedTunnel = computed(() =>
@@ -745,7 +729,7 @@ function statusOrder(status: TunnelStatus) {
 }
 
 function trafficTotal(tunnel: Tunnel) {
-  return tunnel.traffic.totalUpload + tunnel.traffic.totalDownload
+  return tunnel.traffic.total
 }
 
 function accessUrl(tunnel: Tunnel): string {
@@ -770,7 +754,13 @@ async function openAccessUrl(tunnel: Tunnel) {
     }
 
     const target = window.open(url, '_blank', 'noopener,noreferrer')
-    if (!target) throw new Error(t('tunnel.notifications.popupBlocked'))
+    if (!target) {
+      throw new GateAppError({
+        code: 'TUNNEL_POPUP_BLOCKED',
+        messageKey: 'tunnel.notifications.popupBlocked',
+        timestamp: Date.now(),
+      })
+    }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : t('tunnel.notifications.openUrlFailed'))
   }

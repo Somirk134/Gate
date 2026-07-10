@@ -42,11 +42,12 @@ Include:
 
 ## Cryptography Policy
 
-Cryptography policy is reserved. Until published:
-
 - Prefer well-reviewed libraries over custom cryptographic code.
 - Do not implement custom token signing, password hashing, or encryption primitives.
 - Document key and token handling for any security-sensitive change.
+- Never log authentication tokens, passwords, cookies, private keys, or ACME key authorization values.
+- Require explicit production credentials and reject known weak defaults.
+- Store private keys only in the configured certificate directory with owner-only permissions where the platform supports them.
 
 ## Security Baseline
 

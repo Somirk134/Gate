@@ -3,7 +3,6 @@
     class="app-shell"
     :class="{
       'sidebar-collapsed': layout.sidebarCollapsed,
-      'inspector-open': layout.inspectorOpen,
     }">
     <!-- Sidebar -->
     <AppSidebar />
@@ -15,9 +14,6 @@
       <AppStatusBar />
     </div>
 
-    <!-- Inspector -->
-    <AppInspector v-if="layout.inspectorOpen" />
-
     <!-- Layers -->
     <AppCommandPalette v-if="layout.commandPaletteOpen" />
     <AppNotificationLayer />
@@ -28,12 +24,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useLayoutStore, useLoadingStore } from '@stores'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import AppContent from './AppContent.vue'
-import AppInspector from './AppInspector.vue'
 import AppStatusBar from './AppStatusBar.vue'
 import AppCommandPalette from './AppCommandPalette.vue'
 import AppNotificationLayer from './AppNotificationLayer.vue'
@@ -44,7 +38,6 @@ import AppWelcomeOverlay from './AppWelcomeOverlay.vue'
 const layout = useLayoutStore()
 const loading = useLoadingStore()
 
-const inspectorWidth = computed(() => layout.inspectorWidth + 'px')
 </script>
 
 <style scoped>
@@ -58,14 +51,6 @@ const inspectorWidth = computed(() => layout.inspectorWidth + 'px')
 
 .app-shell.sidebar-collapsed {
   grid-template-columns: var(--sidebar-collapsed-width) 1fr;
-}
-
-.app-shell.inspector-open {
-  grid-template-columns: var(--sidebar-width) 1fr v-bind(inspectorWidth);
-}
-
-.app-shell.sidebar-collapsed.inspector-open {
-  grid-template-columns: var(--sidebar-collapsed-width) 1fr v-bind(inspectorWidth);
 }
 
 .main-area {

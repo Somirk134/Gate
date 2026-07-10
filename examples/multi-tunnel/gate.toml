@@ -5,7 +5,6 @@ environment = "development"
 
 [server]
 address = "127.0.0.1:7000"
-auth_token = "gate-alpha-token"
 
 [[tunnels]]
 name = "web"

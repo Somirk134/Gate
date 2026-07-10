@@ -2,7 +2,7 @@
 
 ```mermaid
 sequenceDiagram
-    participant Runtime as Future HTTP/HTTPS Runtime
+    participant Runtime as HTTP/HTTPS Runtime
     participant Resolver as HostResolver
     participant Repository as DomainRepository
     participant Storage as Memory/SQL/Redis Storage

@@ -2,14 +2,13 @@
 
 ```mermaid
 flowchart TB
-    HTTP["Future HTTP Runtime"] -. "HostResolver only" .-> HR["HostResolver Trait"]
-    HTTPS["Future HTTPS Runtime"] -. "HostResolver only" .-> HR
-    TLS["Future TLS / ACME"] -. "Reserved ports" .-> PORTS["traits/* Ports"]
+    HTTP["HTTP Runtime"] --> HR["HostResolver Trait"]
+    HTTPS["HTTPS Runtime"] --> HR
 
     SERVICE["DomainService"]
     VALIDATOR["DomainValidator"]
     REPO["DomainRepository"]
-    STORAGE["DomainStorage"]
+    SQLITE["SQLite DomainStorage"]
     DNS["DnsResolver / DnsChecker"]
     MODEL["Domain Model"]
     ERROR["Unified Errors"]
@@ -20,7 +19,7 @@ flowchart TB
     SERVICE --> REPO
     SERVICE --> MODEL
     SERVICE --> EVENT
-    REPO --> STORAGE
+    REPO --> SQLITE
     DNS --> MODEL
     VALIDATOR --> MODEL
     SERVICE --> ERROR

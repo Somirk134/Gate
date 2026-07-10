@@ -7,13 +7,17 @@ async fn client_can_reconnect_and_reauthenticate_after_disconnect() -> anyhow::R
 
     let mut client = AlphaClient::new();
     client.connect(addr).await?;
-    client.authenticate("gate-alpha-token").await?;
+    client
+        .authenticate("gate-integration-test-token-20260710-release-audit")
+        .await?;
     client.disconnect().await?;
     assert_eq!(client.state(), AlphaClientState::Disconnected);
 
     client.reconnect().await?;
     assert_eq!(client.state(), AlphaClientState::Connected);
-    client.authenticate("gate-alpha-token").await?;
+    client
+        .authenticate("gate-integration-test-token-20260710-release-audit")
+        .await?;
     assert_eq!(client.state(), AlphaClientState::Authenticated);
 
     let statistics = server.statistics().await;

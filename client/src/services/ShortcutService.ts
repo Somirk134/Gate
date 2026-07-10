@@ -1,5 +1,6 @@
 import type { CommandRegistry } from '@/commands/CommandRegistry'
 import type { EventBus } from '@/events/EventBus'
+import { GateAppError } from '@/ipc'
 import type { LoggerService } from '@/logger/LoggerService'
 import type { AppEventMap } from '@/types/application'
 import type { Disposable } from '@/utils/disposable'
@@ -58,7 +59,12 @@ export class BrowserShortcutService implements ShortcutService {
 
   register(binding: ShortcutBinding): Disposable {
     if (this.bindings.has(binding.id)) {
-      throw new Error(`Shortcut already registered: ${binding.id}`)
+      throw new GateAppError({
+        code: 'SHORTCUT_ALREADY_REGISTERED',
+        messageKey: 'errors.application.shortcutAlreadyRegistered',
+        details: { id: binding.id },
+        timestamp: Date.now(),
+      })
     }
 
     this.bindings.set(binding.id, binding)

@@ -35,6 +35,12 @@
           <span>{{ t('certificate.history.loading') }}</span>
         </div>
 
+        <div v-else-if="historyError" class="history-empty">
+          <GIcon name="alert-circle" :size="28" />
+          <p>{{ t('certificate.history.loadFailed') }}</p>
+          <small>{{ historyError }}</small>
+        </div>
+
         <!-- 空状态 -->
         <div v-else-if="records.length === 0" class="history-empty">
           <GIcon name="clock" :size="28" />
@@ -209,6 +215,7 @@ const { toast, confirmDanger } = useFeedback()
 /* ── 状态 ── */
 const records = ref<AcmeApplicationRecord[]>([])
 const loading = ref(false)
+const historyError = ref('')
 const selectedId = ref<string | null>(null)
 const retryingId = ref<string | null>(null)
 const downloadingId = ref<string | null>(null)
@@ -234,11 +241,13 @@ let unlisten: (() => void) | null = null
 /* ── 方法 ── */
 async function fetchHistory() {
   loading.value = true
+  historyError.value = ''
   try {
     const res: AcmeHistoryResponse = await certificateService.history()
     records.value = res.records || []
-  } catch {
-    // 静默失败，不阻塞主页面
+  } catch (error) {
+    historyError.value =
+      error instanceof Error ? error.message : t('certificate.history.loadFailed')
   } finally {
     loading.value = false
   }
@@ -292,8 +301,11 @@ async function toggleDetail(id: string) {
       const res = await certificateService.recordDetail(id)
       certInfo.value = res.certificateInfo
       certInfoForId.value = id
-    } catch {
+    } catch (error) {
       certInfo.value = null
+      toast.error(
+        error instanceof Error ? error.message : t('certificate.history.detailLoadFailed'),
+      )
     }
   }
 }
@@ -371,7 +383,7 @@ async function setupEventListener() {
       } else {
         toast.error(payload.error || t('certificate.wizard.dnsStep.verifyFailed'))
       }
-      fetchHistory().catch(() => {})
+      void fetchHistory()
       emit('record-updated')
       if (payload.recordId && selectedId.value === payload.recordId) {
         selectedId.value = null
@@ -392,7 +404,7 @@ onUnmounted(() => {
 })
 
 watch(() => props.refreshTrigger, () => {
-  fetchHistory().catch(() => {})
+  void fetchHistory()
 })
 </script>
 

@@ -14,7 +14,7 @@ pub enum TransportEndpoint {
     Custom(String),
 }
 
-/// Async-compatible transport boundary for future Tokio TCP adapters.
+/// Async-compatible transport boundary for Tokio TCP adapters.
 pub trait Transport: Send + Sync {
     fn name(&self) -> &'static str;
 

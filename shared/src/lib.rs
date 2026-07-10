@@ -7,4 +7,4 @@ pub mod lifecycle;
 pub mod logging;
 pub mod scheduler;
 
-pub use error::{AppError, ConfigError, ErrorCode, InternalError, NetworkError, TunnelError};
+pub use error::{AppError, ConfigError, ErrorCode, InternalError, NetworkError};

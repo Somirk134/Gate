@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { i18n } from '@/i18n'
+import { createId } from '@/utils/id'
 
 export interface LoadingTask {
   id: string
@@ -39,7 +40,7 @@ export const useLoadingStore = defineStore('loading', () => {
   }
 
   function addTask(message: string, id?: string): string {
-    const taskId = id || `loading-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const taskId = id || createId('loading')
     tasks.value.push({
       id: taskId,
       message,

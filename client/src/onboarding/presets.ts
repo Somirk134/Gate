@@ -1,7 +1,5 @@
 import type { TunnelProtocol } from '@/views/tunnels/types'
 
-export type PresetAvailability = 'available' | 'reserved'
-
 export interface TunnelTemplatePreset {
   id: string
   title: string
@@ -12,7 +10,6 @@ export interface TunnelTemplatePreset {
   localPort: number
   remotePort: number
   tags: string[]
-  availability: PresetAvailability
 }
 
 export interface QuickStartScenario {
@@ -38,7 +35,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 3000,
     remotePort: 18080,
     tags: ['HTTP'],
-    availability: 'available',
   },
   {
     id: 'tcp',
@@ -50,7 +46,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 8080,
     remotePort: 18080,
     tags: ['TCP'],
-    availability: 'available',
   },
   {
     id: 'webhook',
@@ -62,7 +57,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 3000,
     remotePort: 18081,
     tags: ['Webhook', 'Dev'],
-    availability: 'available',
   },
   {
     id: 'minecraft',
@@ -74,7 +68,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 25565,
     remotePort: 25565,
     tags: ['Game'],
-    availability: 'available',
   },
   {
     id: 'ssh',
@@ -86,7 +79,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 22,
     remotePort: 2222,
     tags: ['SSH'],
-    availability: 'available',
   },
   {
     id: 'mysql',
@@ -98,7 +90,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 3306,
     remotePort: 3306,
     tags: ['Database'],
-    availability: 'available',
   },
   {
     id: 'redis',
@@ -110,7 +101,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 6379,
     remotePort: 6379,
     tags: ['Database', 'Cache'],
-    availability: 'available',
   },
   {
     id: 'postgresql',
@@ -122,7 +112,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 5432,
     remotePort: 5432,
     tags: ['Database'],
-    availability: 'available',
   },
   {
     id: 'rdp',
@@ -134,7 +123,6 @@ export const tunnelTemplates: TunnelTemplatePreset[] = [
     localPort: 3389,
     remotePort: 13389,
     tags: ['Remote'],
-    availability: 'available',
   },
 ]
 

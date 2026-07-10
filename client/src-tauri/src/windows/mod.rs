@@ -17,4 +17,3 @@ pub fn create_settings_window(app: &AppHandle) {
 
     create_main_window(app);
 }
-pub mod service;

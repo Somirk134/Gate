@@ -1,5 +1,6 @@
 import type { EventBus } from '@/events/EventBus'
 import type { AppEventMap, NotificationPayload } from '@/types/application'
+import { createId } from '@/utils/id'
 
 export interface NotificationService {
   show(notification: NotificationPayload): string
@@ -13,8 +14,7 @@ export class EventNotificationService implements NotificationService {
   constructor(private readonly events: EventBus<AppEventMap>) {}
 
   show(notification: NotificationPayload) {
-    const id =
-      notification.id ?? `notification-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const id = notification.id ?? createId('notification')
 
     void this.events.publish('notification:show', {
       ...notification,

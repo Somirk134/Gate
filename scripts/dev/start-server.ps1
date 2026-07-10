@@ -11,7 +11,12 @@ if ([string]::IsNullOrWhiteSpace($Addr)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($Token)) {
-    $Token = "gate-alpha-token"
+    throw "GATE_AUTH_TOKEN or -Token is required."
+}
+
+# 开发入口与生产二进制使用相同的最低凭据强度，避免弱配置迁移到部署环境。
+if ($Token.Trim().Length -lt 16 -or $Token -in @("gate-alpha-token", "change-me", "changeme", "replace-me", "replace-with-a-long-random-token")) {
+    throw "Token must contain at least 16 characters and must not use a known default."
 }
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")

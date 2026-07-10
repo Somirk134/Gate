@@ -14,7 +14,7 @@ import type {
   TunnelStatusConfig,
 } from '../types'
 
-/* ── 协议预设（V1 启用 http/tcp，其余预留扩展） ── */
+/* ── Runtime 已支持的协议预设 ── */
 export const PROTOCOL_PRESETS: ProtocolPreset[] = [
   {
     key: 'http',
@@ -40,22 +40,6 @@ export const PROTOCOL_PRESETS: ProtocolPreset[] = [
     icon: 'shield',
     color: '#7C6FF2',
   },
-  {
-    key: 'udp',
-    label: 'UDP',
-    description: 'udp',
-    availability: 'planned',
-    icon: 'radio',
-    color: '#F59E0B',
-  },
-  {
-    key: 'p2p',
-    label: 'P2P',
-    description: 'p2p',
-    availability: 'planned',
-    icon: 'network',
-    color: '#06B6D4',
-  },
 ]
 
 /* 协议键 → 预设映射 */
@@ -73,7 +57,6 @@ export const TUNNEL_TAGS: TagPreset[] = [
   { name: 'frontend', color: '#06B6D4' },
   { name: 'ssh', color: '#22C55E' },
   { name: 'database', color: '#EF4444' },
-  { name: 'demo', color: '#F59E0B' },
   { name: 'production', color: '#EF4444' },
   { name: 'staging', color: '#06B6D4' },
   { name: 'personal', color: '#7C6FF2' },
@@ -255,10 +238,6 @@ export function formatLogTime(ts: number): string {
 }
 
 /* ── 生成唯一 ID ── */
-export function genId(prefix = 't'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-}
-
 /* ── 端口校验 ── */
 export function isValidPort(port: number | null): boolean {
   return port != null && port >= 1 && port <= 65535
@@ -271,5 +250,5 @@ export function buildPublicAddr(serverDomain: string, remotePort: number): strin
 
 /* ── 取 Tunnel 主流量（上传+下载累计） ── */
 export function totalTraffic(t: Tunnel): number {
-  return t.traffic.totalUpload + t.traffic.totalDownload
+  return t.traffic.total
 }

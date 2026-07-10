@@ -4304,7 +4304,7 @@ mod tests {
                 kind: "personal".to_string(),
                 host: server_addr.ip().to_string(),
                 port: server_addr.port(),
-                token: "gate-alpha-token".to_string(),
+                token: "gate-integration-test-token-20260710-release-audit".to_string(),
                 region: String::new(),
                 remark: String::new(),
                 tags: Vec::new(),

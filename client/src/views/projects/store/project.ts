@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { i18n } from '@/i18n'
 import { projectService } from '@/services/project.service'
+import { GateAppError } from '@/ipc'
 import type { DashboardData, DashboardTunnel } from '@/monitoring/types'
 import type { CertificateSummary } from '@views/certificates/types'
 import type {
@@ -110,7 +111,14 @@ export const useProjectStore = defineStore('project', () => {
     records.value = [record, ...records.value.filter((item) => item.id !== record.id)]
     await refresh()
     const created = getById(record.id)
-    if (!created) throw new Error(t('project.savedReloadFailed'))
+    if (!created) {
+      throw new GateAppError({
+        code: 'PROJECT_RELOAD_FAILED',
+        messageKey: 'project.savedReloadFailed',
+        details: { projectId: record.id },
+        timestamp: Date.now(),
+      })
+    }
     return created
   }
 
@@ -191,12 +199,15 @@ export const useProjectStore = defineStore('project', () => {
 
     try {
       const result = await projectService.start(id)
-      if (result?.failedTunnelIds?.length) {
-        console.warn(`[project:start] ${result.failedTunnelIds.length} tunnels failed to start`, result.failedTunnelIds)
-      }
-      // 延迟等待 runtime 状态稳定后再刷新
-      await delay(500)
       await refresh()
+      if (result?.failedTunnelIds?.length) {
+        throw new GateAppError({
+          code: 'PROJECT_START_PARTIAL',
+          messageKey: 'project.errors.startPartial',
+          details: { count: result.failedTunnelIds.length },
+          timestamp: Date.now(),
+        })
+      }
     } finally {
       startingId.value = null
     }
@@ -212,18 +223,18 @@ export const useProjectStore = defineStore('project', () => {
 
     try {
       const result = await projectService.stop(id)
-      if (result?.failedTunnelIds?.length) {
-        console.warn(`[project:stop] ${result.failedTunnelIds.length} tunnels failed to stop`, result.failedTunnelIds)
-      }
-      await delay(300)
       await refresh()
+      if (result?.failedTunnelIds?.length) {
+        throw new GateAppError({
+          code: 'PROJECT_STOP_PARTIAL',
+          messageKey: 'project.errors.stopPartial',
+          details: { count: result.failedTunnelIds.length },
+          timestamp: Date.now(),
+        })
+      }
     } finally {
       stoppingId.value = null
     }
-  }
-
-  function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   async function togglePin(id: string): Promise<void> {

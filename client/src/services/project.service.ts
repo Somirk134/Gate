@@ -1,6 +1,5 @@
 import { isTauri } from '@tauri-apps/api/core'
-import { i18n } from '@/i18n'
-import { TauriIpcClient } from '@/ipc'
+import { GateAppError, TauriIpcClient } from '@/ipc'
 import type { DashboardData } from '@/monitoring/types'
 import type { CertificateListResponse } from '@views/certificates/types'
 import type {
@@ -19,13 +18,6 @@ import { PROJECT_TEMPLATES } from '@views/projects/utils'
 
 const ipc = new TauriIpcClient()
 const LOCAL_KEY = 'gate.project.workspace.records'
-
-function t(key: string, params?: Record<string, unknown>): string {
-  return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
-    key,
-    params,
-  )
-}
 
 type ProjectCreatePayload = {
   name: string
@@ -65,7 +57,7 @@ export const projectService = {
       return ipc.invoke<ProjectRecord>('project_detail', { projectId })
     }
     const project = readLocalProjects().find((item) => item.id === projectId)
-    if (!project) throw new Error(t('project.errors.notFound'))
+    if (!project) throw projectNotFound(projectId)
     return project
   },
 
@@ -85,7 +77,7 @@ export const projectService = {
     }
     const projects = readLocalProjects()
     const index = projects.findIndex((item) => item.id === projectId)
-    if (index === -1) throw new Error(t('project.errors.notFound'))
+    if (index === -1) throw projectNotFound(projectId)
     projects[index] = {
       ...projects[index],
       ...patch,
@@ -234,40 +226,54 @@ export const projectService = {
       return ipc.invoke('project_start', { projectId })
     }
     // 非 Tauri 环境无实际运行时，返回空
-    return { startedTunnelIds: [], failedTunnelIds: [] }
+    throw runtimeUnavailable('project_start')
   },
 
   async stop(projectId: string): Promise<{ startedTunnelIds: string[]; failedTunnelIds: [string, string][] }> {
     if (isTauriRuntime()) {
       return ipc.invoke('project_stop', { projectId })
     }
-    return { startedTunnelIds: [], failedTunnelIds: [] }
+    throw runtimeUnavailable('project_stop')
   },
 
   async dashboard(): Promise<DashboardData> {
     if (isTauriRuntime()) {
       return ipc.invoke<DashboardData>('runtime_get_dashboard')
     }
-    return emptyDashboard()
+    throw runtimeUnavailable('runtime_get_dashboard')
   },
 
   async logs(): Promise<ProjectLogEntry[]> {
     if (isTauriRuntime()) {
       return ipc.invoke<ProjectLogEntry[]>('runtime_get_logs')
     }
-    return []
+    throw runtimeUnavailable('runtime_get_logs')
   },
 
   async certificates(): Promise<CertificateListResponse> {
     if (isTauriRuntime()) {
       return ipc.invoke<CertificateListResponse>('certificate_list')
     }
-    return {
-      storeRoot: '',
-      certificates: [],
-      generatedAt: Date.now(),
-    }
+    throw runtimeUnavailable('certificate_list')
   },
+}
+
+function projectNotFound(projectId: string): GateAppError {
+  return new GateAppError({
+    code: 'PROJECT_NOT_FOUND',
+    messageKey: 'project.errors.notFound',
+    details: { projectId },
+    timestamp: Date.now(),
+  })
+}
+
+function runtimeUnavailable(command: string): GateAppError {
+  return new GateAppError({
+    code: 'RUNTIME_UNAVAILABLE',
+    messageKey: 'errors.runtimeUnavailable',
+    details: { command },
+    timestamp: Date.now(),
+  })
 }
 
 function toCreatePayload(form: ProjectFormData | ProjectCreatePayload): ProjectCreatePayload {
@@ -325,94 +331,4 @@ function readLocalProjects(): ProjectRecord[] {
 
 function writeLocalProjects(projects: ProjectRecord[]) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(projects))
-}
-
-function emptyDashboard(): DashboardData {
-  const now = Date.now()
-  return {
-    overview: {
-      tunnelCount: 0,
-      runningTunnel: 0,
-      currentConnection: 0,
-      todayTraffic: 0,
-      totalTraffic: 0,
-      averageRttMs: 0,
-      runtimeUptimeSeconds: 0,
-      healthScore: 0,
-    },
-    statistics: {
-      collectedAt: now,
-      tunnel: {
-        tunnelCount: 0,
-        runningTunnel: 0,
-        stoppedTunnel: 0,
-        upload: 0,
-        download: 0,
-        peakSpeedBps: 0,
-        averageSpeedBps: 0,
-        runningTimeSeconds: 0,
-        todayTraffic: 0,
-        totalTraffic: 0,
-      },
-      traffic: {
-        uploadBytes: 0,
-        downloadBytes: 0,
-        uploadSpeedBps: 0,
-        downloadSpeedBps: 0,
-        peakSpeedBps: 0,
-        averageSpeedBps: 0,
-        todayTrafficBytes: 0,
-        totalTrafficBytes: 0,
-      },
-      connection: {
-        currentConnection: 0,
-        totalConnection: 0,
-        success: 0,
-        failure: 0,
-        reconnect: 0,
-        disconnect: 0,
-        connectionDurationMs: 0,
-        averageRttMs: 0,
-      },
-      runtime: {
-        runningTask: 0,
-        workerCount: 0,
-        schedulerQueue: 0,
-        bufferUsage: 0,
-        sessionCount: 0,
-        runtimeUptimeSeconds: 0,
-      },
-      tls: {
-        sessionCount: 0,
-        handshakeCount: 0,
-        errorCount: 0,
-        trafficBytes: 0,
-      },
-      system: {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        threadCount: 0,
-        processUptimeSeconds: 0,
-      },
-      client: {
-        onlineTimeSeconds: 0,
-        openProject: 0,
-        currentWorkspace: t('project.previewWorkspace'),
-        memoryBytes: 0,
-      },
-    },
-    realtimeSpeed: [],
-    connectionTrend: [],
-    trafficTrend: [],
-    tunnelStatus: [],
-    serverStatus: [],
-    systemHealth: {
-      overall: 'offline',
-      signals: [],
-      updatedAt: now,
-    },
-    tunnels: [],
-    recentActivity: [],
-    generatedAt: now,
-  }
 }

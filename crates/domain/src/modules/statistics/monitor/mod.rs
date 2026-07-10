@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::aggregator::{AggregationPeriod, Aggregator, StatisticsAggregator};
 use super::alert::{AlertKind, AlertManager, AlertRule, AlertSeverity};
-use super::collector::{Collector, CollectorRegistry, MockMetricsCollector};
+use super::collector::{Collector, CollectorRegistry};
 use super::config::StatisticsConfig;
 use super::dashboard::{
     ConnectionTrendPoint, DashboardData, DashboardProvider, OverviewStatistics, RealtimeSpeedPoint,
@@ -76,13 +76,6 @@ impl MonitoringCenter {
             alerts,
             events: Vec::new(),
         }
-    }
-
-    /// Creates a mock-ready monitoring center.
-    pub fn mock() -> StatisticsResult<Self> {
-        let mut center = Self::new(StatisticsConfig::default());
-        center.register_collector(Box::new(MockMetricsCollector::with_system_defaults()))?;
-        Ok(center)
     }
 
     /// Starts the monitoring center lifecycle.

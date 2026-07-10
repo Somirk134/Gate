@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { i18n } from '@/i18n'
+import { GateAppError } from '@/ipc'
 import { serverService, type RuntimeServerRecord } from '@/services/server.service'
 import type {
   ConnectionMethod,
@@ -104,7 +105,12 @@ export const useServerStore = defineStore('server-module', () => {
     await load()
     const created = getById(id)
     if (!created) {
-      throw new Error(t('server.errors.savedReloadFailed'))
+      throw new GateAppError({
+        code: 'SERVER_RELOAD_FAILED',
+        messageKey: 'server.errors.savedReloadFailed',
+        details: { serverId: id },
+        timestamp: Date.now(),
+      })
     }
     return created
   }
@@ -144,7 +150,12 @@ export const useServerStore = defineStore('server-module', () => {
     const result = await serverService.test(id)
     await load()
     if (!result.ok) {
-      throw new Error(result.error || t('server.errors.connectionTestFailed'))
+      throw new GateAppError({
+        code: 'SERVER_CONNECTION_TEST_FAILED',
+        messageKey: 'server.errors.connectionTestFailed',
+        details: { serverId: id, source: result.error },
+        timestamp: Date.now(),
+      })
     }
   }
 
@@ -301,7 +312,7 @@ function normalizeStatus(status: string, isActive: boolean): ServerStatus {
 }
 
 function normalizeKind(kind: string): ServerKind {
-  if (['personal', 'cloud', 'nas', 'company', 'docker', 'kubernetes'].includes(kind)) {
+  if (['personal', 'cloud', 'nas', 'company', 'docker'].includes(kind)) {
     return kind as ServerKind
   }
   return 'personal'

@@ -37,7 +37,4 @@ impl Default for CertificateStoreConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StoreBackend {
     File,
-    SqliteReserved,
-    RedisReserved,
-    S3Reserved,
 }

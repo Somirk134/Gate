@@ -61,7 +61,7 @@ pub trait Sampler {
     fn flush(&mut self) -> StatisticsResult<Vec<Statistics>>;
 }
 
-/// In-memory sampler used by the mock monitoring center.
+/// In-memory sampler used by the monitoring center.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatisticsSampler {
     strategy: SamplingStrategy,

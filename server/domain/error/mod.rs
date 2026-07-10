@@ -33,7 +33,7 @@ pub enum ValidateError {
     WildcardDisabled,
     InvalidWildcard(String),
     InternationalDomainDisabled,
-    InternationalDomainReserved,
+    InternationalDomainUnsupported,
     DuplicateHost(String),
     RepositoryUnavailable(String),
 }
@@ -121,8 +121,8 @@ impl Display for ValidateError {
             Self::InternationalDomainDisabled => {
                 write!(formatter, "international domain validation is disabled")
             }
-            Self::InternationalDomainReserved => {
-                write!(formatter, "international domain validation is reserved")
+            Self::InternationalDomainUnsupported => {
+                write!(formatter, "international domain validation is unsupported")
             }
             Self::DuplicateHost(host) => write!(formatter, "duplicate host: {host}"),
             Self::RepositoryUnavailable(message) => {

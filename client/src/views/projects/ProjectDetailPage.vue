@@ -85,47 +85,47 @@
 
           <section class="project-business-overview">
             <article>
-              <span>关联 Tunnel</span>
+              <span>{{ t('project.detail.linkedTunnels') }}</span>
               <strong>{{ project.tunnelCount }}</strong>
-              <small>{{ project.runningTunnelCount }} running</small>
+              <small>{{ project.runningTunnelCount }} {{ t('project.detail.runningSuffix') }}</small>
             </article>
             <article>
-              <span>关联 Domain</span>
+              <span>{{ t('project.detail.linkedDomains') }}</span>
               <strong>{{ project.domainCount }}</strong>
               <small>{{ project.domains[0] || t('project.detail.unboundDomain') }}</small>
             </article>
             <article>
-              <span>关联 Certificate</span>
+              <span>{{ t('project.detail.linkedCertificates') }}</span>
               <strong>{{ project.certificateCount }}</strong>
               <small>{{ certificateLabel(project.certificateStatus) }}</small>
             </article>
             <article>
-              <span>最近流量</span>
+              <span>{{ t('project.detail.recentTraffic') }}</span>
               <strong>{{ formatBytes(project.statistics.todayTraffic) }}</strong>
-              <RuntimeSparkline :values="projectTrafficSparkline" label="Project traffic" />
+              <RuntimeSparkline :values="projectTrafficSparkline" :label="t('project.detail.projectTrafficLabel')" />
             </article>
             <article>
-              <span>最近请求</span>
+              <span>{{ t('project.detail.recentRequests') }}</span>
               <strong>{{ project.statistics.requestCount }}</strong>
-              <RuntimeSparkline :values="projectRequestSparkline" label="Project requests" />
+              <RuntimeSparkline :values="projectRequestSparkline" :label="t('project.detail.projectRequestsLabel')" />
             </article>
             <article>
-              <span>运行状态</span>
+              <span>{{ t('project.detail.runStatus') }}</span>
               <strong>{{ project.status }}</strong>
-              <small>{{ project.statistics.connections }} conn</small>
+              <small>{{ project.statistics.connections }} {{ t('project.detail.connSuffix') }}</small>
             </article>
             <article>
-              <span>健康评分</span>
+              <span>{{ t('project.detail.healthScore') }}</span>
               <strong>{{ projectHealthScore }}</strong>
-              <small>{{ project.statistics.errorCount }} errors</small>
+              <small>{{ project.statistics.errorCount }} {{ t('project.detail.errorsSuffix') }}</small>
             </article>
             <article>
-              <span>启动时间</span>
+              <span>{{ t('project.detail.startedAt') }}</span>
               <strong>{{ formatDuration(project.statistics.uptime) }}</strong>
               <small>{{ project.lastStartedAt }}</small>
             </article>
             <article>
-              <span>最后修改</span>
+              <span>{{ t('project.detail.lastModified') }}</span>
               <strong>{{ formatCompactTime(project.updatedAt) }}</strong>
               <small>{{ formatCompactTime(project.lastActivityAt) }}</small>
             </article>
@@ -388,15 +388,6 @@
                   :rows="5"
                   :placeholder="t('project.detail.settings.environmentsPlaceholder')" />
               </label>
-              <label>
-                <span>{{ t('project.detail.settings.startupPolicy') }}</span>
-                <select v-model="settingsForm.startupPolicy">
-                  <option :value="null">{{ t('project.detail.settings.manual') }}</option>
-                  <option value="auto-start">
-                    {{ t('project.detail.settings.autoStartReserved') }}
-                  </option>
-                </select>
-              </label>
               <div class="settings-actions">
                 <GButton variant="primary" icon="save" @click="saveSettings">
                   {{ t('project.detail.settings.save') }}
@@ -477,7 +468,6 @@ const settingsForm = reactive({
   description: '',
   icon: 'package',
   color: 'blue' as ProjectColor,
-  startupPolicy: null as string | null,
 })
 
 const tabs = computed<Array<{ key: ProjectTab; label: string; icon: string }>>(() => [
@@ -586,7 +576,6 @@ watch(
     settingsForm.description = value.description
     settingsForm.icon = value.icon
     settingsForm.color = value.color
-    settingsForm.startupPolicy = value.startupPolicy ?? null
     settingsTags.value = value.tags.join(', ')
     environmentText.value = environmentToText(value)
   },
@@ -717,7 +706,6 @@ async function saveSettings() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       environments,
-      startupPolicy: settingsForm.startupPolicy,
     })
     toast.success(t('project.notifications.settingsSaved'))
   } catch (err) {

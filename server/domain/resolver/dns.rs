@@ -1,5 +1,8 @@
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+#[cfg(test)]
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use crate::config::DomainConfig;
 use crate::error::DnsError;
@@ -77,29 +80,32 @@ where
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Default)]
-pub struct MockDnsResolver {
+pub struct TestDnsResolver {
     records: Arc<RwLock<HashMap<DnsQuery, DnsAnswer>>>,
 }
 
-impl MockDnsResolver {
+#[cfg(test)]
+impl TestDnsResolver {
     pub fn new() -> Self {
         Self::default()
     }
 
     pub fn with_record(&self, query: DnsQuery, answer: DnsAnswer) -> Result<Self, DnsError> {
         let mut guard = self.records.write().map_err(|_| {
-            DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string())
+            DnsError::ResolverUnavailable("test DNS resolver lock poisoned".to_string())
         })?;
         guard.insert(query, answer);
         Ok(self.clone())
     }
 }
 
-impl DnsResolver for MockDnsResolver {
+#[cfg(test)]
+impl DnsResolver for TestDnsResolver {
     fn resolve(&self, query: &DnsQuery) -> Result<DnsAnswer, DnsError> {
         let guard = self.records.read().map_err(|_| {
-            DnsError::ResolverUnavailable("mock DNS resolver lock poisoned".to_string())
+            DnsError::ResolverUnavailable("test DNS resolver lock poisoned".to_string())
         })?;
 
         guard

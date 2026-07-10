@@ -2,7 +2,9 @@ use crate::error::DomainError;
 use crate::model::{Domain, DomainId, Host, TunnelId};
 #[cfg(feature = "sqlite")]
 use crate::storage::SqliteDomainStorage;
-use crate::storage::{DomainStorage, MemoryDomainStorage};
+use crate::storage::DomainStorage;
+#[cfg(test)]
+use crate::storage::MemoryDomainStorage;
 
 pub type DomainRepositoryResult<T> = Result<T, DomainError>;
 
@@ -129,11 +131,13 @@ impl DomainRepository for SqliteRepository {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Default)]
 pub struct MemoryRepository {
     storage: MemoryDomainStorage,
 }
 
+#[cfg(test)]
 impl MemoryRepository {
     pub fn new() -> Self {
         Self::default()
@@ -148,6 +152,7 @@ impl MemoryRepository {
     }
 }
 
+#[cfg(test)]
 impl DomainRepository for MemoryRepository {
     fn create(&self, domain: Domain) -> DomainRepositoryResult<Domain> {
         self.ensure_domain_hosts_available(&domain, None)?;
@@ -211,6 +216,7 @@ impl DomainRepository for MemoryRepository {
     }
 }
 
+#[cfg(test)]
 impl MemoryRepository {
     fn ensure_domain_hosts_available(
         &self,

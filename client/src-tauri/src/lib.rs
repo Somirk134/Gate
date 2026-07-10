@@ -29,10 +29,10 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
-    .plugin(tauri_plugin_process::init())
-    .plugin(tauri_plugin_updater::Builder::new().build())
-    .manage(updater::UpdateState::default())
-    .setup(|app| {
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::UpdateState::default())
+        .setup(|app| {
             let _window = app
                 .get_webview_window("main")
                 .ok_or_else(|| TauriError::WindowNotFound)?;
@@ -40,9 +40,15 @@ pub fn run() -> Result<()> {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<runtime::ClientRuntimeState>();
-                let _ = state.startup_diagnostics().await;
+                let diagnostics = state.startup_diagnostics().await;
+                tracing::debug!(
+                    status = ?diagnostics.get("status"),
+                    "启动诊断完成"
+                );
                 // 客户端异常退出后，启动时复用已保存的服务器和 Tunnel 配置自动恢复。
-                let _ = state.recover_after_startup().await;
+                if let Err(error) = state.recover_after_startup().await {
+                    tracing::warn!("启动恢复失败: {error}");
+                }
             });
             Ok(())
         })
@@ -99,8 +105,6 @@ pub fn run() -> Result<()> {
             commands::runtime::runtime_collect_metrics,
             commands::runtime::runtime_get_logs,
             commands::runtime::runtime_clear_logs,
-            commands::runtime::runtime_get_store_report,
-            commands::runtime::runtime_run_startup_diagnostics,
             commands::diagnostics::diagnostics_test_connection,
             commands::diagnostics::diagnostics_run_deployment,
             commands::diagnostics::diagnostics_collect_system_info,

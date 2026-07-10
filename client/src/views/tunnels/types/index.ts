@@ -5,9 +5,7 @@
    统计、日志、连接、配置与监控。
 
    设计原则：
-     - 所有类型契约与运行时实现解耦，未来替换 Tunnel Engine 时
-       仅需保持类型不变即可无缝迁移 UI。
-     - 协议字段已预留 HTTPS / UDP / P2P 扩展，V1 仅启用 HTTP / TCP。
+     - 所有类型契约与 Rust Runtime 返回值保持一致。
    ================================================================== */
 
 /* ── 运行状态（统一全模块） ── */
@@ -22,13 +20,11 @@ export type TunnelStatus =
   | 'connecting' // 连接中
   | 'offline' // 离线
 
-/* ── 协议 ──
-   V1 启用：http / tcp
-   未来扩展：https / udp / p2p（界面已预留） */
-export type TunnelProtocol = 'http' | 'tcp' | 'https' | 'udp' | 'p2p'
+/* ── 协议 ── */
+export type TunnelProtocol = 'http' | 'tcp' | 'https'
 
 /* ── 协议可用性 ── */
-export type ProtocolAvailability = 'enabled' | 'soon' | 'planned'
+export type ProtocolAvailability = 'enabled'
 
 /* ── 流量采样点（Mini Chart） ── */
 export interface TunnelTrafficPoint {
@@ -41,10 +37,7 @@ export interface TunnelTrafficPoint {
 export interface TunnelTraffic {
   uploadSpeed: number // 当前上传速度 bytes/s
   downloadSpeed: number // 当前下载速度 bytes/s
-  totalUpload: number // 累计上传 bytes
-  totalDownload: number // 累计下载 bytes
-  todayUpload: number // 今日上传 bytes
-  todayDownload: number // 今日下载 bytes
+  total: number // Runtime 上报的累计流量 bytes
   history: TunnelTrafficPoint[] // 历史采样
 }
 
@@ -81,12 +74,6 @@ export interface TunnelStatistics {
   peakSpeed: number // 峰值速度 bytes/s
 }
 
-/* ── 隧道设置（预留压缩 / 加密） ── */
-export interface TunnelSettings {
-  compression: boolean // 预留
-  encryption: boolean // 预留
-}
-
 /* ── Tunnel 核心实体 ── */
 export interface Tunnel {
   id: string
@@ -101,31 +88,23 @@ export interface Tunnel {
   remark: string
   status: TunnelStatus
   autoStart: boolean
-  compression: boolean // 预留
-  encryption: boolean // 预留
   tags: string[]
   serverId: string
   serverName: string
   projectName: string
   projectId: string
-  pinned: boolean
-  favorite: boolean
   traffic: TunnelTraffic
   statistics: TunnelStatistics
   connections: TunnelConnection[]
   logs: TunnelLog[]
   lastStartedAt: string // 人类可读相对时间
-  createdAt: string // ISO
-  updatedAt: string // ISO
 }
 
 /* ── 筛选类型 ── */
-export type TunnelFilterType =
-  'all' | 'http' | 'tcp' | 'running' | 'stopped' | 'favorite' | 'recent'
+export type TunnelFilterType = 'all' | 'http' | 'tcp' | 'running' | 'stopped'
 
 /* ── 排序类型 ── */
-export type TunnelSortType =
-  'name' | 'status' | 'traffic' | 'connections' | 'createdAt' | 'updatedAt'
+export type TunnelSortType = 'name' | 'status' | 'traffic' | 'connections'
 
 /* ── 排序方向 ── */
 export type SortDirection = 'asc' | 'desc'

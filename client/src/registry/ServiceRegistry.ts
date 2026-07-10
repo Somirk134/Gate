@@ -1,3 +1,4 @@
+import { GateAppError } from '@/ipc'
 import type { Disposable } from '@/utils/disposable'
 
 export interface ServiceToken<T> {
@@ -35,7 +36,9 @@ export class ServiceRegistry implements Disposable {
     options: ServiceRegistrationOptions = {},
   ) {
     if (!options.replace && this.entries.has(token.id)) {
-      throw new Error(`Service already registered: ${token.name}`)
+      throw createServiceError('SERVICE_ALREADY_REGISTERED', 'errors.application.serviceAlreadyRegistered', {
+        name: token.name,
+      })
     }
 
     const entry: ServiceEntry<T> = {
@@ -56,7 +59,9 @@ export class ServiceRegistry implements Disposable {
     options: ServiceRegistrationOptions = {},
   ) {
     if (!options.replace && this.entries.has(token.id)) {
-      throw new Error(`Service already registered: ${token.name}`)
+      throw createServiceError('SERVICE_ALREADY_REGISTERED', 'errors.application.serviceAlreadyRegistered', {
+        name: token.name,
+      })
     }
 
     this.entries.set(token.id, {
@@ -69,12 +74,16 @@ export class ServiceRegistry implements Disposable {
     const entry = this.entries.get(token.id) as ServiceEntry<T> | undefined
 
     if (!entry) {
-      throw new Error(`Service not registered: ${token.name}`)
+      throw createServiceError('SERVICE_NOT_REGISTERED', 'errors.application.serviceNotRegistered', {
+        name: token.name,
+      })
     }
 
     if (entry.instance === undefined) {
       if (!entry.factory) {
-        throw new Error(`Service has no factory: ${token.name}`)
+        throw createServiceError('SERVICE_FACTORY_MISSING', 'errors.application.serviceFactoryMissing', {
+          name: token.name,
+        })
       }
 
       entry.instance = entry.factory(this)
@@ -112,4 +121,17 @@ export class ServiceRegistry implements Disposable {
 
     this.entries.clear()
   }
+}
+
+function createServiceError(
+  code: string,
+  messageKey: string,
+  details: Record<string, unknown>,
+) {
+  return new GateAppError({
+    code,
+    messageKey,
+    details,
+    timestamp: Date.now(),
+  })
 }

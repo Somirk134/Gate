@@ -1,15 +1,15 @@
-import { invoke } from '@tauri-apps/api/core'
-import type { EventBus } from '@/events/EventBus'
-import type { AppEventMap } from '@/types/application'
 import { APP_RELEASE_CHANNEL, GITHUB_REPOSITORY_URL } from '@/constants'
+import type { EventBus } from '@/events/EventBus'
+import { GateAppError, TauriIpcClient } from '@/ipc'
+import type { AppEventMap } from '@/types/application'
 import { relaunch } from '@tauri-apps/plugin-process'
 
-/** 从 GitHub 仓库 owner/repo 解析出 API 路径。 */
+/** 从 GitHub 仓库 owner/repo 解析 Releases API 路径。 */
 function githubReleasesApiUrl(repoUrl: string): string {
   try {
-    const u = new URL(repoUrl)
-    // https://github.com/Somirk134/Gate → /repos/Somirk134/Gate/releases/latest
-    return `https://api.github.com/repos${u.pathname}/releases/latest`
+    const url = new URL(repoUrl)
+    // 例如：https://github.com/Somirk134/Gate -> /repos/Somirk134/Gate/releases/latest
+    return `https://api.github.com/repos${url.pathname}/releases/latest`
   } catch {
     return 'https://api.github.com/repos/Somirk134/Gate/releases/latest'
   }
@@ -67,6 +67,7 @@ interface GitHubRelease {
 
 export class TauriAutoUpdateService implements AutoUpdateService {
   private status: UpdateStatus = 'idle'
+  private readonly ipc = new TauriIpcClient()
 
   constructor(
     private readonly events: EventBus<AppEventMap>,
@@ -80,7 +81,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
   async check(): Promise<UpdateInfo> {
     this.setStatus('checking')
     try {
-      const raw = await invoke<RawUpdateInfo>('check_for_updates', {
+      const raw = await this.ipc.invoke<RawUpdateInfo>('check_for_updates', {
         channel: APP_RELEASE_CHANNEL,
       })
       this.setStatus(raw.available && raw.installable ? 'available' : 'idle')
@@ -96,7 +97,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
         channel: APP_RELEASE_CHANNEL,
       }
     } catch {
-      // 后端命令不可用时，回退到 GitHub Releases API 直接查询。
+      // 后端命令不可用时回退到 GitHub Releases API 直接查询。
       return this.checkViaGithubApi()
     }
   }
@@ -106,7 +107,14 @@ export class TauriAutoUpdateService implements AutoUpdateService {
     try {
       const apiUrl = githubReleasesApiUrl(GITHUB_REPOSITORY_URL)
       const res = await fetch(apiUrl, { headers: { Accept: 'application/vnd.github.v3+json' } })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        throw new GateAppError({
+          code: 'UPDATE_CHECK_HTTP_FAILED',
+          messageKey: 'errors.updateCheckHttpFailed',
+          details: { status: res.status },
+          timestamp: Date.now(),
+        })
+      }
 
       const release: GitHubRelease = await res.json()
       const latestVersion = release.tag_name.replace(/^v/i, '')
@@ -124,7 +132,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
           notes: release.body ?? undefined,
           date: release.published_at ?? undefined,
           url: releasesUrl,
-          installable: false, // 通过 API 查询无法获取签名安装包，引导用户手动更新
+          installable: false, // API 查询无法获取签名安装包，引导用户手动更新。
           source: 'github-api',
           channel: APP_RELEASE_CHANNEL,
         }
@@ -140,14 +148,18 @@ export class TauriAutoUpdateService implements AutoUpdateService {
         source: 'github-api',
         channel: APP_RELEASE_CHANNEL,
       }
-    } catch (err) {
+    } catch (error) {
       this.setStatus('error')
-      return {
-        available: false,
-        currentVersion: this.currentVersion,
-        url: `${GITHUB_REPOSITORY_URL}/releases`,
-        installable: false,
+      if (error instanceof GateAppError) {
+        throw error
       }
+
+      throw new GateAppError({
+        code: 'UPDATE_CHECK_FAILED',
+        messageKey: 'errors.updateCheckFailed',
+        details: { source: error instanceof Error ? error.message : String(error) },
+        timestamp: Date.now(),
+      })
     }
   }
 
@@ -170,7 +182,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
   async download() {
     this.setStatus('downloading')
     try {
-      await invoke('download_update')
+      await this.ipc.invoke('download_update')
       this.setStatus('ready')
     } catch (error) {
       this.setStatus('error')
@@ -181,7 +193,7 @@ export class TauriAutoUpdateService implements AutoUpdateService {
   async install() {
     this.setStatus('installing')
     try {
-      await invoke('install_update')
+      await this.ipc.invoke('install_update')
       this.setStatus('installed')
     } catch (error) {
       this.setStatus('error')

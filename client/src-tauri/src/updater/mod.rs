@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
+use crate::commands::error::{AppError, CommandResult};
+
 /// 跨命令保存检查到的更新对象与已下载字节，供「下载」与「安装」两步复用。
 /// Tauri 的 Update 对象不可跨 IPC 序列化，因此缓存在后端内存中。
 pub struct UpdateState(pub Mutex<Option<(Update, Vec<u8>)>>);
@@ -30,6 +32,7 @@ pub struct UpdatePayload {
 
 /// GitHub Releases API 返回的最新 Release 结构。
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct GithubRelease {
     tag_name: String,
     name: Option<String>,
@@ -78,24 +81,42 @@ fn compare_versions(a: &str, b: &str) -> i32 {
 async fn check_via_github_api(
     app: &AppHandle,
     current_version: &str,
-) -> Result<UpdatePayload, String> {
+) -> CommandResult<UpdatePayload> {
     let releases_url = release_page_url(app);
     let api_url = github_api_url(&releases_url.replace("/releases", ""));
 
     let client = reqwest::Client::builder()
         .user_agent("gate-client-updater")
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|source| {
+            AppError::from_source(
+                "UPDATE_CLIENT_FAILED",
+                "errors.updateCheckFailed",
+                source,
+            )
+        })?;
 
     let release: GithubRelease = client
         .get(&api_url)
         .header("Accept", "application/vnd.github.v3+json")
         .send()
         .await
-        .map_err(|e| format!("网络请求失败：{e}"))?
+        .map_err(|source| {
+            AppError::from_source(
+                "UPDATE_CHECK_FAILED",
+                "errors.updateCheckFailed",
+                source,
+            )
+        })?
         .json()
         .await
-        .map_err(|e| format!("解析响应失败：{e}"))?;
+        .map_err(|source| {
+            AppError::from_source(
+                "UPDATE_RESPONSE_INVALID",
+                "errors.updateResponseInvalid",
+                source,
+            )
+        })?;
 
     let latest_version = release.tag_name.trim_start_matches('v').to_string();
     let is_newer = compare_versions(&latest_version, current_version) > 0;
@@ -129,7 +150,7 @@ async fn check_via_github_api(
 pub async fn check_for_updates(
     app: AppHandle,
     #[allow(unused_variables)] channel: Option<String>,
-) -> Result<UpdatePayload, String> {
+) -> CommandResult<UpdatePayload> {
     let current_version = app.package_info().version.to_string();
 
     // 尝试 Tauri 内置 Updater 插件
@@ -150,7 +171,12 @@ pub async fn check_for_updates(
             app.state::<UpdateState>()
                 .0
                 .lock()
-                .unwrap()
+                .map_err(|_| {
+                    AppError::new(
+                        "UPDATE_STATE_UNAVAILABLE",
+                        "errors.updateStateUnavailable",
+                    )
+                })?
                 .replace((update, Vec::new()));
 
             Ok(UpdatePayload {
@@ -182,22 +208,38 @@ pub async fn check_for_updates(
 
 /// 下载更新包到本地（不立即安装）。
 #[tauri::command]
-pub async fn download_update(app: AppHandle) -> Result<(), String> {
+pub async fn download_update(app: AppHandle) -> CommandResult<()> {
     let (update, _) = {
         let state = app.state::<UpdateState>();
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().map_err(|_| {
+            AppError::new(
+                "UPDATE_STATE_UNAVAILABLE",
+                "errors.updateStateUnavailable",
+            )
+        })?;
         guard.take()
     }
-    .ok_or_else(|| "NO_PENDING_UPDATE".to_string())?;
+    .ok_or_else(|| AppError::new("UPDATE_NOT_PENDING", "errors.updateNoDownload"))?;
 
     let bytes = update
         .download(|_chunk, _total| {}, || {})
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|source| {
+            AppError::from_source(
+                "UPDATE_DOWNLOAD_FAILED",
+                "errors.updateDownloadFailed",
+                source,
+            )
+        })?;
 
     {
         let state = app.state::<UpdateState>();
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().map_err(|_| {
+            AppError::new(
+                "UPDATE_STATE_UNAVAILABLE",
+                "errors.updateStateUnavailable",
+            )
+        })?;
         guard.replace((update, bytes));
     }
     Ok(())
@@ -205,13 +247,24 @@ pub async fn download_update(app: AppHandle) -> Result<(), String> {
 
 /// 安装已下载的更新包并重启应用。
 #[tauri::command]
-pub async fn install_update(app: AppHandle) -> Result<(), String> {
+pub async fn install_update(app: AppHandle) -> CommandResult<()> {
     let (update, bytes) = {
         let state = app.state::<UpdateState>();
-        let mut guard = state.0.lock().unwrap();
+        let mut guard = state.0.lock().map_err(|_| {
+            AppError::new(
+                "UPDATE_STATE_UNAVAILABLE",
+                "errors.updateStateUnavailable",
+            )
+        })?;
         guard.take()
     }
-    .ok_or_else(|| "NO_PENDING_UPDATE".to_string())?;
+    .ok_or_else(|| AppError::new("UPDATE_NOT_PENDING", "errors.updateNoInstall"))?;
 
-    update.install(bytes).map_err(|e| e.to_string())
+    update.install(bytes).map_err(|source| {
+        AppError::from_source(
+            "UPDATE_INSTALL_FAILED",
+            "errors.updateInstallFailed",
+            source,
+        )
+    })
 }

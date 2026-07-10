@@ -51,14 +51,6 @@
       <button
         class="header-btn"
         type="button"
-        :title="t('common.toggleInspector')"
-        @click="layout.toggleInspector">
-        <GIcon name="panel-right-open" :size="16" />
-      </button>
-
-      <button
-        class="header-btn"
-        type="button"
         :title="t('common.toggleTheme')"
         @click="themeStore.toggleTheme">
         <GIcon :name="themeStore.isDark ? 'sun' : 'moon'" :size="16" />

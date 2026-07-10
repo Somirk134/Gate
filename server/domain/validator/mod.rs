@@ -101,7 +101,7 @@ fn validate_international(value: &str, config: &DomainConfig) -> Result<(), Vali
         return Err(ValidateError::InternationalDomainDisabled);
     }
 
-    Err(ValidateError::InternationalDomainReserved)
+    Err(ValidateError::InternationalDomainUnsupported)
 }
 
 fn validate_labels(value: &str, mode: &ValidationMode) -> Result<(), ValidateError> {

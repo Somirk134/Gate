@@ -481,7 +481,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
@@ -533,6 +533,7 @@ const renewalExecuting = ref(false)
 const wizardVisible = ref(false)
 const importVisible = ref(false)
 const historyRefreshTrigger = ref(0)
+const timers = new Set<ReturnType<typeof window.setTimeout> | ReturnType<typeof window.setInterval>>()
 
 const query = ref('')
 const filter = ref<CertFilterType>('all')
@@ -912,7 +913,11 @@ async function executeRenewal() {
 function handleWizardSubmitted() {
   void refresh()
   historyRefreshTrigger.value++
-  setTimeout(() => { wizardVisible.value = false }, 1500)
+  const timer = window.setTimeout(() => {
+    wizardVisible.value = false
+    timers.delete(timer)
+  }, 1500)
+  timers.add(timer)
 }
 
 function handleImported(domain: string) {
@@ -978,7 +983,7 @@ function animateNumber(key: 'total' | 'active' | 'expiringSoon', target: number)
   const diff = target - current
   const steps = 20
   let step = 0
-  const interval = setInterval(() => {
+  const interval = window.setInterval(() => {
     step++
     animatedStats.value = {
       ...animatedStats.value,
@@ -986,9 +991,11 @@ function animateNumber(key: 'total' | 'active' | 'expiringSoon', target: number)
     }
     if (step >= steps) {
       animatedStats.value = { ...animatedStats.value, [key]: target }
-      clearInterval(interval)
+      window.clearInterval(interval)
+      timers.delete(interval)
     }
   }, 20)
+  timers.add(interval)
 }
 
 function animateHealth(target: number) {
@@ -997,15 +1004,25 @@ function animateHealth(target: number) {
   const diff = target - current
   const steps = 30
   let step = 0
-  const interval = setInterval(() => {
+  const interval = window.setInterval(() => {
     step++
     animatedHealthScore.value = Math.round(current + (diff * step) / steps)
     if (step >= steps) {
       animatedHealthScore.value = target
-      clearInterval(interval)
+      window.clearInterval(interval)
+      timers.delete(interval)
     }
   }, 20)
+  timers.add(interval)
 }
+
+onBeforeUnmount(() => {
+  timers.forEach((timer) => {
+    window.clearTimeout(timer)
+    window.clearInterval(timer)
+  })
+  timers.clear()
+})
 </script>
 
 <style scoped>
@@ -1921,7 +1938,7 @@ function animateHealth(target: number) {
   color: var(--text-tertiary);
 }
 
-/* ── 占位符 ── */
+/* ── 输入提示 ── */
 .cert-detail__placeholder {
   min-height: 400px;
   display: grid;

@@ -407,7 +407,12 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
         request.private_key_pem.clone(),
     ).await?;
 
-    let validation_obj = validation.as_object().unwrap();
+    let validation_obj = validation.as_object().ok_or_else(|| {
+        AppError::new(
+            "CERTIFICATE_VALIDATION_INVALID",
+            "errors.certificate.validationInvalid",
+        )
+    })?;
 
     let dir = certificate_domain_dir(&domain);
     fs::create_dir_all(&dir).map_err(|e| {
@@ -769,11 +774,13 @@ struct AcmeSessionPersisted {
 /// ACME 运行时状态（内存中保存 instant-acme 的 Account + Order）
 #[derive(Default)]
 pub struct AcmeState {
-    pub session: Arc<Mutex<Option<AcmeRuntime>>>,
+    pub(crate) session: Arc<Mutex<Option<AcmeRuntime>>>,
 }
 
-struct AcmeRuntime {
+pub(crate) struct AcmeRuntime {
     domain: String,
+    // Account 需要长期持有以维持 ACME 会话，即使当前未直接读取。
+    #[allow(dead_code)]
     account: Account,
     order: instant_acme::Order,
     challenge_type: String,
@@ -1039,14 +1046,14 @@ async fn run_acme_verification(
                         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
                     }
                 }
-                Err(e) => {
-                    eprintln!("DNS pre-check warning: {}", e);
+                Err(error) => {
+                    tracing::warn!(error = %error, "DNS pre-check failed");
                     break;
                 }
             }
         }
         if !dns_ok {
-            eprintln!("DNS pre-check did not confirm TXT record for {}, proceeding anyway", txt_host);
+            tracing::warn!(host = %txt_host, "DNS pre-check did not confirm the TXT record");
         }
     }
 
@@ -1139,7 +1146,9 @@ async fn run_acme_verification(
     // 9. 解析证书并写入 metadata
     let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone()).await
         .map_err(|e| format!("证书解析失败: {:?}", e))?;
-    let validation_obj = validation.as_object().unwrap();
+    let validation_obj = validation
+        .as_object()
+        .ok_or_else(|| "证书验证结果格式无效".to_string())?;
 
     let now = Utc::now();
     let not_after_str = validation_obj.get("notAfter").and_then(|v| v.as_str()).unwrap_or("");
@@ -1811,7 +1820,9 @@ async fn redo_acme_verification(
     // 6. 解析证书写 metadata
     let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone()).await
         .map_err(|e| format!("证书解析失败: {:?}", e))?;
-    let validation_obj = validation.as_object().unwrap();
+    let validation_obj = validation
+        .as_object()
+        .ok_or_else(|| "证书验证结果格式无效".to_string())?;
 
     let now = Utc::now();
     let not_after_str = validation_obj.get("notAfter").and_then(|v| v.as_str()).unwrap_or("");

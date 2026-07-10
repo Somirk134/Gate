@@ -42,7 +42,7 @@ struct StateKey {
     target: SyncTarget,
 }
 
-/// State snapshot prepared for future transport synchronization.
+/// State snapshot prepared for transport synchronization.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StateSnapshot {
     pub tunnel_id: Option<TunnelId>,

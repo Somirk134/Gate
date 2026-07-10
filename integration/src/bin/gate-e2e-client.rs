@@ -101,7 +101,7 @@ impl ClientConfig {
         Ok(Self {
             server_host,
             server_port,
-            token: env::var("GATE_AUTH_TOKEN").unwrap_or_else(|_| "gate-alpha-token".to_string()),
+            token: required_env("GATE_AUTH_TOKEN")?,
             local_host: env::var("GATE_E2E_LOCAL_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             local_port: required_env("GATE_E2E_LOCAL_PORT")?.parse()?,
             remote_port: required_env("GATE_E2E_REMOTE_PORT")?.parse()?,

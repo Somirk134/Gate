@@ -1,9 +1,7 @@
 //! Session identity, context, store, and manager.
 
 use crate::core::TunnelId;
-use crate::error::EngineError;
 use dashmap::DashMap;
-use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::sync::Arc;
@@ -60,15 +58,6 @@ impl Session {
             context,
         }
     }
-}
-
-/// Reserved persistence boundary for future durable sessions.
-pub trait SessionStore: Send + Sync {
-    fn save(&self, session: Session) -> BoxFuture<'static, Result<(), EngineError>>;
-
-    fn load(&self, id: SessionId) -> BoxFuture<'static, Result<Option<Session>, EngineError>>;
-
-    fn delete(&self, id: SessionId) -> BoxFuture<'static, Result<(), EngineError>>;
 }
 
 #[derive(Default)]

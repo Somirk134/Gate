@@ -83,17 +83,6 @@ onMounted(() => {
     context.events.subscribe('sidebar:toggle', () => {
       layoutStore.toggleSidebar()
     }),
-    context.events.subscribe('inspector:toggle', () => {
-      layoutStore.toggleInspector()
-    }),
-    context.events.subscribe('global-search:toggle', () => {
-      if (layoutStore.globalSearchOpen) {
-        layoutStore.closeGlobalSearch()
-        return
-      }
-
-      layoutStore.openGlobalSearch()
-    }),
     context.events.subscribe('notification:show', ({ payload }) => {
       notificationStore.notify({
         type: payload.type,

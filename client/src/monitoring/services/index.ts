@@ -1,4 +1,4 @@
-import { TauriIpcClient } from '@/ipc'
+import { GateAppError, TauriIpcClient } from '@/ipc'
 import { isTauri } from '@tauri-apps/api/core'
 import type { DashboardData, HealthReport, Metric, Statistics, TrafficStatistics } from '../types'
 
@@ -165,7 +165,7 @@ export function createEmptyDashboardData(now = Date.now()): DashboardData {
 class RuntimeStatisticsService implements StatisticsService {
   async getStatistics() {
     if (!isTauri()) {
-      return createEmptyDashboardData().statistics
+      throw runtimeUnavailableError('runtime_get_statistics')
     }
 
     return ipc.invoke<Statistics>('runtime_get_statistics')
@@ -179,7 +179,7 @@ class RuntimeStatisticsService implements StatisticsService {
 class RuntimeMetricsService implements MetricsService {
   async collect() {
     if (!isTauri()) {
-      return []
+      throw runtimeUnavailableError('runtime_collect_metrics')
     }
 
     return ipc.invoke<Metric[]>('runtime_collect_metrics')
@@ -189,7 +189,7 @@ class RuntimeMetricsService implements MetricsService {
 class RuntimeHealthService implements HealthService {
   async getHealthReport() {
     if (!isTauri()) {
-      return createEmptyDashboardData().systemHealth
+      throw runtimeUnavailableError('runtime_get_health')
     }
 
     return ipc.invoke<HealthReport>('runtime_get_health')
@@ -202,7 +202,7 @@ class RuntimeDashboardService implements DashboardService {
 
   async getDashboard() {
     if (!isTauri()) {
-      return createEmptyDashboardData()
+      throw runtimeUnavailableError('runtime_get_dashboard')
     }
 
     return ipc.invoke<DashboardData>('runtime_get_dashboard')
@@ -238,8 +238,9 @@ class RuntimeDashboardService implements DashboardService {
     try {
       const data = await this.getDashboard()
       this.listeners.forEach((listener) => listener(data))
-    } catch {
-      // Refresh errors are surfaced by explicit refresh calls in the composable.
+    } catch (error) {
+      // 后台订阅刷新失败不能静默吞掉，避免发布环境隐藏 Runtime 断连问题。
+      console.warn('监控数据后台刷新失败', error)
     }
   }
 }
@@ -273,3 +274,12 @@ export const metricsService: MetricsService = new RuntimeMetricsService()
 export const healthService: HealthService = new RuntimeHealthService()
 export const dashboardService: DashboardService = new RuntimeDashboardService()
 export const exportService: ExportService = new RuntimeExportService()
+
+function runtimeUnavailableError(command: string) {
+  return new GateAppError({
+    code: 'RUNTIME_UNAVAILABLE',
+    messageKey: 'errors.runtimeUnavailable',
+    details: { command },
+    timestamp: Date.now(),
+  })
+}

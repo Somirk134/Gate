@@ -319,7 +319,6 @@ export const PROJECT_TEMPLATES: ProjectTemplateProfile[] = [
 export const PROJECT_TAGS: TagPreset[] = [
   { name: 'work', color: '#5B8DEF' },
   { name: 'home', color: '#22C55E' },
-  { name: 'demo', color: '#F59E0B' },
   { name: 'customer', color: '#EC4899' },
   { name: 'opensource', color: '#14B8A6' },
   { name: 'personal', color: '#7C6FF2' },
@@ -406,11 +405,6 @@ export function formatRelativeTime(
     month: '2-digit',
     day: '2-digit',
   }).format(timestamp)
-}
-
-/* ── 生成唯一 ID ── */
-export function genId(prefix = 'p'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
 /* ── 将字符串数组转为 Tag 对象 ── */

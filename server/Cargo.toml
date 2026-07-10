@@ -6,15 +6,12 @@ license.workspace = true
 description = "Gate server bootstrap crate"
 
 [dependencies]
-gate-application = { path = "../crates/application" }
 gate-domain = { path = "../crates/domain" }
 gate-engine = { path = "../crates/engine" }
-gate-infrastructure = { path = "../crates/infrastructure" }
 gate-protocol = { path = "../crates/protocol" }
 gate-server-domain = { path = "domain" }
 gate-server-tls = { path = "tls" }
 gate-shared = { path = "../shared" }
-gate-transport = { path = "../crates/transport" }
 anyhow.workspace = true
 async-trait = "0.1"
 chrono.workspace = true

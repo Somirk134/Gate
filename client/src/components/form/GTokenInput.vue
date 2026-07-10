@@ -1,8 +1,6 @@
 <!--
-  GTokenInput — Token / 密钥输入框
-  ------------------------------------------------------------------
-  用途：认证 Token、API Key、密钥输入。默认掩码，可显隐，可一键复制，
-  等宽字体便于核对。前置 key 图标。
+  GTokenInput - Token / 密钥输入框
+  用途：认证 Token、API Key、密钥输入。默认掩码，可显隐，可一键复制。
 -->
 <template>
   <GInput
@@ -34,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GInput from './GInput.vue'
 import GIcon from '@components/icons/GIcon.vue'
@@ -63,18 +61,27 @@ const visible = ref(false)
 const copied = ref(false)
 const { t } = useI18n()
 const placeholderText = computed(() => props.placeholder ?? t('form.tokenPlaceholder'))
+let copyResetTimer: ReturnType<typeof window.setTimeout> | undefined
 
 async function copy() {
   if (!props.modelValue) return
   try {
     await navigator.clipboard.writeText(props.modelValue)
   } catch {
-    /* 业务层可自行处理复制失败。 */
+    // 复制失败由调用方通过 copy 事件或外层表单状态处理。
   }
   emit('copy', props.modelValue)
   copied.value = true
-  setTimeout(() => (copied.value = false), 1500)
+  if (copyResetTimer) window.clearTimeout(copyResetTimer)
+  copyResetTimer = window.setTimeout(() => {
+    copied.value = false
+    copyResetTimer = undefined
+  }, 1500)
 }
+
+onBeforeUnmount(() => {
+  if (copyResetTimer) window.clearTimeout(copyResetTimer)
+})
 </script>
 
 <style scoped>

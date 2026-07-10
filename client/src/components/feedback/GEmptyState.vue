@@ -1,7 +1,7 @@
 <!--
   GEmptyState — 空状态
   ------------------------------------------------------------------
-  用途：列表/卡片无数据时的占位。统一图标 + 标题 + 描述 + 操作。
+  用途：列表/卡片无数据时的空状态。统一图标 + 标题 + 描述 + 操作。
   Slots:
     icon     自定义图标（默认空盒）
     default  描述文字
@@ -29,7 +29,6 @@
 <script setup lang="ts">
 import GIcon from '@components/icons/GIcon.vue'
 
-// inbox 图标占位：若 registry 无则回退 info。补充到 registry 可省此处判断
 defineProps<{
   title?: string
   description?: string

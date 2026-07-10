@@ -209,7 +209,7 @@
             <img :src="alipayQrUrl" alt="Alipay QR Code" />
           </div>
           <p class="about-sponsor__qr-label">
-            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--alipay">支</span>
+            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--alipay">{{ t('about.sponsorAlipayIcon') }}</span>
             {{ t('about.sponsorAlipay') }}
           </p>
         </article>
@@ -219,7 +219,7 @@
             <img :src="wechatQrUrl" alt="WeChat QR Code" />
           </div>
           <p class="about-sponsor__qr-label">
-            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--wechat">微</span>
+            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--wechat">{{ t('about.sponsorWechatIcon') }}</span>
             {{ t('about.sponsorWechat') }}
           </p>
         </article>

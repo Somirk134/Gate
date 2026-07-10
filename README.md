@@ -66,7 +66,7 @@ This is the fastest way to get Gate running on a Linux server. No source code or
 ### 1. Pull the image
 
 ```bash
-docker pull qwe1235/gate-server:0.9.0
+docker pull qwe1235/gate-server:0.9.1
 ```
 
 Or use `latest` tag:
@@ -92,7 +92,7 @@ Create a `docker-compose.yml` file (or use [docker/docker-compose.release.yml](d
 ```yaml
 services:
   gate-server:
-    image: qwe1235/gate-server:0.9.0
+    image: qwe1235/gate-server:0.9.1
     network_mode: host
     restart: unless-stopped
     environment:
@@ -124,12 +124,13 @@ volumes:
 Start the server:
 
 ```bash
-GATE_AUTH_TOKEN=your-token-here docker compose up -d
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
+docker compose up -d
 ```
 
 > **One-line alternative** using the repo's release template directly:
 > ```bash
-> GATE_AUTH_TOKEN=your-token-here \
+> export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 >   docker compose -f https://raw.githubusercontent.com/Somirk134/Gate/main/docker/docker-compose.release.yml up -d
 > ```
 
@@ -170,20 +171,20 @@ If you don't want to use Docker, or your server can't easily run containers, you
 
 ### 1. Server: download and start `gate-server`
 
-Grab the binary for your server's OS from the [GitHub Releases v0.9.0](https://github.com/Somirk134/Gate/releases/tag/v0.9.0):
+Grab the binary for your server's OS from the [GitHub Releases v0.9.1](https://github.com/Somirk134/Gate/releases/tag/v0.9.1):
 
 | Server OS | File |
 |-----------|------|
-| Linux x64 | `gate-server-v0.9.0-linux-x64` |
-| macOS Apple Silicon | `gate-server-v0.9.0-macos-arm64` |
-| macOS Intel | `gate-server-v0.9.0-macos-x64` |
-| Windows x64 | `gate-server-v0.9.0-windows-x64.exe` |
+| Linux x64 | `gate-server-v0.9.1-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.1-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.1-macos-x64` |
+| Windows x64 | `gate-server-v0.9.1-windows-x64.exe` |
 
 On a **Linux server**:
 
 ```bash
 # Download the binary
-curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.0/gate-server-v0.9.0-linux-x64
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.1/gate-server-v0.9.1-linux-x64
 chmod +x gate-server
 
 # Generate a strong random token and save it
@@ -195,7 +196,7 @@ GATE_AUTH_TOKEN=$TOKEN \
 ./gate-server
 ```
 
-On success the console prints the key info (**note down `Auth token` and `Access address`**):
+On success the console prints the public connection information. The authentication token is never written to stdout or logs:
 
 ```
 ========================================
@@ -204,13 +205,13 @@ On success the console prints the key info (**note down `Auth token` and `Access
   Listen address : 0.0.0.0:5800
   Local IP       : 203.0.113.50
   Access address : 203.0.113.50:5800
-  Auth token     : a1b2c3... (your generated token)
+  Authentication : configured
 ========================================
 ```
 
-> **Windows**: just double-click `gate-server-v0.9.0-windows-x64.exe`; the same info prints to the console.
-> **macOS**: `chmod +x gate-server-v0.9.0-macos-*` then run `./gate-server-v0.9.0-macos-*`.
-> ⚠️ When launched by double-click, env vars are not set automatically — the server defaults to `127.0.0.1:7000` with token `gate-alpha-token`. **You must** set `GATE_SERVER_ADDR=0.0.0.0:5800` and your own `GATE_AUTH_TOKEN` first, otherwise external clients can't reach it.
+> **Windows**: set `GATE_AUTH_TOKEN`, then run `gate-server-v0.9.1-windows-x64.exe` from a terminal.
+> **macOS**: `chmod +x gate-server-v0.9.1-macos-*`, set `GATE_AUTH_TOKEN`, then run the binary.
+> The server refuses to start when `GATE_AUTH_TOKEN` is missing, shorter than 16 characters, or a known weak default.
 
 **Optional: keep the server running in the background (Linux)**
 
@@ -224,7 +225,7 @@ nohup env GATE_SERVER_ADDR=0.0.0.0:5800 GATE_AUTH_TOKEN=$TOKEN ./gate-server > g
 # After=network.target
 # [Service]
 # Environment=GATE_SERVER_ADDR=0.0.0.0:5800
-# Environment=GATE_AUTH_TOKEN=your-token
+# EnvironmentFile=/etc/gate/gate-server.env
 # ExecStart=/opt/gate-server
 # Restart=on-failure
 # [Install]
@@ -342,7 +343,7 @@ docker compose restart
 docker compose logs -f --tail=100
 
 # Update to a new image version
-docker pull qwe1235/gate-server:0.9.0
+docker pull qwe1235/gate-server:0.9.1
 docker compose up -d
 ```
 
@@ -364,7 +365,7 @@ Gate also supports HTTP and HTTPS tunnel types. In the **Create Tunnel** dialog:
 |----------|---------|-------------|
 | `GATE_ENV` | `production` | Environment mode: `development` or `production` |
 | `GATE_SERVER_ADDR` | `0.0.0.0:5800` | Listen address for client connections |
-| `GATE_AUTH_TOKEN` | `change-me` | **Required.** Auth token for desktop clients |
+| `GATE_AUTH_TOKEN` | None | **Required.** Auth token for desktop clients; weak defaults are rejected |
 | `GATE_TUNNEL_BIND_ADDR` | `0.0.0.0` | Bind address for tunnel listeners |
 | `GATE_DATA_DIR` | `/var/lib/gate` | Data storage directory |
 | `GATE_CONFIG` | `/etc/gate/gate.toml` | Configuration file path |
@@ -383,7 +384,7 @@ Gate also supports HTTP and HTTPS tunnel types. In the **Create Tunnel** dialog:
 If `network_mode: host` is not available (e.g., Docker Desktop), use bridge networking:
 
 ```bash
-GATE_AUTH_TOKEN=your-token-here \
+export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 GATE_PORT=5800 \
 GATE_TUNNEL_PORT_RANGE=18080-18100 \
   docker compose -f docker/docker-compose.bridge.yml up -d
@@ -443,7 +444,7 @@ npm run dev:desktop
 Local development defaults:
 
 - Server: `127.0.0.1:7000`
-- Token: `gate-alpha-token`
+- Token: the explicit `GATE_AUTH_TOKEN` value used to start the server
 
 Do not use the development token for shared or public deployments.
 
