@@ -165,14 +165,14 @@ jobs:
           ls -R updater || true
 
       - name: Upload updater manifests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gate-updater-${{ matrix.name }}
           path: updater/
           if-no-files-found: warn
 
       - name: Upload desktop package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gate-desktop-${{ matrix.name }}
           path: ${{ matrix.artifact_glob }}
