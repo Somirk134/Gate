@@ -212,3 +212,70 @@ export interface AcmeVerifyResponse {
   certificatePem: string
   generatedAt: number
 }
+
+/* ────────────────────────── ACME 申请历史 ────────────────────────── */
+
+export type AcmeRecordStatus = 'pending' | 'verifying' | 'issued' | 'failed' | 'expired'
+
+export interface AcmeApplicationRecord {
+  id: string
+  domain: string
+  email: string
+  challengeType: string
+  staging: boolean
+  directoryUrl: string
+  status: AcmeRecordStatus
+  createdAt: number
+  updatedAt: number
+  issuedAt?: number | null
+  expireTime?: string | null
+  issuer?: string | null
+  daysRemaining?: number | null
+  error?: string | null
+  errorCode?: string | null
+  retryCount: number
+  certificateAvailable: boolean
+}
+
+export interface AcmeHistorySummary {
+  total: number
+  verifying: number
+  issued: number
+  failed: number
+}
+
+export interface AcmeHistoryResponse {
+  records: AcmeApplicationRecord[]
+  summary: AcmeHistorySummary
+  generatedAt: number
+}
+
+export interface AcmeCertificateInfo {
+  domain: string
+  issuer: string
+  expireTime: string
+  daysRemaining: number
+  algorithm: string
+  san: string[]
+  certificatePem: string
+  certificatePath: string
+  keyPath: string
+}
+
+export interface AcmeRecordDetailResponse {
+  record: AcmeApplicationRecord
+  certificateInfo: AcmeCertificateInfo | null
+  generatedAt: number
+}
+
+export interface AcmeRetryResponse {
+  recordId: string
+  domain: string
+  retryStarted: boolean
+  message: string
+}
+
+export interface AcmeDeleteRecordResponse {
+  recordId: string
+  deleted: boolean
+}

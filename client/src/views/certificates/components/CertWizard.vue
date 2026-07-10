@@ -184,10 +184,13 @@
                 {{ t('certificate.wizard.dnsStep.propagating') }}
               </p>
 
-              <!-- Verify result -->
+              <!-- Verify result: background verification in progress -->
               <div v-if="verifyStatus === 'pending'" class="dns-verifying">
                 <GIcon name="loader" :size="24" spin />
-                <span>{{ t('certificate.wizard.dnsStep.verifying') }}</span>
+                <div class="dns-verifying__text">
+                  <span>{{ t('certificate.wizard.dnsStep.verifying') }}</span>
+                  <span class="dns-verifying__hint">{{ t('certificate.wizard.dnsStep.backgroundHint') }}</span>
+                </div>
               </div>
               <div v-else-if="verifyStatus === 'failed'" class="dns-verify-error">
                 <GIcon name="alert-circle" :size="18" />
@@ -203,7 +206,10 @@
               </div>
               <div v-if="verifyStatus === 'pending'" class="dns-verifying">
                 <GIcon name="loader" :size="24" spin />
-                <span>{{ t('certificate.wizard.dnsStep.verifying') }}</span>
+                <div class="dns-verifying__text">
+                  <span>{{ t('certificate.wizard.dnsStep.verifying') }}</span>
+                  <span class="dns-verifying__hint">{{ t('certificate.wizard.dnsStep.backgroundHint') }}</span>
+                </div>
               </div>
               <div v-else-if="verifyStatus === 'failed'" class="dns-verify-error">
                 <GIcon name="alert-circle" :size="18" />
@@ -255,20 +261,20 @@
               @click="goToDnsStep">
               {{ t('certificate.wizard.next') }}
             </GButton>
-            <!-- DNS-01: I've added the record -->
+            <!-- DNS-01: I've added the record → start background verify -->
             <GButton
               v-if="currentStep === 3 && prepareStatus === 'success' && form.challengeType === 'dns01' && (verifyStatus === 'idle' || verifyStatus === 'failed')"
               variant="primary"
               icon="zap"
-              @click="verifyAcme">
+              @click="startBackgroundVerify">
               {{ t('certificate.wizard.dnsStep.iHaveAdded') }}
             </GButton>
-            <!-- HTTP-01: Start verification -->
+            <!-- HTTP-01: Start background verification -->
             <GButton
               v-if="currentStep === 3 && prepareStatus === 'success' && form.challengeType === 'http01' && verifyStatus === 'idle'"
               variant="primary"
               icon="zap"
-              @click="verifyAcme">
+              @click="startBackgroundVerify">
               {{ t('certificate.wizard.dnsStep.http01Ready') }}
             </GButton>
             <GButton
@@ -286,8 +292,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { listen } from '@tauri-apps/api/event'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import { useFeedback } from '@/composables/useFeedback'
@@ -302,6 +309,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   submitted: [form: CertificateWizardForm]
+  verified: []  // 新增：验证完成事件（无论成功失败，用于刷新列表）
 }>()
 
 const { t, te } = useI18n()
@@ -323,6 +331,49 @@ const verifyStatus = ref<'idle' | 'pending' | 'success' | 'failed'>('idle')
 const verifyError = ref('')
 const acmeResult = ref<AcmePrepareResponse | null>(null)
 
+// Tauri 事件监听器引用（用于清理）
+let unlistenFn: (() => void) | null = null
+
+// ── 监听后台 ACME 验证结果事件 ──
+async function setupAcmeEventListener() {
+  // 先清理旧的监听器
+  if (unlistenFn) {
+    unlistenFn()
+    unlistenFn = null
+  }
+
+  unlistenFn = await listen<{ success: boolean; data?: any; error?: string }>(
+    'acme-verify:result',
+    (event) => {
+      const payload = event.payload
+      if (payload.success) {
+        // 验证成功
+        verifyStatus.value = 'success'
+        verifyError.value = ''
+        toast.success(`${form.value.domain} — ${t('certificate.wizard.dnsStep.verifySuccess')}`)
+        emit('submitted', form.value)
+        emit('verified')
+        currentStep.value = 4
+      } else {
+        // 验证失败
+        verifyStatus.value = 'failed'
+        const errMsg = payload.error || t('certificate.wizard.failed')
+        verifyError.value = errMsg
+        notify.error(t('certificate.wizard.failed'), errMsg, 15000)
+        emit('verified')  // 即使失败也通知父组件刷新列表
+      }
+    },
+  )
+}
+
+// 组件卸载时清理事件监听
+onUnmounted(() => {
+  if (unlistenFn) {
+    unlistenFn()
+    unlistenFn = null
+  }
+})
+
 const stepLabels = computed(() => [
   t('certificate.wizard.steps.server'),
   t('certificate.wizard.steps.domain'),
@@ -340,7 +391,7 @@ const canProceed = computed(() => {
 
 watch(
   () => props.visible,
-  (val) => {
+  async (val) => {
     if (val) {
       currentStep.value = 0
       form.value = { serverId: '', domain: '', email: '', challengeType: 'http01', staging: false }
@@ -349,6 +400,14 @@ watch(
       verifyStatus.value = 'idle'
       verifyError.value = ''
       acmeResult.value = null
+      // 设置事件监听器（用于接收后台验证结果）
+      await setupAcmeEventListener()
+    } else {
+      // 关闭时清理监听器
+      if (unlistenFn) {
+        unlistenFn()
+        unlistenFn = null
+      }
     }
   },
 )
@@ -388,28 +447,46 @@ async function prepareAcme() {
     })
     prepareStatus.value = 'success'
 
-    // HTTP-01 不需要用户手动操作，可以直接验证
+    // HTTP-01 也使用后台模式（用户可关闭窗口）
     if (form.value.challengeType === 'http01') {
-      await verifyAcme()
+      await startBackgroundVerify()
     }
-  } catch (err) {
+  } catch (err: unknown) {
     prepareStatus.value = 'failed'
-    prepareError.value = err instanceof Error ? err.message : String(err)
+    const msg = err instanceof Error ? err.message : String(err)
+    try {
+      const parsed = JSON.parse(msg)
+      prepareError.value = parsed.details || parsed.message || msg
+    } catch {
+      prepareError.value = msg
+    }
   }
 }
 
-async function verifyAcme() {
+/** 启动后台验证（非阻塞，用户可关闭窗口） */
+async function startBackgroundVerify() {
   verifyStatus.value = 'pending'
   verifyError.value = ''
   try {
-    await certificateService.acmeVerify()
-    verifyStatus.value = 'success'
-    toast.success(t('certificate.notifications.wizardSubmitted'))
-    emit('submitted', form.value)
-    currentStep.value = 4
-  } catch (err) {
+    const result = await certificateService.startAcmeVerify()
+    if (result.started) {
+      // 后台任务已启动，UI 进入"验证中"状态
+      // 结果将通过 Tauri 事件异步返回
+      toast.info(`${t('certificate.wizard.dnsStep.backgroundVerifying')} ${form.value.domain}`)
+    } else {
+      // 启动失败
+      verifyStatus.value = 'failed'
+      verifyError.value = result.message || 'Failed to start verification'
+    }
+  } catch (err: unknown) {
     verifyStatus.value = 'failed'
-    verifyError.value = err instanceof Error ? err.message : String(err)
+    const msg = err instanceof Error ? err.message : String(err)
+    try {
+      const parsed = JSON.parse(msg)
+      verifyError.value = parsed.details || parsed.hint || parsed.message || msg
+    } catch {
+      verifyError.value = msg
+    }
     notify.error(t('certificate.wizard.failed'), verifyError.value, 10000)
   }
 }
@@ -848,10 +925,25 @@ function serverStatusLabel(status: string) {
 .dns-verifying {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   color: var(--color-primary);
   font-size: var(--text-sm);
-  padding: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-muted);
+  border: 1px solid var(--color-primary-alpha-200, rgba(59,130,246,.15));
+}
+
+.dns-verifying__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dns-verifying__hint {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  opacity: .8;
 }
 
 .dns-verify-error {
@@ -871,6 +963,8 @@ function serverStatusLabel(status: string) {
   font-size: var(--text-sm);
   text-align: center;
   word-break: break-word;
+  white-space: pre-line;
+  line-height: 1.6;
 }
 
 /* ── Result ── */

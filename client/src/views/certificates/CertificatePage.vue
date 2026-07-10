@@ -465,6 +465,9 @@
       </div>
     </template>
 
+    <!-- 申请历史（独立面板，无证书时也显示） -->
+    <CertHistory :refresh-trigger="historyRefreshTrigger" @record-updated="onHistoryRecordUpdated" />
+
     <!-- ═══════════════ 弹窗 ═══════════════ -->
     <CertWizard
       v-model:visible="wizardVisible"
@@ -489,6 +492,7 @@ import { certificateService } from './service'
 import CertWizard from './components/CertWizard.vue'
 import CertImportDialog from './components/CertImportDialog.vue'
 import CertLoading from './components/CertLoading.vue'
+import CertHistory from './components/CertHistory.vue'
 import type {
   CertificateDetailResponse,
   CertificateDomainAssociations,
@@ -528,6 +532,7 @@ const actionLoading = ref<string | null>(null)
 const renewalExecuting = ref(false)
 const wizardVisible = ref(false)
 const importVisible = ref(false)
+const historyRefreshTrigger = ref(0)
 
 const query = ref('')
 const filter = ref<CertFilterType>('all')
@@ -710,6 +715,15 @@ watch(
   },
   { deep: true },
 )
+
+/* 每次打开证书向导时，强制刷新服务器列表以获取最新状态
+   修复：应用重启后首次打开向导可能显示"离线"(后端连接尚未重建完成)，
+   而服务器实际已运行的状态不一致问题 */
+watch(wizardVisible, (visible) => {
+  if (visible) {
+    void serverStore.load()
+  }
+})
 
 watch(
   () => stats.value.healthScore,
@@ -897,12 +911,19 @@ async function executeRenewal() {
 
 function handleWizardSubmitted() {
   void refresh()
+  historyRefreshTrigger.value++
   setTimeout(() => { wizardVisible.value = false }, 1500)
 }
 
 function handleImported(domain: string) {
   void refresh()
   selectedDomain.value = domain
+  historyRefreshTrigger.value++
+}
+
+function onHistoryRecordUpdated() {
+  // 申请记录状态变化（如验证通过/失败），刷新证书列表
+  void refresh()
 }
 
 /* ────────── 工具函数 ────────── */

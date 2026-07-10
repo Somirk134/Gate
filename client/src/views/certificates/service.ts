@@ -12,6 +12,10 @@ import type {
   ImportRequest,
   ImportResponse,
   ImportValidation,
+  AcmeHistoryResponse,
+  AcmeRecordDetailResponse,
+  AcmeRetryResponse,
+  AcmeDeleteRecordResponse,
 } from './types'
 
 const ipc = new TauriIpcClient()
@@ -75,5 +79,31 @@ export const certificateService = {
   },
   acmeVerify() {
     return ipc.invoke<AcmeVerifyResponse>('certificate_acme_verify')
+  },
+
+  /** 后台启动 ACME 验证（非阻塞，通过事件返回结果） */
+  startAcmeVerify(recordId?: string) {
+    return ipc.invoke<{ domain: string; started: boolean; message: string; recordId?: string }>('certificate_acme_start_verify', { recordId })
+  },
+
+  /* ── 申请历史 ── */
+  /** 获取所有 ACME 申请记录 */
+  history() {
+    return ipc.invoke<AcmeHistoryResponse>('certificate_acme_history')
+  },
+
+  /** 获取单条申请记录详情（含证书信息） */
+  recordDetail(recordId: string) {
+    return ipc.invoke<AcmeRecordDetailResponse>('certificate_acme_record_detail', { recordId })
+  },
+
+  /** 重试失败的或正在验证的申请 */
+  retryApplication(recordId: string) {
+    return ipc.invoke<AcmeRetryResponse>('certificate_acme_retry', { recordId })
+  },
+
+  /** 删除一条申请记录（不删除证书文件） */
+  deleteRecord(recordId: string) {
+    return ipc.invoke<AcmeDeleteRecordResponse>('certificate_acme_delete_record', { recordId })
   },
 }
