@@ -82,6 +82,54 @@
               tone="neutral" />
           </div>
 
+          <section class="project-business-overview">
+            <article>
+              <span>关联 Tunnel</span>
+              <strong>{{ project.tunnelCount }}</strong>
+              <small>{{ project.runningTunnelCount }} running</small>
+            </article>
+            <article>
+              <span>关联 Domain</span>
+              <strong>{{ project.domainCount }}</strong>
+              <small>{{ project.domains[0] || t('project.detail.unboundDomain') }}</small>
+            </article>
+            <article>
+              <span>关联 Certificate</span>
+              <strong>{{ project.certificateCount }}</strong>
+              <small>{{ certificateLabel(project.certificateStatus) }}</small>
+            </article>
+            <article>
+              <span>最近流量</span>
+              <strong>{{ formatBytes(project.statistics.todayTraffic) }}</strong>
+              <RuntimeSparkline :values="projectTrafficSparkline" label="Project traffic" />
+            </article>
+            <article>
+              <span>最近请求</span>
+              <strong>{{ project.statistics.requestCount }}</strong>
+              <RuntimeSparkline :values="projectRequestSparkline" label="Project requests" />
+            </article>
+            <article>
+              <span>运行状态</span>
+              <strong>{{ project.status }}</strong>
+              <small>{{ project.statistics.connections }} conn</small>
+            </article>
+            <article>
+              <span>健康评分</span>
+              <strong>{{ projectHealthScore }}</strong>
+              <small>{{ project.statistics.errorCount }} errors</small>
+            </article>
+            <article>
+              <span>启动时间</span>
+              <strong>{{ formatDuration(project.statistics.uptime) }}</strong>
+              <small>{{ project.lastStartedAt }}</small>
+            </article>
+            <article>
+              <span>最后修改</span>
+              <strong>{{ formatCompactTime(project.updatedAt) }}</strong>
+              <small>{{ formatCompactTime(project.lastActivityAt) }}</small>
+            </article>
+          </section>
+
           <div class="project-detail-grid">
             <Panel :title="t('project.detail.recentLogs')" icon="logs">
               <LogList :logs="project.recentLogs" :empty="t('project.detail.noProjectLogs')" />
@@ -129,13 +177,7 @@
             <article v-for="tunnel in projectTunnels" :key="tunnel.id" class="resource-card">
               <div class="resource-card__head">
                 <GBadge
-                  :variant="
-                    tunnel.status === 'running'
-                      ? 'success'
-                      : tunnel.status === 'warning'
-                        ? 'error'
-                        : 'neutral'
-                  "
+                  :variant="tunnelStatusVariant(tunnel.status)"
                   type="soft">
                   {{ tunnel.status }}
                 </GBadge>
@@ -391,6 +433,9 @@ import GErrorState from '@components/feedback/GErrorState.vue'
 import GInput from '@components/form/GInput.vue'
 import GSearchInput from '@components/form/GSearchInput.vue'
 import GTextarea from '@components/form/GTextarea.vue'
+import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+import type { DashboardTunnel } from '@/monitoring/types'
 import ProjectDeleteDialog from './components/ProjectDeleteDialog.vue'
 import ProjectDialog from './components/ProjectDialog.vue'
 import ProjectHeader from './components/ProjectHeader.vue'
@@ -413,6 +458,7 @@ const router = useRouter()
 const store = useProjectStore()
 const { t, locale } = useI18n()
 const { toast, notify } = useFeedback()
+const { metricHistory } = useMonitoringDashboard()
 
 const activeTab = ref<ProjectTab>('overview')
 const selectedTunnelId = ref('')
@@ -474,6 +520,38 @@ const projectCertificates = computed(() => {
       project.value?.domains.includes(certificate.domain),
   )
 })
+const projectTrafficSparkline = computed(() =>
+  metricHistory.value.length
+    ? metricHistory.value.map((point) => point.uploadBps + point.downloadBps)
+    : [project.value?.statistics.bandwidthBps ?? 0],
+)
+const projectRequestSparkline = computed(() =>
+  metricHistory.value.length
+    ? metricHistory.value.map((point) => point.requests)
+    : [project.value?.statistics.requestCount ?? 0],
+)
+const projectHealthScore = computed(() => {
+  const current = project.value
+  if (!current) return '0/100'
+  const tunnelScore = current.tunnelCount
+    ? (current.runningTunnelCount / current.tunnelCount) * 70
+    : 70
+  const errorPenalty = Math.min(30, current.statistics.errorCount * 2)
+  return `${Math.max(0, Math.round(tunnelScore + 30 - errorPenalty))}/100`
+})
+
+function tunnelStatusVariant(
+  status: DashboardTunnel['status'],
+): 'success' | 'error' | 'neutral' {
+  if (isRunningTunnelStatus(status)) return 'success'
+  if (status === 'warning' || status === 'error') return 'error'
+  return 'neutral'
+}
+
+function isRunningTunnelStatus(status: DashboardTunnel['status']): boolean {
+  return ['running', 'starting', 'restarting', 'recovering'].includes(status)
+}
+
 const filteredLogs = computed(() => {
   const current = project.value
   if (!current) return []
@@ -720,6 +798,26 @@ function formatLogTime(timestamp: number) {
   }).format(timestamp)
 }
 
+function formatCompactTime(timestamp: number) {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return '-'
+  return new Intl.DateTimeFormat(locale.value === 'en-US' ? 'en-US' : 'zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp)
+}
+
+function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '-'
+  const day = Math.floor(seconds / 86400)
+  const hour = Math.floor((seconds % 86400) / 3600)
+  const minute = Math.floor((seconds % 3600) / 60)
+  if (day) return `${day}d ${hour}h`
+  if (hour) return `${hour}h ${minute}m`
+  return `${Math.max(1, minute)}m`
+}
+
 function readSelectValue(event: Event) {
   return (event.target as HTMLSelectElement).value
 }
@@ -902,6 +1000,44 @@ const EmptyPanel = defineComponent({
 .metric-card--info .metric-card__icon {
   color: var(--color-info);
   background: var(--color-info-muted);
+}
+
+.project-business-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.project-business-overview article {
+  min-width: 0;
+  min-height: 94px;
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.project-business-overview span,
+.project-business-overview small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-business-overview strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-detail-grid {
@@ -1120,6 +1256,7 @@ const EmptyPanel = defineComponent({
 
 @media (max-width: 960px) {
   .project-detail-grid,
+  .project-business-overview,
   .settings-form,
   .resource-toolbar {
     grid-template-columns: 1fr;

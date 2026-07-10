@@ -104,6 +104,7 @@ export interface Tunnel {
   compression: boolean // 预留
   encryption: boolean // 预留
   tags: string[]
+  serverId: string
   serverName: string
   projectName: string
   projectId: string
@@ -143,6 +144,7 @@ export interface TunnelFormData {
   host?: string
   path?: string
   projectId: string
+  serverId: string
   serverName: string
   autoStart: boolean
   remark: string

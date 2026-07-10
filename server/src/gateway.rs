@@ -52,6 +52,8 @@ use tokio_rustls::TlsAcceptor;
 use tracing::{info, warn};
 use uuid::Uuid;
 
+use crate::discovery::server_capability_snapshot;
+
 const DEFAULT_HEARTBEAT_TIMEOUT_MS: i64 = 90_000;
 const HEARTBEAT_SWEEP_INTERVAL: Duration = Duration::from_secs(5);
 const DEFAULT_MAX_CONNECTIONS: u64 = 4096;
@@ -869,6 +871,16 @@ impl TunnelGateway {
                 "https_requests": self.inner.https_counters.https_requests.load(Ordering::Relaxed)
             }
         })
+    }
+
+    pub async fn capability_snapshot(&self) -> Value {
+        let tunnels = self.inner.tunnels.lock().await;
+        let mut ports = Vec::with_capacity(tunnels.len());
+        for tunnel in tunnels.values() {
+            ports.push(tunnel.config.lock().await.remote_port);
+        }
+
+        server_capability_snapshot(&ports)
     }
 
     async fn ensure_listener(

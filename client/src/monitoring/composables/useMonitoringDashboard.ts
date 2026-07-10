@@ -1,12 +1,26 @@
-import { computed, onMounted, onUnmounted, shallowRef, ref } from 'vue'
+import { computed, onMounted, onUnmounted, readonly, shallowRef, ref } from 'vue'
 import { createEmptyDashboardData, dashboardService } from '../services'
 import type { DashboardData, RealtimeSpeedPoint } from '../types'
+
+export interface RuntimeMetricHistoryPoint {
+  timestamp: number
+  uploadBps: number
+  downloadBps: number
+  connection: number
+  requests: number
+  errors: number
+  latencyMs: number
+  cpuUsage: number
+  memoryUsage: number
+  reconnect: number
+}
 
 export function useMonitoringDashboard() {
   const data = shallowRef<DashboardData>(createEmptyDashboardData())
   const loading = ref(false)
   const error = ref<string | null>(null)
   let realtimeSpeedHistory: RealtimeSpeedPoint[] = []
+  const metricHistory = ref<RuntimeMetricHistoryPoint[]>([])
   let unsubscribe: (() => void) | undefined
 
   const dashboard = computed(() => data.value)
@@ -42,6 +56,7 @@ export function useMonitoringDashboard() {
     lastUpdated,
     loading,
     error,
+    metricHistory: readonly(metricHistory),
     refresh,
   }
 
@@ -61,11 +76,44 @@ export function useMonitoringDashboard() {
     }
 
     realtimeSpeedHistory = realtimeSpeedHistory.slice(-26)
+    appendMetricHistory(next)
 
     return {
       ...next,
       realtimeSpeed: realtimeSpeedHistory,
     }
+  }
+
+  function appendMetricHistory(next: DashboardData) {
+    const statistics = next.statistics
+    const http = statistics.http
+    const timestamp = normalizeMetricTimestamp(next.generatedAt || statistics.collectedAt)
+    const latest = metricHistory.value[metricHistory.value.length - 1]
+    const point: RuntimeMetricHistoryPoint = {
+      timestamp,
+      uploadBps: normalizeMetricValue(statistics.traffic.uploadSpeedBps),
+      downloadBps: normalizeMetricValue(statistics.traffic.downloadSpeedBps),
+      connection: normalizeMetricValue(statistics.connection.currentConnection),
+      requests: normalizeMetricValue(http?.requestsTotal),
+      errors: normalizeMetricValue(
+        Object.entries(http?.statusCodes ?? {}).reduce(
+          (sum, [status, count]) => sum + (Number(status) >= 400 ? Number(count) : 0),
+          0,
+        ),
+      ),
+      latencyMs: normalizeMetricValue(statistics.connection.averageRttMs),
+      cpuUsage: normalizeMetricValue(statistics.system.cpuUsage),
+      memoryUsage: normalizeMetricValue(statistics.system.memoryUsage),
+      reconnect: normalizeMetricValue(statistics.connection.reconnect),
+    }
+
+    // 只保存真实 Runtime 快照的短历史，供图表平滑增量更新使用。
+    if (latest?.timestamp === timestamp) {
+      metricHistory.value = [...metricHistory.value.slice(0, -1), point]
+      return
+    }
+
+    metricHistory.value = [...metricHistory.value, point].slice(-120)
   }
 
   function createCurrentSpeedPoint(next: DashboardData): RealtimeSpeedPoint {
@@ -82,5 +130,13 @@ export function useMonitoringDashboard() {
       uploadBps: Number.isFinite(point.uploadBps) ? Math.max(0, point.uploadBps) : 0,
       downloadBps: Number.isFinite(point.downloadBps) ? Math.max(0, point.downloadBps) : 0,
     }
+  }
+
+  function normalizeMetricTimestamp(timestamp: number) {
+    return Number.isFinite(timestamp) ? timestamp : Date.now()
+  }
+
+  function normalizeMetricValue(value: number | undefined) {
+    return Number.isFinite(value) ? Math.max(0, Number(value)) : 0
   }
 }

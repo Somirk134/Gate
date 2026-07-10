@@ -423,6 +423,7 @@ export function buildSmartRecommendation(
       localPort,
       remotePort,
       projectId: 'p1',
+      serverId: '',
       serverName: server,
       autoStart: false,
       remark: scenarioReason,

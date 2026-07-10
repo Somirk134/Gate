@@ -149,7 +149,27 @@ jobs:
         run: npm run guard:release-data
 
       - name: Build Tauri package
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: npm --prefix client run tauri build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Collect updater manifests
+        shell: bash
+        run: |
+          mkdir -p updater
+          i=0
+          for f in $(find client/src-tauri/target/${{ matrix.target }}/release/bundle -name "latest.json" 2>/dev/null || true); do
+            cp "$f" "updater/latest-${{ matrix.name }}-$i.json"
+            i=$((i + 1))
+          done
+          ls -R updater || true
+
+      - name: Upload updater manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-updater-${{ matrix.name }}
+          path: updater/
+          if-no-files-found: warn
 
       - name: Upload desktop package
         uses: actions/upload-artifact@v4
@@ -169,6 +189,16 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Download updater manifests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gate-updater-*
+          path: updater
+          merge-multiple: true
+
+      - name: Merge updater manifests
+        run: node scripts/merge-updater-manifests.mjs updater dist/latest.json
+
       - name: Publish draft release
         uses: softprops/action-gh-release@v2
         with:
@@ -176,4 +206,6 @@ jobs:
           name: Gate v0.9.0 Beta
           draft: true
           generate_release_notes: true
-          files: dist/**
+          files: |
+            dist/**
+            dist/latest.json

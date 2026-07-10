@@ -46,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
                 config.local_port,
                 config.remote_port,
                 config.protocol.clone(),
+                None,
                 Some(config.local_host.clone()),
                 config.host.clone(),
                 config.path.clone(),

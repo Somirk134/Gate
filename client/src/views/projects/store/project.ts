@@ -61,9 +61,12 @@ export const useProjectStore = defineStore('project', () => {
     return projects.value.find((p) => p.id === id)
   }
 
-  async function load(): Promise<void> {
-    status.value = 'loading'
-    error.value = ''
+  async function load(options: { silent?: boolean } = {}): Promise<void> {
+    const silent = options.silent === true && status.value === 'success'
+    if (!silent) {
+      status.value = 'loading'
+      error.value = ''
+    }
     try {
       const [projectRows, runtimeDashboard, runtimeLogs, certificateList, templateRows] =
         await Promise.all([
@@ -86,15 +89,18 @@ export const useProjectStore = defineStore('project', () => {
         mapProject(record, runtimeDashboard, runtimeLogs, certificateList.certificates),
       )
       status.value = 'success'
+      error.value = ''
       lastUpdated.value = Date.now()
     } catch (e) {
-      status.value = 'error'
       error.value = e instanceof Error ? e.message : t('project.loadFailed')
+      if (!silent) {
+        status.value = 'error'
+      }
     }
   }
 
   async function refresh(): Promise<void> {
-    return load()
+    return load({ silent: true })
   }
 
   async function createProject(form: ProjectFormData): Promise<Project> {
@@ -261,8 +267,12 @@ function mapProject(
     .sort((a, b) => b.timestamp - a.timestamp)
   const recentLogs = projectLogs.slice(0, 10)
   const recentErrors = projectLogs.filter((log) => log.level === 'error').slice(0, 6)
-  const runningTunnelCount = projectTunnels.filter((tunnel) => tunnel.status === 'running').length
-  const warningTunnelCount = projectTunnels.filter((tunnel) => tunnel.status === 'warning').length
+  const runningTunnelCount = projectTunnels.filter((tunnel) =>
+    isRuntimeTunnelRunning(tunnel.status),
+  ).length
+  const warningTunnelCount = projectTunnels.filter((tunnel) =>
+    isRuntimeTunnelWarning(tunnel.status),
+  ).length
   const status =
     warningTunnelCount > 0
       ? 'error'
@@ -357,6 +367,15 @@ function certificateStatus(
 
 function unique(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+}
+
+function isRuntimeTunnelRunning(status: DashboardTunnel['status']): boolean {
+  // 与隧道页保持同一组运行态，避免恢复中/启动中的隧道在项目卡片里被算作 0 运行。
+  return ['running', 'starting', 'restarting', 'recovering'].includes(status)
+}
+
+function isRuntimeTunnelWarning(status: DashboardTunnel['status']): boolean {
+  return status === 'warning' || status === 'error'
 }
 
 export function projectTunnels(project: Project, runtimeDashboard: DashboardData | null) {

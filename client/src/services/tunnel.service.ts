@@ -29,6 +29,7 @@ export const tunnelService = {
     localPort: number
     remotePort: number
     protocol: string
+    serverId?: string
     localHost?: string
     host?: string
     path?: string
@@ -38,6 +39,7 @@ export const tunnelService = {
       localPort: data.localPort,
       remotePort: data.remotePort,
       protocol: data.protocol,
+      serverId: data.serverId,
       localHost: data.localHost,
       host: data.host,
       path: data.path,
@@ -67,6 +69,7 @@ export const tunnelService = {
       localHost: string
       localPort: number
       remotePort: number
+      serverId: string
       host: string
       path: string
     }>,

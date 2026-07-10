@@ -83,6 +83,8 @@ export function useProject() {
   onMounted(() => {
     if (store.status === 'idle') {
       loadData()
+    } else {
+      void refresh()
     }
   })
 

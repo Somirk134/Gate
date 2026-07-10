@@ -17,6 +17,13 @@
       </div>
     </header>
 
+    <section class="runtime-summary-bar" :class="`is-${healthStatus}`">
+      <article v-for="item in runtimeSummaryItems" :key="item.label">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </article>
+    </section>
+
     <div v-if="showSkeleton" class="metric-grid" aria-hidden="true">
       <article v-for="index in 6" :key="index" class="metric-card metric-card--loading">
         <div>
@@ -35,11 +42,122 @@
             <p>{{ card.label }}</p>
             <strong>{{ card.value }}</strong>
             <small :class="card.helperTone">{{ card.helper }}</small>
+            <RuntimeSparkline
+              class="metric-card__sparkline"
+              :values="metricSparkline(card.key)"
+              :label="card.label" />
           </div>
           <span class="metric-card__icon" :class="`is-${card.tone}`">
             <GIcon :name="card.icon" :size="21" />
           </span>
         </article>
+      </section>
+
+      <section class="runtime-chart-grid">
+        <RuntimeTrendChart
+          :title="t('dashboard.chart.realtimeTraffic')"
+          :eyebrow="t('dashboard.chart.upload') + ' / ' + t('dashboard.chart.download')"
+          unit="B/s"
+          :timestamps="metricHistory.map((point) => point.timestamp)"
+          :series="trafficRealtimeSeries">
+          <template #meta>
+            <strong class="chart-meta-value">{{ formatSpeed(currentBandwidthBps) }}</strong>
+          </template>
+        </RuntimeTrendChart>
+        <RuntimeTrendChart
+          :title="t('dashboard.chart.realtimeLatencyConnection')"
+          :eyebrow="t('dashboard.chart.rtt') + ' / ' + t('dashboard.chart.connection')"
+          unit="%"
+          :timestamps="metricHistory.map((point) => point.timestamp)"
+          :series="latencyConnectionSeries">
+          <template #meta>
+            <strong class="chart-meta-value">{{ formatLatency(dashboard.statistics.connection.averageRttMs) }}</strong>
+          </template>
+        </RuntimeTrendChart>
+        <RuntimeTrendChart
+          :title="t('dashboard.chart.realtimeSystemResources')"
+          :eyebrow="t('dashboard.chart.system')"
+          unit="%"
+          :timestamps="metricHistory.map((point) => point.timestamp)"
+          :series="systemResourceSeries">
+          <template #meta>
+            <strong class="chart-meta-value">{{ dashboard.statistics.system.cpuUsage.toFixed(0) }}%</strong>
+          </template>
+        </RuntimeTrendChart>
+        <RuntimeTrendChart
+          :title="t('dashboard.chart.realtimeHttpError')"
+          :eyebrow="t('dashboard.chart.requests')"
+          unit="次"
+          :timestamps="metricHistory.map((point) => point.timestamp)"
+          :series="httpErrorSeries">
+          <template #meta>
+            <strong class="chart-meta-value is-error">{{ formatNumber(httpErrorCount) }}</strong>
+          </template>
+        </RuntimeTrendChart>
+      </section>
+
+      <section v-if="activeServerOverview" class="dashboard-panel server-overview-card">
+        <div class="panel-heading">
+          <div>
+            <h2>{{ t('dashboard.serverOverview.title') }}</h2>
+            <p>{{ activeServerOverview.hostname }}</p>
+          </div>
+          <strong>{{ activeServerOverview.ping }}</strong>
+        </div>
+        <div class="server-overview-grid">
+          <article><span>{{ t('dashboard.serverOverview.os') }}</span><strong>{{ activeServerOverview.os }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.cpu') }}</span><strong>{{ activeServerOverview.cpu }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.memory') }}</span><strong>{{ activeServerOverview.memory }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.architecture') }}</span><strong>{{ activeServerOverview.arch }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.publicIp') }}</span><strong>{{ activeServerOverview.publicIp }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.privateIp') }}</span><strong>{{ activeServerOverview.privateIp }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.gate') }}</span><strong>{{ activeServerOverview.version }}</strong></article>
+          <article><span>{{ t('dashboard.serverOverview.uptime') }}</span><strong>{{ activeServerOverview.uptime }}</strong></article>
+        </div>
+      </section>
+
+      <section class="dashboard-panel dashboard-panel--services">
+        <div class="panel-heading">
+          <div>
+            <h2>{{ t('dashboard.runningServices.title') }}</h2>
+            <p>{{ t('dashboard.runningServices.subtitle') }}</p>
+          </div>
+        </div>
+        <div v-if="runningServices.length" class="service-table">
+          <article v-for="service in runningServices" :key="service.id">
+            <span class="service-table__status" :class="`is-${service.statusTone}`" />
+            <div class="service-table__main">
+              <strong>{{ service.name }}</strong>
+              <small>{{ service.address }}</small>
+            </div>
+            <code>{{ service.protocol }}</code>
+            <span>{{ service.metric }}</span>
+            <div class="service-actions">
+              <button type="button" :title="t('dashboard.runningServices.copyUrl')" @click="copyServiceUrl(service)">
+                <GIcon name="copy" :size="14" />
+              </button>
+              <button type="button" :title="t('dashboard.runningServices.openBrowser')" @click="openServiceUrl(service)">
+                <GIcon name="external-link" :size="14" />
+              </button>
+              <button type="button" :title="t('dashboard.runningServices.restartTunnel')" @click="restartService(service)">
+                <GIcon name="refresh" :size="14" />
+              </button>
+              <button type="button" :title="t('dashboard.runningServices.viewLogs')" @click="router.push('/logs')">
+                <GIcon name="logs" :size="14" />
+              </button>
+              <button type="button" :title="t('dashboard.runningServices.openLocalService')" @click="openLocalService(service)">
+                <GIcon name="terminal" :size="14" />
+              </button>
+              <button type="button" :title="t('dashboard.runningServices.healthCheck')" @click="healthCheckService(service)">
+                <GIcon name="activity" :size="14" />
+              </button>
+            </div>
+          </article>
+        </div>
+        <GEmptyState
+          v-else
+          :title="t('dashboard.runningServices.emptyTitle')"
+          :description="t('dashboard.runningServices.emptyDescription')" />
       </section>
 
       <GEmptyState
@@ -59,8 +177,9 @@
         </template>
       </GEmptyState>
 
-      <div class="dashboard-grid">
-        <section class="dashboard-panel dashboard-panel--traffic">
+      <div class="dashboard-workbench">
+        <div class="dashboard-grid">
+          <section class="dashboard-panel dashboard-panel--traffic">
           <div class="panel-heading">
             <div>
               <h2>{{ t('dashboard.chart.trafficTrend') }}</h2>
@@ -252,7 +371,13 @@
               <GIcon name="chevron-right" :size="15" />
             </button>
           </div>
-        </section>
+          </section>
+        </div>
+
+        <RuntimeActivityFeed
+          class="dashboard-activity-feed"
+          :items="dashboard.recentActivity"
+          :max="22" />
       </div>
     </template>
 
@@ -263,15 +388,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { open as openExternalUrl } from '@tauri-apps/plugin-shell'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GEmptyState from '@components/feedback/GEmptyState.vue'
 import GSkeleton from '@components/feedback/GSkeleton.vue'
+import RuntimeActivityFeed from '@components/runtime/RuntimeActivityFeed.vue'
+import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import RuntimeTrendChart from '@components/runtime/RuntimeTrendChart.vue'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 import { useProject } from '@views/projects/composables/useProject'
+import { useServerStore } from '@views/servers'
+import { discoveryService, tunnelService } from '@/services'
 import type { DashboardMetricCardMeta, DashboardTunnel } from '@/monitoring/types'
 import type { ProjectColor } from '@views/projects/types'
 
@@ -295,6 +426,17 @@ interface TrafficChartPoint {
   value: number
 }
 
+interface RunningServiceRow {
+  id: string
+  name: string
+  protocol: string
+  address: string
+  localAddress: string
+  metric: string
+  statusTone: 'online' | 'warning' | 'offline'
+  tunnel: DashboardTunnel
+}
+
 const router = useRouter()
 const { t, locale } = useI18n()
 const {
@@ -303,9 +445,11 @@ const {
   lastUpdated,
   loading,
   error,
+  metricHistory,
   refresh: refreshDashboard,
 } = useMonitoringDashboard()
 const { projects, refresh: refreshProjects } = useProject()
+const serverStore = useServerStore()
 const trafficRange = ref<TrafficRange>('24h')
 
 const TRAFFIC_HISTORY_STORAGE_KEY = 'gate.dashboard.projectTrafficHistory'
@@ -402,6 +546,96 @@ const showSkeleton = computed(
 )
 
 const formattedLastUpdated = computed(() => formatRelativeTime(lastUpdated.value.getTime()))
+const currentBandwidthBps = computed(
+  () =>
+    dashboard.value.statistics.traffic.uploadSpeedBps +
+    dashboard.value.statistics.traffic.downloadSpeedBps,
+)
+
+const runtimeSummaryItems = computed(() => [
+  {
+    label: t('dashboard.runtimeSummary.runtime'),
+    value: t(`dashboard.healthStatus.${healthStatus.value}`),
+  },
+  {
+    label: t('dashboard.runtimeSummary.server'),
+    value: formatNumber(serverStore.onlineServers.length),
+  },
+  {
+    label: t('dashboard.runtimeSummary.tunnel'),
+    value: `${formatNumber(dashboard.value.overview.runningTunnel)} / ${formatNumber(
+      dashboard.value.overview.tunnelCount,
+    )}`,
+  },
+  {
+    label: t('dashboard.runtimeSummary.cpu'),
+    value: `${dashboard.value.statistics.system.cpuUsage.toFixed(0)}%`,
+  },
+  {
+    label: t('dashboard.runtimeSummary.memory'),
+    value: `${dashboard.value.statistics.system.memoryUsage.toFixed(0)}%`,
+  },
+  {
+    label: t('dashboard.runtimeSummary.traffic'),
+    value: formatSpeed(currentBandwidthBps.value),
+  },
+  {
+    label: t('dashboard.runtimeSummary.rtt'),
+    value: formatLatency(dashboard.value.statistics.connection.averageRttMs),
+  },
+])
+
+const trafficRealtimeSeries = computed(() => [
+  {
+    name: t('dashboard.chart.upload'),
+    color: '#39c27f',
+    values: metricHistory.value.map((point) => point.uploadBps),
+  },
+  {
+    name: t('dashboard.chart.download'),
+    color: '#3f7cff',
+    values: metricHistory.value.map((point) => point.downloadBps),
+  },
+])
+
+const latencyConnectionSeries = computed(() => [
+  {
+    name: t('dashboard.chart.rtt'),
+    color: '#f59e0b',
+    values: metricHistory.value.map((point) => point.latencyMs),
+  },
+  {
+    name: t('dashboard.chart.connection'),
+    color: '#06b6d4',
+    values: metricHistory.value.map((point) => point.connection),
+  },
+])
+
+const systemResourceSeries = computed(() => [
+  {
+    name: t('dashboard.chart.cpu'),
+    color: '#a855f7',
+    values: metricHistory.value.map((point) => point.cpuUsage),
+  },
+  {
+    name: t('dashboard.chart.memory'),
+    color: '#14b8a6',
+    values: metricHistory.value.map((point) => point.memoryUsage),
+  },
+])
+
+const httpErrorSeries = computed(() => [
+  {
+    name: t('dashboard.chart.requests'),
+    color: '#3f7cff',
+    values: metricHistory.value.map((point) => point.requests),
+  },
+  {
+    name: t('dashboard.chart.errors'),
+    color: '#ef4444',
+    values: metricHistory.value.map((point) => point.errors),
+  },
+])
 
 const metricCardMeta = computed(() => {
   const cards = dashboard.value.visualSummary?.metricCards
@@ -473,6 +707,40 @@ const isRuntimeEmpty = computed(
     dashboard.value.overview.tunnelCount === 0 &&
     dashboard.value.serverStatus.length === 0 &&
     dashboard.value.overview.totalTraffic === 0,
+)
+
+const activeServerOverview = computed(() => {
+  const server =
+    serverStore.servers.find((item) => item.id === serverStore.activeServerId) ??
+    serverStore.onlineServers[0]
+  if (!server || server.status !== 'connected') return null
+  return {
+    hostname: server.overview.hostname,
+    os: server.overview.os,
+    cpu: server.overview.cpu || t('common.unknown'),
+    memory: formatBytes(server.overview.memoryUsedBytes ?? 0) + ' / ' + formatBytes(server.overview.memoryTotalBytes ?? 0),
+    arch: server.overview.arch,
+    publicIp: server.publicIp || t('common.unknown'),
+    privateIp: server.overview.privateIp || t('common.unknown'),
+    version: server.version,
+    uptime: formatDuration(server.statistics.uptime),
+    ping: formatLatency(server.ping),
+  }
+})
+
+const runningServices = computed<RunningServiceRow[]>(() =>
+  dashboard.value.tunnels
+    .filter((tunnel) => isRunningStatus(tunnel.status))
+    .map((tunnel) => ({
+      id: tunnel.id,
+      name: serviceName(tunnel),
+      protocol: tunnel.protocol.toUpperCase(),
+      address: tunnel.publicAddress || publicAddress(tunnel),
+      localAddress: `${tunnel.localHost ?? '127.0.0.1'}:${tunnel.localPort ?? 0}`,
+      metric: serviceMetric(tunnel),
+      statusTone: isAttentionStatus(tunnel.status) ? 'warning' : 'online',
+      tunnel,
+    })),
 )
 
 const trafficRangeCaption = computed(() => {
@@ -551,7 +819,9 @@ const tunnelState = computed(() => {
   }
 
   const total = Math.max(1, dashboard.value.tunnels.length)
-  const running = dashboard.value.tunnels.filter((tunnel) => tunnel.status === 'running').length
+  const running = dashboard.value.tunnels.filter((tunnel) =>
+    isRunningStatus(tunnel.status),
+  ).length
   const warning = dashboard.value.tunnels.filter((tunnel) => isAttentionStatus(tunnel.status)).length
   const stopped = Math.max(0, dashboard.value.tunnels.length - running - warning)
   return {
@@ -648,8 +918,42 @@ watch(
   { immediate: true },
 )
 
+onMounted(() => {
+  if (serverStore.status === 'idle') {
+    void serverStore.load()
+  }
+})
+
 async function refresh() {
   await Promise.all([refreshDashboard(), refreshProjects()])
+}
+
+async function copyServiceUrl(service: RunningServiceRow) {
+  await navigator.clipboard.writeText(service.address)
+}
+
+async function openServiceUrl(service: RunningServiceRow) {
+  if (/^https?:\/\//i.test(service.address)) {
+    await openExternalUrl(service.address)
+  }
+}
+
+async function openLocalService(service: RunningServiceRow) {
+  if (service.tunnel.protocol === 'tcp') return
+  await openExternalUrl(`http://${service.localAddress}`)
+}
+
+async function restartService(service: RunningServiceRow) {
+  await tunnelService.restart(service.id)
+  await refreshDashboard()
+}
+
+async function healthCheckService(service: RunningServiceRow) {
+  await discoveryService.diagnoseTunnel({
+    localHost: service.tunnel.localHost ?? '127.0.0.1',
+    localPort: service.tunnel.localPort ?? 0,
+    remotePort: service.tunnel.remotePort ?? 0,
+  })
 }
 
 function metricMetaFor(key: MetricKey): DashboardMetricCardMeta {
@@ -658,6 +962,20 @@ function metricMetaFor(key: MetricKey): DashboardMetricCardMeta {
     defaultMetricCardMeta.find((card) => card.key === key) ??
     defaultMetricCardMeta[0]
   )
+}
+
+function metricSparkline(key: string): number[] {
+  const values = metricHistory.value.map((point) => {
+    if (key === 'totalTunnels') return dashboard.value.overview.tunnelCount
+    if (key === 'onlineTunnels') return dashboard.value.overview.runningTunnel
+    if (key === 'activeConnections') return point.connection
+    if (key === 'traffic') return point.uploadBps + point.downloadBps
+    if (key === 'latency') return point.latencyMs
+    if (key === 'runtimeUptime') return dashboard.value.overview.runtimeUptimeSeconds
+    return 0
+  })
+
+  return values.length ? values : [0]
 }
 
 function normalizeCount(value: number): number {
@@ -669,7 +987,11 @@ function normalizeRatio(value: number): number {
 }
 
 function isAttentionStatus(status: DashboardTunnel['status']): boolean {
-  return status !== 'running' && status !== 'stopped'
+  return !isRunningStatus(status) && status !== 'stopped'
+}
+
+function isRunningStatus(status: DashboardTunnel['status']): boolean {
+  return ['running', 'starting', 'restarting', 'recovering'].includes(status)
 }
 
 function protocolLabel(protocol: DashboardTunnel['protocol'] | 'unknown') {
@@ -679,6 +1001,47 @@ function protocolLabel(protocol: DashboardTunnel['protocol'] | 'unknown') {
 function protocolTone(protocol: DashboardTunnel['protocol'] | 'unknown') {
   const knownProtocol = ['tcp', 'udp', 'http', 'https']
   return knownProtocol.includes(protocol) ? protocol : 'unknown'
+}
+
+function serviceName(tunnel: DashboardTunnel): string {
+  const name = tunnel.name?.trim()
+  if (name && !/^tunnel\s*#?\d+$/i.test(name)) return name
+  if (tunnel.protocol === 'http' || tunnel.protocol === 'https') {
+    return tunnel.host || `Web Service ${tunnel.localPort ?? ''}`.trim()
+  }
+  const tcpNames: Record<number, string> = {
+    22: 'SSH',
+    3306: 'MySQL',
+    5432: 'PostgreSQL',
+    6379: 'Redis',
+    25565: 'Minecraft',
+    3389: 'Remote Desktop',
+  }
+  return tcpNames[tunnel.localPort ?? 0] ?? `TCP Service ${tunnel.localPort ?? ''}`.trim()
+}
+
+function serviceMetric(tunnel: DashboardTunnel): string {
+  if (tunnel.protocol === 'http' || tunnel.protocol === 'https') {
+    const now = Date.now()
+    const recent = (tunnel.recentRequests ?? []).filter(
+      (request) => now - request.timestamp <= 60_000,
+    ).length
+    return t('dashboard.runningServices.requestsPerMinute', { count: recent })
+  }
+  return `${tunnel.remotePort ?? tunnel.localPort ?? 0}`
+}
+
+function publicAddress(tunnel: DashboardTunnel): string {
+  if (tunnel.publicAddress) return tunnel.publicAddress
+  if ((tunnel.protocol === 'http' || tunnel.protocol === 'https') && tunnel.host) {
+    return `${tunnel.protocol}://${tunnel.host}${normalizePath(tunnel.path)}`
+  }
+  return tunnel.remotePort ? `:${tunnel.remotePort}` : ''
+}
+
+function normalizePath(value: string | null | undefined): string {
+  if (!value) return '/'
+  return value.startsWith('/') ? value : `/${value}`
 }
 
 // 后端暂未提供项目级历史曲线，首页用 5 分钟粒度缓存项目总流量，支撑 24h / 7d / 30d 的折线切换。
@@ -879,6 +1242,10 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
 
+function formatSpeed(bytesPerSecond: number): string {
+  return `${formatBytes(bytesPerSecond)}/s`
+}
+
 function formatLatency(milliseconds: number): string {
   if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '0 ms'
   return `${Math.round(milliseconds)} ms`
@@ -907,11 +1274,11 @@ function formatRelativeTime(timestamp: number): string {
 
 <style scoped>
 .dashboard-page {
-  width: min(100%, 1180px);
+  width: min(100%, 1540px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
   color: var(--text-primary);
 }
 
@@ -962,9 +1329,56 @@ function formatRelativeTime(timestamp: number): string {
   font-size: var(--text-xs);
 }
 
+.runtime-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(108, 124, 147, 0.13);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+
+.runtime-summary-bar article {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.runtime-summary-bar article:first-child {
+  border-left: 0;
+  box-shadow: inset 3px 0 0 var(--status-online);
+}
+
+.runtime-summary-bar.is-warning article:first-child {
+  box-shadow: inset 3px 0 0 var(--status-warning);
+}
+
+.runtime-summary-bar.is-critical article:first-child,
+.runtime-summary-bar.is-offline article:first-child {
+  box-shadow: inset 3px 0 0 var(--status-error);
+}
+
+.runtime-summary-bar span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.runtime-summary-bar strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -977,10 +1391,10 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .metric-card {
-  min-height: 122px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  min-height: 142px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: start;
   gap: var(--space-3);
   padding: 18px;
 }
@@ -993,12 +1407,21 @@ function formatRelativeTime(timestamp: number): string {
   min-width: 0;
 }
 
+.metric-card__sparkline {
+  margin-top: 10px;
+  color: var(--color-primary);
+  opacity: 0.9;
+}
+
 .metric-card p,
 .panel-heading p {
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-card p::before {
@@ -1084,10 +1507,37 @@ function formatRelativeTime(timestamp: number): string {
   justify-content: center;
 }
 
+.runtime-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.chart-meta-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.chart-meta-value.is-error {
+  color: var(--color-error);
+}
+
+.dashboard-workbench {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
   gap: 12px;
+}
+
+.dashboard-activity-feed {
+  min-height: 420px;
 }
 
 .dashboard-panel {
@@ -1105,6 +1555,135 @@ function formatRelativeTime(timestamp: number): string {
 
 .dashboard-panel--quick {
   min-height: 320px;
+}
+
+.dashboard-panel--services {
+  padding: 18px;
+}
+
+.server-overview-card {
+  padding: 18px;
+}
+
+.server-overview-card .panel-heading {
+  margin-bottom: 12px;
+}
+
+.server-overview-card .panel-heading strong {
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.server-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.server-overview-grid article {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+
+.server-overview-grid span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.server-overview-grid strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-table {
+  display: grid;
+  gap: 8px;
+}
+
+.service-table article {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 70px 92px auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+
+.service-table__status {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-offline);
+}
+
+.service-table__status.is-online {
+  background: var(--status-online);
+}
+
+.service-table__status.is-warning {
+  background: var(--status-warning);
+}
+
+.service-table__main {
+  min-width: 0;
+}
+
+.service-table__main strong,
+.service-table__main small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-table__main small,
+.service-table article > span:not(.service-table__status) {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.service-table code {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.service-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.service-actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.service-actions button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .panel-heading {
@@ -1444,9 +2023,53 @@ function formatRelativeTime(timestamp: number): string {
   font-size: var(--text-sm);
 }
 
-@media (max-width: 1280px) {
+@media (min-width: 1300px) {
+  .metric-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1700px) {
+  .dashboard-page {
+    width: min(100%, 1880px);
+  }
+
+  .runtime-chart-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dashboard-workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    align-items: start;
+  }
+
+  .dashboard-activity-feed {
+    position: sticky;
+    top: 0;
+    height: min(780px, calc(100vh - 180px));
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.75fr) minmax(280px, 0.75fr);
+  }
+
+  .dashboard-panel--traffic,
+  .dashboard-panel--services {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1299px) {
+  .dashboard-page {
+    width: min(100%, 1120px);
+  }
+
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .runtime-summary-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1462,11 +2085,20 @@ function formatRelativeTime(timestamp: number): string {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .runtime-chart-grid,
+  .runtime-summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
   .metric-grid,
-  .connection-stats {
+  .runtime-chart-grid,
+  .runtime-summary-bar,
+  .connection-stats,
+  .service-table article,
+  .server-overview-grid {
     grid-template-columns: 1fr;
   }
 

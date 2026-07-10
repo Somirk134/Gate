@@ -112,7 +112,10 @@
               <GFormField>
                 <template #label>{{ t('tunnel.dialog.server') }}</template>
                 <div class="tunnel-dialog__select-wrap">
-                  <select v-model="form.serverName" class="tunnel-dialog__select">
+                  <select
+                    v-model="form.serverName"
+                    class="tunnel-dialog__select"
+                    @change="form.serverId = ''">
                     <option v-for="s in serverNames" :key="s" :value="s">
                       {{ s }}
                     </option>
@@ -245,6 +248,7 @@ const form = reactive<TunnelFormData>({
   host: '',
   path: '/',
   projectId: props.projects[0]?.id ?? '',
+  serverId: '',
   serverName: props.serverNames[0] ?? '',
   autoStart: false,
   remark: '',
@@ -305,6 +309,7 @@ watch(
         form.host = props.tunnel.host ?? ''
         form.path = props.tunnel.path ?? '/'
         form.projectId = props.tunnel.projectId
+        form.serverId = props.tunnel.serverId
         form.serverName = props.tunnel.serverName
         form.autoStart = props.tunnel.autoStart
         form.remark = props.tunnel.remark
@@ -332,6 +337,7 @@ function resetForm() {
   form.host = ''
   form.path = '/'
   form.projectId = props.projects[0]?.id ?? ''
+  form.serverId = ''
   form.serverName = props.serverNames[0] ?? ''
   form.autoStart = false
   form.remark = ''

@@ -184,6 +184,16 @@ export interface ServerOverviewInfo {
   hostname: string
   os: string
   arch: string
+  cpu?: string
+  memoryUsedBytes?: number
+  memoryTotalBytes?: number
+  privateIp?: string
+  dockerDetected?: boolean
+  firewallDetected?: boolean
+  diskUsedBytes?: number
+  diskTotalBytes?: number
+  networkReceivedBytes?: number
+  networkTransmittedBytes?: number
   rustVersion: string
   serverVersion: string
   installTime: string // ISO

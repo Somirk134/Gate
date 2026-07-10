@@ -210,14 +210,21 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
     ? formatRelative(row.lastConnectedAt)
     : t('server.neverConnected')
   const ping = row.lastRttMs ?? 0
+  const discovery = row.discovery ?? undefined
+  const memoryUsed = discovery?.memory?.usedBytes ?? 0
+  const memoryTotal = discovery?.memory?.totalBytes ?? 0
+  const diskUsed = discovery?.diskUsage?.usedBytes ?? 0
+  const diskTotal = discovery?.diskUsage?.totalBytes ?? 0
+  const networkReceived = discovery?.networkUsage?.receivedBytes ?? 0
+  const networkTransmitted = discovery?.networkUsage?.transmittedBytes ?? 0
 
   return {
     id: row.id,
     name: row.name,
     kind: normalizeKind(row.kind),
     region: row.region,
-    publicIp: row.host,
-    version: row.sessionId ? t('server.connectedVersion') : t('common.unknown'),
+    publicIp: discovery?.publicIp || row.host,
+    version: discovery?.gateVersion || (row.sessionId ? t('server.connectedVersion') : t('common.unknown')),
     status,
     connectionMethod: 'tcp' as ConnectionMethod,
     ping,
@@ -225,19 +232,29 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
     favorite: false,
     recent: false,
     overview: {
-      hostname: row.host,
-      os: t('common.unknown'),
-      arch: t('common.unknown'),
-      rustVersion: t('common.unknown'),
-      serverVersion: row.sessionId ? t('server.authenticated') : t('common.unknown'),
+      hostname: discovery?.hostname || row.host,
+      os: discovery?.os || t('common.unknown'),
+      arch: discovery?.architecture || t('common.unknown'),
+      cpu: discovery?.cpu,
+      memoryUsedBytes: memoryUsed,
+      memoryTotalBytes: memoryTotal,
+      privateIp: discovery?.privateIp,
+      dockerDetected: discovery?.docker?.detected,
+      firewallDetected: discovery?.firewall?.detected,
+      diskUsedBytes: diskUsed,
+      diskTotalBytes: diskTotal,
+      networkReceivedBytes: networkReceived,
+      networkTransmittedBytes: networkTransmitted,
+      rustVersion: discovery?.runtimeVersion || t('common.unknown'),
+      serverVersion: discovery?.gateVersion || (row.sessionId ? t('server.authenticated') : t('common.unknown')),
       installTime: createdAt,
       lastOnline: lastConnectedAt,
       lastHeartbeat: row.lastCheckedAt ? formatRelative(row.lastCheckedAt) : t('server.neverConnected'),
     },
-    monitor: emptyMonitor(),
-    traffic: emptyTraffic(),
+    monitor: monitorFromDiscovery(discovery),
+    traffic: trafficFromDiscovery(discovery),
     statistics: {
-      uptime: 0,
+      uptime: discovery?.uptime ?? 0,
       tunnelCount: 0,
       projectCount: 0,
       totalConnections: status === 'connected' ? 1 : 0,
@@ -302,6 +319,43 @@ function emptyMonitor() {
   }
 }
 
+function monitorFromDiscovery(discovery: RuntimeServerRecord['discovery']) {
+  const monitor = emptyMonitor()
+  const memoryUsed = discovery?.memory?.usedBytes ?? 0
+  const memoryTotal = discovery?.memory?.totalBytes ?? 0
+  const diskUsed = discovery?.diskUsage?.usedBytes ?? 0
+  const diskTotal = discovery?.diskUsage?.totalBytes ?? 0
+  const networkReceived = discovery?.networkUsage?.receivedBytes ?? 0
+  const networkTransmitted = discovery?.networkUsage?.transmittedBytes ?? 0
+
+  monitor.memory = {
+    percent: percent(memoryUsed, memoryTotal),
+    used: bytesToGb(memoryUsed),
+    total: bytesToGb(memoryTotal),
+    unit: 'GB',
+    history: [],
+  }
+  monitor.disk = {
+    percent: percent(diskUsed, diskTotal),
+    used: bytesToGb(diskUsed),
+    total: bytesToGb(diskTotal),
+    unit: 'GB',
+    history: [],
+  }
+  monitor.network.totalDownload = networkReceived
+  monitor.network.totalUpload = networkTransmitted
+  monitor.traffic.totalDownload = networkReceived
+  monitor.traffic.totalUpload = networkTransmitted
+  return monitor
+}
+
+function trafficFromDiscovery(discovery: RuntimeServerRecord['discovery']) {
+  const traffic = emptyTraffic()
+  traffic.totalDownload = discovery?.networkUsage?.receivedBytes ?? 0
+  traffic.totalUpload = discovery?.networkUsage?.transmittedBytes ?? 0
+  return traffic
+}
+
 function emptyTraffic() {
   return {
     uploadSpeed: 0,
@@ -344,6 +398,14 @@ function healthFromStatus(
       },
     ],
   } as Server['health']
+}
+
+function percent(used: number, total: number): number {
+  return total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0
+}
+
+function bytesToGb(bytes: number): number {
+  return Math.round((bytes / 1024 ** 3) * 10) / 10
 }
 
 function toIso(value: number): string {

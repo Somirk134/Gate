@@ -30,6 +30,12 @@
     </div>
 
     <div class="header-right">
+      <div class="runtime-chip" :class="`is-${healthStatus}`">
+        <span class="runtime-chip__dot" />
+        <strong>{{ runtimeStatusLabel }}</strong>
+        <span>{{ runtimeSummary }}</span>
+      </div>
+
       <!-- Search Placeholder -->
       <button
         class="header-btn search-btn"
@@ -123,6 +129,7 @@ import { useI18n } from 'vue-i18n'
 import { useLayoutStore, useNavigationStore, useNotificationStore, useThemeStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
 import LangSwitch from '@components/common/LangSwitch.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,6 +139,7 @@ const notificationStore = useNotificationStore()
 const themeStore = useThemeStore()
 const { t, locale } = useI18n()
 const notificationOpen = ref(false)
+const { dashboard, healthStatus } = useMonitoringDashboard()
 
 const routeTitleMap: Record<string, string> = {
   dashboard: 'nav.dashboard',
@@ -180,6 +188,14 @@ const breadcrumbs = computed(() => {
 
 const notificationItems = computed(() => notificationStore.notifications.slice(0, 6))
 const notificationCount = computed(() => notificationStore.notifications.length)
+const runtimeStatusLabel = computed(() => t(`dashboard.healthStatus.${healthStatus.value}`))
+const runtimeSummary = computed(
+  () =>
+    `${dashboard.value.overview.runningTunnel}/${dashboard.value.overview.tunnelCount} Tunnel · ${formatSpeed(
+      dashboard.value.statistics.traffic.uploadSpeedBps +
+        dashboard.value.statistics.traffic.downloadSpeedBps,
+    )}`,
+)
 
 function toggleNotifications() {
   notificationOpen.value = !notificationOpen.value
@@ -198,6 +214,14 @@ function formatNotificationTime(timestamp: number) {
     minute: '2-digit',
     second: '2-digit',
   }).format(timestamp)
+}
+
+function formatSpeed(bytesPerSecond: number): string {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '0 B/s'
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytesPerSecond) / Math.log(1024)))
+  const value = bytesPerSecond / 1024 ** index
+  return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
 </script>
 
@@ -223,6 +247,51 @@ function formatNotificationTime(timestamp: number) {
 
 .header-right {
   position: relative;
+}
+
+.runtime-chip {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 320px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.runtime-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--status-online);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-online) 16%, transparent);
+}
+
+.runtime-chip.is-warning .runtime-chip__dot {
+  background: var(--status-warning);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-warning) 16%, transparent);
+}
+
+.runtime-chip.is-critical .runtime-chip__dot,
+.runtime-chip.is-offline .runtime-chip__dot {
+  background: var(--status-error);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-error) 16%, transparent);
+}
+
+.runtime-chip strong,
+.runtime-chip span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-chip strong {
+  color: var(--text-primary);
 }
 
 .header-center {
@@ -448,5 +517,22 @@ function formatNotificationTime(timestamp: number) {
   gap: var(--space-2);
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+}
+
+@media (max-width: 1180px) {
+  .runtime-chip {
+    max-width: 180px;
+  }
+
+  .runtime-chip span:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .runtime-chip,
+  .header-center {
+    display: none;
+  }
 }
 </style>

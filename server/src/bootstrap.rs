@@ -200,10 +200,11 @@ async fn handle_connection(
                         .create_or_restore_session(client_id, requested_session_id)
                         .await;
                     session_id = Some(id.clone());
+                    let server = gateway.capability_snapshot().await;
                     write_message(
                         &mut stream,
                         &protocol,
-                        &response_for(&message, ok(json!({ "sessionId": id }))),
+                        &response_for(&message, ok(json!({ "sessionId": id, "server": server }))),
                     )
                     .await?;
                     info!(target: "gate_server", "Session Create");
@@ -228,6 +229,7 @@ async fn handle_connection(
                 } else {
                     json!({})
                 };
+                let server = gateway.capability_snapshot().await;
                 write_message(
                     &mut stream,
                     &protocol,
@@ -237,7 +239,8 @@ async fn handle_connection(
                             "kind": "pong",
                             "sessionId": &session_id,
                             "timestamp": Utc::now().timestamp_millis(),
-                            "heartbeat": heartbeat
+                            "heartbeat": heartbeat,
+                            "server": server
                         })),
                     ),
                 )

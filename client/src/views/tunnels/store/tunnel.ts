@@ -29,6 +29,7 @@ export const defaultTunnelForm: TunnelFormData = {
   host: '',
   path: '/',
   projectId: '',
+  serverId: '',
   serverName: '',
   autoStart: false,
   remark: '',
@@ -78,22 +79,28 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     return tunnels.value.find((t) => t.id === id)
   }
 
-  async function load(): Promise<void> {
-    status.value = 'loading'
-    error.value = ''
+  async function load(options: { silent?: boolean } = {}): Promise<void> {
+    const silent = options.silent === true && status.value === 'success'
+    if (!silent) {
+      status.value = 'loading'
+      error.value = ''
+    }
     try {
       const rows = await tunnelService.list()
       tunnels.value = rows.map(mapRuntimeTunnel)
       status.value = 'success'
+      error.value = ''
       lastUpdated.value = Date.now()
     } catch (e) {
-      status.value = 'error'
       error.value = e instanceof Error ? e.message : t('tunnel.errors.loadFailed')
+      if (!silent) {
+        status.value = 'error'
+      }
     }
   }
 
   async function refresh(): Promise<void> {
-    return load()
+    return load({ silent: true })
   }
 
   async function createTunnel(form: TunnelFormData): Promise<Tunnel> {
@@ -101,7 +108,10 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     if (serverStore.status === 'idle') {
       await serverStore.load()
     }
-    if (!serverStore.onlineServers.length || !form.serverName) {
+    const selectedServer =
+      serverStore.servers.find((server) => server.id === form.serverId) ??
+      serverStore.servers.find((server) => server.name === form.serverName)
+    if (!selectedServer || selectedServer.status !== 'connected') {
       throw new Error(t('tunnel.errors.needConnectedServer'))
     }
 
@@ -109,6 +119,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       localPort: form.localPort ?? 0,
       remotePort: form.remotePort ?? 0,
       protocol: form.protocol,
+      serverId: selectedServer.id,
       localHost: form.localHost || '127.0.0.1',
       host: optionalText(form.host),
       path: optionalText(form.path),
@@ -117,14 +128,15 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     await tunnelService.edit(id, {
       name: form.name.trim(),
       protocol: form.protocol,
+      serverId: selectedServer.id,
       localHost: form.localHost || '127.0.0.1',
       localPort: form.localPort ?? 0,
-      remotePort: form.remotePort ?? 0,
+      remotePort: form.remotePort && form.remotePort > 0 ? form.remotePort : undefined,
       host: optionalText(form.host),
       path: optionalText(form.path),
     })
 
-    await load()
+    await refresh()
     const created = getById(id)
     if (!created) {
       throw new Error(t('tunnel.errors.savedReloadFailed'))
@@ -139,28 +151,54 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   }
 
   async function updateTunnel(id: string, patch: Partial<TunnelFormData>): Promise<void> {
+    const previous = getById(id)
+    const shouldRestart = previous ? isRunningStatus(previous.status) : false
+    const nextProtocol = patch.protocol ?? previous?.protocol
+    const keepsHttpFields = nextProtocol === 'http' || nextProtocol === 'https'
     await tunnelService.edit(id, {
       name: patch.name,
       protocol: patch.protocol,
+      serverId: patch.serverId,
       localHost: patch.localHost,
       localPort: patch.localPort ?? undefined,
       remotePort: patch.remotePort ?? undefined,
-      host: optionalText(patch.host),
-      path: optionalText(patch.path),
+      host:
+        patch.host === undefined
+          ? undefined
+          : keepsHttpFields
+            ? patch.host.trim()
+            : '',
+      path:
+        patch.path === undefined
+          ? undefined
+          : keepsHttpFields
+            ? patch.path.trim()
+            : '',
     })
-    await load()
+
+    if (shouldRestart) {
+      // 修改运行中隧道后主动重启转发，让端口和本地目标立即生效。
+      try {
+        await tunnelService.restart(id)
+      } finally {
+        await refresh()
+      }
+      return
+    }
+
+    await refresh()
   }
 
   async function removeTunnel(id: string): Promise<void> {
     await tunnelService.delete(id)
-    await load()
+    await refresh()
   }
 
   async function startTunnel(id: string): Promise<void> {
     try {
       await tunnelService.start(id)
     } finally {
-      await load()
+      await refresh()
     }
   }
 
@@ -168,7 +206,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     try {
       await tunnelService.stop(id)
     } finally {
-      await load()
+      await refresh()
     }
   }
 
@@ -176,7 +214,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     try {
       await tunnelService.restart(id)
     } finally {
-      await load()
+      await refresh()
     }
   }
 
@@ -255,7 +293,8 @@ function mapRuntimeTunnel(row: DashboardTunnel): Tunnel {
     compression: false,
     encryption: false,
     tags: [],
-    serverName: '',
+    serverId: row.serverId ?? '',
+    serverName: row.serverName ?? '',
     projectName: '',
     projectId: '',
     pinned: false,
@@ -300,7 +339,11 @@ function normalizeProtocol(protocol: DashboardTunnel['protocol']): TunnelProtoco
 
 function normalizeStatus(status: DashboardTunnel['status']): TunnelStatus {
   if (status === 'running') return 'running'
-  if (status === 'warning') return 'error'
+  if (status === 'starting') return 'starting'
+  if (status === 'stopping') return 'stopping'
+  if (status === 'restarting') return 'restarting'
+  if (status === 'recovering') return 'connecting'
+  if (status === 'error' || status === 'warning') return 'error'
   return 'stopped'
 }
 
@@ -318,8 +361,22 @@ function normalizeLogLevel(level: string): Tunnel['logs'][number]['level'] {
 }
 
 function publicAddress(row: DashboardTunnel): string {
+  const runtimeAddress = row.publicAddress?.trim()
+  if (runtimeAddress) return runtimeAddress
+
+  const publicHost = row.publicHost?.trim()
+  const path = normalizePath(row.path)
+
   if ((row.protocol === 'http' || row.protocol === 'https') && row.host) {
-    return `${row.host}${row.path ?? '/'}`
+    return `${row.protocol}://${row.host}${path}`
+  }
+
+  if ((row.protocol === 'http' || row.protocol === 'https') && publicHost && row.remotePort) {
+    return `${row.protocol}://${publicHost}:${row.remotePort}${path}`
+  }
+
+  if (publicHost && row.remotePort) {
+    return `${publicHost}:${row.remotePort}`
   }
 
   if (row.remotePort) {
@@ -332,6 +389,11 @@ function publicAddress(row: DashboardTunnel): string {
 function optionalText(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   return trimmed ? trimmed : undefined
+}
+
+function normalizePath(value: string | null | undefined): string {
+  if (!value) return '/'
+  return value.startsWith('/') ? value : `/${value}`
 }
 
 export { TUNNEL_STATUS_CONFIG }

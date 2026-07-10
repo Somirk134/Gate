@@ -211,6 +211,10 @@ export interface DashboardTunnel {
   localPort?: number
   remotePort?: number
   host?: string | null
+  publicHost?: string | null
+  publicAddress?: string | null
+  serverId?: string | null
+  serverName?: string | null
   path?: string | null
   uploadSpeedBps: number
   downloadSpeedBps: number

@@ -1,5 +1,6 @@
 import { GateAppError, TauriIpcClient } from '@/ipc'
 import type { DashboardData, HealthReport } from '@/monitoring/types'
+import type { PortDiscovery } from './discovery.service'
 import type { ServerFormData } from '@/views/servers/types'
 import { isTauri } from '@tauri-apps/api/core'
 
@@ -24,8 +25,41 @@ export interface RuntimeServerRecord {
   sessionId?: string | null
   lastCheckedAt?: number | null
   lastConnectedAt?: number | null
+  discovery?: ServerDiscovery | null
   createdAt: number
   updatedAt: number
+}
+
+export interface ServerDiscovery {
+  serverName?: string
+  hostname?: string
+  os?: string
+  cpu?: string
+  memory?: {
+    totalBytes?: number
+    usedBytes?: number
+  }
+  architecture?: string
+  publicIp?: string
+  privateIp?: string
+  docker?: { detected?: boolean }
+  firewall?: { detected?: boolean }
+  gateVersion?: string
+  runtimeVersion?: string
+  uptime?: number
+  latency?: number
+  region?: string
+  diskUsage?: {
+    totalBytes?: number
+    usedBytes?: number
+    availableBytes?: number
+  }
+  networkUsage?: {
+    receivedBytes?: number
+    transmittedBytes?: number
+  }
+  portDiscovery?: PortDiscovery
+  discoveredAt?: number
 }
 
 export interface RuntimeServerList {

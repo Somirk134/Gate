@@ -9,12 +9,21 @@ pub async fn create_tunnel(
     local_port: u16,
     remote_port: u16,
     protocol: String,
+    server_id: Option<String>,
     local_host: Option<String>,
     host: Option<String>,
     path: Option<String>,
 ) -> CommandResult<String> {
     state
-        .create_tunnel(local_port, remote_port, protocol, local_host, host, path)
+        .create_tunnel(
+            local_port,
+            remote_port,
+            protocol,
+            server_id,
+            local_host,
+            host,
+            path,
+        )
         .await
         .map_err(tunnel_error)
 }

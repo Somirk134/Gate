@@ -157,10 +157,10 @@
   --shadow-color: rgba(0, 0, 0, 0.38);
 
   --duration-instant: 0ms;
-  --duration-fast: 140ms;
-  --duration-base: 200ms;
+  --duration-fast: 150ms;
+  --duration-base: 180ms;
   --duration-slow: 300ms;
-  --duration-micro: var(--duration-fast);
+  --duration-micro: 120ms;
   --duration-standard: var(--duration-base);
   --duration-entrance: 240ms;
   --duration-spring: var(--duration-slow);

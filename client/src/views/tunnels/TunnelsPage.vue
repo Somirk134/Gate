@@ -121,7 +121,7 @@
                   <span :class="`is-${statusTone(selectedTunnel.status)}`" />
                   <h2>{{ selectedTunnel.name }}</h2>
                 </div>
-                <p>{{ selectedTunnel.projectName }} · {{ selectedTunnel.serverName }}</p>
+                <p>{{ tunnelSubtitle(selectedTunnel) }}</p>
               </div>
               <div class="detail-actions">
                 <GButton
@@ -134,6 +134,9 @@
                 <GButton v-else variant="secondary" icon="pause" @click="stopSelected">
                   {{ t('tunnel.stop') }}
                 </GButton>
+                <button type="button" class="icon-action" @click="openEdit(selectedTunnel)">
+                  <GIcon name="edit" :size="16" />
+                </button>
                 <button
                   type="button"
                   class="icon-action"
@@ -174,20 +177,108 @@
               </article>
             </div>
 
+            <section class="tunnel-runtime-panel">
+              <div class="detail-card__heading">
+                <h3>Realtime Traffic</h3>
+                <GIcon name="activity" :size="16" />
+              </div>
+              <div class="tunnel-runtime-grid">
+                <article>
+                  <span>Upload</span>
+                  <strong>{{ formatSpeed(runtimeTunnel?.uploadSpeedBps ?? selectedTunnel.traffic.uploadSpeed) }}</strong>
+                  <RuntimeSparkline
+                    :values="selectedTunnel.traffic.history.map((point) => point.upload)"
+                    label="Tunnel upload speed" />
+                </article>
+                <article>
+                  <span>Download</span>
+                  <strong>{{ formatSpeed(runtimeTunnel?.downloadSpeedBps ?? selectedTunnel.traffic.downloadSpeed) }}</strong>
+                  <RuntimeSparkline
+                    :values="selectedTunnel.traffic.history.map((point) => point.download)"
+                    label="Tunnel download speed" />
+                </article>
+                <article>
+                  <span>Latency</span>
+                  <strong>{{ formatLatency(runtimeTunnel?.averageResponseTimeMs ?? selectedTunnel.statistics.avgLatency) }}</strong>
+                  <RuntimeSparkline
+                    :values="latencySparkline"
+                    label="Tunnel latency" />
+                </article>
+                <article>
+                  <span>Connections</span>
+                  <strong>{{ runtimeTunnel?.connections ?? selectedTunnel.statistics.connections }}</strong>
+                  <RuntimeSparkline
+                    :values="connectionSparkline"
+                    label="Tunnel connections" />
+                </article>
+                <article>
+                  <span>HTTP Requests</span>
+                  <strong>{{ runtimeTunnel?.requestCount ?? selectedTunnel.statistics.requests }}</strong>
+                  <RuntimeSparkline
+                    :values="requestSparkline"
+                    label="Tunnel HTTP requests" />
+                </article>
+                <article>
+                  <span>Health</span>
+                  <strong>{{ statusLabel(selectedTunnel.status) }}</strong>
+                  <RuntimeSparkline
+                    :values="healthSparkline"
+                    label="Tunnel health" />
+                </article>
+              </div>
+            </section>
+
+            <div class="tunnel-runtime-split">
+              <section class="detail-card">
+                <div class="detail-card__heading">
+                  <h3>Status Code</h3>
+                  <GIcon name="chart-bar" :size="16" />
+                </div>
+                <div v-if="statusCodeRows.length" class="status-code-list">
+                  <article v-for="row in statusCodeRows" :key="row.code">
+                    <span>{{ row.code }}</span>
+                    <strong>{{ row.count }}</strong>
+                  </article>
+                </div>
+                <div v-else class="mini-empty">
+                  <GIcon name="chart-bar" :size="22" />
+                  <span>{{ t('tunnel.detail.noData') }}</span>
+                </div>
+              </section>
+
+              <section class="detail-card">
+                <div class="detail-card__heading">
+                  <h3>Access Log</h3>
+                  <GIcon name="logs" :size="16" />
+                </div>
+                <div v-if="runtimeAccessLogs.length" class="access-log-list">
+                  <article v-for="log in runtimeAccessLogs" :key="`${log.timestamp}-${log.message}`">
+                    <span :class="`is-${log.level}`">{{ log.level }}</span>
+                    <p>{{ log.message }}</p>
+                    <small>{{ formatLogTime(log.timestamp) }}</small>
+                  </article>
+                </div>
+                <div v-else class="mini-empty">
+                  <GIcon name="logs" :size="22" />
+                  <span>{{ t('tunnel.detail.noData') }}</span>
+                </div>
+              </section>
+            </div>
+
             <div class="test-url-panel">
               <div>
                 <span>{{ t('tunnel.detail.localTestUrl') }}</span>
-                <strong>{{ testUrl(selectedTunnel) }}</strong>
+                <strong>{{ accessUrl(selectedTunnel) }}</strong>
               </div>
               <div class="test-url-panel__actions">
-                <GButton variant="secondary" icon="copy" @click="copyTestUrl(selectedTunnel)">
+                <GButton variant="secondary" icon="copy" @click="copyAccessUrl(selectedTunnel)">
                   {{ t('tunnel.detail.copy') }}
                 </GButton>
                 <GButton
-                  v-if="canOpenTestUrl(selectedTunnel)"
+                  v-if="canOpenAccessUrl(selectedTunnel)"
                   variant="primary"
                   icon="external-link"
-                  @click="openTestUrl(selectedTunnel)">
+                  @click="openAccessUrl(selectedTunnel)">
                   {{ t('tunnel.detail.open') }}
                 </GButton>
               </div>
@@ -263,9 +354,16 @@
     <TunnelCreateWizard
       v-model:visible="wizardVisible"
       :projects="projectOptions"
-      :server-names="serverNames"
+      :servers="serverStore.servers"
       :default-project-id="requestedProjectId"
       @submit="handleCreate" />
+
+    <TunnelDialog
+      v-model:visible="editVisible"
+      :tunnel="editingTunnel"
+      :projects="projectOptions"
+      :server-names="serverNames"
+      @submit="handleEdit" />
   </section>
 </template>
 
@@ -280,8 +378,11 @@ import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
+import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 import TunnelLoading from './components/TunnelLoading.vue'
 import TunnelCreateWizard from './components/TunnelCreateWizard.vue'
+import TunnelDialog from './components/TunnelDialog.vue'
 import { useTunnel } from './composables/useTunnel'
 import { useTunnelMonitor } from './composables/useTunnelMonitor'
 import { useServerStore } from '@views/servers'
@@ -294,6 +395,7 @@ import type {
   TunnelSortType,
   TunnelStatus,
 } from './types'
+import type { DashboardTunnel } from '@/monitoring/types'
 import './styles/tunnel.css'
 
 const route = useRoute()
@@ -309,6 +411,7 @@ const {
   retry,
   getById,
   create,
+  update,
   remove,
   start,
   stop,
@@ -317,6 +420,7 @@ const {
 } = useTunnel()
 const serverStore = useServerStore()
 const projectStore = useProjectStore()
+const { dashboard } = useMonitoringDashboard()
 
 useTunnelMonitor(store)
 
@@ -326,12 +430,15 @@ const sortBy = ref<TunnelSortType>('updatedAt')
 const direction = ref<SortDirection>('desc')
 const selectedId = ref<string | null>(null)
 const wizardVisible = ref(false)
+const editVisible = ref(false)
+const editingTunnel = ref<Tunnel | null>(null)
 const activeLogTunnel = ref('')
 const requestedProjectId = ref('')
 const projectOptions = computed(() =>
   projectStore.projects.map((project) => ({ id: project.id, name: project.name })),
 )
-const serverNames = computed(() => serverStore.onlineServers.map((server) => server.name))
+const serverNames = computed(() => serverStore.servers.map((server) => server.name))
+const enrichedTunnels = computed(() => tunnels.value.map((tunnel) => tunnelWithOwnership(tunnel)))
 
 const runningCount = computed(
   () => tunnels.value.filter((tunnel) => canStart(tunnel.status) === false).length,
@@ -345,7 +452,7 @@ const totalSpeed = computed(() =>
 
 const finalTunnels = computed(() => {
   const keyword = query.value.toLowerCase()
-  const filtered = tunnels.value.filter((tunnel) => {
+  const filtered = enrichedTunnels.value.filter((tunnel) => {
     const matchesFilter =
       filter.value === 'all' ||
       tunnel.protocol === filter.value ||
@@ -385,7 +492,51 @@ const finalTunnels = computed(() => {
   return filter.value === 'recent' ? sorted.slice(0, 10) : sorted
 })
 
-const selectedTunnel = computed(() => (selectedId.value ? getById(selectedId.value) : undefined))
+const selectedTunnel = computed(() =>
+  selectedId.value
+    ? (enrichedTunnels.value.find((tunnel) => tunnel.id === selectedId.value) ??
+      getById(selectedId.value))
+    : undefined,
+)
+const runtimeTunnel = computed<DashboardTunnel | undefined>(() =>
+  selectedTunnel.value
+    ? dashboard.value.tunnels.find((tunnel) => tunnel.id === selectedTunnel.value?.id)
+    : undefined,
+)
+const requestSparkline = computed(() =>
+  (runtimeTunnel.value?.recentRequests ?? []).map((request) => request.trafficBytes),
+)
+const latencySparkline = computed(() => {
+  const tunnel = selectedTunnel.value
+  if (!tunnel) return [0]
+  return tunnel.traffic.history.length
+    ? tunnel.traffic.history.map(() => tunnel.statistics.avgLatency)
+    : [tunnel.statistics.avgLatency]
+})
+const connectionSparkline = computed(() => {
+  const tunnel = selectedTunnel.value
+  if (!tunnel) return [0]
+  return tunnel.traffic.history.length
+    ? tunnel.traffic.history.map(() => tunnel.statistics.connections)
+    : [tunnel.statistics.connections]
+})
+const healthSparkline = computed(() => {
+  if (!selectedTunnel.value) return [0]
+  const score = canStart(selectedTunnel.value.status) ? 0 : statusTone(selectedTunnel.value.status) === 'online' ? 100 : 50
+  return selectedTunnel.value.traffic.history.length
+    ? selectedTunnel.value.traffic.history.map(() => score)
+    : [score]
+})
+const statusCodeRows = computed(() => {
+  const codes = new Map<number, number>()
+  for (const request of runtimeTunnel.value?.recentRequests ?? []) {
+    codes.set(request.status, (codes.get(request.status) ?? 0) + 1)
+  }
+  return [...codes.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([code, count]) => ({ code, count }))
+})
+const runtimeAccessLogs = computed(() => runtimeTunnel.value?.recentLogs?.slice(-8).reverse() ?? [])
 
 watch(
   finalTunnels,
@@ -436,7 +587,7 @@ async function openCreate() {
     if (!shouldContinue) return
   }
 
-  if (!serverNames.value.length) {
+  if (!serverStore.servers.length) {
     toast.warning(t('tunnel.notifications.needServer'))
     void router.push('/servers')
     return
@@ -449,12 +600,38 @@ async function handleCreate(form: TunnelFormData) {
     const created = await create(form)
     if (form.projectId) {
       await projectStore.addTunnel(form.projectId, created.id)
+    } else {
+      await projectStore.refresh()
     }
     requestedProjectId.value = ''
     selectedId.value = created.id
     toast.success(t('tunnel.notifications.saved', { name: created.name }))
   } catch (err) {
     notify.error(t('tunnel.notifications.createFailed'), errorMessage(err), 10000)
+  }
+}
+
+async function handleEdit(form: TunnelFormData, isEdit: boolean) {
+  if (!isEdit || !editingTunnel.value) return
+  const tunnel = editingTunnel.value
+  const previousProjectId = projectForTunnel(tunnel.id)?.id ?? ''
+
+  try {
+    await update(tunnel.id, form)
+    if (form.projectId !== previousProjectId) {
+      if (previousProjectId) {
+        await projectStore.removeTunnel(previousProjectId, tunnel.id)
+      }
+      if (form.projectId) {
+        await projectStore.addTunnel(form.projectId, tunnel.id)
+      }
+    } else {
+      await projectStore.refresh()
+    }
+    editingTunnel.value = null
+    toast.success(t('tunnel.notifications.saved', { name: form.name }))
+  } catch (err) {
+    notify.error(t('tunnel.notifications.saveFailed'), errorMessage(err), 10000)
   }
 }
 
@@ -484,6 +661,7 @@ async function startSelected() {
   if (!selectedTunnel.value) return
   try {
     await start(selectedTunnel.value.id)
+    await projectStore.refresh()
     toast.success(t('tunnel.notifications.started', { name: selectedTunnel.value.name }))
   } catch (err) {
     notify.error(t('tunnel.notifications.startFailed'), errorMessage(err), 12000)
@@ -500,6 +678,7 @@ function stopSelected() {
     onConfirm: async () => {
       try {
         await stop(tunnel.id)
+        await projectStore.refresh()
         toast.warning(t('tunnel.notifications.stopped', { name: tunnel.name }))
       } catch (err) {
         notify.error(t('tunnel.notifications.stopFailed'), errorMessage(err), 10000)
@@ -518,6 +697,7 @@ function deleteSelected() {
     onConfirm: async () => {
       try {
         await remove(tunnel.id)
+        await projectStore.refresh()
         selectedId.value = finalTunnels.value[0]?.id ?? null
         toast.success(t('tunnel.notifications.deleted', { name: tunnel.name }))
       } catch (err) {
@@ -525,6 +705,11 @@ function deleteSelected() {
       }
     },
   })
+}
+
+function openEdit(tunnel: Tunnel) {
+  editingTunnel.value = tunnelWithOwnership(tunnel)
+  editVisible.value = true
 }
 
 function canStart(status: TunnelStatus) {
@@ -563,23 +748,21 @@ function trafficTotal(tunnel: Tunnel) {
   return tunnel.traffic.totalUpload + tunnel.traffic.totalDownload
 }
 
-function testUrl(tunnel: Tunnel): string {
-  if (tunnel.protocol === 'http') return `http://127.0.0.1:${tunnel.remotePort}/`
-  if (tunnel.protocol === 'https') return `https://127.0.0.1:${tunnel.remotePort}/`
-  return `127.0.0.1:${tunnel.remotePort}`
+function accessUrl(tunnel: Tunnel): string {
+  return tunnel.publicAddr
 }
 
-function canOpenTestUrl(tunnel: Tunnel): boolean {
-  return tunnel.protocol === 'http' || tunnel.protocol === 'https'
+function canOpenAccessUrl(tunnel: Tunnel): boolean {
+  return /^https?:\/\//i.test(accessUrl(tunnel))
 }
 
-async function copyTestUrl(tunnel: Tunnel) {
-  await navigator.clipboard.writeText(testUrl(tunnel))
+async function copyAccessUrl(tunnel: Tunnel) {
+  await navigator.clipboard.writeText(accessUrl(tunnel))
   toast.success(t('tunnel.notifications.testUrlCopied'))
 }
 
-async function openTestUrl(tunnel: Tunnel) {
-  const url = testUrl(tunnel)
+async function openAccessUrl(tunnel: Tunnel) {
+  const url = accessUrl(tunnel)
   try {
     if (isTauri()) {
       await openExternalUrl(url)
@@ -593,14 +776,71 @@ async function openTestUrl(tunnel: Tunnel) {
   }
 }
 
+function tunnelWithOwnership(tunnel: Tunnel): Tunnel {
+  const project = projectForTunnel(tunnel.id)
+  const server =
+    serverStore.servers.find((item) => item.id === tunnel.serverId) ??
+    serverStore.servers.find((item) => item.name === tunnel.serverName)
+  return {
+    ...tunnel,
+    projectId: project?.id ?? tunnel.projectId,
+    projectName: project?.name ?? tunnel.projectName,
+    serverId: server?.id ?? tunnel.serverId,
+    serverName: server?.name ?? tunnel.serverName,
+  }
+}
+
+function projectForTunnel(tunnelId: string) {
+  return projectStore.projects.find((project) => project.tunnelIds.includes(tunnelId))
+}
+
+function tunnelSubtitle(tunnel: Tunnel): string {
+  return (
+    [tunnel.projectName, tunnel.serverName].filter(Boolean).join(' · ') || t('common.emptyValue')
+  )
+}
+
 function errorMessage(err: unknown): string {
-  if (typeof err === 'string') return err
-  if (err instanceof Error && err.message) return err.message
+  const raw =
+    typeof err === 'string'
+      ? err
+      : err instanceof Error && err.message
+        ? err.message
+        : err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string'
+          ? String((err as { message?: unknown }).message)
+          : ''
+  const friendly = friendlyDiagnosis(raw)
+  if (friendly) return friendly
+  if (raw) return raw
   if (err && typeof err === 'object' && 'message' in err) {
     const message = (err as { message?: unknown }).message
     if (typeof message === 'string' && message.trim()) return message
   }
   return t('tunnel.notifications.configCheck')
+}
+
+function friendlyDiagnosis(message: string): string {
+  const lower = message.toLowerCase()
+  if (!message) return ''
+  if (message.includes('REMOTE_PORT_OCCUPIED') || lower.includes('already used')) {
+    return '远程端口已被占用。请选择推荐端口，或切换为 Auto Allocate 后重新创建。'
+  }
+  if (message.includes('LOCAL_PORT_REQUIRED')) {
+    return '未选择本地服务端口。请从 Local Services 选择一个正在监听的服务。'
+  }
+  if (lower.includes('local service') && (lower.includes('unreachable') || lower.includes('refused'))) {
+    return '本地服务不可达。请确认服务正在运行并监听所选端口，然后再启动 Tunnel。'
+  }
+  if (lower.includes('token') || lower.includes('auth')) {
+    return '服务器认证失败。请检查 Token 后重新连接服务器。'
+  }
+  if (lower.includes('certificate') || lower.includes('acme')) {
+    return '证书或 ACME 检查失败。请在 Certificate 页面确认域名证书状态。'
+  }
+  if (lower.includes('server is disconnected') || lower.includes('no active connection')) {
+    return '服务器离线。请先重新连接服务器，再启动服务。'
+  }
+  return ''
 }
 
 function formatBytes(bytes: number): string {
@@ -613,6 +853,11 @@ function formatBytes(bytes: number): string {
 
 function formatSpeed(bytesPerSecond: number): string {
   return `${formatBytes(bytesPerSecond)}/s`
+}
+
+function formatLatency(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '0 ms'
+  return `${Math.round(milliseconds)} ms`
 }
 
 function formatDuration(seconds: number): string {
@@ -985,6 +1230,102 @@ function formatLogTime(timestamp: number): string {
   white-space: nowrap;
 }
 
+.tunnel-runtime-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.tunnel-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.tunnel-runtime-grid article {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.tunnel-runtime-grid span,
+.status-code-list span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.tunnel-runtime-grid strong,
+.status-code-list strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.tunnel-runtime-split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.status-code-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.status-code-list article {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.access-log-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.access-log-list article {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.access-log-list span {
+  background: transparent;
+  font: var(--weight-semibold) var(--text-xs) var(--font-mono);
+  text-transform: uppercase;
+}
+
+.access-log-list p {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.access-log-list small {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
 .test-url-panel {
   display: flex;
   align-items: center;
@@ -1164,7 +1505,8 @@ function formatLogTime(timestamp: number): string {
 
 @media (max-width: 1120px) {
   .tunnel-workspace,
-  .detail-grid {
+  .detail-grid,
+  .tunnel-runtime-split {
     grid-template-columns: 1fr;
   }
 
@@ -1173,6 +1515,10 @@ function formatLogTime(timestamp: number): string {
   }
 
   .detail-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tunnel-runtime-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1190,7 +1536,8 @@ function formatLogTime(timestamp: number): string {
   }
 
   .tunnel-toolbar,
-  .detail-metrics {
+  .detail-metrics,
+  .tunnel-runtime-grid {
     grid-template-columns: 1fr;
   }
 

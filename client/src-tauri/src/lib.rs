@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod config;
+pub mod discovery;
 pub mod native;
 pub mod project;
 pub mod runtime;
@@ -23,12 +24,15 @@ pub fn run() -> Result<()> {
     tauri::Builder::default()
         .manage(runtime::ClientRuntimeState::default())
         .manage(project::ProjectWorkspaceState::default())
+        .manage(commands::certificate::AcmeState::default())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_process::init())
-        .setup(|app| {
+    .plugin(tauri_plugin_process::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .manage(updater::UpdateState::default())
+    .setup(|app| {
             let _window = app
                 .get_webview_window("main")
                 .ok_or_else(|| TauriError::WindowNotFound)?;
@@ -53,6 +57,11 @@ pub fn run() -> Result<()> {
             commands::server::server_connect,
             commands::server::server_disconnect,
             commands::server::server_test,
+            commands::discovery::discovery_local_services,
+            commands::discovery::discovery_probe_local_service,
+            commands::discovery::discovery_remote_ports,
+            commands::discovery::discovery_check_remote_port,
+            commands::discovery::discovery_diagnose_tunnel,
             commands::tunnel::create_tunnel,
             commands::tunnel::start_tunnel,
             commands::tunnel::stop_tunnel,
@@ -62,6 +71,17 @@ pub fn run() -> Result<()> {
             commands::certificate::certificate_list,
             commands::certificate::certificate_detail,
             commands::certificate::certificate_export_pem,
+            commands::certificate::certificate_stats,
+            commands::certificate::certificate_delete,
+            commands::certificate::certificate_validate_import,
+            commands::certificate::certificate_import,
+            commands::certificate::certificate_auto_renewal_status,
+            commands::certificate::certificate_domain_associations,
+            commands::certificate::certificate_renew_now,
+            commands::certificate::certificate_redeploy,
+            commands::certificate::certificate_toggle_auto_renewal,
+            commands::certificate::certificate_acme_prepare,
+            commands::certificate::certificate_acme_verify,
             commands::backup::backup_export,
             commands::backup::backup_preview,
             commands::backup::backup_restore,
@@ -96,6 +116,9 @@ pub fn run() -> Result<()> {
             commands::project::project_remove_certificate,
             commands::project::project_templates,
             commands::project::project_recommend_tunnels,
+            updater::check_for_updates,
+            updater::download_update,
+            updater::install_update,
         ])
         .run(tauri::generate_context!())?;
 

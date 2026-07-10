@@ -225,7 +225,7 @@ import type {
 } from '@/services'
 import type { CertificateListResponse, CertificateStatus } from '@views/certificates/types'
 import { certificateService } from '@views/certificates/service'
-import type { DashboardData, HealthReport, HealthStatus } from '@/monitoring/types'
+import type { DashboardData, DashboardTunnel, HealthReport, HealthStatus } from '@/monitoring/types'
 import { useLogStore } from '@views/logs/store'
 import { downloadLogs } from '@views/logs/utils'
 import DiagnosticCard from './components/DiagnosticCard.vue'
@@ -447,7 +447,7 @@ const tunnelStatus = computed<StatusItem>(() => {
     }
   }
   const total = data.tunnels.length
-  const running = data.tunnels.filter((tunnel) => tunnel.status === 'running').length
+  const running = data.tunnels.filter((tunnel) => isRunningTunnelStatus(tunnel.status)).length
   if (running > 0) {
     return {
       title: t('help.status.tunnel.title'),
@@ -470,6 +470,10 @@ const tunnelStatus = computed<StatusItem>(() => {
     icon: 'router',
   }
 })
+
+function isRunningTunnelStatus(status: DashboardTunnel['status']): boolean {
+  return ['running', 'starting', 'restarting', 'recovering'].includes(status)
+}
 
 const certificateStatus = computed<StatusItem>(() => {
   const list = certificates.value

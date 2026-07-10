@@ -10,6 +10,7 @@ export { tunnelService } from './tunnel.service'
 export { connectionService } from './connection.service'
 export { projectService } from './project.service'
 export { serverService } from './server.service'
+export { discoveryService } from './discovery.service'
 export { backupService } from './backup.service'
 export type {
   BackupContents,
@@ -19,6 +20,12 @@ export type {
   BackupSecurity,
 } from './backup.service'
 export type { RuntimeServerList, RuntimeServerRecord } from './server.service'
+export type {
+  LocalServiceRecord,
+  PortDiscovery,
+  PortRecord,
+  TunnelDiagnosis,
+} from './discovery.service'
 export {
   DIAGNOSTIC_VALUE_DISCONNECTED,
   DIAGNOSTIC_VALUE_MEMORY_PERMISSION_REQUIRED,

@@ -13,8 +13,8 @@
         "windows": [
             {
                 "title": "Gate",
-                "width": 1440,
-                "height": 900,
+                "width": 1500,
+                "height": 1000,
                 "minWidth": 1100,
                 "minHeight": 720,
                 "center": true,
@@ -33,7 +33,7 @@
     "bundle": {
         "active": true,
         "targets": ["nsis", "dmg", "appimage", "deb"],
-        "createUpdaterArtifacts": false,
+        "createUpdaterArtifacts": true,
         "publisher": "Gate Contributors",
         "homepage": "https://github.com/Somirk134/Gate",
         "category": "DeveloperTool",
@@ -89,6 +89,17 @@
                     "libayatana-appindicator3-1",
                     "librsvg2-2"
                 ]
+            }
+        }
+    },
+    "plugins": {
+        "updater": {
+            "endpoints": [
+                "https://github.com/Somirk134/Gate/releases/latest/download/latest.json"
+            ],
+            "pubkey": "Yo2dYKdklRG37RzNj5YnANvCDWbuq3lnU07u3z/FVmA=",
+            "windows": {
+                "installMode": "passive"
             }
         }
     }

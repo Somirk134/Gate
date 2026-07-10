@@ -133,6 +133,62 @@
             </article>
           </div>
 
+          <section class="server-runtime-panel">
+            <div class="server-info-section__head">
+              <h3>Runtime Monitor</h3>
+              <span>{{ selectedServer.publicIp || selectedServer.overview.privateIp || '-' }}</span>
+            </div>
+            <div class="server-runtime-grid">
+              <article>
+                <span>CPU</span>
+                <strong>{{ selectedServer.monitor.cpu.percent.toFixed(0) }}%</strong>
+                <RuntimeSparkline :values="selectedServer.monitor.cpu.history" label="Server CPU" />
+              </article>
+              <article>
+                <span>Memory</span>
+                <strong>{{ selectedServer.monitor.memory.percent.toFixed(0) }}%</strong>
+                <RuntimeSparkline :values="selectedServer.monitor.memory.history" label="Server memory" />
+              </article>
+              <article>
+                <span>Network</span>
+                <strong>{{
+                  formatSpeed(
+                    selectedServer.monitor.network.uploadSpeed +
+                      selectedServer.monitor.network.downloadSpeed,
+                  )
+                }}</strong>
+                <RuntimeSparkline
+                  :values="selectedServer.monitor.network.history.map((point) => point.network)"
+                  label="Server network" />
+              </article>
+              <article>
+                <span>Disk</span>
+                <strong>{{ selectedServer.monitor.disk.percent.toFixed(0) }}%</strong>
+                <RuntimeSparkline :values="selectedServer.monitor.disk.history" label="Server disk" />
+              </article>
+            </div>
+            <div class="server-capability-grid">
+              <article>
+                <span>Load</span>
+                <strong>{{
+                  `${selectedServer.monitor.load.load1.toFixed(2)} / ${selectedServer.monitor.load.load5.toFixed(2)} / ${selectedServer.monitor.load.load15.toFixed(2)}`
+                }}</strong>
+              </article>
+              <article>
+                <span>Docker</span>
+                <strong>{{ selectedServer.overview.dockerDetected ? 'Detected' : 'Not detected' }}</strong>
+              </article>
+              <article>
+                <span>Firewall</span>
+                <strong>{{ selectedServer.overview.firewallDetected ? 'Detected' : 'Unknown' }}</strong>
+              </article>
+              <article>
+                <span>Version</span>
+                <strong>{{ selectedServer.overview.serverVersion || selectedServer.version }}</strong>
+              </article>
+            </div>
+          </section>
+
           <section class="server-info-section">
             <div class="server-info-section__head">
               <h3>{{ t('server.detail.connectionConfig') }}</h3>
@@ -524,6 +580,7 @@ import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
 import GIcon from '@components/icons/GIcon.vue'
+import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
 import { useServer } from './composables/useServer'
 import { defaultServerForm } from './store/server'
 import type { Server, ServerFormData, ServerKind, ServerStatus } from './types'
@@ -884,6 +941,14 @@ function maskToken(token: string) {
   if (token.length <= 8) return '********'
   return `${token.slice(0, 4)}****${token.slice(-4)}`
 }
+
+function formatSpeed(bytesPerSecond: number): string {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '0 B/s'
+  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytesPerSecond) / Math.log(1024)))
+  const value = bytesPerSecond / 1024 ** index
+  return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
+}
 </script>
 
 <style scoped>
@@ -1194,6 +1259,55 @@ function maskToken(token: string) {
   font-weight: var(--weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.server-runtime-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.server-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.server-runtime-grid article,
+.server-capability-grid article {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.server-runtime-grid span,
+.server-capability-grid span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.server-runtime-grid strong,
+.server-capability-grid strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .server-info-section {
@@ -1880,6 +1994,11 @@ function maskToken(token: string) {
   .server-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .server-runtime-grid,
+  .server-capability-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -1896,6 +2015,8 @@ function maskToken(token: string) {
   }
 
   .server-summary-grid,
+  .server-runtime-grid,
+  .server-capability-grid,
   .server-form-grid,
   .server-preset-row,
   .server-kind-grid-simple,
