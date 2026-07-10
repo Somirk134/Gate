@@ -154,6 +154,25 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: npm --prefix client run tauri build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
+      - name: Build server binary
+        shell: bash
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p gate-server
+          mkdir -p server-bin
+          VERSION="${GITHUB_REF_NAME}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/${{ matrix.target }}/release/gate-server.exe" "server-bin/gate-server-${VERSION}-${{ matrix.name }}.exe"
+          else
+            cp "target/${{ matrix.target }}/release/gate-server" "server-bin/gate-server-${VERSION}-${{ matrix.name }}"
+          fi
+
+      - name: Upload server binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-server-${{ matrix.name }}
+          path: server-bin/*
+          if-no-files-found: error
+
       - name: Collect updater manifests
         shell: bash
         run: |

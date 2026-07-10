@@ -4,6 +4,8 @@ async fn main() -> anyhow::Result<()> {
         return gate_server::healthcheck().await;
     }
 
+    tracing_subscriber::fmt::init();
+
     gate_server::ServerBootstrap::new().boot().await?;
     Ok(())
 }

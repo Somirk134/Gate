@@ -5,6 +5,7 @@ use chrono::Utc;
 use gate_protocol::{Command, ProtocolBuilder};
 use gate_shared::error::{AppError, NetworkError};
 use gate_shared::lifecycle::ServerState;
+use local_ip_address::local_ip;
 use serde_json::{json, Value};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::net::{TcpListener, TcpStream};
@@ -44,9 +45,30 @@ impl ServerBootstrap {
         let bound_addr = listener.local_addr().map_err(network_error)?;
         let gateway = TunnelGateway::new();
 
+        let local_ip_str = local_ip().map(|ip| ip.to_string()).unwrap_or_else(|_| "unknown".to_string());
+        let access_addr = SocketAddr::new(
+            local_ip().map(|ip| ip).unwrap_or_else(|_| bound_addr.ip()),
+            bound_addr.port(),
+        );
+
+        println!();
+        println!("========================================");
+        println!("  Gate Server started successfully");
+        println!("========================================");
+        println!("  Listen address : {}", bound_addr);
+        println!("  Local IP       : {}", local_ip_str);
+        println!("  Access address : {}", access_addr);
+        println!("  Auth token     : {}", token);
+        println!("========================================");
+        println!();
+        println!("Use this info to connect Gate client.");
+        println!();
+
         info!(
             target: "gate_server",
             addr = %bound_addr,
+            local_ip = %local_ip_str,
+            token = %token,
             "Server Boot"
         );
         info!(
