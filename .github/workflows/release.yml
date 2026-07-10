@@ -184,13 +184,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download desktop packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
 
       - name: Download updater manifests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: gate-updater-*
           path: updater
