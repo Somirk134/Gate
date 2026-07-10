@@ -161,6 +161,95 @@ You should see the Gate server listening on port `5800`.
 
 ---
 
+## Method 2: Run the Binary Directly (No Docker)
+
+If you don't want to use Docker, or your server can't easily run containers, you can run the standalone `gate-server` binary on the server and connect from the desktop client on your own machine. The flow spans two machines:
+
+- **Server (your cloud VPS)**: download the `gate-server` binary → set the token and listen address → start it.
+- **Client (your daily computer)**: download & install the desktop client → enter the server address + token → connect.
+
+### 1. Server: download and start `gate-server`
+
+Grab the binary for your server's OS from the [GitHub Releases v0.9.0](https://github.com/Somirk134/Gate/releases/tag/v0.9.0):
+
+| Server OS | File |
+|-----------|------|
+| Linux x64 | `gate-server-v0.9.0-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.0-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.0-macos-x64` |
+| Windows x64 | `gate-server-v0.9.0-windows-x64.exe` |
+
+On a **Linux server**:
+
+```bash
+# Download the binary
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.0/gate-server-v0.9.0-linux-x64
+chmod +x gate-server
+
+# Generate a strong random token and save it
+TOKEN=$(openssl rand -hex 32)
+
+# Start: listen on all interfaces with your own token
+GATE_SERVER_ADDR=0.0.0.0:5800 \
+GATE_AUTH_TOKEN=$TOKEN \
+./gate-server
+```
+
+On success the console prints the key info (**note down `Auth token` and `Access address`**):
+
+```
+========================================
+  Gate Server started successfully
+========================================
+  Listen address : 0.0.0.0:5800
+  Local IP       : 203.0.113.50
+  Access address : 203.0.113.50:5800
+  Auth token     : a1b2c3... (your generated token)
+========================================
+```
+
+> **Windows**: just double-click `gate-server-v0.9.0-windows-x64.exe`; the same info prints to the console.
+> **macOS**: `chmod +x gate-server-v0.9.0-macos-*` then run `./gate-server-v0.9.0-macos-*`.
+> ⚠️ When launched by double-click, env vars are not set automatically — the server defaults to `127.0.0.1:7000` with token `gate-alpha-token`. **You must** set `GATE_SERVER_ADDR=0.0.0.0:5800` and your own `GATE_AUTH_TOKEN` first, otherwise external clients can't reach it.
+
+**Optional: keep the server running in the background (Linux)**
+
+```bash
+# Simple background run
+nohup env GATE_SERVER_ADDR=0.0.0.0:5800 GATE_AUTH_TOKEN=$TOKEN ./gate-server > gate-server.log 2>&1 &
+
+# Or use systemd (/etc/systemd/system/gate-server.service)
+# [Unit]
+# Description=Gate Server
+# After=network.target
+# [Service]
+# Environment=GATE_SERVER_ADDR=0.0.0.0:5800
+# Environment=GATE_AUTH_TOKEN=your-token
+# ExecStart=/opt/gate-server
+# Restart=on-failure
+# [Install]
+# WantedBy=multi-user.target
+```
+
+### 2. Server: open firewall ports
+
+Same as the Docker method — open `5800/tcp` in your cloud security group / host firewall (plus each tunnel's `remotePort` later):
+
+```bash
+ufw allow 5800/tcp comment "Gate control port"
+```
+
+### 3. Client: install and connect
+
+Jump to **Step A / Step B** in [How to Use — Complete Guide](#how-to-use--complete-guide):
+
+1. On your machine, download & install the client package for your OS (`.exe` / `.dmg` / `.AppImage` / `.deb`).
+2. Open the client → add server → enter `SERVER_PUBLIC_IP:5800` + the token above → save to connect.
+
+A green "connected" status means success. Creating tunnels and verifying public access then works exactly like the Docker method (see **Step C / Step D**).
+
+---
+
 ## How to Use — Complete Guide
 
 ### Step A: Install the Desktop Client
@@ -385,6 +474,25 @@ cargo test --workspace
 npm run typecheck
 npm run build
 ```
+
+## Sponsor / Support ❤️
+
+If Gate saves you time or makes your work easier — consider buying the author a coffee. Every bit of support keeps this project going.
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center"><strong>Alipay</strong></td>
+      <td align="center"><strong>WeChat Pay</strong></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/icon/sponsor-alipay.jpg" width="180" alt="Alipay QR Code" /></td>
+      <td align="center"><img src="assets/icon/sponsor-wechat.png" width="180" alt="WeChat Pay QR Code" /></td>
+    </tr>
+  </table>
+</p>
+
+> Thank you for your support! ☕
 
 ## License
 

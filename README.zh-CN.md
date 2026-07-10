@@ -165,6 +165,95 @@ docker compose logs -f   # 查看实时日志
 
 ---
 
+## 方式二：二进制直跑（免 Docker）
+
+不想用 Docker、或服务器环境不方便跑容器时，可以直接在服务器上运行独立的 `gate-server` 二进制，再在本机装桌面客户端连上来。整套流程分两端：
+
+- **服务端（你的云服务器 / VPS）**：下载 `gate-server` 二进制 → 设置 token 和监听地址 → 启动。
+- **客户端（你日常用的电脑）**：下载安装桌面客户端 → 填服务器地址 + token → 连接。
+
+### 1. 服务端：下载并启动 `gate-server`
+
+到 [GitHub Releases v0.9.0](https://github.com/Somirk134/Gate/releases/tag/v0.9.0) 下载对应服务器系统的二进制：
+
+| 服务器系统 | 下载文件 |
+|----------|----------|
+| Linux x64 | `gate-server-v0.9.0-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.0-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.0-macos-x64` |
+| Windows x64 | `gate-server-v0.9.0-windows-x64.exe` |
+
+以 **Linux 服务器** 为例：
+
+```bash
+# 下载二进制
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.0/gate-server-v0.9.0-linux-x64
+chmod +x gate-server
+
+# 生成一个强随机 token 并保存
+TOKEN=$(openssl rand -hex 32)
+
+# 启动：监听所有网卡、用你自己的 token
+GATE_SERVER_ADDR=0.0.0.0:5800 \
+GATE_AUTH_TOKEN=$TOKEN \
+./gate-server
+```
+
+启动成功后控制台会打印关键信息（**务必记下 `Auth token` 和 `Access address`**）：
+
+```
+========================================
+  Gate Server started successfully
+========================================
+  Listen address : 0.0.0.0:5800
+  Local IP       : 203.0.113.50
+  Access address : 203.0.113.50:5800
+  Auth token     : a1b2c3...（你生成的 token）
+========================================
+```
+
+> **Windows 用户**：直接双击 `gate-server-v0.9.0-windows-x64.exe` 即可，控制台同样会打印上述信息。
+> **macOS 用户**：`chmod +x gate-server-v0.9.0-macos-*` 后执行 `./gate-server-v0.9.0-macos-*`。
+> ⚠️ 双击 / 直接运行时不会自动设置环境变量，默认监听 `127.0.0.1:7000`、token 为 `gate-alpha-token`。**必须**先设置 `GATE_SERVER_ADDR=0.0.0.0:5800` 和你自己的 `GATE_AUTH_TOKEN`，外网客户端才能连上。
+
+**进阶：让服务端后台常驻（Linux）**
+
+```bash
+# 简单后台运行
+nohup env GATE_SERVER_ADDR=0.0.0.0:5800 GATE_AUTH_TOKEN=$TOKEN ./gate-server > gate-server.log 2>&1 &
+
+# 或更稳妥地用 systemd（/etc/systemd/system/gate-server.service）
+# [Unit]
+# Description=Gate Server
+# After=network.target
+# [Service]
+# Environment=GATE_SERVER_ADDR=0.0.0.0:5800
+# Environment=GATE_AUTH_TOKEN=你的token
+# ExecStart=/opt/gate-server
+# Restart=on-failure
+# [Install]
+# WantedBy=multi-user.target
+```
+
+### 2. 服务端：开放防火墙端口
+
+和 Docker 方式一样，在云安全组 / 主机防火墙开放 `5800/tcp`（后续每条隧道还要开放对应的 `remotePort`）：
+
+```bash
+ufw allow 5800/tcp comment "Gate 控制端口"
+```
+
+### 3. 客户端：安装并连接
+
+转到 [使用指南 — 从零到跑通](#使用指南--从零到跑通) 的 **第一步 / 第二步**：
+
+1. 在本机下载并安装对应系统的客户端安装包（`.exe` / `.dmg` / `.AppImage` / `.deb`）。
+2. 打开客户端 → 添加服务器 → 填 `服务器公网IP:5800` + 刚才的 token → 保存连接。
+
+看到绿色「已连接」即成功。之后创建隧道、验证公网访问，流程与 Docker 方式完全一致（见 **第三步 / 第四步**）。
+
+---
+
 ## 使用指南 — 从零到跑通
 
 ### 第一步：安装桌面客户端
@@ -389,6 +478,25 @@ cargo test --workspace
 npm run typecheck
 npm run build
 ```
+
+## 赞赏支持 ❤️
+
+如果 Gate 帮你省了时间、提升了效率 —— 可以请作者喝杯咖啡。每一份支持都是持续开发的动力。
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center"><strong>支付宝</strong></td>
+      <td align="center"><strong>微信支付</strong></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/icon/sponsor-alipay.jpg" width="180" alt="支付宝收款码" /></td>
+      <td align="center"><img src="assets/icon/sponsor-wechat.png" width="180" alt="微信收款码" /></td>
+    </tr>
+  </table>
+</p>
+
+> 感谢您的支持！☕
 
 ## License
 
