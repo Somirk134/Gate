@@ -45,10 +45,10 @@
       </div>
 
       <div class="project-header__actions">
-        <GButton v-if="!isRunning" variant="primary" icon="play" @click="$emit('start-all')">
+        <GButton v-if="!isRunning" variant="primary" icon="play" :loading="loading" @click="$emit('start-all')">
           {{ t('project.header.startAll') }}
         </GButton>
-        <GButton v-else variant="secondary" icon="stop" @click="$emit('stop-all')">
+        <GButton v-else variant="secondary" icon="stop" :loading="loading" @click="$emit('stop-all')">
           {{ t('project.header.stopAll') }}
         </GButton>
         <GButton variant="secondary" icon="plus" @click="$emit('create-tunnel')">
@@ -112,7 +112,10 @@ import GStatusBadge from '@components/status/GStatusBadge.vue'
 import type { Project } from '../types'
 import { projectColorVars, formatBytes } from '../utils'
 
-const props = defineProps<{ project: Project }>()
+const props = defineProps<{
+  project: Project
+  loading?: boolean
+}>()
 const { t } = useI18n()
 
 defineEmits<{
@@ -138,13 +141,18 @@ const statusDotType = computed(() => {
     partial: 'warning',
     stopped: 'offline',
     starting: 'starting',
+    stopping: 'starting',
     error: 'error',
   }
   return map[props.project.status] ?? 'offline'
 })
 
 const isRunning = computed(
-  () => props.project.status === 'running' || props.project.status === 'partial',
+  () =>
+    props.project.status === 'running' ||
+    props.project.status === 'partial' ||
+    props.project.status === 'starting' ||
+    props.project.status === 'stopping',
 )
 
 const trafficLabel = computed(() => formatBytes(props.project.statistics.todayTraffic))

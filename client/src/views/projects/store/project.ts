@@ -38,6 +38,8 @@ export const useProjectStore = defineStore('project', () => {
   const error = ref<string>('')
   const lastUpdated = ref<number>(0)
   const serverNames = ref<string[]>([t('project.defaultWorkspace')])
+  const startingId = ref<string | null>(null)
+  const stoppingId = ref<string | null>(null)
 
   const isLoading = computed(() => status.value === 'loading')
   const isError = computed(() => status.value === 'error')
@@ -178,13 +180,50 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function startProject(id: string): Promise<void> {
-    await projectService.update(id, {})
-    await refresh()
+    // ── 乐观更新：立即将本地状态设为 starting，让卡片按钮立刻变化 ──
+    const project = getById(id)
+    if (project) {
+      project.status = 'starting'
+      // 乐观地增加运行计数（refresh 后会被真实数据覆盖）
+      project.runningTunnelCount = Math.max(project.runningTunnelCount, 1)
+    }
+    startingId.value = id
+
+    try {
+      const result = await projectService.start(id)
+      if (result?.failedTunnelIds?.length) {
+        console.warn(`[project:start] ${result.failedTunnelIds.length} tunnels failed to start`, result.failedTunnelIds)
+      }
+      // 延迟等待 runtime 状态稳定后再刷新
+      await delay(500)
+      await refresh()
+    } finally {
+      startingId.value = null
+    }
   }
 
   async function stopProject(id: string): Promise<void> {
-    await projectService.update(id, {})
-    await refresh()
+    // ── 乐观更新：立即设为 stopping ──
+    const project = getById(id)
+    if (project) {
+      project.status = 'stopping'
+    }
+    stoppingId.value = id
+
+    try {
+      const result = await projectService.stop(id)
+      if (result?.failedTunnelIds?.length) {
+        console.warn(`[project:stop] ${result.failedTunnelIds.length} tunnels failed to stop`, result.failedTunnelIds)
+      }
+      await delay(300)
+      await refresh()
+    } finally {
+      stoppingId.value = null
+    }
+  }
+
+  function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   async function togglePin(id: string): Promise<void> {
@@ -212,6 +251,8 @@ export const useProjectStore = defineStore('project', () => {
     error,
     lastUpdated,
     serverNames,
+    startingId,
+    stoppingId,
     isLoading,
     isError,
     isReady,

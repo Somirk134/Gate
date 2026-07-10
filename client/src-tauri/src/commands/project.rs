@@ -177,6 +177,62 @@ pub async fn project_recommend_tunnels(
     Ok(state.recommend_tunnels(template))
 }
 
+#[tauri::command]
+pub async fn project_start(
+    state: State<'_, ProjectWorkspaceState>,
+    runtime: State<'_, ClientRuntimeState>,
+    project_id: String,
+) -> CommandResult<ProjectStartStopResponse> {
+    let project = project_result(state.get(&project_id))?;
+    let mut started = Vec::new();
+    let mut failed = Vec::new();
+
+    for tunnel_id in &project.tunnel_ids {
+        match runtime.start_tunnel(tunnel_id.clone()).await {
+            Ok(()) => started.push(tunnel_id.clone()),
+            Err(error) => failed.push((tunnel_id.clone(), error)),
+        }
+    }
+
+    Ok(ProjectStartStopResponse {
+        project_id,
+        started_tunnel_ids: started,
+        failed_tunnel_ids: failed,
+    })
+}
+
+#[tauri::command]
+pub async fn project_stop(
+    state: State<'_, ProjectWorkspaceState>,
+    runtime: State<'_, ClientRuntimeState>,
+    project_id: String,
+) -> CommandResult<ProjectStartStopResponse> {
+    let project = project_result(state.get(&project_id))?;
+    let mut stopped = Vec::new();
+    let mut failed = Vec::new();
+
+    for tunnel_id in &project.tunnel_ids {
+        match runtime.stop_tunnel(tunnel_id.clone()).await {
+            Ok(()) => stopped.push(tunnel_id.clone()),
+            Err(error) => failed.push((tunnel_id.clone(), error)),
+        }
+    }
+
+    Ok(ProjectStartStopResponse {
+        project_id,
+        started_tunnel_ids: stopped,
+        failed_tunnel_ids: failed,
+    })
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectStartStopResponse {
+    pub project_id: String,
+    pub started_tunnel_ids: Vec<String>,
+    pub failed_tunnel_ids: Vec<(String, String)>,
+}
+
 fn project_result<T>(result: Result<T, String>) -> CommandResult<T> {
     result.map_err(project_error)
 }

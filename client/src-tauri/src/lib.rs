@@ -121,6 +121,8 @@ pub fn run() -> Result<()> {
             commands::project::project_remove_certificate,
             commands::project::project_templates,
             commands::project::project_recommend_tunnels,
+            commands::project::project_start,
+            commands::project::project_stop,
             updater::check_for_updates,
             updater::download_update,
             updater::install_update,

@@ -49,6 +49,7 @@
           v-for="project in sorted"
           :key="project.id"
           :project="project"
+          :loading="startingId === project.id || stoppingId === project.id"
           @open="openProject"
           @edit="openEdit"
           @delete="openDelete"
@@ -127,6 +128,8 @@ const {
   stop,
   togglePin,
   toggleFavorite,
+  startingId,
+  stoppingId,
 } = useProject()
 
 const query = ref('')
@@ -201,20 +204,22 @@ async function toggleFavoriteProject(id: string) {
 }
 
 async function startWorkspace(project: Project) {
+  if (startingId.value) return
   try {
     await start(project.id)
-    toast.success(t('project.notifications.markedActive', { name: project.name }))
+    toast.success(t('project.notifications.started', { name: project.name }))
   } catch (err) {
-    notify.error(t('project.notifications.startReserved'), errorMessage(err), 8000)
+    notify.error(t('project.notifications.startFailed'), errorMessage(err), 8000)
   }
 }
 
 async function stopWorkspace(project: Project) {
+  if (stoppingId.value) return
   try {
     await stop(project.id)
-    toast.warning(t('project.notifications.activityUpdated', { name: project.name }))
+    toast.warning(t('project.notifications.stopped', { name: project.name }))
   } catch (err) {
-    notify.error(t('project.notifications.stopReserved'), errorMessage(err), 8000)
+    notify.error(t('project.notifications.stopFailed'), errorMessage(err), 8000)
   }
 }
 

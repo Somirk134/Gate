@@ -336,6 +336,7 @@ export const STATUS_CONFIG: Record<
   partial: { label: 'partial', variant: 'warning', pulse: false },
   stopped: { label: 'stopped', variant: 'neutral', pulse: false },
   starting: { label: 'starting', variant: 'info', pulse: true },
+  stopping: { label: 'stopping', variant: 'info', pulse: true },
   error: { label: 'error', variant: 'error', pulse: false },
 }
 

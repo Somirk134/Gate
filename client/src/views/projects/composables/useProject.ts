@@ -30,6 +30,8 @@ export function useProject() {
     recentProjects,
     totalTunnels,
     runningTunnelCount,
+    startingId,
+    stoppingId,
   } = storeToRefs(store)
 
   async function loadData() {
@@ -108,6 +110,8 @@ export function useProject() {
     recentProjects,
     totalTunnels,
     runningTunnelCount,
+    startingId,
+    stoppingId,
     // methods
     getById,
     loadData,

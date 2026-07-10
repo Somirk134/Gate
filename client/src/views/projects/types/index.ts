@@ -1,4 +1,4 @@
-export type ProjectStatus = 'running' | 'partial' | 'stopped' | 'starting' | 'error'
+export type ProjectStatus = 'running' | 'partial' | 'stopped' | 'starting' | 'stopping' | 'error'
 
 export type ProjectColor =
   | 'blue'

@@ -25,12 +25,13 @@
     <template v-else>
       <ProjectHeader
         :project="project"
+        :loading="!!store.startingId || !!store.stoppingId"
         @back="router.push('/projects')"
         @edit="openEdit"
         @more="openDelete"
         @create-tunnel="createTunnel"
-        @start-all="touchWorkspace"
-        @stop-all="touchWorkspace"
+        @start-all="startAllWorkspace"
+        @stop-all="stopAllWorkspace"
         @toggle-pin="togglePinProject"
         @toggle-favorite="toggleFavoriteProject" />
 
@@ -760,9 +761,24 @@ async function toggleFavoriteProject(id: string) {
   }
 }
 
-async function touchWorkspace() {
-  if (!project.value) return
-  await store.updateProject(project.value.id, {})
+async function startAllWorkspace() {
+  if (!project.value || store.startingId) return
+  try {
+    await store.startProject(project.value.id)
+    toast.success(t('project.notifications.started', { name: project.value.name }))
+  } catch (err) {
+    notify.error(t('project.notifications.startFailed'), errorMessage(err), 8000)
+  }
+}
+
+async function stopAllWorkspace() {
+  if (!project.value || store.stoppingId) return
+  try {
+    await store.stopProject(project.value.id)
+    toast.warning(t('project.notifications.stopped', { name: project.value.name }))
+  } catch (err) {
+    notify.error(t('project.notifications.stopFailed'), errorMessage(err), 8000)
+  }
 }
 
 function domainResolution(domain: string) {

@@ -229,6 +229,21 @@ export const projectService = {
     return PROJECT_TEMPLATES.find((item) => item.key === template)?.recommendations ?? []
   },
 
+  async start(projectId: string): Promise<{ startedTunnelIds: string[]; failedTunnelIds: [string, string][] }> {
+    if (isTauriRuntime()) {
+      return ipc.invoke('project_start', { projectId })
+    }
+    // 非 Tauri 环境无实际运行时，返回空
+    return { startedTunnelIds: [], failedTunnelIds: [] }
+  },
+
+  async stop(projectId: string): Promise<{ startedTunnelIds: string[]; failedTunnelIds: [string, string][] }> {
+    if (isTauriRuntime()) {
+      return ipc.invoke('project_stop', { projectId })
+    }
+    return { startedTunnelIds: [], failedTunnelIds: [] }
+  },
+
   async dashboard(): Promise<DashboardData> {
     if (isTauriRuntime()) {
       return ipc.invoke<DashboardData>('runtime_get_dashboard')

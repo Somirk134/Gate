@@ -107,6 +107,7 @@
         size="sm"
         variant="primary"
         icon="play"
+        :loading="loading"
         @click.stop="$emit('start', project)">
         {{ t('project.card.start') }}
       </GButton>
@@ -115,6 +116,7 @@
         size="sm"
         variant="secondary"
         icon="stop"
+        :loading="loading"
         @click.stop="$emit('stop', project)">
         {{ t('project.card.stop') }}
       </GButton>
@@ -142,7 +144,10 @@ import ProjectTag from './ProjectTag.vue'
 import type { Project } from '../types'
 import { projectColorVars } from '../utils'
 
-const props = defineProps<{ project: Project }>()
+const props = defineProps<{
+  project: Project
+  loading?: boolean
+}>()
 const { t } = useI18n()
 
 defineEmits<{
@@ -170,13 +175,19 @@ const statusDotType = computed(() => {
     partial: 'warning',
     stopped: 'offline',
     starting: 'starting',
+    stopping: 'starting', // 停止中同样展示过渡态动画
     error: 'error',
   }
   return map[props.project.status] ?? 'offline'
 })
 
+// 运行态判断：running / partial / starting（启动中）/ stopping（停止中）都视为"有活动"
 const isRunning = computed(
-  () => props.project.status === 'running' || props.project.status === 'partial',
+  () =>
+    props.project.status === 'running' ||
+    props.project.status === 'partial' ||
+    props.project.status === 'starting' ||
+    props.project.status === 'stopping',
 )
 
 const createdLabel = computed(() => {
