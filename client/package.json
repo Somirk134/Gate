@@ -16,7 +16,7 @@
         "prebuild": "npm run release:guard"
     },
     "dependencies": {
-        "@vueuse/core": "^11",
+        "@vueuse/core": "^14",
         "axios": "^1.7",
         "dayjs": "^1.11",
         "lucide-vue-next": "^1.0.0",
