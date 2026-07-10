@@ -9,6 +9,12 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+    define: {
+        // Tauri CSP 禁止 unsafe-eval，开启 vue-i18n JIT 以避免运行时 new Function 编译翻译文案。
+        __INTLIFY_JIT_COMPILATION__: 'true',
+        __INTLIFY_DROP_MESSAGE_COMPILER__: 'false',
+        __INTLIFY_PROD_DEVTOOLS__: 'false',
+    },
     plugins: [
         vue(),
         AutoImport({
