@@ -55,3 +55,16 @@ release/*/*.deb
 release/*/*.AppImage
 release/*/*.dmg
 release/*/*.tar.gz
+# Local runtime data (never package or commit)
+.gate/
+Gate/
+Gate-dev/
+Gate-release/
+client-runtime.json
+client-config.json
+projects.sqlite3
+domains.sqlite3
+*.sqlite3
+*.gatebackup
+private_key.pem
+certificate.pem

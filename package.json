@@ -11,6 +11,7 @@
     "build:client": "npm --prefix client run build",
     "check:server": "cargo check -p gate-server",
     "typecheck": "npm --prefix client run typecheck",
-    "build": "npm --prefix client run build"
+    "build": "npm run guard:release-data && npm --prefix client run build",
+    "guard:release-data": "node scripts/release/check-no-local-data.mjs"
   }
 }

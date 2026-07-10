@@ -11,7 +11,9 @@
         "lint": "eslint . --ext .vue,.ts,.tsx --fix",
         "lint:check": "eslint . --ext .vue,.ts,.tsx --quiet",
         "typecheck": "vue-tsc --noEmit",
-        "format": "prettier --write \"src/**/*.{vue,ts,tsx,css,scss}\""
+        "format": "prettier --write \"src/**/*.{vue,ts,tsx,css,scss}\"",
+        "release:guard": "node ../scripts/release/check-no-local-data.mjs",
+        "prebuild": "npm run release:guard"
     },
     "dependencies": {
         "@vueuse/core": "^11",
