@@ -34,7 +34,7 @@
         "@tauri-apps/plugin-shell": "^2",
         "@typescript-eslint/eslint-plugin": "^8",
         "@typescript-eslint/parser": "^8",
-        "@vitejs/plugin-vue": "^5",
+        "@vitejs/plugin-vue": "^6",
         "eslint": "^8.57.1",
         "eslint-plugin-vue": "^9",
         "prettier": "^3.3",
