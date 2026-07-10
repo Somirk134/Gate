@@ -1764,7 +1764,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       close: '关闭',
       helperTitle: '服务器就是 Gate 服务端所在的机器',
       helperDesc: '先把服务端程序跑起来，再把它的地址和 Token 填到这里，客户端才能创建隧道。',
-      localNote: '本机测试会自动使用默认 Token：{token}。正式部署请改成你自己的 Token。',
+      localNote: '请填写 Gate 服务端实际配置的 Token，正式部署应使用足够长的随机值。',
       name: '名称',
       namePlaceholder: '例如：我的 VPS / 本机测试服务器',
       nameHint: '只是给你自己看的名字，不影响连接。',
@@ -1778,7 +1778,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       hideToken: '隐藏 Token',
       showToken: '显示 Token',
       tokenNote:
-        '本机测试直接用默认 Token：{token}。正式部署时再通过 GATE_AUTH_TOKEN 换成你自己的长随机值。',
+        '请填写服务端实际配置的 GATE_AUTH_TOKEN，不要在日志或截图中分享。',
       type: '类型',
       typeHint: '只影响分类展示，不改变连接协议。',
       region: '区域',

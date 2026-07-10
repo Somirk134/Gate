@@ -1,4 +1,5 @@
 use chrono::Utc;
+use gate_domain::modules::project::{Project, ProjectRepository, SqliteProjectRepository};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -6,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tauri::State;
+use uuid::Uuid;
 
 use crate::{
     commands::error::{AppError, CommandResult},
@@ -57,6 +59,8 @@ struct BackupSecurity {
     server_tokens_included: bool,
     certificate_private_keys_included: bool,
     certificate_pem_included: bool,
+    project_secrets_included: bool,
+    project_notes_included: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,6 +112,10 @@ pub async fn backup_export(
             )
         })?
         .into_iter()
+        .map(sanitize_project)
+        .collect::<Vec<_>>();
+    let project_values = projects
+        .iter()
         .map(|project| {
             serde_json::to_value(project).map_err(|source| {
                 AppError::from_source(
@@ -120,7 +128,7 @@ pub async fn backup_export(
         .collect::<CommandResult<Vec<_>>>()?;
 
     let certificates = collect_certificate_metadata()?;
-    let contents = backup_contents(&runtime_snapshot, projects.len(), certificates.len());
+    let contents = backup_contents(&runtime_snapshot, project_values.len(), certificates.len());
     let created_at = Utc::now();
     let backup = GateBackupFile {
         product: BACKUP_PRODUCT.to_string(),
@@ -134,6 +142,8 @@ pub async fn backup_export(
             server_tokens_included: false,
             certificate_private_keys_included: false,
             certificate_pem_included: false,
+            project_secrets_included: false,
+            project_notes_included: false,
         },
         notes: vec![
             "backup.notes.tokensExcluded".to_string(),
@@ -141,8 +151,8 @@ pub async fn backup_export(
             "backup.notes.manualReconnectRequired".to_string(),
         ],
         runtime_snapshot,
-        projects,
-        project_database: read_encoded_file(project_store_path(), "database/projects.sqlite3")?,
+        projects: project_values,
+        project_database: build_sanitized_project_database(&projects)?,
         domain_database: read_encoded_file(domain_store_path(), "database/domains.sqlite3")?,
         certificate_metadata: certificates,
     };
@@ -451,6 +461,109 @@ fn sanitize_runtime_snapshot(value: &mut Value) {
     if let Some(active_server_id) = value.get_mut("activeServerId") {
         *active_server_id = Value::Null;
     }
+    // 对未来新增的嵌套敏感字段同样生效，避免依赖固定 schema 白名单。
+    redact_sensitive_values(value);
+}
+
+fn redact_sensitive_values(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map.iter_mut() {
+                if is_sensitive_key(key) {
+                    *child = match child {
+                        Value::String(_) => Value::String(String::new()),
+                        _ => Value::Null,
+                    };
+                } else {
+                    redact_sensitive_values(child);
+                }
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                redact_sensitive_values(item);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn sanitize_project(mut project: Project) -> Project {
+    // secret 标记和常见敏感变量名均视为不可导出的凭据；自由文本备注也不进入备份。
+    for environment in &mut project.environments {
+        for variable in &mut environment.variables {
+            if variable.secret || is_sensitive_key(&variable.key) {
+                variable.value.clear();
+            }
+        }
+    }
+    project.notes.clear();
+    project
+}
+
+fn is_sensitive_key(key: &str) -> bool {
+    let normalized = key
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+    [
+        "token",
+        "password",
+        "secret",
+        "privatekey",
+        "keypem",
+        "certificatepem",
+        "certpem",
+    ]
+    .iter()
+    .any(|candidate| normalized.contains(candidate))
+}
+
+fn build_sanitized_project_database(projects: &[Project]) -> CommandResult<Option<EncodedFile>> {
+    if !project_store_path().exists() {
+        return Ok(None);
+    }
+
+    // 在临时数据库中重建已脱敏项目，禁止原始 SQLite 中的 secret 值旁路进入备份。
+    let temporary_path =
+        runtime_data_dir().join(format!(".backup-projects-{}.sqlite3", Uuid::new_v4()));
+    encode_sanitized_project_database(projects, temporary_path)
+}
+
+fn encode_sanitized_project_database(
+    projects: &[Project],
+    temporary_path: PathBuf,
+) -> CommandResult<Option<EncodedFile>> {
+    let repository = SqliteProjectRepository::open(&temporary_path).map_err(|source| {
+        AppError::from_source(
+            "BACKUP_PROJECT_DATABASE_CREATE_FAILED",
+            "errors.backup.projectSerializeFailed",
+            source,
+        )
+    })?;
+    for project in projects {
+        repository.create(project.clone()).map_err(|source| {
+            AppError::from_source(
+                "BACKUP_PROJECT_DATABASE_WRITE_FAILED",
+                "errors.backup.projectSerializeFailed",
+                source,
+            )
+        })?;
+    }
+    drop(repository);
+
+    let encoded = read_encoded_file(temporary_path.clone(), "database/projects.sqlite3");
+    let cleanup = fs::remove_file(&temporary_path);
+    let encoded = encoded?;
+    cleanup.map_err(|source| {
+        AppError::from_source(
+            "BACKUP_TEMPORARY_FILE_REMOVE_FAILED",
+            "errors.backup.fileReadFailed",
+            source,
+        )
+    })?;
+    Ok(encoded)
 }
 
 fn collect_certificate_metadata() -> CommandResult<Vec<CertificateMetadataBackup>> {
@@ -529,17 +642,14 @@ fn collect_certificate_metadata() -> CommandResult<Vec<CertificateMetadataBackup
 fn sanitize_certificate_metadata(value: &mut Value) {
     match value {
         Value::Object(map) => {
-            for key in [
-                "privateKey",
-                "private_key",
-                "keyPem",
-                "key_pem",
-                "certificatePem",
-                "certificate_pem",
-                "certPem",
-                "cert_pem",
-            ] {
-                map.remove(key);
+            // 使用规范化字段名匹配，覆盖大小写、下划线和后续新增的凭据字段。
+            let sensitive_keys = map
+                .keys()
+                .filter(|key| is_sensitive_key(key))
+                .cloned()
+                .collect::<Vec<_>>();
+            for key in sensitive_keys {
+                map.remove(&key);
             }
             for child in map.values_mut() {
                 sanitize_certificate_metadata(child);
@@ -824,4 +934,150 @@ fn base64_decode(input: &str) -> CommandResult<Vec<u8>> {
         }
     }
     Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gate_domain::modules::project::{
+        CreateProjectRequest, ProjectEnvironment, ProjectEnvironmentVariable, ProjectNote,
+    };
+
+    #[test]
+    fn runtime_snapshot_excludes_nested_credentials_and_logs() {
+        let mut snapshot = json!({
+            "servers": {
+                "primary": {
+                    "token": "server-token",
+                    "status": "connected",
+                    "lastError": "token=leaked",
+                    "sessionId": "session-secret"
+                }
+            },
+            "config": {
+                "apiPassword": "password-value",
+                "theme": "dark"
+            },
+            "nested": [{ "private_key": "key-value" }],
+            "logs": [{ "message": "token=leaked" }],
+            "activeServerId": "primary"
+        });
+
+        sanitize_runtime_snapshot(&mut snapshot);
+
+        assert_eq!(snapshot.pointer("/servers/primary/token"), Some(&json!("")));
+        assert_eq!(
+            snapshot.pointer("/servers/primary/status"),
+            Some(&json!("disconnected"))
+        );
+        assert_eq!(
+            snapshot.pointer("/servers/primary/lastError"),
+            Some(&Value::Null)
+        );
+        assert_eq!(
+            snapshot.pointer("/servers/primary/sessionId"),
+            Some(&Value::Null)
+        );
+        assert_eq!(snapshot.pointer("/config/apiPassword"), Some(&json!("")));
+        assert_eq!(snapshot.pointer("/config/theme"), Some(&json!("dark")));
+        assert_eq!(snapshot.pointer("/nested/0/private_key"), Some(&json!("")));
+        assert_eq!(snapshot.get("logs"), Some(&json!([])));
+        assert_eq!(snapshot.get("activeServerId"), Some(&Value::Null));
+    }
+
+    #[test]
+    fn project_backup_excludes_secret_variables_and_notes() {
+        let mut project = Project::new(CreateProjectRequest {
+            name: "release-project".to_string(),
+            ..CreateProjectRequest::default()
+        });
+        let mut environment = ProjectEnvironment::new("production");
+        environment.variables = vec![
+            ProjectEnvironmentVariable {
+                key: "API_TOKEN".to_string(),
+                value: "token-value".to_string(),
+                secret: false,
+            },
+            ProjectEnvironmentVariable {
+                key: "PUBLIC_HOST".to_string(),
+                value: "example.com".to_string(),
+                secret: false,
+            },
+            ProjectEnvironmentVariable {
+                key: "CUSTOM_VALUE".to_string(),
+                value: "hidden-value".to_string(),
+                secret: true,
+            },
+        ];
+        project.environments.push(environment);
+        project
+            .notes
+            .push(ProjectNote::new("credentials", "password=hidden"));
+
+        let sanitized = sanitize_project(project);
+
+        assert_eq!(sanitized.environments[0].variables[0].value, "");
+        assert_eq!(sanitized.environments[0].variables[1].value, "example.com");
+        assert_eq!(sanitized.environments[0].variables[2].value, "");
+        assert!(sanitized.notes.is_empty());
+    }
+
+    #[test]
+    fn project_database_backup_contains_only_sanitized_projects() {
+        let directory = tempfile::tempdir().expect("temporary backup directory");
+        let mut project = Project::new(CreateProjectRequest {
+            name: "database-project".to_string(),
+            ..CreateProjectRequest::default()
+        });
+        let mut environment = ProjectEnvironment::new("production");
+        environment.variables.push(ProjectEnvironmentVariable {
+            key: "DATABASE_PASSWORD".to_string(),
+            value: "database-secret-value".to_string(),
+            secret: true,
+        });
+        project.environments.push(environment);
+        project
+            .notes
+            .push(ProjectNote::new("private", "note-secret-value"));
+        let sanitized = sanitize_project(project);
+        let encoded = encode_sanitized_project_database(
+            &[sanitized],
+            directory.path().join("sanitized.sqlite3"),
+        )
+        .expect("encode sanitized project database")
+        .expect("encoded database");
+
+        let bytes = base64_decode(&encoded.data).expect("decode project database");
+        assert!(!String::from_utf8_lossy(&bytes).contains("database-secret-value"));
+        assert!(!String::from_utf8_lossy(&bytes).contains("note-secret-value"));
+
+        let restored_path = directory.path().join("restored.sqlite3");
+        fs::write(&restored_path, bytes).expect("write restored project database");
+        let repository =
+            SqliteProjectRepository::open(restored_path).expect("open restored database");
+        let projects = repository.list().expect("list restored projects");
+        assert_eq!(projects[0].environments[0].variables[0].value, "");
+        assert!(projects[0].notes.is_empty());
+    }
+
+    #[test]
+    fn certificate_metadata_excludes_all_credential_variants() {
+        let mut metadata = json!({
+            "domain": "example.com",
+            "Private-Key": "key-value",
+            "nested": {
+                "certificatePEM": "certificate-value",
+                "issuer": "Gate Test CA"
+            }
+        });
+
+        sanitize_certificate_metadata(&mut metadata);
+
+        assert!(metadata.get("Private-Key").is_none());
+        assert!(metadata.pointer("/nested/certificatePEM").is_none());
+        assert_eq!(
+            metadata.pointer("/nested/issuer"),
+            Some(&json!("Gate Test CA"))
+        );
+    }
 }

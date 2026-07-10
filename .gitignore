@@ -4,7 +4,9 @@ target/
 
 # Node
 node_modules/
+dist/
 client/dist/
+coverage/
 *.tsbuildinfo
 
 # Tauri
@@ -30,6 +32,8 @@ Thumbs.db
 
 # Logs
 *.log
+*.tmp
+*.cache
 client/*_out*.txt
 client/vite_output.txt
 
@@ -38,6 +42,7 @@ client/vite_output.txt
 
 # Local scratch files
 *.bak
+.cache/
 client/.tmp/
 
 # Database

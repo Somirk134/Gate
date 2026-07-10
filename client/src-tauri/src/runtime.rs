@@ -40,6 +40,8 @@ use tokio::{
 };
 use uuid::Uuid;
 
+use crate::utils::app_data_dir;
+
 const STORE_VERSION: u32 = 1;
 const MAX_LOGS: usize = 500;
 const RELAY_WORKERS_PER_TUNNEL: usize = 4;
@@ -2421,27 +2423,10 @@ fn runtime_client_id(active_server_id: Option<&str>) -> String {
 }
 
 pub(crate) fn runtime_store_path() -> PathBuf {
-    if let Some(appdata) = env::var_os("APPDATA") {
-        return PathBuf::from(appdata)
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    if let Some(xdg_data_home) = env::var_os("XDG_DATA_HOME") {
-        return PathBuf::from(xdg_data_home)
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    if let Some(home) = env::var_os("HOME") {
-        return PathBuf::from(home)
-            .join(".local")
-            .join("share")
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    PathBuf::from("gate-client-runtime.json")
+    // 平台目录由单一入口解析，macOS 使用 Application Support。
+    app_data_dir()
+        .unwrap_or_else(|| PathBuf::from(".gate"))
+        .join("client-runtime.json")
 }
 
 pub(crate) fn domain_store_path() -> PathBuf {

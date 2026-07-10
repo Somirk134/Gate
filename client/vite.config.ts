@@ -50,5 +50,20 @@ export default defineConfig({
     build: {
         target: 'esnext',
         minify: 'esbuild',
+        rollupOptions: {
+            output: {
+                // 将稳定依赖拆出，降低入口 chunk 大小并提高升级后的浏览器缓存命中率。
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined
+                    if (/node_modules\/(vue|vue-router|vue-i18n|pinia|@vueuse)\//.test(id)) {
+                        return 'framework'
+                    }
+                    if (/node_modules\/(naive-ui|lucide-vue-next)\//.test(id)) {
+                        return 'ui'
+                    }
+                    return 'vendor'
+                },
+            },
+        },
     },
 })

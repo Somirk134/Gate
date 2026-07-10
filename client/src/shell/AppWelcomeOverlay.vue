@@ -182,12 +182,12 @@
                       <p>Docker</p>
                       <strong>{{ t('welcome.education.dockerQuickStartTitle') }}</strong>
                     </div>
-                    <button type="button" @click="copyDeployCommand">
+                    <button type="button" @click="copyDockerDeployCommand">
                       <GIcon name="copy" :size="14" />
                       {{ t('welcome.actions.copy') }}
                     </button>
                   </header>
-                  <pre><code>{{ dockerDeployCommand }}</code></pre>
+                  <pre><code>{{ visibleDockerDeployCommand }}</code></pre>
                 </div>
 
                 <div class="education-actions">
@@ -275,7 +275,7 @@
                       {{ t('welcome.actions.copy') }}
                     </button>
                   </header>
-                  <pre><code>{{ activeDeployCommand }}</code></pre>
+                  <pre><code>{{ visibleActiveDeployCommand }}</code></pre>
                 </div>
 
                 <div v-if="deploymentReport" class="deployment-test-result">
@@ -733,13 +733,14 @@ const serverAddressForTest = computed(() => ({
 }))
 const linuxDeployCommand = computed(
   () =>
-    `GATE_TOKEN="${answers.serverToken.trim() || 'your-token'}" GATE_BIND="0.0.0.0:${answers.serverPort || 7000}" ./gate-server`,
+    `GATE_AUTH_TOKEN="${answers.serverToken.trim() || 'your-token'}" GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" ./gate-server`,
 )
 const dockerDeployCommand = computed(
   () =>
     [
       'docker run -d --name gate-server --restart unless-stopped \\',
-      `  -e GATE_TOKEN="${answers.serverToken.trim() || 'your-token'}" \\`,
+      `  -e GATE_AUTH_TOKEN="${answers.serverToken.trim() || 'your-token'}" \\`,
+      `  -e GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" \\`,
       `  -p ${answers.serverPort || 7000}:${answers.serverPort || 7000} \\`,
       '  ghcr.io/somirk134/gate-server:v0.9.0',
     ].join('\n'),
@@ -747,6 +748,13 @@ const dockerDeployCommand = computed(
 const activeDeployCommand = computed(() =>
   answers.deployMode === 'docker' ? dockerDeployCommand.value : linuxDeployCommand.value,
 )
+// 页面仅展示脱敏命令，实际口令只在用户主动复制时写入剪贴板。
+const maskDeployToken = (command: string) =>
+  answers.serverToken.trim()
+    ? command.replace(/GATE_AUTH_TOKEN="[^"]*"/g, 'GATE_AUTH_TOKEN="[hidden]"')
+    : command
+const visibleDockerDeployCommand = computed(() => maskDeployToken(dockerDeployCommand.value))
+const visibleActiveDeployCommand = computed(() => maskDeployToken(activeDeployCommand.value))
 const visibleKnowledgeCards = computed(() => {
   if (screen.value === 'server-question' || screen.value === 'server-education') {
     return localizedKnowledgeCards.value.filter((card) =>
@@ -1066,6 +1074,11 @@ async function testDeploymentConnection() {
 
 async function copyDeployCommand() {
   await navigator.clipboard?.writeText(activeDeployCommand.value)
+  pushGate('welcome.chat.deployCommandCopied')
+}
+
+async function copyDockerDeployCommand() {
+  await navigator.clipboard?.writeText(dockerDeployCommand.value)
   pushGate('welcome.chat.deployCommandCopied')
 }
 

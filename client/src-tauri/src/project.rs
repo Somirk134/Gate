@@ -4,10 +4,9 @@ use gate_domain::modules::project::{
     UpdateProjectRequest,
 };
 use serde::Serialize;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
+
+use crate::utils::app_data_dir;
 
 pub struct ProjectWorkspaceState {
     service: Option<ProjectService<SqliteProjectRepository>>,
@@ -172,32 +171,6 @@ pub(crate) fn project_store_path() -> PathBuf {
 }
 
 fn runtime_data_dir() -> PathBuf {
-    runtime_store_path()
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from(".gate"))
-}
-
-fn runtime_store_path() -> PathBuf {
-    if let Some(appdata) = env::var_os("APPDATA") {
-        return PathBuf::from(appdata)
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    if let Some(xdg_data_home) = env::var_os("XDG_DATA_HOME") {
-        return PathBuf::from(xdg_data_home)
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    if let Some(home) = env::var_os("HOME") {
-        return PathBuf::from(home)
-            .join(".local")
-            .join("share")
-            .join("Gate")
-            .join("client-runtime.json");
-    }
-
-    PathBuf::from("gate-client-runtime.json")
+    // 与 runtime/config/certificate 共用平台目录，保证备份和数据库位置一致。
+    app_data_dir().unwrap_or_else(|| PathBuf::from(".gate"))
 }

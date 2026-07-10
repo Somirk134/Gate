@@ -14,8 +14,11 @@ export interface BackupContents {
 }
 
 export interface BackupSecurity {
+  serverTokensIncluded: boolean
   certificatePrivateKeysIncluded: boolean
   certificatePemIncluded: boolean
+  projectSecretsIncluded: boolean
+  projectNotesIncluded: boolean
 }
 
 export interface BackupExportResult {

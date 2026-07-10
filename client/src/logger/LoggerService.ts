@@ -21,6 +21,41 @@ export interface LoggerService {
   child(scope: string): LoggerService
 }
 
+const REDACTED = '[REDACTED]'
+const sensitiveKeyPattern = /(token|password|secret|private[_-]?key|key[_-]?pem)/i
+
+export function redactText(value: string): string {
+  return value
+    .replace(/-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/gi, REDACTED)
+    .replace(/\bBearer\s+[^\s,;]+/gi, `Bearer ${REDACTED}`)
+    .replace(
+      /\b(token|password|secret|private[_-]?key)\s*([:=])\s*("[^"]*"|'[^']*'|[^\s,;&]+)/gi,
+      (_match, key: string, separator: string) => `${key}${separator}${REDACTED}`,
+    )
+}
+
+function redactLogValue(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (typeof value === 'string') return redactText(value)
+  if (value === null || typeof value !== 'object') return value
+  if (seen.has(value)) return '[CIRCULAR]'
+  seen.add(value)
+
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: redactText(value.message),
+      stack: value.stack ? redactText(value.stack) : undefined,
+    }
+  }
+  if (Array.isArray(value)) return value.map((item) => redactLogValue(item, seen))
+
+  const result: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = sensitiveKeyPattern.test(key) ? REDACTED : redactLogValue(item, seen)
+  }
+  return result
+}
+
 export class ConsoleLogSink implements LogSink {
   write(entry: LogEntry) {
     const prefix = `[${entry.level.toUpperCase()}]${entry.scope ? ` [${entry.scope}]` : ''}`
@@ -75,10 +110,11 @@ export class DefaultLoggerService implements LoggerService {
   }
 
   private write(level: LogLevel, message: string, data?: unknown) {
+    // 所有 sink 共用同一脱敏入口，避免错误上下文把凭据写入控制台或未来的文件日志。
     const entry: LogEntry = {
       level,
-      message,
-      data,
+      message: redactText(message),
+      data: redactLogValue(data),
       scope: this.scope,
       timestamp: Date.now(),
     }

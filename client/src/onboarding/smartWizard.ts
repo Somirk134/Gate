@@ -347,7 +347,8 @@ export function createDefaultAnswers(): SmartWizardAnswers {
     serverEnvironment: '',
     serverAddress: '',
     serverPort: 7000,
-    serverToken: 'gate-rc-token',
+    // 发布版本不提供共享默认口令，必须由用户填写服务端实际配置。
+    serverToken: '',
     deployMode: 'linux-vps',
     domainMode: '',
     domainName: '',

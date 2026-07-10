@@ -2,10 +2,14 @@ use anyhow::{Context, Result};
 use std::{env, fs, path::PathBuf};
 
 pub fn get_app_data_dir() -> Result<PathBuf> {
-    let base = platform_data_dir().context("unable to resolve app data directory")?;
-    let path = base.join("Gate");
+    let path = app_data_dir().context("unable to resolve app data directory")?;
     fs::create_dir_all(&path).with_context(|| format!("unable to create {}", path.display()))?;
     Ok(path)
+}
+
+// 统一所有持久化文件的平台目录，避免 macOS 数据落入 Linux 风格路径。
+pub(crate) fn app_data_dir() -> Option<PathBuf> {
+    platform_data_dir().map(|base| base.join("Gate"))
 }
 
 #[cfg(target_os = "windows")]

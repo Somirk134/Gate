@@ -244,7 +244,7 @@
               </div>
               <p class="server-local-note">
                 <GIcon name="info-circle" :size="14" />
-                {{ t('server.dialog.localNote', { token: localServerToken }) }}
+                {{ t('server.dialog.localNote') }}
               </p>
               <p class="server-mode-hint">
                 <GIcon :name="serverModeHint.icon" :size="15" />
@@ -298,7 +298,7 @@
                     <GIcon :name="tokenVisible ? 'eye-off' : 'eye'" :size="15" />
                   </button>
                 </div>
-                <small>{{ t('server.dialog.tokenNote', { token: localServerToken }) }}</small>
+                <small>{{ t('server.dialog.tokenNote') }}</small>
               </label>
 
               <div class="server-kind-picker">
@@ -376,7 +376,7 @@
                 <div class="server-guide-kv">
                   <span>{{ t('server.guide.host') }}</span
                   ><b>127.0.0.1</b> <span>{{ t('server.guide.port') }}</span
-                  ><b>7000</b> <span>Token</span><b>{{ localServerToken }}</b>
+                  ><b>7000</b>
                 </div>
                 <details class="server-guide-advanced">
                   <summary>{{ t('server.guide.customLocal') }}</summary>
@@ -561,8 +561,9 @@ const formError = ref('')
 const tokenVisible = ref(false)
 
 const form = reactive<ServerFormData>({ ...defaultServerForm, tags: [] })
-const localServerToken = 'gate-rc-token'
-const localServerCommand = 'npm run dev:server'
+// 发布版本不在 UI 中内置或展示任何可直接使用的服务器口令。
+const localServerCommand =
+  'npm run dev:server:local -- -Token "replace-with-a-long-random-token"'
 const customLocalServerCommand =
   'npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"'
 const remoteServerCommand =
@@ -585,7 +586,8 @@ const connectionPresets = computed(() => [
     kind: 'personal' as ServerKind,
     region: 'local',
     name: t('server.presets.localName'),
-    token: localServerToken,
+    // 本机预设也要求用户输入服务端真实口令，避免发布包携带共享凭据。
+    token: '',
   },
   {
     id: 'vps',

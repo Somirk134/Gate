@@ -1,6 +1,6 @@
 import type { App } from 'vue'
 import type { EventBus } from '@/events/EventBus'
-import type { LoggerService } from '@/logger/LoggerService'
+import { redactText, type LoggerService } from '@/logger/LoggerService'
 import type { NotificationService } from '@/services/NotificationService'
 import type { AppEventMap } from '@/types/application'
 import type { Disposable } from '@/utils/disposable'
@@ -69,11 +69,12 @@ export class GlobalErrorHandler implements ErrorHandler {
 
   private toMessage(error: unknown) {
     if (error instanceof Error) {
-      return error.message
+      // 通知与日志使用同一脱敏规则，避免异常文本在 UI 中暴露凭据。
+      return redactText(error.message)
     }
 
     if (typeof error === 'string') {
-      return error
+      return redactText(error)
     }
 
     return this.t('errors.application.unknown')

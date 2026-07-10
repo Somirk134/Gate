@@ -1806,7 +1806,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       helperDesc:
         'Start the server program first, then enter its address and Token here so the client can create tunnels.',
       localNote:
-        'Local testing will use the default Token: {token}. Use your own Token for production deployments.',
+        'Use the Token configured on your Gate server. Production deployments should use a long random value.',
       name: 'Name',
       namePlaceholder: 'Example: My VPS / Local Test Server',
       nameHint: 'This name is only for you and does not affect the connection.',
@@ -1820,7 +1820,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       hideToken: 'Hide Token',
       showToken: 'Show Token',
       tokenNote:
-        'For local testing, use the default Token: {token}. For production, replace it with your own long random value through GATE_AUTH_TOKEN.',
+        'Enter the exact GATE_AUTH_TOKEN configured on the server. Never share it in logs or screenshots.',
       type: 'Type',
       typeHint: 'Only affects categorization. It does not change the connection protocol.',
       region: 'Region',

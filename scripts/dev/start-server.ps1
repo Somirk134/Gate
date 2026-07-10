@@ -23,7 +23,8 @@ $env:GATE_AUTH_TOKEN = $Token
 Write-Host ""
 Write-Host "Gate Server local startup"
 Write-Host "  Address : $Addr"
-Write-Host "  Token   : $Token"
+# 终端输出不得回显实际口令，避免复制日志或截图时泄露凭据。
+Write-Host "  Token   : [configured]"
 Write-Host "  Mode    : $(if ($Release) { 'release' } else { 'debug' })"
 Write-Host ""
 Write-Host "Keep this terminal open. Press Ctrl+C to stop the server."

@@ -4,6 +4,7 @@ use serde_json::{json, Value};
 use std::{env, fs, path::PathBuf};
 
 use crate::commands::error::{AppError, CommandResult};
+use crate::utils::app_data_dir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateRecord {
@@ -266,22 +267,8 @@ fn certificate_store_root() -> PathBuf {
 }
 
 fn runtime_data_dir() -> PathBuf {
-    if let Some(appdata) = env::var_os("APPDATA") {
-        return PathBuf::from(appdata).join("Gate");
-    }
-
-    if let Some(xdg_data_home) = env::var_os("XDG_DATA_HOME") {
-        return PathBuf::from(xdg_data_home).join("Gate");
-    }
-
-    if let Some(home) = env::var_os("HOME") {
-        return PathBuf::from(home)
-            .join(".local")
-            .join("share")
-            .join("Gate");
-    }
-
-    PathBuf::from(".gate")
+    // 证书目录必须与应用数据目录保持同一跨平台规则。
+    app_data_dir().unwrap_or_else(|| PathBuf::from(".gate"))
 }
 
 fn normalize_domain(domain: &str) -> CommandResult<String> {
