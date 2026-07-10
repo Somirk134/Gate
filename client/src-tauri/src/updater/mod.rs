@@ -28,29 +28,116 @@ pub struct UpdatePayload {
     pub installable: bool,
 }
 
-/// 向 GitHub Releases 查询最新版本。
-/// channel 参数仅作预留（当前统一走 latest.json，不区分 channel）。
+/// GitHub Releases API 返回的最新 Release 结构。
+#[derive(Debug, Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    name: Option<String>,
+    body: Option<String>,
+    published_at: Option<String>,
+    html_url: String,
+}
+
+fn release_page_url(app: &AppHandle) -> String {
+    app.config()
+        .bundle
+        .homepage
+        .clone()
+        .map(|home| format!("{}/releases", home.trim_end_matches('/')))
+        .unwrap_or_else(|| "https://github.com/Somirk134/Gate/releases".into())
+}
+
+/// 从 homepage URL 提取 GitHub API 路径。
+fn github_api_url(homepage: &str) -> String {
+    // https://github.com/Somirk134/Gate → https://api.github.com/repos/Somirk134/Gate/releases/latest
+    if let Some(rest) = homepage.strip_prefix("https://github.com") {
+        format!("https://api.github.com{rest}/releases/latest")
+    } else if let Some(rest) = homepage.strip_prefix("http://github.com") {
+        format!("https://api.github.com{rest}/releases/latest")
+    } else {
+        "https://api.github.com/repos/Somirk134/Gate/releases/latest".into()
+    }
+}
+
+/// 简易语义版本比较：返回正数表示 a > b（a 更新），0 表示相等。
+fn compare_versions(a: &str, b: &str) -> i32 {
+    let pa: Vec<u32> = a.split('.').map(|s| s.parse().unwrap_or(0)).collect();
+    let pb: Vec<u32> = b.split('.').map(|s| s.parse().unwrap_or(0)).collect();
+    let len = pa.len().max(pb.len());
+    for i in 0..len {
+        let va = pa.get(i).copied().unwrap_or(0);
+        let vb = pb.get(i).copied().unwrap_or(0);
+        if va != vb {
+            return va.cmp(&vb) as i32;
+        }
+    }
+    0
+}
+
+/// 通过 GitHub REST API 直接查询最新 Release 版本（Tauri updater 不可用时的回退方案）。
+async fn check_via_github_api(
+    app: &AppHandle,
+    current_version: &str,
+) -> Result<UpdatePayload, String> {
+    let releases_url = release_page_url(app);
+    let api_url = github_api_url(&releases_url.replace("/releases", ""));
+
+    let client = reqwest::Client::builder()
+        .user_agent("gate-client-updater")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let release: GithubRelease = client
+        .get(&api_url)
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("网络请求失败：{e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("解析响应失败：{e}"))?;
+
+    let latest_version = release.tag_name.trim_start_matches('v').to_string();
+    let is_newer = compare_versions(&latest_version, current_version) > 0;
+
+    Ok(if is_newer {
+        UpdatePayload {
+            available: true,
+            current_version: current_version.into(),
+            version: Some(latest_version),
+            notes: release.body,
+            date: release.published_at,
+            url: releases_url,
+            installable: false, // 通过 API 查询无法获取签名安装包
+        }
+    } else {
+        UpdatePayload {
+            available: false,
+            current_version: current_version.into(),
+            version: Some(latest_version),
+            notes: None,
+            date: None,
+            url: releases_url,
+            installable: false,
+        }
+    })
+}
+
+/// 向 GitHub Releases / Tauri updater 查询最新版本。
+/// 优先使用 Tauri 内置 updater 插件；若未配置则回退到 GitHub REST API。
 #[tauri::command]
 pub async fn check_for_updates(
     app: AppHandle,
     #[allow(unused_variables)] channel: Option<String>,
 ) -> Result<UpdatePayload, String> {
     let current_version = app.package_info().version.to_string();
-    let releases_url = release_page_url(&app);
 
+    // 尝试 Tauri 内置 Updater 插件
     let updater = match app.updater() {
         Ok(u) => u,
-        // 未配置 updater（无 pubkey/endpoints）时降级为「禁用」分支。
         Err(_) => {
-            return Ok(UpdatePayload {
-                available: false,
-                current_version,
-                version: None,
-                notes: None,
-                date: None,
-                url: releases_url,
-                installable: false,
-            });
+            // Updater 未配置时回退到 GitHub API 直接查询
+            return check_via_github_api(&app, &current_version).await;
         }
     };
 
@@ -60,7 +147,6 @@ pub async fn check_for_updates(
             let notes = update.body.clone();
             let date = update.date.map(|d| d.to_string());
 
-            // 缓存更新对象（含空字节缓冲），供后续 download / install 命令使用。锁仅短暂持有。
             app.state::<UpdateState>()
                 .0
                 .lock()
@@ -73,7 +159,7 @@ pub async fn check_for_updates(
                 version: Some(version),
                 notes,
                 date,
-                url: releases_url,
+                url: release_page_url(&app),
                 installable: true,
             })
         }
@@ -83,17 +169,20 @@ pub async fn check_for_updates(
             version: None,
             notes: None,
             date: None,
-            url: releases_url,
+            url: release_page_url(&app),
             installable: false,
         }),
-        Err(e) => Err(e.to_string()),
+        Err(e) => {
+            // Updater 自身检查失败时也尝试 GitHub API 回退
+            tracing::warn!("Tauri updater check 失败，尝试 GitHub API 回退：{e}");
+            check_via_github_api(&app, &current_version).await
+        }
     }
 }
 
 /// 下载更新包到本地（不立即安装）。
 #[tauri::command]
 pub async fn download_update(app: AppHandle) -> Result<(), String> {
-    // take 把 (Update, bytes) 移出 Mutex 并立即释放锁，避免跨 await 持有 MutexGuard。
     let (update, _) = {
         let state = app.state::<UpdateState>();
         let mut guard = state.0.lock().unwrap();
@@ -106,7 +195,6 @@ pub async fn download_update(app: AppHandle) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    // 下载完成后放回 state，供 install_update 复用同一对象与字节。
     {
         let state = app.state::<UpdateState>();
         let mut guard = state.0.lock().unwrap();
@@ -126,13 +214,4 @@ pub async fn install_update(app: AppHandle) -> Result<(), String> {
     .ok_or_else(|| "NO_PENDING_UPDATE".to_string())?;
 
     update.install(bytes).map_err(|e| e.to_string())
-}
-
-fn release_page_url(app: &AppHandle) -> String {
-    app.config()
-        .bundle
-        .homepage
-        .clone()
-        .map(|home| format!("{}/releases", home.trim_end_matches('/')))
-        .unwrap_or_else(|| "https://github.com/Somirk134/Gate/releases".into())
 }
