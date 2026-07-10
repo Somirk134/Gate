@@ -1,12 +1,12 @@
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
-/// 跨命令保存检查到的更新对象，供「下载」与「安装」两步复用。
+/// 跨命令保存检查到的更新对象与已下载字节，供「下载」与「安装」两步复用。
 /// Tauri 的 Update 对象不可跨 IPC 序列化，因此缓存在后端内存中。
-pub struct UpdateState(pub Mutex<Option<Update>>);
+pub struct UpdateState(pub Mutex<Option<(Update, Vec<u8>)>>);
 
 impl Default for UpdateState {
     fn default() -> Self {
@@ -57,12 +57,15 @@ pub async fn check_for_updates(
     match updater.check().await {
         Ok(Some(update)) => {
             let version = update.version.clone();
-            let notes = update.notes.clone();
+            let notes = update.body.clone();
             let date = update.date.map(|d| d.to_string());
-            let url = update.url.clone();
 
-            // 缓存更新对象，供后续 download / install 命令使用。锁仅短暂持有。
-            app.state::<UpdateState>().0.lock().unwrap().replace(update);
+            // 缓存更新对象（含空字节缓冲），供后续 download / install 命令使用。锁仅短暂持有。
+            app.state::<UpdateState>()
+                .0
+                .lock()
+                .unwrap()
+                .replace((update, Vec::new()));
 
             Ok(UpdatePayload {
                 available: true,
@@ -70,7 +73,7 @@ pub async fn check_for_updates(
                 version: Some(version),
                 notes,
                 date,
-                url,
+                url: releases_url,
                 installable: true,
             })
         }
@@ -90,30 +93,39 @@ pub async fn check_for_updates(
 /// 下载更新包到本地（不立即安装）。
 #[tauri::command]
 pub async fn download_update(app: AppHandle) -> Result<(), String> {
-    // take 把 Update 移出 Mutex 并立即释放锁，避免跨 await 持有 MutexGuard。
-    let update = {
-        let mut guard = app.state::<UpdateState>().0.lock().unwrap();
+    // take 把 (Update, bytes) 移出 Mutex 并立即释放锁，避免跨 await 持有 MutexGuard。
+    let (update, _) = {
+        let state = app.state::<UpdateState>();
+        let mut guard = state.0.lock().unwrap();
         guard.take()
     }
     .ok_or_else(|| "NO_PENDING_UPDATE".to_string())?;
 
-    let result = update.download(|_chunk, _total| {}).await.map_err(|e| e.to_string());
+    let bytes = update
+        .download(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| e.to_string())?;
 
-    // 下载完成后放回 state，供 install_update 复用同一对象。
-    app.state::<UpdateState>().0.lock().unwrap().replace(update);
-    result
+    // 下载完成后放回 state，供 install_update 复用同一对象与字节。
+    {
+        let state = app.state::<UpdateState>();
+        let mut guard = state.0.lock().unwrap();
+        guard.replace((update, bytes));
+    }
+    Ok(())
 }
 
 /// 安装已下载的更新包并重启应用。
 #[tauri::command]
 pub async fn install_update(app: AppHandle) -> Result<(), String> {
-    let update = {
-        let mut guard = app.state::<UpdateState>().0.lock().unwrap();
+    let (update, bytes) = {
+        let state = app.state::<UpdateState>();
+        let mut guard = state.0.lock().unwrap();
         guard.take()
     }
     .ok_or_else(|| "NO_PENDING_UPDATE".to_string())?;
 
-    update.install().map_err(|e| e.to_string())
+    update.install(bytes).map_err(|e| e.to_string())
 }
 
 fn release_page_url(app: &AppHandle) -> String {
