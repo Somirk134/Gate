@@ -178,7 +178,7 @@ jobs:
         run: |
           mkdir -p updater
           i=0
-          for f in $(find client/src-tauri/target/${{ matrix.target }}/release/bundle -name "latest.json" 2>/dev/null || true); do
+          for f in $(find target/${{ matrix.target }}/release/bundle client/src-tauri/target/${{ matrix.target }}/release/bundle -name "latest.json" 2>/dev/null || true); do
             cp "$f" "updater/latest-${{ matrix.name }}-$i.json"
             i=$((i + 1))
           done
@@ -203,6 +203,9 @@ jobs:
     needs: desktop
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download desktop packages
         uses: actions/download-artifact@v4
         with:
@@ -219,7 +222,7 @@ jobs:
       - name: Merge updater manifests
         run: node scripts/merge-updater-manifests.mjs updater dist/latest.json
 
-      - name: Publish draft release
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -228,4 +231,3 @@ jobs:
           generate_release_notes: true
           files: |
             dist/**
-            dist/latest.json
