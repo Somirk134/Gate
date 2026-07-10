@@ -4335,6 +4335,7 @@ mod tests {
         let runtime = ClientRuntimeState {
             storage_path,
             domain_repository: None,
+            server_connections: Mutex::new(BTreeMap::new()),
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
         };
@@ -4368,6 +4369,7 @@ mod tests {
         let now = Utc::now().timestamp_millis();
         TunnelRecord {
             id: Uuid::new_v4().to_string(),
+            server_id: None,
             name: "local-test".to_string(),
             protocol: protocol.to_string(),
             status: "stopped".to_string(),
