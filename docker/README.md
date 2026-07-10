@@ -7,16 +7,46 @@ This directory contains Docker assets for the Gate server.
 | File | Purpose |
 | --- | --- |
 | `Dockerfile.server` | Multi-stage server image |
-| `docker-compose.yml` | Local self-hosted deployment template |
+| `docker-compose.yml` | Recommended Linux host-network deployment template |
+| `docker-compose.bridge.yml` | Bridge-network fallback for Docker Desktop or fixed port ranges |
+| `docker-compose.release.yml` | Host-network template for users pulling a published image |
 
-## Run
+## Recommended run mode
+
+Gate listens on tunnel ports dynamically. On Linux servers, use host networking so operators only need to open the Gate control port and the selected tunnel ports in the firewall/security group.
 
 ```bash
-GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
-docker compose -f docker/docker-compose.yml up -d
+GATE_AUTH_TOKEN=replace-me \
+  docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-The Compose template maps `${GATE_PORT:-5800}` on the host to container port `5800`.
+Required firewall/security-group ports:
+
+- `5800/tcp` for desktop client connections.
+- Any tunnel `remotePort` selected by users.
+
+
+## Published image template
+
+After publishing the image to Docker Hub, users can run without source code:
+
+```bash
+GATE_AUTH_TOKEN=replace-me \
+  docker compose -f docker/docker-compose.release.yml up -d
+```
+
+The default image is `qwe1235/gate-server:0.9.0`. Override it with `GATE_SERVER_IMAGE` if needed.
+
+## Bridge fallback
+
+```bash
+GATE_AUTH_TOKEN=replace-me \
+GATE_PORT=5800 \
+GATE_TUNNEL_PORT_RANGE=18080-18100 \
+  docker compose -f docker/docker-compose.bridge.yml up -d --build
+```
+
+In bridge mode, mapped tunnel ports must be declared before use.
 
 ## Build
 
@@ -28,5 +58,6 @@ docker build -f docker/Dockerfile.server -t gate-server:local .
 
 - Replace development defaults before production use.
 - Store secrets outside Compose files.
+- Use Linux host networking when dynamic tunnel ports are required.
 - Put TLS at a reverse proxy or native TLS endpoint.
 - Pin image tags when official releases are published.

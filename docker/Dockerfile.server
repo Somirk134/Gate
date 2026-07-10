@@ -20,11 +20,13 @@ WORKDIR /var/lib/gate
 ENV GATE_ENV=production
 ENV GATE_SERVER_ADDR=0.0.0.0:5800
 ENV GATE_AUTH_TOKEN=change-me
+ENV GATE_TUNNEL_BIND_ADDR=0.0.0.0
 ENV GATE_DATA_DIR=/var/lib/gate
 ENV GATE_CONFIG=/etc/gate/gate.toml
 ENV GATE_CERT_DIR=/var/lib/gate/certificates
 ENV GATE_LOG=info
 
+# 仅声明控制端口；Linux host 网络部署时，隧道端口由 Gate 运行时动态监听。
 EXPOSE 5800
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

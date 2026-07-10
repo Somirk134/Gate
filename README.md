@@ -108,14 +108,14 @@ Build locally:
 docker build -f docker/Dockerfile.server -t gate-server:local .
 ```
 
-Run with Docker Compose:
+Run with Docker Compose on a Linux server:
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token GATE_PORT=5800 \
-docker compose up -d
+GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+docker compose up -d --build
 ```
 
-The container listens on `0.0.0.0:5800` by default and exposes `${GATE_PORT:-5800}` on the host.
+The default Compose template uses Docker host networking. Open `5800/tcp` for desktop client connections and open each tunnel `remotePort` that should be publicly reachable. A bridge-network fallback is available at `docker/docker-compose.bridge.yml`.
 
 See [Docker documentation](docs/user/docker.md) and [Deployment documentation](docs/user/deployment.md).
 

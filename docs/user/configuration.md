@@ -8,7 +8,7 @@ Gate v0.9 keeps runtime configuration small and explicit.
 | --- | --- | --- |
 | `GATE_SERVER_ADDR` | `127.0.0.1:7000` in source server bootstrap | Server bind address. Docker sets `0.0.0.0:5800`. |
 | `GATE_AUTH_TOKEN` | `gate-alpha-token` for local source runs | Shared token used by clients. Replace it outside local development. |
-| `GATE_TUNNEL_BIND_ADDR` | Runtime default | Optional bind address for tunnel listeners. |
+| `GATE_TUNNEL_BIND_ADDR` | `0.0.0.0` in Docker | Optional bind address for dynamic tunnel listeners. Use `0.0.0.0` for public server deployments. |
 | `GATE_HEARTBEAT_TIMEOUT_MS` | Runtime default | Optional heartbeat timeout override. |
 | `GATE_CERT_DIR` | Deployment-specific | Certificate storage directory. |
 | `GATE_CERTIFICATE_STORE` | Deployment-specific | Optional certificate store selector/path. |

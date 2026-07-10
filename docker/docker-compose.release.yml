@@ -1,15 +1,12 @@
 services:
   gate-server:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.server
-    image: gate-server:local
+    image: ${GATE_SERVER_IMAGE:-qwe1235/gate-server:0.9.0}
     network_mode: host
     restart: unless-stopped
     environment:
       GATE_ENV: production
       GATE_SERVER_ADDR: "0.0.0.0:${GATE_PORT:-5800}"
-      GATE_AUTH_TOKEN: ${GATE_AUTH_TOKEN:-change-me}
+      GATE_AUTH_TOKEN: ${GATE_AUTH_TOKEN:?GATE_AUTH_TOKEN is required}
       GATE_TUNNEL_BIND_ADDR: 0.0.0.0
       GATE_LOG: info
       GATE_DATA_DIR: /var/lib/gate

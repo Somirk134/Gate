@@ -108,14 +108,14 @@ npm run dev:desktop
 docker build -f docker/Dockerfile.server -t gate-server:local .
 ```
 
-使用 Docker Compose 运行：
+使用 Docker Compose 在 Linux 服务器运行：
 
 ```bash
-GATE_AUTH_TOKEN=replace-with-a-long-random-token GATE_PORT=5800 \
-docker compose up -d
+GATE_AUTH_TOKEN=replace-with-a-long-random-token \
+docker compose up -d --build
 ```
 
-容器默认监听 `0.0.0.0:5800`，并将主机端口 `${GATE_PORT:-5800}` 映射到容器。
+默认 Compose 模板使用 Docker host 网络。请在服务器安全组/防火墙开放 `5800/tcp` 供桌面客户端连接；用户创建隧道时使用哪个 `remotePort`，就额外开放哪个端口。Bridge 网络兼容模板位于 `docker/docker-compose.bridge.yml`。
 
 更多信息见 [Docker 文档](docs/user/docker.md) 和 [部署文档](docs/user/deployment.md)。
 
