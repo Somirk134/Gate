@@ -250,6 +250,8 @@ const canInstallUpdate = computed(() => {
 })
 const canOpenReleasePage = computed(() => {
   const info = updateInfo.value
+  // disabled 状态下主按钮已承担“打开下载页”，不再额外展示此链接
+  if (updateStatus.value === 'disabled') return false
   return Boolean(info?.url && (info.available || info.source === 'disabled') && !info.installable)
 })
 const releasePageUrl = computed(() => updateInfo.value?.url ?? `${GITHUB_REPOSITORY_URL}/releases`)
