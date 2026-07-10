@@ -104,5 +104,14 @@ export interface UpdateCapabilities {
   check: () => Promise<boolean>
   download: () => Promise<void>
   install: () => Promise<void>
-  status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
+  status:
+    | 'disabled'
+    | 'idle'
+    | 'checking'
+    | 'available'
+    | 'downloading'
+    | 'ready'
+    | 'installing'
+    | 'installed'
+    | 'error'
 }

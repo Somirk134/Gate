@@ -176,6 +176,20 @@
                   </div>
                 </div>
 
+                <div class="deploy-command-panel">
+                  <header>
+                    <div>
+                      <p>Docker</p>
+                      <strong>{{ t('welcome.education.dockerQuickStartTitle') }}</strong>
+                    </div>
+                    <button type="button" @click="copyDeployCommand">
+                      <GIcon name="copy" :size="14" />
+                      {{ t('welcome.actions.copy') }}
+                    </button>
+                  </header>
+                  <pre><code>{{ dockerDeployCommand }}</code></pre>
+                </div>
+
                 <div class="education-actions">
                   <GButton
                     variant="secondary"
@@ -727,7 +741,7 @@ const dockerDeployCommand = computed(
       'docker run -d --name gate-server --restart unless-stopped \\',
       `  -e GATE_TOKEN="${answers.serverToken.trim() || 'your-token'}" \\`,
       `  -p ${answers.serverPort || 7000}:${answers.serverPort || 7000} \\`,
-      '  ghcr.io/gate/gate-server:beta',
+      '  ghcr.io/somirk134/gate-server:v0.9.0',
     ].join('\n'),
 )
 const activeDeployCommand = computed(() =>

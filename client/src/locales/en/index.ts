@@ -113,6 +113,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       reservedDeployTitle: 'One-click deployment reserved',
       reservedDeployBody:
         'A later version will let you pick a cloud provider here and deploy Gate Server automatically.',
+      dockerQuickStartTitle: 'Use Docker directly after your server is ready',
     },
     fields: {
       serverAddress: 'Server address',
@@ -2947,7 +2948,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     eyebrow: 'Desktop tunnel workspace',
     tagline:
       'A self-hosted tunnel client for development and operations. Gate brings the Rust server, Tauri desktop client, monitoring views, and Docker deployment templates together so teams can ship through an entrypoint they control.',
-    heroBadge: 'v{version} Alpha',
+    heroBadge: 'v{version} RC',
     linksLabel: 'Gate links',
     authorCardLabel: 'Gate authors and maintainers',
     authorName: 'Gate Contributors',
@@ -2964,7 +2965,8 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       installAndRestart: 'Install and Restart',
       openRelease: 'Open Release',
       unknownVersion: 'new version',
-      statusIdle: 'Checks the built-in updater channel and GitHub Releases for the latest version.',
+      statusIdle: 'This RC build does not enable automatic updates. Use Releases for manual downloads.',
+      statusDisabled: 'v0.9 RC has no real update server configured, so automatic updates are disabled.',
       statusChecking: 'Connecting to the update channel...',
       statusDownloading: 'Downloading the update package. Keep Gate open.',
       statusReady: 'The update is downloaded and ready to install.',
@@ -2974,6 +2976,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       statusLatest: 'You are already on the latest version.',
       statusFailed: 'Update check failed. Please try again later.',
       stateIdle: 'Ready to check',
+      stateDisabled: 'Automatic updates disabled',
       stateChecking: 'Checking for updates',
       stateDownloading: 'Downloading update',
       stateReady: 'Update ready',
@@ -2983,6 +2986,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       stateLatest: 'Latest version',
       stateFailed: 'Update check failed',
       metaCurrent: 'Current version: v{version}',
+      metaDisabled: 'Release channel: {channel}. Installers are distributed through real Releases only.',
       metaChecking: 'Comparing your version with the release channel.',
       metaDownloading: 'Keep Gate open while the update downloads.',
       metaReady: 'The package is ready to install.',
@@ -2999,13 +3003,14 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     versionLabel: 'Version',
     buildLabel: 'Build',
     channelLabel: 'Channel',
-    channelValue: 'Alpha',
+    channelValue: 'RC',
     licenseLabel: 'License',
     stat: {
       build: 'Build version',
       engine: 'Core engine',
       channel: 'Release channel',
-      alpha: 'Alpha preview',
+      alpha: 'RC candidate',
+      rc: 'RC candidate',
       license: 'Open-source license',
     },
     summaryKicker: 'Positioning',
@@ -3015,7 +3020,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     capabilitiesKicker: 'Capabilities',
     capabilitiesTitle: 'Core capabilities',
     capabilitiesSubtitle: 'Controlled, inspectable, and desktop-first',
-    alphaBadge: 'Pre-1.0 Alpha',
+    alphaBadge: 'v0.9 Release Candidate',
     capability: {
       selfHosted: {
         title: 'Self-hosted entrypoint',
@@ -3038,10 +3043,10 @@ const messages: LocaleMessages<Record<string, unknown>> = {
           'MIT licensed with a clear code structure for security audits, extensions, and deeper internal team customization.',
       },
     },
-    releaseKicker: 'v0.1.0',
+    releaseKicker: 'v0.9.0',
     releaseDate: 'July 2026',
     changelog: 'Changelog',
-    releaseTitle: 'Initial alpha release',
+    releaseTitle: 'Release Candidate',
     releaseNote: {
       clientShell:
         'Shipped the desktop client shell with sidebar, header, status bar, and command entrypoints.',
@@ -3049,12 +3054,12 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         'Laid out project, tunnel, server, and log views as the interface foundation for runtime integration.',
       monitoring:
         'Added first-pass monitoring, diagnostics, onboarding, and settings interaction structures.',
-      docs: 'Updated README, deployment notes, protocol docs, and runtime docs to clarify the pre-1.0 alpha boundary.',
+      docs: 'Updated installation, deployment, release, and validation notes for the v0.9 RC distribution boundary.',
     },
     stageLabel: 'Current stage',
-    stageValue: 'Pre-1.0 Alpha',
+    stageValue: 'v0.9 Release Candidate',
     stageDescription:
-      'Core protocol and runtime capabilities are still evolving and being refactored. This release is best suited for early testing, feature integration, and internal team trials, not core production use.',
+      'Core features are in release-candidate state. This phase focuses on desktop installers, first-launch experience, release validation, and distribution.',
     roadmap: 'View roadmap',
     creditsKicker: 'Build and license',
     acknowledgements: 'Acknowledgements',

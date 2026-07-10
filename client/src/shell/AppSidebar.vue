@@ -64,7 +64,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLayoutStore } from '@stores'
 import GIcon from '@components/icons/GIcon.vue'
-import { GITHUB_REPOSITORY_URL } from '@/constants'
+import { APP_VERSION, GITHUB_REPOSITORY_URL } from '@/constants'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
 
 const router = useRouter()
@@ -128,7 +128,7 @@ const navItems = computed(() => [
   { path: '/about', label: t('nav.about'), icon: 'about', shortcut: '', tourTarget: 'about' },
 ])
 
-const version = '0.1.0'
+const version = APP_VERSION
 
 function isActive(path: string) {
   if (path === '/') return route.path === '/'

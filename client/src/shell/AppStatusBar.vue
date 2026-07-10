@@ -28,8 +28,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
+import { APP_VERSION } from '@/constants'
 
-const version = '0.1.0'
+const version = APP_VERSION
 const { t, locale } = useI18n()
 const statusLabelKey = ref('common.ready')
 const statusClass = ref('online')

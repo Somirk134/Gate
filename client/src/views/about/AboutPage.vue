@@ -218,6 +218,9 @@ import { useFeedback } from '@composables/useFeedback'
 import authorAvatarUrl from '@repo-assets/icon/avatar.jpg'
 import { useService } from '@/composables/useService'
 import {
+  APP_BUILD_NUMBER,
+  APP_RELEASE_CHANNEL,
+  APP_VERSION,
   GITEE_REPOSITORY_URL,
   GITHUB_LICENSE_URL,
   GITHUB_REPOSITORY_URL,
@@ -225,9 +228,6 @@ import {
 } from '@/constants'
 import { UPDATE_SERVICE } from '@/services/tokens'
 import type { UpdateInfo, UpdateStatus } from '@/updates'
-
-const APP_VERSION = '0.1.0'
-const BUILD_NUMBER = '2026.0704.1'
 
 const { t } = useI18n()
 const { toast } = useFeedback()
@@ -250,16 +250,18 @@ const canInstallUpdate = computed(() => {
 })
 const canOpenReleasePage = computed(() => {
   const info = updateInfo.value
-  return Boolean(info?.available && !info.installable && info.url)
+  return Boolean(info?.url && (info.available || info.source === 'disabled') && !info.installable)
 })
 const releasePageUrl = computed(() => updateInfo.value?.url ?? `${GITHUB_REPOSITORY_URL}/releases`)
 const updateActionIcon = computed(() => {
   if (isUpdateBusy.value) return 'loader'
+  if (updateStatus.value === 'disabled') return 'external-link'
   if (updateInfo.value?.available) return 'check-circle'
   return 'refresh'
 })
 const updateStateIcon = computed(() => {
   if (isUpdateBusy.value) return 'loader'
+  if (updateStatus.value === 'disabled') return 'shield-check'
   if (updateStatus.value === 'error') return 'alert-circle'
   if (['ready', 'installed'].includes(updateStatus.value)) return 'check-circle'
   if (updateInfo.value?.available) return 'sparkles'
@@ -270,9 +272,11 @@ const updateActionLabel = computed(() => {
   if (updateStatus.value === 'checking') return t('about.update.checking')
   if (updateStatus.value === 'downloading') return t('about.update.downloading')
   if (updateStatus.value === 'installing') return t('about.update.installing')
+  if (updateStatus.value === 'disabled') return t('about.update.openRelease')
   return t('about.update.check')
 })
 const updateStateTitle = computed(() => {
+  if (updateStatus.value === 'disabled') return t('about.update.stateDisabled')
   if (updateStatus.value === 'checking') return t('about.update.stateChecking')
   if (updateStatus.value === 'downloading') return t('about.update.stateDownloading')
   if (updateStatus.value === 'ready') return t('about.update.stateReady')
@@ -284,6 +288,7 @@ const updateStateTitle = computed(() => {
   return t('about.update.stateIdle')
 })
 const updateStatusTone = computed(() => {
+  if (updateStatus.value === 'disabled') return 'muted'
   if (updateStatus.value === 'error') return 'error'
   if (['ready', 'installed'].includes(updateStatus.value) || updateInfo.value?.available) {
     return 'success'
@@ -293,6 +298,7 @@ const updateStatusTone = computed(() => {
 })
 const updateStatusText = computed(() => {
   if (updateError.value) return updateError.value
+  if (updateStatus.value === 'disabled') return t('about.update.statusDisabled')
   if (updateStatus.value === 'checking') return t('about.update.statusChecking')
   if (updateStatus.value === 'downloading') return t('about.update.statusDownloading')
   if (updateStatus.value === 'ready') return t('about.update.statusReady')
@@ -313,6 +319,9 @@ const updateStatusText = computed(() => {
   return t('about.update.statusIdle')
 })
 const updateMetaText = computed(() => {
+  if (updateStatus.value === 'disabled') {
+    return t('about.update.metaDisabled', { channel: APP_RELEASE_CHANNEL })
+  }
   if (updateStatus.value === 'checking') return t('about.update.metaChecking')
   if (updateStatus.value === 'downloading') return t('about.update.metaDownloading')
   if (updateStatus.value === 'ready') return t('about.update.metaReady')
@@ -373,7 +382,7 @@ const authorLinks = computed(() => [
 const statItems = computed(() => [
   {
     label: t('about.stat.build'),
-    value: BUILD_NUMBER,
+    value: APP_BUILD_NUMBER,
     icon: 'terminal',
   },
   {
@@ -383,7 +392,7 @@ const statItems = computed(() => [
   },
   {
     label: t('about.stat.channel'),
-    value: t('about.stat.alpha'),
+    value: t('about.stat.rc'),
     icon: 'rocket',
   },
   {
@@ -429,10 +438,15 @@ const releaseNotes = computed(() => [
 
 async function handleCheckUpdate() {
   updateError.value = ''
-  // 点击后立即同步状态，确保按钮、进度条和状态图标在网络请求期间有可见反馈。
-  updateStatus.value = 'checking'
 
   try {
+    if (updateService.getStatus() === 'disabled') {
+      updateInfo.value = await updateService.check()
+      window.open(releasePageUrl.value, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    updateStatus.value = 'checking'
     updateInfo.value = await updateService.check()
     if (updateInfo.value.available) {
       toast.success(

@@ -1,4 +1,7 @@
 export const APP_NAME = 'Gate'
+export const APP_VERSION = '0.9.0'
+export const APP_BUILD_NUMBER = '2026.0710.1'
+export const APP_RELEASE_CHANNEL = 'rc'
 export const API_BASE_URL = '/api/v1'
 
 export const GITHUB_REPOSITORY_URL = 'https://github.com/Somirk134/Gate'

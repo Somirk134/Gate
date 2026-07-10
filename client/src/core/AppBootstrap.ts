@@ -11,6 +11,7 @@ import type { AppContext } from './AppContext'
 import { AppLifecycle } from './lifecycle'
 import { registerApplicationInitializers } from './registerApplicationInitializers'
 import { registerApplicationServices } from './registerApplicationServices'
+import { APP_VERSION } from '@/constants'
 
 export interface AppBootstrapOptions {
   app: App
@@ -53,7 +54,7 @@ export class AppBootstrap {
   private static createEnvironment(environment: Partial<AppEnvironment> = {}): AppEnvironment {
     return {
       name: environment.name ?? 'Gate',
-      version: environment.version ?? '0.1.0',
+      version: environment.version ?? APP_VERSION,
       runtime: environment.runtime ?? 'desktop',
       dev:
         environment.dev ??

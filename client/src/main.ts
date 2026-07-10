@@ -11,6 +11,7 @@ import { designSystemPlugin } from './plugins/designSystem'
 import { APP_CONTEXT_KEY, setApplicationContext } from './providers/appContext'
 import { initAppearancePreferences } from './composables/useAppearancePreferences'
 import { i18n, persistRuntimeLocale, resolveInitialLocale } from './i18n'
+import { APP_VERSION } from './constants'
 
 const app = createApp(App)
 
@@ -26,6 +27,9 @@ const pinia = createPinia()
 const application = await AppBootstrap.create({
   app,
   router,
+  environment: {
+    version: APP_VERSION,
+  },
 })
 
 setApplicationContext(application.context)

@@ -945,7 +945,7 @@
   }
 }
 
-.settings-page.beta-settings {
+.settings-page.rc-settings {
   width: min(100%, var(--content-max-width));
   height: 100%;
   min-height: 0;

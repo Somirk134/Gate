@@ -1,5 +1,5 @@
 <template>
-  <section class="settings-page beta-settings">
+  <section class="settings-page rc-settings">
     <input
       ref="importInput"
       class="settings-import-input"
@@ -201,6 +201,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { save } from '@tauri-apps/plugin-dialog'
 import { TauriIpcClient } from '@/ipc'
 import { backupService, type BackupPreview } from '@/services'
+import { APP_RELEASE_CHANNEL, APP_VERSION } from '@/constants'
 import { useProjectStore } from '@views/projects/store/project'
 import { useServerStore } from '@views/servers'
 import { useTunnelStore } from '@views/tunnels'
@@ -500,14 +501,14 @@ const categories: SettingCategory[] = [
             labelKey: 'about.versionLabel',
             descriptionKey: 'settings.polish.about.versionDescription',
             control: 'readonly',
-            value: '0.1.0',
+            value: APP_VERSION,
           },
           {
             key: 'channel',
             labelKey: 'about.channelLabel',
             descriptionKey: 'settings.polish.about.channelDescription',
             control: 'readonly',
-            value: 'Beta',
+            value: APP_RELEASE_CHANNEL,
           },
         ],
       },

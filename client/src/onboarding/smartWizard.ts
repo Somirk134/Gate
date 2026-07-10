@@ -347,7 +347,7 @@ export function createDefaultAnswers(): SmartWizardAnswers {
     serverEnvironment: '',
     serverAddress: '',
     serverPort: 7000,
-    serverToken: 'gate-alpha-token',
+    serverToken: 'gate-rc-token',
     deployMode: 'linux-vps',
     domainMode: '',
     domainName: '',

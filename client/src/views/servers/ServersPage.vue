@@ -561,7 +561,7 @@ const formError = ref('')
 const tokenVisible = ref(false)
 
 const form = reactive<ServerFormData>({ ...defaultServerForm, tags: [] })
-const localServerToken = 'gate-alpha-token'
+const localServerToken = 'gate-rc-token'
 const localServerCommand = 'npm run dev:server'
 const customLocalServerCommand =
   'npm run dev:server:local -- -Addr "127.0.0.1:7001" -Token "replace-with-a-long-random-token"'
