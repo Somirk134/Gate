@@ -1,7 +1,7 @@
 {
   "name": "gate-workspace",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.9.0",
   "scripts": {
     "dev:server": "cargo run -p gate-server",
     "dev:server:release": "cargo run -p gate-server --release",
@@ -9,6 +9,8 @@
     "dev:client": "npm --prefix client run dev",
     "dev:desktop": "npm --prefix client run tauri dev",
     "build:client": "npm --prefix client run build",
-    "check:server": "cargo check -p gate-server"
+    "check:server": "cargo check -p gate-server",
+    "typecheck": "npm --prefix client run typecheck",
+    "build": "npm --prefix client run build"
   }
 }
