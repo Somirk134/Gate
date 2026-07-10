@@ -80,15 +80,6 @@
               <GIcon name="rocket" :size="15" :spin="updateStatus === 'installing'" />
               <span>{{ t('about.update.installAndRestart') }}</span>
             </button>
-            <a
-              v-if="canOpenReleasePage"
-              :href="releasePageUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="about-action about-update-action about-update-action--active">
-              <GIcon name="external-link" :size="15" />
-              <span>{{ t('about.update.openRelease') }}</span>
-            </a>
           </div>
 
           <i v-if="isUpdateBusy" class="about-update__activity" aria-hidden="true" />
@@ -202,6 +193,41 @@
       </aside>
     </section>
 
+    <!-- Sponsor Section -->
+    <section class="about-sponsor">
+      <div class="about-sponsor__heading">
+        <GIcon name="heart" :size="18" />
+        <div>
+          <h2>{{ t('about.sponsorTitle') }}</h2>
+          <p>{{ t('about.sponsorSubtitle') }}</p>
+        </div>
+      </div>
+
+      <div class="about-sponsor__qr-grid">
+        <article class="about-sponsor__qr-card">
+          <div class="about-sponsor__qr-wrapper">
+            <img :src="alipayQrUrl" alt="Alipay QR Code" />
+          </div>
+          <p class="about-sponsor__qr-label">
+            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--alipay">支</span>
+            {{ t('about.sponsorAlipay') }}
+          </p>
+        </article>
+
+        <article class="about-sponsor__qr-card">
+          <div class="about-sponsor__qr-wrapper">
+            <img :src="wechatQrUrl" alt="WeChat QR Code" />
+          </div>
+          <p class="about-sponsor__qr-label">
+            <span class="about-sponsor__qr-icon about-sponsor__qr-icon--wechat">微</span>
+            {{ t('about.sponsorWechat') }}
+          </p>
+        </article>
+      </div>
+
+      <p class="about-sponsor__footnote">{{ t('about.sponsorNote') }}</p>
+    </section>
+
     <footer class="about-footer">
       <p>{{ t('about.copyright', { year: currentYear }) }}</p>
       <p>{{ t('about.builtWith') }}</p>
@@ -216,10 +242,11 @@ import GIcon from '@components/icons/GIcon.vue'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
 import { useFeedback } from '@composables/useFeedback'
 import authorAvatarUrl from '@repo-assets/icon/avatar.jpg'
+import alipayQrUrl from '@repo-assets/icon/sponsor-alipay.jpg'
+import wechatQrUrl from '@repo-assets/icon/sponsor-wechat.png'
 import { useService } from '@/composables/useService'
 import {
   APP_BUILD_NUMBER,
-  APP_RELEASE_CHANNEL,
   APP_VERSION,
   GITEE_REPOSITORY_URL,
   GITHUB_LICENSE_URL,
@@ -248,22 +275,13 @@ const canInstallUpdate = computed(() => {
   const info = updateInfo.value
   return Boolean(info?.available && info.installable && updateStatus.value === 'ready')
 })
-const canOpenReleasePage = computed(() => {
-  const info = updateInfo.value
-  // disabled 状态下主按钮已承担“打开下载页”，不再额外展示此链接
-  if (updateStatus.value === 'disabled') return false
-  return Boolean(info?.url && (info.available || info.source === 'disabled') && !info.installable)
-})
-const releasePageUrl = computed(() => updateInfo.value?.url ?? `${GITHUB_REPOSITORY_URL}/releases`)
 const updateActionIcon = computed(() => {
   if (isUpdateBusy.value) return 'loader'
-  if (updateStatus.value === 'disabled') return 'external-link'
   if (updateInfo.value?.available) return 'check-circle'
   return 'refresh'
 })
 const updateStateIcon = computed(() => {
   if (isUpdateBusy.value) return 'loader'
-  if (updateStatus.value === 'disabled') return 'shield-check'
   if (updateStatus.value === 'error') return 'alert-circle'
   if (['ready', 'installed'].includes(updateStatus.value)) return 'check-circle'
   if (updateInfo.value?.available) return 'sparkles'
@@ -274,11 +292,9 @@ const updateActionLabel = computed(() => {
   if (updateStatus.value === 'checking') return t('about.update.checking')
   if (updateStatus.value === 'downloading') return t('about.update.downloading')
   if (updateStatus.value === 'installing') return t('about.update.installing')
-  if (updateStatus.value === 'disabled') return t('about.update.openRelease')
   return t('about.update.check')
 })
 const updateStateTitle = computed(() => {
-  if (updateStatus.value === 'disabled') return t('about.update.stateDisabled')
   if (updateStatus.value === 'checking') return t('about.update.stateChecking')
   if (updateStatus.value === 'downloading') return t('about.update.stateDownloading')
   if (updateStatus.value === 'ready') return t('about.update.stateReady')
@@ -290,7 +306,6 @@ const updateStateTitle = computed(() => {
   return t('about.update.stateIdle')
 })
 const updateStatusTone = computed(() => {
-  if (updateStatus.value === 'disabled') return 'muted'
   if (updateStatus.value === 'error') return 'error'
   if (['ready', 'installed'].includes(updateStatus.value) || updateInfo.value?.available) {
     return 'success'
@@ -300,7 +315,6 @@ const updateStatusTone = computed(() => {
 })
 const updateStatusText = computed(() => {
   if (updateError.value) return updateError.value
-  if (updateStatus.value === 'disabled') return t('about.update.statusDisabled')
   if (updateStatus.value === 'checking') return t('about.update.statusChecking')
   if (updateStatus.value === 'downloading') return t('about.update.statusDownloading')
   if (updateStatus.value === 'ready') return t('about.update.statusReady')
@@ -321,9 +335,6 @@ const updateStatusText = computed(() => {
   return t('about.update.statusIdle')
 })
 const updateMetaText = computed(() => {
-  if (updateStatus.value === 'disabled') {
-    return t('about.update.metaDisabled', { channel: APP_RELEASE_CHANNEL })
-  }
   if (updateStatus.value === 'checking') return t('about.update.metaChecking')
   if (updateStatus.value === 'downloading') return t('about.update.metaDownloading')
   if (updateStatus.value === 'ready') return t('about.update.metaReady')
@@ -351,7 +362,7 @@ const productLinks = computed(() => [
   },
   {
     label: t('common.website'),
-    href: 'https://gate.dev',
+    href: 'https://somirk134.github.io/gate-website/',
     icon: 'globe',
     primary: false,
   },
@@ -442,12 +453,6 @@ async function handleCheckUpdate() {
   updateError.value = ''
 
   try {
-    if (updateService.getStatus() === 'disabled') {
-      updateInfo.value = await updateService.check()
-      window.open(releasePageUrl.value, '_blank', 'noopener,noreferrer')
-      return
-    }
-
     updateStatus.value = 'checking'
     updateInfo.value = await updateService.check()
     if (updateInfo.value.available) {
@@ -1205,6 +1210,137 @@ button.about-action {
   font-size: var(--text-xs);
 }
 
+/* Sponsor Section Styles */
+.about-sponsor {
+  position: relative;
+  padding: var(--space-6);
+  overflow: hidden;
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(236, 72, 153, 0.08), transparent 50%),
+    linear-gradient(160deg, rgba(251, 113, 133, 0.05), transparent 60%), rgba(24, 26, 32, 0.56);
+}
+
+.about-sponsor__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  color: var(--color-error);
+}
+
+.about-sponsor__heading svg {
+  flex: 0 0 auto;
+  animation: about-sponsor-pulse 2s ease-in-out infinite;
+}
+
+.about-sponsor__heading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.about-sponsor__heading p {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.about-sponsor__qr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.about-sponsor__qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(17, 19, 24, 0.48);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.about-sponsor__qr-card:hover {
+  border-color: rgba(236, 72, 153, 0.28);
+  background: rgba(24, 26, 32, 0.64);
+  transform: translateY(-2px);
+}
+
+.about-sponsor__qr-wrapper {
+  width: 180px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  padding: var(--space-2);
+}
+
+.about-sponsor__qr-wrapper img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.about-sponsor__qr-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.about-sponsor__qr-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.about-sponsor__qr-icon--alipay {
+  background: linear-gradient(135deg, #1677ff, #0958d9);
+}
+
+.about-sponsor__qr-icon--wechat {
+  background: linear-gradient(135deg, #07c160, #06ae56);
+}
+
+.about-sponsor__footnote {
+  max-width: 480px;
+  margin: var(--space-5) auto 0;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+}
+
+@keyframes about-sponsor-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 @media (max-width: 980px) {
   .about-hero-grid,
   .about-release-grid {
@@ -1288,6 +1424,19 @@ button.about-action {
 
   .about-action {
     width: 100%;
+  }
+
+  .about-sponsor {
+    padding: var(--space-4);
+  }
+
+  .about-sponsor__qr-grid {
+    grid-template-columns: 1fr;
+    max-width: 260px;
+  }
+
+  .about-sponsor__qr-wrapper {
+    width: 220px;
   }
 }
 </style>

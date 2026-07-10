@@ -64,25 +64,27 @@
         <GIcon :name="themeStore.isDark ? 'sun' : 'moon'" :size="16" />
       </button>
 
-      <div class="notification-wrap">
+      <div
+        class="notification-wrap"
+        v-click-outside="() => (notificationOpen = false)">
         <button
           class="header-btn"
           type="button"
           :aria-expanded="notificationOpen"
           :title="t('common.notifications')"
-          @click="toggleNotifications">
+          @click.stop="toggleNotifications">
           <GIcon name="bell" :size="16" />
           <span v-if="notificationCount > 0" class="notification-dot" />
         </button>
 
-        <div v-if="notificationOpen" class="notification-popover">
+        <div v-if="notificationOpen" class="notification-popover" @click.stop>
           <div class="notification-popover__header">
             <strong>{{ t('common.notifications') }}</strong>
             <button
               v-if="notificationCount > 0"
               class="notification-clear"
               type="button"
-              @click="notificationStore.clearAll">
+              @click="notificationStore.clearHistory">
               {{ t('common.clear') }}
             </button>
           </div>
@@ -104,7 +106,7 @@
                 class="notification-dismiss"
                 type="button"
                 :title="t('common.closeNotification')"
-                @click="notificationStore.dismiss(item.id)">
+                @click="notificationStore.dismissHistory(item.id)">
                 <GIcon name="close" :size="14" />
               </button>
             </article>
@@ -130,6 +132,23 @@ import { useLayoutStore, useNavigationStore, useNotificationStore, useThemeStore
 import GIcon from '@components/icons/GIcon.vue'
 import LangSwitch from '@components/common/LangSwitch.vue'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+
+// vClickOutside 指令
+const vClickOutside = {
+  mounted(el: HTMLElement, binding: { value: (...args: unknown[]) => void }) {
+    const handler = (event: Event) => {
+      if (!(el as HTMLElement).contains(event.target as Node)) {
+        binding.value(event)
+      }
+    }
+    ;(el as any & { _clickOutsideHandler?: EventListener })._clickOutsideHandler = handler
+    document.addEventListener('mousedown', handler)
+  },
+  unmounted(el: HTMLElement) {
+    const h = (el as any & { _clickOutsideHandler?: EventListener })._clickOutsideHandler
+    if (h) document.removeEventListener('mousedown', h)
+  },
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -186,8 +205,8 @@ const breadcrumbs = computed(() => {
   })
 })
 
-const notificationItems = computed(() => notificationStore.notifications.slice(0, 6))
-const notificationCount = computed(() => notificationStore.notifications.length)
+const notificationItems = computed(() => notificationStore.recentHistory)
+const notificationCount = computed(() => notificationStore.history.length)
 const runtimeStatusLabel = computed(() => t(`dashboard.healthStatus.${healthStatus.value}`))
 const runtimeSummary = computed(
   () =>

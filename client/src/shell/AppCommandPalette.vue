@@ -1,6 +1,11 @@
 <template>
-  <div class="command-palette-overlay">
-    <div class="command-palette">
+  <div
+    ref="overlayRef"
+    class="command-palette-overlay"
+    @click.self="close"
+    @keydown.esc.prevent="close"
+    tabindex="-1">
+    <div class="command-palette" @click.stop>
       <div class="command-palette-input">
         <GIcon name="search" :size="16" />
         <input
@@ -67,11 +72,13 @@ const {
 } = useCommandPalette()
 
 const inputRef = ref<HTMLInputElement | null>(null)
+const overlayRef = ref<HTMLElement | null>(null)
 const { t } = useI18n()
 
 onMounted(() => {
   nextTick(() => {
     inputRef.value?.focus()
+    overlayRef.value?.focus()
   })
 })
 </script>

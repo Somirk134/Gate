@@ -17,13 +17,6 @@
       </div>
     </header>
 
-    <section class="runtime-summary-bar" :class="`is-${healthStatus}`">
-      <article v-for="item in runtimeSummaryItems" :key="item.label">
-        <span>{{ item.label }}</span>
-        <strong>{{ item.value }}</strong>
-      </article>
-    </section>
-
     <div v-if="showSkeleton" class="metric-grid" aria-hidden="true">
       <article v-for="index in 6" :key="index" class="metric-card metric-card--loading">
         <div>
@@ -52,8 +45,9 @@
           </span>
         </article>
       </section>
+    </template>
 
-      <section class="runtime-chart-grid">
+    <section class="runtime-chart-grid">
         <RuntimeTrendChart
           :title="t('dashboard.chart.realtimeTraffic')"
           :eyebrow="t('dashboard.chart.upload') + ' / ' + t('dashboard.chart.download')"
@@ -379,7 +373,6 @@
           :items="dashboard.recentActivity"
           :max="22" />
       </div>
-    </template>
 
     <p v-if="error" class="dashboard-error">
       {{ error }}
@@ -491,15 +484,6 @@ const fallbackProjectColors = [
 
 const projectTrafficHistory = ref<ProjectTrafficSample[]>(loadProjectTrafficHistory())
 
-const defaultMetricCardMeta: DashboardMetricCardMeta[] = [
-  { key: 'totalTunnels', icon: 'router', tone: 'primary' },
-  { key: 'onlineTunnels', icon: 'check-circle', tone: 'success' },
-  { key: 'activeConnections', icon: 'users', tone: 'secondary' },
-  { key: 'traffic', icon: 'activity', tone: 'info' },
-  { key: 'latency', icon: 'clock', tone: 'warning' },
-  { key: 'runtimeUptime', icon: 'shield-check', tone: 'healthy' },
-]
-
 const rangeOptions = computed<Array<{ value: TrafficRange; label: string }>>(() => [
   { value: '24h', label: t('dashboard.range.last24h') },
   { value: '7d', label: t('dashboard.range.last7d') },
@@ -537,14 +521,6 @@ const quickActions = computed(() => [
   },
 ])
 
-const showSkeleton = computed(
-  () =>
-    loading.value &&
-    dashboard.value.overview.tunnelCount === 0 &&
-    dashboard.value.overview.totalTraffic === 0 &&
-    dashboard.value.recentActivity.length === 0,
-)
-
 const formattedLastUpdated = computed(() => formatRelativeTime(lastUpdated.value.getTime()))
 const currentBandwidthBps = computed(
   () =>
@@ -552,90 +528,22 @@ const currentBandwidthBps = computed(
     dashboard.value.statistics.traffic.downloadSpeedBps,
 )
 
-const runtimeSummaryItems = computed(() => [
-  {
-    label: t('dashboard.runtimeSummary.runtime'),
-    value: t(`dashboard.healthStatus.${healthStatus.value}`),
-  },
-  {
-    label: t('dashboard.runtimeSummary.server'),
-    value: formatNumber(serverStore.onlineServers.length),
-  },
-  {
-    label: t('dashboard.runtimeSummary.tunnel'),
-    value: `${formatNumber(dashboard.value.overview.runningTunnel)} / ${formatNumber(
-      dashboard.value.overview.tunnelCount,
-    )}`,
-  },
-  {
-    label: t('dashboard.runtimeSummary.cpu'),
-    value: `${dashboard.value.statistics.system.cpuUsage.toFixed(0)}%`,
-  },
-  {
-    label: t('dashboard.runtimeSummary.memory'),
-    value: `${dashboard.value.statistics.system.memoryUsage.toFixed(0)}%`,
-  },
-  {
-    label: t('dashboard.runtimeSummary.traffic'),
-    value: formatSpeed(currentBandwidthBps.value),
-  },
-  {
-    label: t('dashboard.runtimeSummary.rtt'),
-    value: formatLatency(dashboard.value.statistics.connection.averageRttMs),
-  },
-])
+const defaultMetricCardMeta: DashboardMetricCardMeta[] = [
+  { key: 'totalTunnels', icon: 'router', tone: 'primary' },
+  { key: 'onlineTunnels', icon: 'check-circle', tone: 'success' },
+  { key: 'activeConnections', icon: 'users', tone: 'secondary' },
+  { key: 'traffic', icon: 'activity', tone: 'info' },
+  { key: 'latency', icon: 'clock', tone: 'warning' },
+  { key: 'runtimeUptime', icon: 'shield-check', tone: 'healthy' },
+]
 
-const trafficRealtimeSeries = computed(() => [
-  {
-    name: t('dashboard.chart.upload'),
-    color: '#39c27f',
-    values: metricHistory.value.map((point) => point.uploadBps),
-  },
-  {
-    name: t('dashboard.chart.download'),
-    color: '#3f7cff',
-    values: metricHistory.value.map((point) => point.downloadBps),
-  },
-])
-
-const latencyConnectionSeries = computed(() => [
-  {
-    name: t('dashboard.chart.rtt'),
-    color: '#f59e0b',
-    values: metricHistory.value.map((point) => point.latencyMs),
-  },
-  {
-    name: t('dashboard.chart.connection'),
-    color: '#06b6d4',
-    values: metricHistory.value.map((point) => point.connection),
-  },
-])
-
-const systemResourceSeries = computed(() => [
-  {
-    name: t('dashboard.chart.cpu'),
-    color: '#a855f7',
-    values: metricHistory.value.map((point) => point.cpuUsage),
-  },
-  {
-    name: t('dashboard.chart.memory'),
-    color: '#14b8a6',
-    values: metricHistory.value.map((point) => point.memoryUsage),
-  },
-])
-
-const httpErrorSeries = computed(() => [
-  {
-    name: t('dashboard.chart.requests'),
-    color: '#3f7cff',
-    values: metricHistory.value.map((point) => point.requests),
-  },
-  {
-    name: t('dashboard.chart.errors'),
-    color: '#ef4444',
-    values: metricHistory.value.map((point) => point.errors),
-  },
-])
+const showSkeleton = computed(
+  () =>
+    loading.value &&
+    dashboard.value.overview.tunnelCount === 0 &&
+    dashboard.value.overview.totalTraffic === 0 &&
+    dashboard.value.recentActivity.length === 0,
+)
 
 const metricCardMeta = computed(() => {
   const cards = dashboard.value.visualSummary?.metricCards
@@ -701,6 +609,58 @@ const metricCards = computed(() =>
     }
   }),
 )
+
+const trafficRealtimeSeries = computed(() => [
+  {
+    name: t('dashboard.chart.upload'),
+    color: '#39c27f',
+    values: metricHistory.value.map((point) => point.uploadBps),
+  },
+  {
+    name: t('dashboard.chart.download'),
+    color: '#3f7cff',
+    values: metricHistory.value.map((point) => point.downloadBps),
+  },
+])
+
+const latencyConnectionSeries = computed(() => [
+  {
+    name: t('dashboard.chart.rtt'),
+    color: '#f59e0b',
+    values: metricHistory.value.map((point) => point.latencyMs),
+  },
+  {
+    name: t('dashboard.chart.connection'),
+    color: '#06b6d4',
+    values: metricHistory.value.map((point) => point.connection),
+  },
+])
+
+const systemResourceSeries = computed(() => [
+  {
+    name: t('dashboard.chart.cpu'),
+    color: '#a855f7',
+    values: metricHistory.value.map((point) => point.cpuUsage),
+  },
+  {
+    name: t('dashboard.chart.memory'),
+    color: '#14b8a6',
+    values: metricHistory.value.map((point) => point.memoryUsage),
+  },
+])
+
+const httpErrorSeries = computed(() => [
+  {
+    name: t('dashboard.chart.requests'),
+    color: '#3f7cff',
+    values: metricHistory.value.map((point) => point.requests),
+  },
+  {
+    name: t('dashboard.chart.errors'),
+    color: '#ef4444',
+    values: metricHistory.value.map((point) => point.errors),
+  },
+])
 
 const isRuntimeEmpty = computed(
   () =>
@@ -956,28 +916,6 @@ async function healthCheckService(service: RunningServiceRow) {
   })
 }
 
-function metricMetaFor(key: MetricKey): DashboardMetricCardMeta {
-  return (
-    metricCardMeta.value.get(key) ??
-    defaultMetricCardMeta.find((card) => card.key === key) ??
-    defaultMetricCardMeta[0]
-  )
-}
-
-function metricSparkline(key: string): number[] {
-  const values = metricHistory.value.map((point) => {
-    if (key === 'totalTunnels') return dashboard.value.overview.tunnelCount
-    if (key === 'onlineTunnels') return dashboard.value.overview.runningTunnel
-    if (key === 'activeConnections') return point.connection
-    if (key === 'traffic') return point.uploadBps + point.downloadBps
-    if (key === 'latency') return point.latencyMs
-    if (key === 'runtimeUptime') return dashboard.value.overview.runtimeUptimeSeconds
-    return 0
-  })
-
-  return values.length ? values : [0]
-}
-
 function normalizeCount(value: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
 }
@@ -1097,6 +1035,28 @@ function normalizeTrafficTotals(totals: unknown): Record<string, number> {
     },
     {},
   )
+}
+
+function metricMetaFor(key: MetricKey): DashboardMetricCardMeta {
+  return (
+    metricCardMeta.value.get(key) ??
+    defaultMetricCardMeta.find((card) => card.key === key) ??
+    defaultMetricCardMeta[0]
+  )
+}
+
+function metricSparkline(key: string): number[] {
+  const values = metricHistory.value.map((point) => {
+    if (key === 'totalTunnels') return dashboard.value.overview.tunnelCount
+    if (key === 'onlineTunnels') return dashboard.value.overview.runningTunnel
+    if (key === 'activeConnections') return point.connection
+    if (key === 'traffic') return point.uploadBps + point.downloadBps
+    if (key === 'latency') return point.latencyMs
+    if (key === 'runtimeUptime') return dashboard.value.overview.runtimeUptimeSeconds
+    return 0
+  })
+
+  return values.length ? values : [0]
 }
 
 function pruneProjectTrafficHistory(history: ProjectTrafficSample[]) {
@@ -1329,65 +1289,10 @@ function formatRelativeTime(timestamp: number): string {
   font-size: var(--text-xs);
 }
 
-.runtime-summary-bar {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  overflow: hidden;
-  border: 1px solid rgba(108, 124, 147, 0.13);
-  border-radius: 8px;
-  background: var(--bg-surface);
-}
-
-.runtime-summary-bar article {
-  min-height: 54px;
-  display: grid;
-  align-content: center;
-  gap: 3px;
-  padding: 0 var(--space-3);
-  border-left: 1px solid var(--border-subtle);
-}
-
-.runtime-summary-bar article:first-child {
-  border-left: 0;
-  box-shadow: inset 3px 0 0 var(--status-online);
-}
-
-.runtime-summary-bar.is-warning article:first-child {
-  box-shadow: inset 3px 0 0 var(--status-warning);
-}
-
-.runtime-summary-bar.is-critical article:first-child,
-.runtime-summary-bar.is-offline article:first-child {
-  box-shadow: inset 3px 0 0 var(--status-error);
-}
-
-.runtime-summary-bar span {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-}
-
-.runtime-summary-bar strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-}
-
-.metric-card,
-.dashboard-panel {
-  border: 1px solid rgba(108, 124, 147, 0.12);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-surface) 94%, #ffffff 6%);
-  box-shadow: 0 16px 34px rgba(40, 56, 89, 0.08);
 }
 
 .metric-card {
@@ -1397,6 +1302,10 @@ function formatRelativeTime(timestamp: number): string {
   align-items: start;
   gap: var(--space-3);
   padding: 18px;
+  border: 1px solid rgba(108, 124, 147, 0.12);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-surface) 94%, #ffffff 6%);
+  box-shadow: 0 16px 34px rgba(40, 56, 89, 0.08);
 }
 
 .metric-card--loading > div:first-child {
@@ -1492,6 +1401,13 @@ function formatRelativeTime(timestamp: number): string {
 .metric-card__icon.is-offline {
   color: var(--color-secondary);
   background: var(--color-secondary-muted);
+}
+
+.dashboard-panel {
+  border: 1px solid rgba(108, 124, 147, 0.12);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-surface) 94%, #ffffff 6%);
+  box-shadow: 0 16px 34px rgba(40, 56, 89, 0.08);
 }
 
 .dashboard-onboarding {
@@ -2067,10 +1983,6 @@ function formatRelativeTime(timestamp: number): string {
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .runtime-summary-bar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 980px) {
@@ -2087,15 +1999,14 @@ function formatRelativeTime(timestamp: number): string {
   }
 
   .runtime-chart-grid,
-  .runtime-summary-bar {
+  .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 680px) {
-  .metric-grid,
   .runtime-chart-grid,
-  .runtime-summary-bar,
+  .metric-grid,
   .connection-stats,
   .service-table article,
   .server-overview-grid {

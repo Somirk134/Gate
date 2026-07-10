@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
 const DEFAULT_NOTIFICATION_DURATION = 4000
+const MAX_HISTORY = 50
 
 export interface NotificationItem {
   id: string
@@ -18,31 +19,61 @@ export interface NotificationItem {
 export const useNotificationStore = defineStore('notification', () => {
   // === State ===
   const notifications = ref<NotificationItem[]>([])
+  /** 持久化通知历史 — 不自动消失，用于铃铛弹窗展示 */
+  const history = ref<NotificationItem[]>([])
   const maxNotifications = ref(8)
 
   // === Getters ===
   const activeNotifications = computed(() => notifications.value.slice(0, maxNotifications.value))
+  /** 最近的历史记录（倒序，最新的在前） */
+  const recentHistory = computed(() => history.value.slice(0, 20))
 
   // === Actions ===
-  function notify(options: Omit<NotificationItem, 'id' | 'timestamp'>) {
+  function notify(options: Omit<NotificationItem, 'id' | 'timestamp'> & { persist?: boolean }) {
     const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    const { duration, closable, ...notification } = options
+    const { duration, closable, persist, ...rest } = options
     const notif: NotificationItem = {
       id,
       timestamp: Date.now(),
       duration: duration ?? DEFAULT_NOTIFICATION_DURATION,
       closable: closable ?? true,
-      ...notification,
+      ...rest,
     }
     notifications.value.unshift(notif)
 
-    // Auto dismiss
+    // 自动加入历史（持久记录）
+    if (options.persist === undefined || options.persist) {
+      pushHistory(notif)
+    }
+
+    // Auto dismiss — 仅对 toast 生效
     if (notif.duration && notif.duration > 0) {
       setTimeout(() => {
         dismiss(id)
       }, notif.duration)
     }
 
+    return id
+  }
+
+  /**
+   * 推送一条持久化通知到历史记录（不自动消失）。
+   * 用于隧道创建/删除、服务器连接等关键事件。
+   */
+  function pushHistory(item: Omit<NotificationItem, 'id' | 'timestamp' | 'duration'>) {
+    const id = `hist-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const entry: NotificationItem = {
+      id,
+      duration: 0, // 不自动消失
+      closable: true,
+      timestamp: Date.now(),
+      ...item,
+    }
+    history.value.unshift(entry)
+    // 超过上限时裁剪尾部
+    if (history.value.length > MAX_HISTORY) {
+      history.value = history.value.slice(0, MAX_HISTORY)
+    }
     return id
   }
 
@@ -66,19 +97,32 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications.value = notifications.value.filter((n) => n.id !== id)
   }
 
+  function dismissHistory(id: string) {
+    history.value = history.value.filter((n) => n.id !== id)
+  }
+
   function clearAll() {
     notifications.value = []
   }
 
+  function clearHistory() {
+    history.value = []
+  }
+
   return {
     notifications,
+    history,
     activeNotifications,
+    recentHistory,
     notify,
+    pushHistory,
     success,
     error,
     warning,
     info,
     dismiss,
+    dismissHistory,
     clearAll,
+    clearHistory,
   }
 })
