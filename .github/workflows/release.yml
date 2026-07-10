@@ -201,7 +201,7 @@ jobs:
         run: node scripts/merge-updater-manifests.mjs updater dist/latest.json
 
       - name: Publish draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Gate ${{ github.ref_name }}
