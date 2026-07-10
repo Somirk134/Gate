@@ -1,4 +1,4 @@
-# Contributing to Gate
+﻿# Contributing to Gate
 
 Thank you for helping make Gate a healthier open source project. Contributions are welcome across
 documentation, tests, examples, CI, security hardening, packaging, and runtime code.
@@ -14,13 +14,12 @@ documentation, tests, examples, CI, security hardening, packaging, and runtime c
 
 ```bash
 git clone https://github.com/Somirk134/Gate.git
-cd gate
-
+cd Gate
+npm --prefix client ci
+cargo check --workspace
 cargo test --workspace
-
-cd client
-npm install
 npm run typecheck
+npm run build
 ```
 
 ## Contribution Flow
@@ -43,7 +42,7 @@ flowchart LR
 - `cargo fmt --all --check` passes.
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings` passes.
 - `cargo test --workspace --all-features` passes.
-- Client changes pass `npm run typecheck` and `npm run lint` from `client`.
+- Client changes pass `npm run typecheck` and `npm --prefix client run lint:check`.
 - Documentation changes pass Markdown lint and spell check where possible.
 
 ## Commit Style

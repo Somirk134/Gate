@@ -1,244 +1,169 @@
-<p align="center">
-  <a href="https://gitee.com/lancemorii-git/gate">
-    <img src="./assets/logo/logo.png" alt="Gate logo" width="132" />
-  </a>
+﻿<p align="center">
+  <img src="assets/logo/logo.png" alt="Gate logo" width="96" />
 </p>
 
 <h1 align="center">Gate</h1>
 
 <p align="center">
-  面向自部署场景的隧道基础设施，用你自己的服务器暴露私有 TCP 与 HTTP 服务。
+  自托管隧道平台，支持 TCP、HTTP、HTTPS、域名、证书和桌面端管理工作流。
 </p>
 
 <p align="center">
-  <strong>Rust 运行时。Tauri 桌面客户端。Docker 部署。为重视可控性的团队而建。</strong>
+  <a href="README.md">English</a> ·
+  <a href="docs/README.md">文档</a> ·
+  <a href="CONTRIBUTING.md">贡献指南</a> ·
+  <a href="SECURITY.md">安全策略</a>
 </p>
 
-<p align="center">
-  <a href="./README.md">English</a>
-  ·
-  <a href="./docs/README.md">文档</a>
-  ·
-  <a href="./examples/README.md">示例</a>
-  ·
-  <a href="./ROADMAP.md">路线图</a>
-  ·
-  <a href="./CONTRIBUTING.md">贡献指南</a>
-</p>
-
-<p align="center">
-  <img src="./assets/screenshots/hero.png" alt="Gate dashboard preview" />
-</p>
+---
 
 ## Gate 是什么？
 
-Gate 是一个开源隧道项目，目标是让团队通过自己控制的公网入口访问内网、本地开发机或私有服务。项目包含 Rust 服务端与运行时基础、Tauri 桌面客户端、认证、心跳、监控视图、Docker 部署模板，以及面向开源维护的文档与社区规范。
+Gate 是一个开源、自托管的隧道项目，用于通过你自己的服务器基础设施暴露本地服务。它由 Rust 服务端、Tauri 桌面客户端，以及模块化协议和运行时工作区组成，让团队可以在不依赖托管 SaaS 控制平面的情况下管理隧道。
 
-Gate 当前处于 pre-1.0 alpha 阶段。服务端认证、协议与运行时基础已经存在，Tunnel 体验、桌面客户端流程和生产级稳定性仍在持续完善。
-
-## 为什么选择 Gate？
-
-| 需求 | Gate 的方式 |
-| --- | --- |
-| 流量与入口可控 | 服务器部署在你自己的 VPS、实验室机器或私有云上。 |
-| 避免 SaaS 绑定 | 配置、部署、示例和说明全部在仓库中维护。 |
-| 给团队一个可视化工作台 | 桌面客户端覆盖项目、隧道、服务器、日志、设置等流程。 |
-| 系统级技术基础 | Rust、Tokio、类型化协议 crate、集成测试与架构文档。 |
-| 运维可复用 | Docker、发布说明、故障排查、基准测试模板与升级指南。 |
+Gate v0.9 聚焦成熟开源发布基础：清晰文档、可复现构建、桌面端打包、Docker 部署和 Release 自动化。
 
 ## 核心能力
 
-- 自部署服务端运行时，包含 token 认证与心跳基础能力。
-- Tauri、Vue、TypeScript、Pinia、Naive UI 构建的桌面客户端。
-- 客户端提供项目、Tunnel、Server、Dashboard、Log Center、Settings 等界面。
-- Rust workspace 拆分为 domain、application、infrastructure、protocol、communication、transport、engine、server、shared、integration 等模块。
-- Docker 与 Compose 模板。
-- 覆盖 TCP、Webhook、SSH、数据库、反向代理与常见后端框架的示例。
-- 面向真实场景的示例。
-- 维护者所需的文档、发布、基准测试、安全与贡献模板。
+- **TCP Tunnel**：通过 Gate 服务端暴露本地 TCP 服务。
+- **HTTP Tunnel**：为 Webhook、本地应用和 QA 环境路由 HTTP 服务。
+- **HTTPS Tunnel**：支持 HTTPS 场景和证书相关部署工作流。
+- **Domain 管理**：组织服务端域名路由元数据。
+- **Certificate 管理**：管理证书存储和 ACME 相关工作流。
+- **Desktop Client**：通过 Tauri 桌面 UI 管理 Server、Project、Tunnel、诊断、日志和设置。
+- **Docker 部署**：使用内置 Dockerfile 和 Compose 模板运行服务端。
+- **Release 工程化**：通过 GitHub Actions tag 构建服务端二进制和桌面安装包。
 
 ## 截图
 
-| Dashboard | Tunnel Workspace | Log Center |
-| --- | --- | --- |
-| ![Dashboard](./assets/screenshots/dashboard.png) | ![Tunnel](./assets/screenshots/tunnel.png) | ![Log center](./assets/screenshots/log-center.png) |
+<p align="center">
+  <img src="assets/screenshots/hero.png" alt="Gate desktop overview" width="720" />
+</p>
 
-截图规范见 [branding/screenshot-guidelines.md](./branding/screenshot-guidelines.md)。
+| Dashboard | Tunnel 管理 | 日志 |
+| --- | --- | --- |
+| ![Dashboard](assets/screenshots/dashboard.png) | ![Tunnel](assets/screenshots/tunnel.png) | ![Log Center](assets/screenshots/log-center.png) |
+
+## 架构图
+
+```mermaid
+flowchart LR
+    Local["本地服务"] --> ClientRuntime["Gate Desktop / 本地 Runtime"]
+    ClientRuntime <-->|"Gate Protocol"| Server["Gate Server"]
+    Server --> TCP["TCP Tunnel"]
+    Server --> HTTP["HTTP Tunnel"]
+    Server --> HTTPS["HTTPS Tunnel"]
+    Server --> Domain["域名路由"]
+    Server --> Cert["证书存储 / ACME"]
+    Operator["运维 / 开发者"] --> Desktop["桌面客户端"]
+    Desktop --> Server
+```
 
 ## 快速开始
 
+### 环境要求
+
+- Rust 1.88+
+- Node.js 20+
+- npm 10+
+- Git
+- 如需构建桌面端，需要安装对应平台的 Tauri 依赖
+
+### 从源码运行
+
 ```bash
-git clone https://gitee.com/lancemorii-git/gate.git
-cd gate
+git clone https://github.com/Somirk134/Gate.git
+cd Gate
+npm --prefix client ci
+cargo check --workspace
 cargo test --workspace
+npm run typecheck
+npm run build
 ```
 
-启动本机测试服务端。默认监听 `127.0.0.1:7000`，默认 Token 为 `gate-alpha-token`：
+启动服务端：
 
 ```bash
 npm run dev:server
 ```
 
-Windows 下也可以运行带提示的一键脚本：
-
-```powershell
-npm run dev:server:local
-```
-
-启动桌面客户端：
+另开一个终端启动桌面客户端：
 
 ```bash
-cd client
-npm install
-npm run tauri dev
+npm run dev:desktop
 ```
 
-完整说明见 [docs/quick-start.md](./docs/quick-start.md)。
+本地开发默认值：
 
-## 安装
+- Server：`127.0.0.1:7000`
+- Token：`gate-alpha-token`
 
-| 目标 | 命令 |
-| --- | --- |
-| 构建 workspace | `cargo build --workspace --release` |
-| 从源码运行本机服务端 | `npm run dev:server` 或 `cargo run -p gate-server` |
-| 安装本地服务端二进制 | `cargo install --path server` |
-| 启动桌面 Web Shell | `cd client && npm install && npm run dev` |
-| 启动桌面应用 | `cd client && npm install && npm run tauri dev` |
+不要在共享或公网环境使用开发默认 token。
 
-平台依赖见 [docs/installation.md](./docs/installation.md)。
+## Docker 部署
 
-## 部署
-
-```bash
-GATE_SERVER_ADDR=0.0.0.0:7000 \
-GATE_AUTH_TOKEN=replace-with-a-long-random-token \
-./target/release/gate-server
-```
-
-部署文档：
-
-- [Server](./docs/server.md)
-- [Deployment](./docs/deployment.md)
-- [Docker](./docs/docker.md)
-- [Upgrade](./docs/upgrade.md)
-- [Troubleshooting](./docs/troubleshooting.md)
-
-## Docker
+本地构建：
 
 ```bash
 docker build -f docker/Dockerfile.server -t gate-server:local .
-docker run --rm -p 5800:5800 \
-  -e GATE_SERVER_ADDR=0.0.0.0:5800 \
-  -e GATE_AUTH_TOKEN=replace-me \
-  gate-server:local
 ```
 
-也可以使用 Compose：
+使用 Docker Compose 运行：
 
 ```bash
-GATE_AUTH_TOKEN=replace-me GATE_PORT=5800 \
-docker compose -f docker/docker-compose.yml up -d
+GATE_AUTH_TOKEN=replace-with-a-long-random-token GATE_PORT=5800 \
+docker compose up -d
 ```
 
-Docker 镜像默认监听 `5800`。源码和二进制运行默认使用 `7000`，除非通过 `GATE_SERVER_ADDR` 覆盖。
+容器默认监听 `0.0.0.0:5800`，并将主机端口 `${GATE_PORT:-5800}` 映射到容器。
 
-## 桌面客户端
+更多信息见 [Docker 文档](docs/user/docker.md) 和 [部署文档](docs/user/deployment.md)。
 
-桌面客户端面向偏好可视化操作的团队：
+## 桌面客户端安装
 
-- 首次启动 Welcome Wizard。
-- Server 管理自部署入口。
-- Project 管理业务分组。
-- Tunnel Wizard 创建端口映射。
-- Dashboard 查看连接与流量健康。
-- Log Center 过滤运行日志。
+Release 构建准备发布：
 
-## 服务端配置
+- Windows installer
+- macOS Intel / Apple Silicon `.dmg`
+- Linux `.AppImage` 和 `.deb`
 
-当前 alpha 服务端使用：
+在签名更新服务器可用之前，请从 GitHub Releases 手动下载安装包并升级。
+
+本地构建桌面端：
 
 ```bash
-GATE_SERVER_ADDR=0.0.0.0:7000
-GATE_AUTH_TOKEN=change-this-before-sharing-a-server
+npm --prefix client ci
+npm --prefix client run tauri build
 ```
 
-文档与示例使用的 Tunnel 配置模板：
+## 文档
 
-```toml
-[server]
-address = "127.0.0.1:7000"
-auth_token = "gate-alpha-token"
+- [Getting Started](docs/user/getting-started.md)
+- [Installation](docs/user/installation.md)
+- [Deployment](docs/user/deployment.md)
+- [Configuration](docs/user/configuration.md)
+- [Troubleshooting](docs/user/troubleshooting.md)
+- [Architecture](docs/development/architecture.md)
+- [Release Process](docs/development/release.md)
 
-[tunnel]
-name = "local-web"
-protocol = "tcp"
-local_host = "127.0.0.1"
-local_port = 3000
-remote_port = 18080
+## 贡献方式
+
+欢迎贡献。请先阅读：
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [开发者文档](docs/development/contributing.md)
+- [行为准则](CODE_OF_CONDUCT.md)
+- [安全策略](SECURITY.md)
+
+提交 Pull Request 前请运行：
+
+```bash
+cargo check --workspace
+cargo test --workspace
+npm run typecheck
+npm run build
 ```
-
-## 创建第一个 Tunnel
-
-1. 在本机启动一个应用，例如 `127.0.0.1:3000`。
-2. 运行 `npm run dev:server` 启动本机服务端；客户端里使用 Token `gate-alpha-token`。
-3. 打开桌面客户端并添加 Server。
-4. 创建名为 `local-web` 的 TCP Tunnel。
-5. 设置本地端口 `3000`，远端端口 `18080`。
-6. 启动 Tunnel，并在 Dashboard 与 Log Center 中验证流量。
-
-## 常见使用场景
-
-- 本地接收微信支付、支付宝、OpenAI 等回调。
-- 调试 GitHub Webhook、Gitea、Jenkins 等集成。
-- 受控访问 SSH、MySQL、Redis 与内部工具。
-- 暴露 Node.js、Flask、Spring Boot、Go 服务给 QA 或协作者。
-- 访问家庭服务器、NAS 或远程开发机。
-- 评估自部署的 Cloudflare Tunnel 替代方案。
-
-## Roadmap
-
-当前路线图聚焦：
-
-- 稳定 Tunnel 运行时行为。
-- 完成桌面客户端核心流程。
-- 完善 Docker 与发布打包。
-- 发布真实基准测试数据。
-- 改进认证、升级与备份策略。
-
-详情见 [ROADMAP.md](./ROADMAP.md)。
-
-## FAQ
-
-**为什么选择 Gate？**
-如果你想要一个自部署、可审计、带桌面管理体验、并且以 Rust 架构构建的隧道基础设施，Gate 值得关注。
-
-**与 FRP 有什么区别？**
-FRP 是成熟的隧道代理。Gate 是一个更年轻的项目，重点放在桌面优先的管理体验、类型化 Rust workspace 和开源项目可维护性上。Gate 目前还不是 FRP 的生产级平替。
-
-**是否支持 Docker？**
-支持。Docker 资产位于 [docker](./docker)，说明见 [docs/docker.md](./docs/docker.md)。
-
-**是否支持 HTTPS？**
-现阶段建议通过反向代理做 TLS 终止，原生 HTTPS 能力会随路线图完善。
-
-**是否免费？**
-是。Gate 使用 MIT License 开源。
-
-更多问题见 [docs/faq.md](./docs/faq.md)。
-
-## 贡献
-
-欢迎贡献文档、示例、测试、打包、问题复现与代码改进。开始前请阅读：
-
-- [CONTRIBUTING.md](./CONTRIBUTING.md)
-- [docs/developer-guide.md](./docs/developer-guide.md)
-- [docs/contribution.md](./docs/contribution.md)
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 
 ## License
 
-Gate 使用 [MIT License](./LICENSE)。
-
-## Star Gate
-
-如果 Gate 对你有帮助，欢迎给仓库一个 Star。它会帮助更多开发者发现项目，也会给维护者一个清晰的开源反馈信号。
+Gate 基于 [MIT License](LICENSE) 开源。

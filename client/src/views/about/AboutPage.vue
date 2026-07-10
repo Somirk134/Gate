@@ -215,7 +215,7 @@ import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
 import { useFeedback } from '@composables/useFeedback'
-import authorAvatarUrl from '@repo-assets/icon/头像.jpg'
+import authorAvatarUrl from '@repo-assets/icon/avatar.jpg'
 import { useService } from '@/composables/useService'
 import {
   GITEE_REPOSITORY_URL,

@@ -1,27 +1,24 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to Gate will be documented in this file.
+All notable changes to Gate are documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic versioning
-where possible before v1.
+## 0.9.0 - Release Candidate
 
-## [Unreleased]
+### Release engineering
 
-### Added
+- Reorganized public documentation into user, development, and internal references.
+- Rebuilt the English and Chinese README files for open-source release readiness.
+- Unified Cargo, npm, and Tauri versions at `0.9.0`.
+- Prepared Tauri bundle targets for Windows, macOS, and Linux packages.
+- Expanded GitHub Actions release automation for server binaries, desktop installers, Docker images, and draft GitHub Releases.
+- Added root npm proxy scripts for `npm run typecheck` and `npm run build`.
 
-- Enterprise open source repository structure.
-- English and Simplified Chinese README files.
-- Documentation, community, benchmark, Docker, branding, and design directories.
-- GitHub issue, pull request, discussion, workflow, security, and release automation templates.
-- VitePress documentation site scaffold.
+### Cleanup
 
-### Changed
+- Removed local build output, dependency caches, IDE files, logs, and empty placeholder resources from the release tree.
+- Removed beta sprint reports, future-plan drafts, and one-off validation reports from public documentation.
+- Renamed non-English resource filenames to release-safe English names.
 
-- Rebuilt the public README around GitHub open source project standards.
+### Compatibility
 
-## [0.1.0] - 2026-07-06
-
-### Added
-
-- Initial Rust workspace, desktop client, server runtime, communication, authentication, heartbeat,
-  monitoring, integration, and packaging foundations.
+- No tunnel data-plane, TCP/HTTP/HTTPS runtime, protocol, database, or business-logic changes are included in this release cleanup.
