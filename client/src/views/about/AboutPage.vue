@@ -240,11 +240,12 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GIcon from '@components/icons/GIcon.vue'
 import appLogoUrl from '@repo-assets/logo/logo-ui.png'
-import { useFeedback } from '@composables/useFeedback'
 import authorAvatarUrl from '@repo-assets/icon/avatar.jpg'
 import alipayQrUrl from '@repo-assets/icon/sponsor-alipay.jpg'
 import wechatQrUrl from '@repo-assets/icon/sponsor-wechat.png'
+import { getApplicationContext } from '@/providers/appContext'
 import { useService } from '@/composables/useService'
+import { NOTIFICATION_SERVICE } from '@/services/tokens'
 import {
   APP_BUILD_NUMBER,
   APP_VERSION,
@@ -257,7 +258,7 @@ import { UPDATE_SERVICE } from '@/services/tokens'
 import type { UpdateInfo, UpdateStatus } from '@/updates'
 
 const { t } = useI18n()
-const { toast } = useFeedback()
+const notifications = getApplicationContext().services.resolve(NOTIFICATION_SERVICE)
 const updateService = useService(UPDATE_SERVICE)
 const currentYear = new Date().getFullYear()
 const versionBadge = computed(() => t('about.heroBadge', { version: APP_VERSION }))
@@ -456,18 +457,18 @@ async function handleCheckUpdate() {
     updateStatus.value = 'checking'
     updateInfo.value = await updateService.check()
     if (updateInfo.value.available) {
-      toast.success(
+      notifications.success(
         t('about.update.toastAvailable', {
           version: updateInfo.value.version ?? t('about.update.unknownVersion'),
         }),
       )
     } else {
-      toast.success(t('about.update.toastLatest'))
+      notifications.success(t('about.update.toastLatest'))
     }
   } catch (error) {
     updateInfo.value = null
     updateError.value = getUpdateErrorMessage(error)
-    toast.error(updateError.value)
+    notifications.error(updateError.value)
   } finally {
     updateStatus.value = updateService.getStatus()
   }
@@ -479,10 +480,10 @@ async function handleDownloadUpdate() {
 
   try {
     await updateService.download()
-    toast.success(t('about.update.toastReady'))
+    notifications.success(t('about.update.toastReady'))
   } catch (error) {
     updateError.value = getUpdateErrorMessage(error)
-    toast.error(updateError.value)
+    notifications.error(updateError.value)
   } finally {
     updateStatus.value = updateService.getStatus()
   }
@@ -495,11 +496,11 @@ async function handleInstallUpdate() {
   try {
     await updateService.install()
     updateStatus.value = updateService.getStatus()
-    toast.success(t('about.update.toastInstalled'))
+    notifications.success(t('about.update.toastInstalled'))
     await updateService.restart()
   } catch (error) {
     updateError.value = getUpdateErrorMessage(error)
-    toast.error(updateError.value)
+    notifications.error(updateError.value)
     updateStatus.value = updateService.getStatus()
   }
 }

@@ -59,11 +59,9 @@ import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '@stores'
 import type { NotificationType } from '@/stores/modules/notification'
 import GIcon from '@components/icons/GIcon.vue'
-import { useFeedback } from '@/composables/useFeedback'
 
-const notificationStore = useNotificationStore()
 const { t, locale } = useI18n()
-const { toast } = useFeedback()
+const notificationStore = useNotificationStore()
 
 const item = computed(() => notificationStore.detailItem)
 
@@ -106,9 +104,9 @@ function fullMessageText() {
 async function copyFullMessage() {
   try {
     await navigator.clipboard.writeText(fullMessageText())
-    toast.success(t('common.copiedWithValue', { value: t('common.copyContent') }))
+    notificationStore.success(t('common.copiedWithValue', { value: t('common.copyContent') }))
   } catch {
-    toast.error(t('common.copyFailed'))
+    notificationStore.error(t('common.copyFailed'))
   }
 }
 </script>
