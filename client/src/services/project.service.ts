@@ -15,6 +15,7 @@ import type {
   TunnelRecommendation,
 } from '@views/projects/types'
 import { PROJECT_TEMPLATES } from '@views/projects/utils'
+import { decrypt, encrypt } from '@/utils/storage-crypto'
 
 const ipc = new TauriIpcClient()
 const LOCAL_KEY = 'gate.project.workspace.records'
@@ -56,7 +57,7 @@ export const projectService = {
     if (isTauriRuntime()) {
       return ipc.invoke<ProjectRecord>('project_detail', { projectId })
     }
-    const project = readLocalProjects().find((item) => item.id === projectId)
+    const project = (await readLocalProjects()).find((item) => item.id === projectId)
     if (!project) throw projectNotFound(projectId)
     return project
   },
@@ -67,7 +68,7 @@ export const projectService = {
       return ipc.invoke<ProjectRecord>('project_create', { request })
     }
     const project = localProject(request)
-    writeLocalProjects([project, ...readLocalProjects()])
+    await writeLocalProjects([project, ...(await readLocalProjects())])
     return project
   },
 
@@ -75,7 +76,7 @@ export const projectService = {
     if (isTauriRuntime()) {
       return ipc.invoke<ProjectRecord>('project_update', { projectId, patch })
     }
-    const projects = readLocalProjects()
+    const projects = await readLocalProjects()
     const index = projects.findIndex((item) => item.id === projectId)
     if (index === -1) throw projectNotFound(projectId)
     projects[index] = {
@@ -84,7 +85,7 @@ export const projectService = {
       updatedAt: Date.now(),
       lastActivityAt: Date.now(),
     } as ProjectRecord
-    writeLocalProjects(projects)
+    await writeLocalProjects(projects)
     return projects[index]
   },
 
@@ -109,8 +110,8 @@ export const projectService = {
       return ipc.invoke<ProjectDeleteResponse>('project_delete', { projectId, mode })
     }
     const impact = await this.deleteImpact(projectId)
-    const projects = readLocalProjects().filter((item) => item.id !== projectId)
-    writeLocalProjects(projects)
+    const projects = (await readLocalProjects()).filter((item) => item.id !== projectId)
+    await writeLocalProjects(projects)
     return {
       projectId,
       impact,
@@ -318,17 +319,19 @@ function localProject(payload: ProjectCreatePayload): ProjectRecord {
   }
 }
 
-function readLocalProjects(): ProjectRecord[] {
+async function readLocalProjects(): Promise<ProjectRecord[]> {
   try {
     const raw = localStorage.getItem(LOCAL_KEY)
     if (!raw) return []
-    const records = JSON.parse(raw)
+    const plaintext = await decrypt(raw)
+    const records = JSON.parse(plaintext)
     return Array.isArray(records) ? records : []
   } catch {
     return []
   }
 }
 
-function writeLocalProjects(projects: ProjectRecord[]) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(projects))
+async function writeLocalProjects(projects: ProjectRecord[]): Promise<void> {
+  const ciphertext = await encrypt(JSON.stringify(projects))
+  localStorage.setItem(LOCAL_KEY, ciphertext)
 }
