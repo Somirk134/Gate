@@ -44,6 +44,7 @@ client/vite_output.txt
 *.bak
 .cache/
 client/.tmp/
+Gate.md
 
 # Database
 *.db

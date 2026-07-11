@@ -1,4 +1,4 @@
-﻿import type { LocaleMessages } from 'vue-i18n'
+import type { LocaleMessages } from 'vue-i18n'
 
 const messages: LocaleMessages<Record<string, unknown>> = {
   common: {
@@ -1259,6 +1259,8 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       localPortRequired: '未配置本地服务端口。请从本机服务列表中选择一个正在监听的端口。',
       authFailed: '服务器认证失败。请检查 Token 是否正确，并在「服务器」页面重新连接。',
       certificateFailed: '证书或 ACME 检查失败。请在「证书」页面确认域名证书状态。',
+      bindPermissionDenied: '服务器无法监听该公网端口（Permission denied）。HTTP/HTTPS 隧道已默认使用高位端口（8880/8443），请确认云安全组已放行，且服务端 Gate 已更新到最新版本。',
+      domainAlreadyBound: '该域名已绑定到另一条隧道。请删除旧隧道后重试，或编辑已有隧道修改配置，不要重复创建同域名的隧道。',
       operationFailedDetail: '隧道操作失败：{source}',
       unknown: '隧道操作失败。请检查服务器连接、本地服务和隧道配置。',
     },
@@ -1424,7 +1426,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       host: '绑定域名',
       path: '路径',
       pathSubpathHint: '根域名路径模式需要额外配置反向代理，不推荐。请优先使用子域名模式。',
-      subdomainModeHint: '推荐使用子域名访问，例如 dev.example.com。Gate 按 Host 自动路由，无需为每条隧道改 Nginx。',
+      subdomainModeHint: '推荐使用子域名访问，例如 dev.example.com。默认使用高位公网端口（HTTP 8880 / HTTPS 8443），避免与服务器 Nginx 的 80/443 冲突。',
       subdomainInputHint: '填写完整子域名，例如 dev.maven666.top；路径固定为 /。',
       standardPortLabel: '公网端口（自动）',
       localAddress: '本地地址',
@@ -1577,19 +1579,22 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         step4Title: '配置远程端口',
         step4TitleDomain: '公网访问地址',
         step4DescTcp: 'TCP 隧道使用独立公网端口映射，适合数据库、SSH 等非 HTTP 服务。',
-        step4DescDomain: '使用子域名访问本地服务，Gate 按 Host 自动路由，无需为每条隧道改 Nginx。',
+        step4DescHttp: 'HTTP 隧道直接通过服务器 IP + 公网端口访问，无需绑定域名。默认 8880，请在云安全组放行。',
+        step4DescDomain: '使用子域名访问本地服务。默认高位端口（HTTP 8880 / HTTPS 8443），请在云安全组放行对应端口。',
         step5TitleDns: 'DNS 解析',
         step5TitleTcp: '无需域名',
         step5DescTcp: 'TCP 隧道直接通过公网端口访问，不需要绑定域名。',
-        standardPortLabel: '公网端口（自动）',
-        dnsGuideDesc: '在域名服务商添加下面这条解析记录，只需配置一次，之后创建子域名隧道都不用再改 Nginx。',
+        standardPortLabel: '公网端口',
+        highPortHint: '默认 HTTP 8880、HTTPS 8443。访问地址形如 http://域名:8880，请在云安全组放行该端口。',
+        httpHighPortHint: '访问地址形如 http://服务器IP:8880，请在云安全组放行该端口。',
+        dnsGuideDesc: '在域名服务商添加下面这条解析记录，只需配置一次。然后在云安全组放行隧道公网端口（默认 HTTP 8880 / HTTPS 8443）。',
         dnsGuideNote: '主站可继续运行在根域名；子域名会由 Gate 按 Host 头转发到你的本地服务。',
         dnsGuideMissing: '请先完成公网访问地址配置，并确保已选择 Gate 服务器。',
         dnsType: '记录类型',
         dnsName: '主机记录',
         dnsValue: '记录值',
         dnsHost: '完整域名',
-        subdomainModeHint: '成熟内网穿透通常用「子域名 + 标准端口」，不是根域名 + 路径。只需给子域名加一条 DNS 解析到 Gate 服务器即可。',
+        subdomainModeHint: '成熟内网穿透通常用「子域名 + 高位端口」，不是根域名 + 路径。只需给子域名加一条 DNS 解析到 Gate 服务器，并放行公网端口即可。',
         subdomainLabel: '子域名前缀',
         subdomainInputHint: '例如 dev.maven666.top，主站 maven666.top 可继续独立运行。',
         subdomainBasePlaceholder: '选择证书域名',
@@ -1660,6 +1665,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
           protocol: 'Protocol',
           remotePort: 'Remote Port',
           domain: 'Domain',
+          access: '访问地址',
         },
         labels: {
           host: 'Host',
@@ -3028,6 +3034,11 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       accessLogs: '访问日志',
       errorLogs: '错误日志',
       noLogs: '暂无相关日志',
+      dnsMismatchHint: '当前域名解析到的 IP 与 Gate 服务器不一致。若使用了 Cloudflare 等 CDN 代理（如 104.21.x、172.67.x），也会显示此状态。',
+      dnsExpected: 'Gate 服务器 IP',
+      dnsCurrent: '当前解析',
+      dnsNextStep: '请在域名服务商添加 A 记录，将 {host} 指向 Gate 服务器 IP。使用 CDN 代理时，HTTP-01 验证可能失败，建议改用 DNS-01。',
+      bindCertificateHint: '证书按域名自动关联：申请或导入与 Host 同名的证书后，创建 HTTPS 隧道即可生效，无需单独「绑定」。',
     },
     wizard: {
       brand: '域名创建向导',
@@ -3070,6 +3081,13 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     refresh: '刷新',
     request: '申请证书',
     import: '导入证书',
+    fromDomain: {
+      title: '为 {host} 配置 HTTPS',
+      found: '已找到证书「{cert}」。证书域名与隧道 Host 一致时会自动用于 HTTPS，无需额外绑定。',
+      notFound: '尚未找到覆盖 {host} 的证书。请申请新证书或导入已有证书。',
+      apply: '为该域名申请证书',
+      backToDomains: '返回域名',
+    },
 
     // 统计卡片
     stats: {

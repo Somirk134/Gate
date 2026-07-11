@@ -64,6 +64,8 @@ const HTTP_HEADER_LIMIT: usize = 64 * 1024;
 const HTTP_ACCESS_LOG_LIMIT: usize = 1024;
 const ACME_HTTP01_PREFIX: &str = "/.well-known/acme-challenge/";
 const DEFAULT_ACME_HTTP_PORT: u16 = 80;
+const DEFAULT_HTTP_PUBLIC_PORT: u16 = 8880;
+const DEFAULT_HTTPS_PUBLIC_PORT: u16 = 8443;
 
 #[derive(Debug, Clone)]
 pub struct TunnelGateway {
@@ -645,6 +647,7 @@ impl TunnelGateway {
     }
 
     pub async fn stop_tunnel(&self, tunnel_id: &str) -> anyhow::Result<bool> {
+        self.release_domains_for_tunnel(tunnel_id)?;
         let tunnel = self.inner.tunnels.lock().await.remove(tunnel_id);
         let mut removed_listener = false;
 
@@ -1383,8 +1386,46 @@ impl TunnelGateway {
         let relay_head_bytes = rewrite_http_request_path(&head_bytes, config.path.as_deref())
             .unwrap_or_else(|_| head_bytes.clone());
 
+        let mut relay_stream = match self.next_relay_worker(&tunnel).await {
+            Ok(stream) => stream,
+            Err(error) => {
+                warn!(
+                    target: "gate_gateway",
+                    tunnel_id = %tunnel_id,
+                    host = %request.host,
+                    error = %error,
+                    "HTTP tunnel relay worker is unavailable"
+                );
+                tunnel.active_connections.fetch_sub(1, Ordering::Relaxed);
+                self.inner
+                    .counters
+                    .active_connections
+                    .fetch_sub(1, Ordering::Relaxed);
+                self.record_connection_error(&tunnel).await;
+                let bytes =
+                    write_http_gateway_error(&mut public_stream, 502, "Bad Gateway").await?;
+                self.record_http_access(
+                    Some(&tunnel),
+                    HttpAccessLog {
+                        method: request.method,
+                        path: request.path,
+                        host: request.host,
+                        tunnel_id: Some(tunnel_id),
+                        status: 502,
+                        latency_ms: elapsed_millis(started),
+                        bytes,
+                        timestamp_millis: Utc::now().timestamp_millis(),
+                        scheme: connection.scheme,
+                        tls_version: connection.tls_version.clone(),
+                        sni: connection.sni.clone(),
+                    },
+                )
+                .await;
+                return Ok(());
+            }
+        };
+
         let relay_result = async {
-            let mut relay_stream = self.next_relay_worker(&tunnel).await?;
             let protocol = ProtocolBuilder::new().build();
             let start = Message::request(
                 Command::TunnelRelayStart,
@@ -1747,13 +1788,18 @@ impl TunnelGateway {
             return Ok(());
         }
 
-        if self.acme_auto_enabled() {
+        if self.acme_auto_enabled() && self.acme_http01_available().await {
             self.request_and_store_certificate(&host).await?;
             self.reload_tls_cache_from_store()?;
             return Ok(());
         }
 
-        let reason = "certificate is missing and ACME is not configured; set GATE_ACME_EMAIL";
+        let reason = if self.acme_auto_enabled() {
+            "certificate is missing and ACME HTTP-01 cannot bind its verification port; \
+             upload a certificate manually, use an HTTP tunnel on a high port, or free port 80 for ACME"
+        } else {
+            "certificate is missing and ACME is not configured; upload a certificate or use HTTP on a high port"
+        };
         self.save_certificate_error_record(&host, reason)?;
         Err(anyhow::anyhow!("{reason}"))
     }
@@ -1865,6 +1911,14 @@ impl TunnelGateway {
         Ok(Some(response.len() as u64))
     }
 
+    async fn acme_http01_available(&self) -> bool {
+        let port = acme_http_port();
+        if port == 0 {
+            return false;
+        }
+        can_bind_public_port(self.inner.bind_ip, port).await
+    }
+
     fn acme_auto_enabled(&self) -> bool {
         let explicit = std::env::var("GATE_ACME_AUTO")
             .ok()
@@ -1946,6 +2000,29 @@ impl TunnelGateway {
         let _ = self.reload_tls_cache_from_store();
     }
 
+    fn release_domains_for_tunnel(&self, tunnel_id: &str) -> anyhow::Result<()> {
+        let Some(repository) = &self.inner.domain_repository else {
+            return Ok(());
+        };
+        let tunnel_id = ManagedTunnelId::new(tunnel_id)
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        let bound = repository
+            .find_by_tunnel(&tunnel_id)
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        for domain in bound {
+            if let Ok(current) = repository
+                .find_by_id(domain.id())
+                .map_err(|error| anyhow::anyhow!(error.to_string()))
+            {
+                if let Some(mut current) = current {
+                    let _ = current.unbind();
+                    let _ = repository.update(current);
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn bind_domain_to_tunnel(&self, host: &str, tunnel_id: &str) -> anyhow::Result<ManagedDomain> {
         let repository = self.domain_repository()?;
         let host = ManagedHost::new(host).map_err(|error| anyhow::anyhow!(error.to_string()))?;
@@ -1959,8 +2036,12 @@ impl TunnelGateway {
             if existing.tunnel_id() == Some(&tunnel_id) {
                 return Ok(existing);
             }
+            let mut domain = existing;
+            domain
+                .rebind(tunnel_id)
+                .map_err(|error| anyhow::anyhow!(error.to_string()))?;
             return repository
-                .bind_tunnel(existing.id(), tunnel_id)
+                .update(domain)
                 .map_err(|error| anyhow::anyhow!(error.to_string()));
         }
 
@@ -2581,7 +2662,45 @@ fn acme_http_port() -> u16 {
     std::env::var("GATE_ACME_HTTP01_PORT")
         .ok()
         .and_then(|value| value.parse::<u16>().ok())
-        .unwrap_or(DEFAULT_ACME_HTTP_PORT)
+        .unwrap_or(0)
+}
+
+fn default_public_port(protocol: &str) -> u16 {
+    match protocol {
+        "https" => DEFAULT_HTTPS_PUBLIC_PORT,
+        "http" => DEFAULT_HTTP_PUBLIC_PORT,
+        _ => 0,
+    }
+}
+
+fn align_tunnel_public_port(protocol: &str, remote_port: u16) -> u16 {
+    if !matches!(protocol, "http" | "https") {
+        return remote_port;
+    }
+    if remote_port == 0 {
+        return default_public_port(protocol);
+    }
+    if matches!(remote_port, 80 | 443) {
+        return default_public_port(protocol);
+    }
+    remote_port
+}
+
+fn normalize_http_tunnel_port(protocol: &str, remote_port: u16) -> u16 {
+    align_tunnel_public_port(protocol, remote_port)
+}
+
+async fn can_bind_public_port(bind_ip: IpAddr, port: u16) -> bool {
+    if port == 0 {
+        return false;
+    }
+    match TcpListener::bind(SocketAddr::new(bind_ip, port)).await {
+        Ok(listener) => {
+            drop(listener);
+            true
+        }
+        Err(_) => false,
+    }
 }
 
 fn failed_certificate_record(domain: &str) -> CertificateRecord {
@@ -2654,6 +2773,12 @@ fn parse_tunnel_config(session_id: &str, body: &Value) -> anyhow::Result<TunnelC
     if local_host.is_empty() {
         return Err(anyhow::anyhow!("local host is required"));
     }
+
+    let remote_port = if matches!(protocol.as_str(), "http" | "https") {
+        normalize_http_tunnel_port(&protocol, remote_port)
+    } else {
+        remote_port
+    };
 
     Ok(TunnelConfig {
         tunnel_id,

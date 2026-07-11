@@ -1526,11 +1526,21 @@ impl ClientRuntimeState {
         let server_id = self.resolve_tunnel_server_id(server_id.as_deref()).await?;
         self.ensure_connected_server_for(&server_id).await?;
         let occupied_ports = self.remote_occupied_ports(Some(&server_id)).await;
+        let remote_port = if matches!(protocol.as_str(), "http" | "https") {
+            normalize_http_tunnel_port(&protocol, remote_port)
+        } else {
+            remote_port
+        };
         if remote_port == 0 {
             return Err("REMOTE_PORT_REQUIRED".to_string());
         }
         if occupied_ports.contains(&remote_port) && !allows_shared_public_port(&protocol, remote_port) {
             return Err(format!("REMOTE_PORT_OCCUPIED:{remote_port}"));
+        }
+
+        if let Some(host_name) = host.as_deref().filter(|value| !value.trim().is_empty()) {
+            self.release_server_domain_binding(&server_id, host_name)
+                .await;
         }
 
         self.request_if_connected_for(
@@ -1770,6 +1780,10 @@ impl ClientRuntimeState {
             if let Some(path) = patch.path {
                 tunnel.path = Some(normalize_http_path(&path));
             }
+            if matches!(tunnel.protocol.as_str(), "http" | "https") {
+                tunnel.remote_port =
+                    normalize_http_tunnel_port(&tunnel.protocol, tunnel.remote_port);
+            }
             tunnel.tls_version = if tunnel.protocol == "https" {
                 Some("TLS".to_string())
             } else {
@@ -1893,6 +1907,10 @@ impl ClientRuntimeState {
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
         statistics_json(&inner)
+    }
+
+    pub async fn active_server_id(&self) -> Option<String> {
+        self.inner.lock().await.active_server_id.clone()
     }
 
     pub async fn dashboard(&self) -> Value {
@@ -2404,6 +2422,21 @@ impl ClientRuntimeState {
         }
         let response = self.request_for(server_id, command, body).await?;
         ensure_ok(&response)
+    }
+
+    /// 清理服务器端残留的域名绑定（客户端隧道列表为空时，服务器可能仍记着旧隧道 ID）。
+    pub async fn release_server_domain_binding(&self, server_id: &str, host: &str) {
+        let host = host.trim();
+        if host.is_empty() {
+            return;
+        }
+        let body = json!({ "host": host });
+        let _ = self
+            .request_if_connected_for(server_id, Command::DomainUnbind, body.clone())
+            .await;
+        let _ = self
+            .request_if_connected_for(server_id, Command::DomainDelete, body)
+            .await;
     }
 
     async fn verify_server_connection(&self, server_id: &str) -> bool {
@@ -3196,6 +3229,38 @@ fn normalize_protocol(protocol: &str) -> Result<String, String> {
         "tcp" | "http" | "https" => Ok(protocol),
         _ => Err("protocol must be tcp, http, or https".to_string()),
     }
+}
+
+const DEFAULT_HTTP_PUBLIC_PORT: u16 = 8880;
+const DEFAULT_HTTPS_PUBLIC_PORT: u16 = 8443;
+
+fn default_public_port(protocol: &str) -> u16 {
+    match protocol {
+        "https" => DEFAULT_HTTPS_PUBLIC_PORT,
+        "http" => DEFAULT_HTTP_PUBLIC_PORT,
+        _ => 0,
+    }
+}
+
+fn should_omit_public_port(protocol: &str, port: u16) -> bool {
+    matches!(protocol, "http" | "https") && matches!(port, 80 | 443)
+}
+
+fn align_tunnel_public_port(protocol: &str, remote_port: u16) -> u16 {
+    if !matches!(protocol, "http" | "https") {
+        return remote_port;
+    }
+    if remote_port == 0 {
+        return default_public_port(protocol);
+    }
+    if matches!(remote_port, 80 | 443) {
+        return default_public_port(protocol);
+    }
+    remote_port
+}
+
+fn normalize_http_tunnel_port(protocol: &str, remote_port: u16) -> u16 {
+    align_tunnel_public_port(protocol, remote_port)
 }
 
 fn normalize_http_path(path: &str) -> String {
@@ -4032,7 +4097,15 @@ fn tunnel_public_address(tunnel: &TunnelRecord, public_host: Option<&str>) -> St
             .map(str::trim)
             .filter(|host| !host.is_empty())
         {
-            return format!("{}://{}{}", tunnel.protocol, host, path);
+            let port = if tunnel.remote_port > 0 {
+                tunnel.remote_port
+            } else {
+                default_public_port(&tunnel.protocol)
+            };
+            if should_omit_public_port(&tunnel.protocol, port) {
+                return format!("{}://{}{}", tunnel.protocol, host, path);
+            }
+            return format!("{}://{}:{}{}", tunnel.protocol, host, port, path);
         }
 
         if let Some(host) = public_host.map(str::trim).filter(|host| !host.is_empty()) {

@@ -244,22 +244,44 @@ pub async fn domain_create(
 pub async fn domain_delete(state: &ClientRuntimeState, host: String) -> Result<Value, String> {
     let normalized = normalize_host(&host)?;
     let items = collect_domain_items(state, &ProjectWorkspaceState::default()).await?;
-    let tunnel_id = items
+    let summary = items
         .iter()
-        .find(|item| item.get("host").and_then(Value::as_str) == Some(normalized.as_str()))
-        .and_then(|item| item.get("tunnelId").and_then(Value::as_str))
-        .map(str::to_string)
-        .ok_or_else(|| "DOMAIN_NOT_FOUND".to_string())?;
+        .find(|item| item.get("host").and_then(Value::as_str) == Some(normalized.as_str()));
 
-    state
-        .edit_tunnel(
-            tunnel_id,
-            UpdateTunnelRequest {
-                host: Some(String::new()),
-                ..Default::default()
-            },
-        )
-        .await?;
+    let mut server_id = summary
+        .and_then(|item| item.get("serverId").and_then(Value::as_str))
+        .map(str::to_string);
+    if server_id.is_none() {
+        server_id = state.active_server_id().await;
+    }
+    if let Some(server_id) = server_id.as_deref() {
+        state
+            .release_server_domain_binding(server_id, &normalized)
+            .await;
+    }
+
+    if let Some(tunnel_id) = summary
+        .and_then(|item| item.get("tunnelId").and_then(Value::as_str))
+        .filter(|value| !value.is_empty())
+    {
+        let _ = state
+            .edit_tunnel(
+                tunnel_id.to_string(),
+                UpdateTunnelRequest {
+                    host: Some(String::new()),
+                    ..Default::default()
+                },
+            )
+            .await;
+    }
+
+    if let Ok(repository) = SqliteDomainRepository::open(domain_store_path()) {
+        if let Ok(managed_host) = ManagedHost::new(&normalized) {
+            if let Ok(Some(domain)) = repository.find_by_host(&managed_host) {
+                let _ = repository.delete(domain.id());
+            }
+        }
+    }
 
     Ok(json!({
         "host": normalized,
@@ -472,6 +494,22 @@ async fn collect_domain_items(
             .unwrap_or_else(|| "notChecked".to_string());
         let health_status = compute_health_status(tunnel, https, &certificate, &dns_status);
         let project = project_index.get(&host);
+        let remote_port = tunnel
+            .and_then(|value| value.get("remotePort").and_then(Value::as_u64))
+            .and_then(|value| u16::try_from(value).ok());
+        let public_url = tunnel
+            .and_then(|value| value.get("publicAddress").and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| {
+                build_public_url(
+                    &protocol,
+                    &host,
+                    tunnel.and_then(|value| value.get("path").and_then(Value::as_str)),
+                    remote_port,
+                )
+            });
 
         items.push(json!({
             "id": domain_id_for_host(&host),
@@ -498,7 +536,7 @@ async fn collect_domain_items(
             "createdAt": now,
             "updatedAt": now,
             "status": tunnel.and_then(|value| value.get("status").and_then(Value::as_str)).unwrap_or("unknown"),
-            "url": build_public_url(&protocol, &host, tunnel.and_then(|value| value.get("path").and_then(Value::as_str))),
+            "url": public_url,
         }));
     }
 
@@ -990,13 +1028,26 @@ fn server_address_map(dashboard: &Value) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn build_public_url(protocol: &str, host: &str, path: Option<&str>) -> String {
+fn build_public_url(protocol: &str, host: &str, path: Option<&str>, remote_port: Option<u16>) -> String {
     let normalized_path = path.unwrap_or("/");
     let path = if normalized_path.starts_with('/') {
         normalized_path.to_string()
     } else {
         format!("/{normalized_path}")
     };
+    let port = remote_port
+        .filter(|value| *value > 0)
+        .unwrap_or_else(|| match protocol {
+            "https" => 8443,
+            "http" => 8880,
+            _ => 0,
+        });
+    if matches!(protocol, "http" | "https") && matches!(port, 80 | 443) {
+        return format!("{protocol}://{host}{path}");
+    }
+    if port > 0 {
+        return format!("{protocol}://{host}:{port}{path}");
+    }
     format!("{protocol}://{host}{path}")
 }
 

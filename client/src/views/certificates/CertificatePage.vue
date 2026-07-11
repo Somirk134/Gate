@@ -23,6 +23,26 @@
       </div>
     </header>
 
+    <div v-if="domainFromQuery" class="cert-domain-banner">
+      <div class="cert-domain-banner__copy">
+        <p class="cert-domain-banner__title">{{ t('certificate.fromDomain.title', { host: domainFromQuery }) }}</p>
+        <p v-if="domainQueryCert" class="cert-domain-banner__desc">
+          {{ t('certificate.fromDomain.found', { cert: domainQueryCert.domain }) }}
+        </p>
+        <p v-else class="cert-domain-banner__desc">
+          {{ t('certificate.fromDomain.notFound', { host: domainFromQuery }) }}
+        </p>
+      </div>
+      <div class="cert-domain-banner__actions">
+        <GButton v-if="!domainQueryCert" variant="primary" size="sm" icon="plus" @click="applyCertForQueryDomain">
+          {{ t('certificate.fromDomain.apply') }}
+        </GButton>
+        <GButton variant="secondary" size="sm" icon="arrow-left" @click="backToDomains">
+          {{ t('certificate.fromDomain.backToDomains') }}
+        </GButton>
+      </div>
+    </div>
+
     <!-- ═══════════════ 加载骨架 ═══════════════ -->
     <CertLoading v-if="loading && certificates.length === 0" />
 
@@ -621,7 +641,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
@@ -646,9 +666,11 @@ import type {
 } from './types'
 import { reopenOverlay } from '@/utils/i18n'
 import { useServerStore } from '@views/servers'
+import { certificateCoversHost } from '@views/tunnels/utils/domainAccess'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { toast, notify, confirm, confirmDanger } = useFeedback()
 const serverStore = useServerStore()
 
@@ -691,6 +713,39 @@ const wizardInitialForm = ref<Partial<CertificateWizardForm> | null>(null)
 const importVisible = ref(false)
 const historyRefreshTrigger = ref(0)
 const timers = new Set<ReturnType<typeof window.setTimeout> | ReturnType<typeof window.setInterval>>()
+
+const domainFromQuery = computed(() => {
+  const raw = route.query.domain
+  return typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+})
+
+const domainQueryCert = computed(() => {
+  const host = domainFromQuery.value
+  if (!host) return null
+  const exact = certificates.value.find((cert) => cert.domain.toLowerCase() === host)
+  if (exact) return exact
+  return certificates.value.find((cert) => certificateCoversHost(host, [cert])) ?? null
+})
+
+function applyDomainFromQuery() {
+  const host = domainFromQuery.value
+  if (!host) return
+  const cert = domainQueryCert.value
+  if (cert) {
+    selectedDomain.value = cert.domain
+  }
+}
+
+function applyCertForQueryDomain() {
+  const host = domainFromQuery.value
+  if (!host) return
+  void openCertificateWizard({ domain: host })
+}
+
+function backToDomains() {
+  const host = domainFromQuery.value
+  void router.push(host ? { path: '/domains', query: { host } } : { path: '/domains' })
+}
 
 const query = ref('')
 const filter = ref<CertFilterType>('all')
@@ -935,6 +990,10 @@ onMounted(() => {
   }
 })
 
+watch(domainFromQuery, () => {
+  applyDomainFromQuery()
+})
+
 watch(selectedDomain, (domain) => {
   if (domain) {
     void loadDetail(domain)
@@ -990,8 +1049,9 @@ async function refresh() {
     if (renewalRes) renewalStatus.value = renewalRes
     await loadAcmeConfig()
 
-    // 自动选中第一个
-    if (!selectedDomain.value && certificates.value.length) {
+    if (domainFromQuery.value) {
+      applyDomainFromQuery()
+    } else if (!selectedDomain.value && certificates.value.length) {
       selectedDomain.value = certificates.value[0].domain
     }
   } catch (source) {
@@ -1389,6 +1449,37 @@ onBeforeUnmount(() => {
 .cert-hero__actions {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.cert-domain-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--border-subtle));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--bg-surface-muted));
+}
+
+.cert-domain-banner__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.cert-domain-banner__desc {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.cert-domain-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   flex-shrink: 0;
 }

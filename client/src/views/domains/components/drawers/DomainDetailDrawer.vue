@@ -105,6 +105,9 @@
             <div><dt>{{ t('domains.drawer.autoRenew') }}</dt><dd>{{ summary.certificate.autoRenewalEnabled ? t('common.enabled') : t('common.disabled') }}</dd></div>
           </dl>
           <p v-else class="is-empty">{{ t('domains.drawer.noCertificate') }}</p>
+          <p v-if="!summary?.certificate" class="domain-drawer__dns-hint">
+            {{ t('domains.drawer.bindCertificateHint') }}
+          </p>
           <div class="domain-drawer__inline-actions">
             <GButton variant="secondary" size="sm" icon="shield-check" @click="emit('open-certificates')">
               {{ t('domains.drawer.changeCertificate') }}
@@ -127,6 +130,16 @@
           </div>
           <p class="domain-drawer__dns-status" :class="`is-${detail.dns.status}`">
             {{ t(`domains.dns.${detail.dns.status}`) }}
+          </p>
+          <p v-if="detail.dns.status === 'mismatched'" class="domain-drawer__dns-hint">
+            {{ t('domains.drawer.dnsMismatchHint') }}
+          </p>
+          <p v-if="detail.dns.serverAddresses.length" class="domain-drawer__dns-expected">
+            <strong>{{ t('domains.drawer.dnsExpected') }}:</strong>
+            {{ detail.dns.serverAddresses.join(', ') }}
+          </p>
+          <p v-if="detail.dns.status === 'mismatched' && summary?.host" class="domain-drawer__dns-hint">
+            {{ t('domains.drawer.dnsNextStep', { host: summary.host }) }}
           </p>
           <div v-for="record in detail.dns.records" :key="record.type" class="domain-dns-record">
             <strong>{{ record.type }}</strong>
@@ -483,6 +496,20 @@ function copyDnsRecords() {
 .domain-drawer__dns-status.is-mismatched,
 .domain-drawer__dns-status.is-error,
 .domain-drawer__dns-status.is-noRecord { color: var(--color-danger); }
+
+.domain-drawer__dns-hint {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.domain-drawer__dns-expected {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  word-break: break-all;
+}
 
 .domain-dns-record {
   display: grid;

@@ -1,4 +1,4 @@
-﻿import type { LocaleMessages } from 'vue-i18n'
+import type { LocaleMessages } from 'vue-i18n'
 
 const messages: LocaleMessages<Record<string, unknown>> = {
   common: {
@@ -1280,6 +1280,8 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       localPortRequired: 'Local service port is missing. Select a listening local service port.',
       authFailed: 'Server authentication failed. Check the token and reconnect the server on the Servers page.',
       certificateFailed: 'Certificate or ACME validation failed. Review domain certificate status on the Certificates page.',
+      bindPermissionDenied: 'The server cannot bind the tunnel public port (Permission denied). HTTP/HTTPS tunnels default to high ports (8880/8443). Open that port in your security group and ensure the Gate server is up to date.',
+      domainAlreadyBound: 'This domain is already bound to another tunnel. Delete the old tunnel and retry, or edit the existing tunnel instead of creating a duplicate.',
       operationFailedDetail: 'Tunnel operation failed: {source}',
       unknown: 'Tunnel operation failed. Check the server connection, local service, and tunnel configuration.',
     },
@@ -1445,7 +1447,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       host: 'Bound Domain',
       path: 'Path',
       pathSubpathHint: 'Path mode on the root domain requires extra reverse-proxy setup. Prefer subdomain mode instead.',
-      subdomainModeHint: 'Use a subdomain such as dev.example.com. Gate routes by Host automatically without per-tunnel Nginx edits.',
+      subdomainModeHint: 'Use a subdomain such as dev.example.com. Defaults to high ports (HTTP 8880 / HTTPS 8443) to avoid conflicts with Nginx on 80/443.',
       subdomainInputHint: 'Enter the full subdomain, e.g. dev.maven666.top. Path stays at /.',
       standardPortLabel: 'Public Port (auto)',
       localAddress: 'Local Address',
@@ -1616,19 +1618,22 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         step4Title: 'Remote Port',
         step4TitleDomain: 'Public Access',
         step4DescTcp: 'TCP tunnels use a dedicated public port mapping for non-HTTP services such as databases or SSH.',
-        step4DescDomain: 'Expose your local service on a subdomain. Gate routes by Host automatically — no per-tunnel Nginx edits.',
+        step4DescHttp: 'HTTP tunnels are accessed via server IP + public port. No domain binding required. Default 8880 — open it in your security group.',
+        step4DescDomain: 'Expose your local service on a subdomain. Defaults to high ports (HTTP 8880 / HTTPS 8443) — open that port in your security group.',
         step5TitleDns: 'DNS Setup',
         step5TitleTcp: 'No Domain Needed',
         step5DescTcp: 'TCP tunnels are accessed directly through the public port and do not require a domain.',
-        standardPortLabel: 'Public Port (auto)',
-        dnsGuideDesc: 'Add the DNS record below at your DNS provider once. Future subdomain tunnels will not require more Nginx changes.',
+        standardPortLabel: 'Public Port',
+        highPortHint: 'Defaults: HTTP 8880, HTTPS 8443. Access looks like http://domain:8880 — open that port in your security group.',
+        httpHighPortHint: 'Access looks like http://server-ip:8880 — open that port in your security group.',
+        dnsGuideDesc: 'Add the DNS record below at your DNS provider once. Then open the tunnel public port in your security group (default HTTP 8880 / HTTPS 8443).',
         dnsGuideNote: 'Your main site can keep running on the root domain. The subdomain is routed by Gate using the Host header.',
         dnsGuideMissing: 'Complete the public access step and make sure a Gate server is selected first.',
         dnsType: 'Type',
         dnsName: 'Name',
         dnsValue: 'Value',
         dnsHost: 'Full Host',
-        subdomainModeHint: 'Mature tunnel products use subdomain + standard port, not root domain + path. Add one DNS record for the subdomain pointing to your Gate server.',
+        subdomainModeHint: 'Mature tunnel products use subdomain + high port, not root domain + path. Add one DNS record pointing to your Gate server and open the public port.',
         subdomainLabel: 'Subdomain prefix',
         subdomainInputHint: 'Example: dev.maven666.top. Your main site on maven666.top can keep running separately.',
         subdomainBasePlaceholder: 'Select certificate domain',
@@ -1699,6 +1704,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
           protocol: 'Protocol',
           remotePort: 'Remote Port',
           domain: 'Domain',
+          access: 'Access URL',
         },
         labels: {
           host: 'Host',
@@ -3086,6 +3092,11 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       accessLogs: 'Access Log',
       errorLogs: 'Error Log',
       noLogs: 'No related logs',
+      dnsMismatchHint: 'The resolved IP does not match your Gate server. CDN proxies such as Cloudflare (e.g. 104.21.x, 172.67.x) will also trigger this status.',
+      dnsExpected: 'Gate server IP',
+      dnsCurrent: 'Current resolution',
+      dnsNextStep: 'Add an A record at your DNS provider pointing {host} to the Gate server IP below. With a CDN proxy, HTTP-01 validation may fail — use DNS-01 instead.',
+      bindCertificateHint: 'Certificates are linked by domain name: once a cert matches the tunnel Host, HTTPS works automatically — no separate bind step is required.',
     },
     wizard: {
       brand: 'Hostname Creation Wizard',
@@ -3128,6 +3139,13 @@ const messages: LocaleMessages<Record<string, unknown>> = {
     refresh: 'Refresh',
     request: 'Request Certificate',
     import: 'Import Certificate',
+    fromDomain: {
+      title: 'Configure HTTPS for {host}',
+      found: 'Certificate "{cert}" found. It is used automatically when the tunnel Host matches — no extra binding needed.',
+      notFound: 'No certificate covers {host} yet. Request a new certificate or import an existing one.',
+      apply: 'Request certificate for this domain',
+      backToDomains: 'Back to Domains',
+    },
 
     // Stat cards
     stats: {

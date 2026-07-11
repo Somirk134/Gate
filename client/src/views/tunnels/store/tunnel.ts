@@ -12,7 +12,12 @@ import type {
   TunnelProtocol,
   TunnelStatus,
 } from '../types'
-import { TUNNEL_STATUS_CONFIG, buildTunnelPublicUrl, isRunningStatus } from '../utils'
+import {
+  TUNNEL_STATUS_CONFIG,
+  alignPublicPortWithProtocol,
+  buildTunnelPublicUrl,
+  isRunningStatus,
+} from '../utils'
 
 function t(key: string, params?: Record<string, unknown>): string {
   return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
@@ -97,13 +102,14 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   }
 
   async function createTunnel(form: TunnelFormData): Promise<Tunnel> {
+    const normalizedForm = normalizeTunnelFormForSave(form)
     const serverStore = useServerStore()
     if (serverStore.status === 'idle') {
       await serverStore.load()
     }
     const selectedServer =
-      serverStore.servers.find((server) => server.id === form.serverId) ??
-      serverStore.servers.find((server) => server.name === form.serverName)
+      serverStore.servers.find((server) => server.id === normalizedForm.serverId) ??
+      serverStore.servers.find((server) => server.name === normalizedForm.serverName)
     if (!selectedServer || selectedServer.status !== 'connected') {
       throw new GateAppError({
         code: 'TUNNEL_SERVER_REQUIRED',
@@ -113,24 +119,27 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     }
 
     const id = await tunnelService.create({
-      localPort: form.localPort ?? 0,
-      remotePort: form.remotePort ?? 0,
-      protocol: form.protocol,
+      localPort: normalizedForm.localPort ?? 0,
+      remotePort: normalizedForm.remotePort ?? 0,
+      protocol: normalizedForm.protocol,
       serverId: selectedServer.id,
-      localHost: form.localHost || '127.0.0.1',
-      host: optionalText(form.host),
-      path: optionalText(form.path),
+      localHost: normalizedForm.localHost || '127.0.0.1',
+      host: optionalText(normalizedForm.host),
+      path: optionalText(normalizedForm.path),
     })
 
     await tunnelService.edit(id, {
-      name: form.name.trim(),
-      protocol: form.protocol,
+      name: normalizedForm.name.trim(),
+      protocol: normalizedForm.protocol,
       serverId: selectedServer.id,
-      localHost: form.localHost || '127.0.0.1',
-      localPort: form.localPort ?? 0,
-      remotePort: form.remotePort && form.remotePort > 0 ? form.remotePort : undefined,
-      host: optionalText(form.host),
-      path: optionalText(form.path),
+      localHost: normalizedForm.localHost || '127.0.0.1',
+      localPort: normalizedForm.localPort ?? 0,
+      remotePort:
+        normalizedForm.remotePort && normalizedForm.remotePort > 0
+          ? normalizedForm.remotePort
+          : undefined,
+      host: optionalText(normalizedForm.host),
+      path: optionalText(normalizedForm.path),
     })
 
     await refresh()
@@ -144,7 +153,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
       })
     }
 
-    if (form.autoStart) {
+    if (normalizedForm.autoStart) {
       await startTunnel(created.id)
       return getById(created.id) ?? created
     }
@@ -155,15 +164,16 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   async function updateTunnel(id: string, patch: Partial<TunnelFormData>): Promise<void> {
     const previous = getById(id)
     const shouldRestart = previous ? isRunningStatus(previous.status) : false
-    const nextProtocol = patch.protocol ?? previous?.protocol
+    const normalizedPatch = normalizeTunnelPatchForSave(previous, patch)
+    const nextProtocol = normalizedPatch.protocol ?? previous?.protocol
     const keepsHttpFields = nextProtocol === 'http' || nextProtocol === 'https'
     await tunnelService.edit(id, {
-      name: patch.name,
-      protocol: patch.protocol,
-      serverId: patch.serverId,
-      localHost: patch.localHost,
-      localPort: patch.localPort ?? undefined,
-      remotePort: patch.remotePort ?? undefined,
+      name: normalizedPatch.name,
+      protocol: normalizedPatch.protocol,
+      serverId: normalizedPatch.serverId,
+      localHost: normalizedPatch.localHost,
+      localPort: normalizedPatch.localPort ?? undefined,
+      remotePort: normalizedPatch.remotePort ?? undefined,
       host:
         patch.host === undefined
           ? undefined
@@ -343,6 +353,38 @@ function publicAddress(row: DashboardTunnel): string {
 function optionalText(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   return trimmed ? trimmed : undefined
+}
+
+function normalizeTunnelFormForSave(form: TunnelFormData): TunnelFormData {
+  const remotePort =
+    form.protocol === 'http' || form.protocol === 'https'
+      ? alignPublicPortWithProtocol(form.protocol, form.remotePort)
+      : form.remotePort
+
+  return {
+    ...form,
+    remotePort,
+  }
+}
+
+function normalizeTunnelPatchForSave(
+  previous: Tunnel | undefined,
+  patch: Partial<TunnelFormData>,
+): Partial<TunnelFormData> {
+  const protocol = patch.protocol ?? previous?.protocol
+  if (protocol !== 'http' && protocol !== 'https') {
+    return patch
+  }
+
+  const remotePort = alignPublicPortWithProtocol(
+    protocol,
+    patch.remotePort ?? previous?.remotePort ?? null,
+  )
+
+  return {
+    ...patch,
+    remotePort,
+  }
 }
 
 export { TUNNEL_STATUS_CONFIG }

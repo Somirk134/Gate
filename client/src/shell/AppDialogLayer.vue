@@ -82,7 +82,8 @@ function cancelLabel(dialog: DialogItem): string {
 .dialog-layer {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
+  /* 高于 body 级 Teleport 模态（--z-modal），确保确认框不被遮挡 */
+  z-index: var(--z-popover);
   pointer-events: none;
 }
 

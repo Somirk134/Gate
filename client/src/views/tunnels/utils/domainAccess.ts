@@ -93,8 +93,51 @@ export function isHttpLikeProtocol(protocol: string): boolean {
   return protocol === 'http' || protocol === 'https'
 }
 
+/** 默认公网端口：避免与服务器上 Nginx 等占用的 80/443 冲突。 */
+export const DEFAULT_HTTP_PUBLIC_PORT = 8880
+export const DEFAULT_HTTPS_PUBLIC_PORT = 8443
+
 export function standardPublicPort(protocol: TunnelProtocol | string): number {
-  return protocol === 'https' ? 443 : 80
+  return protocol === 'https' ? DEFAULT_HTTPS_PUBLIC_PORT : DEFAULT_HTTP_PUBLIC_PORT
+}
+
+export function isLegacyStandardPublicPort(port: number): boolean {
+  return port === 80 || port === 443
+}
+
+/** 仅修正空端口或 80/443 特权端口，保留用户自定义高位端口（如 HTTP 使用 8443）。 */
+export function alignPublicPortWithProtocol(
+  protocol: TunnelProtocol | string,
+  remotePort: number | null | undefined,
+): number {
+  if (!isHttpLikeProtocol(protocol)) {
+    return remotePort ?? 0
+  }
+
+  const port = remotePort ?? 0
+  if (port < 1 || port > 65535) {
+    return standardPublicPort(protocol)
+  }
+  if (isLegacyStandardPublicPort(port)) {
+    return standardPublicPort(protocol)
+  }
+  return port
+}
+
+/** 仅在 HTTP ↔ HTTPS 协议切换时，同步默认端口对。 */
+export function alignPublicPortOnProtocolSwitch(
+  protocol: TunnelProtocol | string,
+  previousProtocol: TunnelProtocol | string,
+  remotePort: number | null | undefined,
+): number {
+  const port = remotePort ?? 0
+  if (previousProtocol === 'http' && protocol === 'https' && port === DEFAULT_HTTP_PUBLIC_PORT) {
+    return DEFAULT_HTTPS_PUBLIC_PORT
+  }
+  if (previousProtocol === 'https' && protocol === 'http' && port === DEFAULT_HTTPS_PUBLIC_PORT) {
+    return DEFAULT_HTTP_PUBLIC_PORT
+  }
+  return alignPublicPortWithProtocol(protocol, port)
 }
 
 export function usesSubdomainAccess(protocol: string, host?: string | null): boolean {
@@ -114,7 +157,7 @@ export function formatTunnelPathForUrl(path?: string | null): string {
 
 export function shouldOmitPublicPort(protocol: string, remotePort: number, host?: string | null): boolean {
   if (!isHttpLikeProtocol(protocol) || !host?.trim()) return false
-  return remotePort === 80 || remotePort === 443
+  return isLegacyStandardPublicPort(remotePort)
 }
 
 export function buildTunnelPublicUrl(options: {
@@ -132,7 +175,9 @@ export function buildTunnelPublicUrl(options: {
 
   if (isHttpLikeProtocol(protocol)) {
     if (host) {
-      return `${protocol}://${host}${pathSuffix}`
+      const effectivePort = remotePort > 0 ? remotePort : standardPublicPort(protocol)
+      const portSuffix = shouldOmitPublicPort(protocol, effectivePort, host) ? '' : `:${effectivePort}`
+      return `${protocol}://${host}${portSuffix}${pathSuffix}`
     }
     if (serverHost && remotePort > 0) {
       const portSuffix = shouldOmitPublicPort(protocol, remotePort, host) ? '' : `:${remotePort}`

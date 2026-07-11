@@ -52,7 +52,7 @@
               <TunnelProtocolSelect v-model="form.protocol" />
             </GFormField>
 
-            <div v-if="isHttpLike" class="tunnel-domain-panel">
+            <div v-if="form.protocol === 'https'" class="tunnel-domain-panel">
               <p class="tunnel-domain-panel__hint">{{ t('tunnel.settings.subdomainModeHint') }}</p>
               <GFormField :error="errors.host" :required="form.protocol === 'https'">
                 <template #label>{{ t('tunnel.settings.host') }}</template>
@@ -69,7 +69,10 @@
               </div>
               <GFormField :error="errors.remotePort">
                 <template #label>{{ t('tunnel.settings.standardPortLabel') }}</template>
-                <GInput :model-value="String(form.remotePort ?? standardPublicPort(form.protocol))" readonly />
+                <TunnelPortInput v-model="form.remotePort" />
+                <template v-if="isHttpLike" #hint>
+                  {{ t('tunnel.wizard.flow.highPortHint') }}
+                </template>
               </GFormField>
             </div>
 
@@ -90,9 +93,12 @@
                 <template #label>{{ t('tunnel.settings.localPort') }}</template>
                 <TunnelPortInput v-model="form.localPort" />
               </GFormField>
-              <GFormField :error="errors.remotePort" :required="!isHttpLike">
+              <GFormField :error="errors.remotePort" :required="form.protocol === 'tcp' || form.protocol === 'http'">
                 <template #label>{{ t('tunnel.settings.remotePort') }}</template>
-                <TunnelPortInput v-model="form.remotePort" :disabled="isHttpLike" />
+                <TunnelPortInput v-model="form.remotePort" :disabled="form.protocol === 'https'" />
+                <template v-if="form.protocol === 'http'" #hint>
+                  {{ t('tunnel.wizard.flow.httpHighPortHint') }}
+                </template>
               </GFormField>
             </div>
 
@@ -218,7 +224,7 @@ import TunnelProtocolSelect from './TunnelProtocolSelect.vue'
 import TunnelPortInput from './TunnelPortInput.vue'
 import TunnelTag from './TunnelTag.vue'
 import type { Tunnel, TunnelFormData } from '../types'
-import { PROTOCOL_MAP, TUNNEL_TAGS, buildTunnelPublicUrl, isValidPort, standardPublicPort } from '../utils'
+import { PROTOCOL_MAP, TUNNEL_TAGS, alignPublicPortOnProtocolSwitch, alignPublicPortWithProtocol, buildTunnelPublicUrl, isValidPort, standardPublicPort } from '../utils'
 import { applySubdomainTunnelDefaults } from '../utils/domainAccess'
 
 const props = defineProps<{
@@ -302,41 +308,49 @@ const isValid = computed(
     !errors.host &&
     !errors.path &&
     isValidPort(form.localPort) &&
-    (isHttpLike.value ? Boolean(form.host?.trim()) && isValidPort(form.remotePort) : isValidPort(form.remotePort)) &&
-    (form.protocol !== 'https' || Boolean(form.host?.trim())),
+    (form.protocol === 'https'
+      ? Boolean(form.host?.trim()) && isValidPort(form.remotePort)
+      : isValidPort(form.remotePort)),
 )
+
+function clearFieldErrors() {
+  errors.name = undefined
+  errors.localHost = undefined
+  errors.localPort = undefined
+  errors.remotePort = undefined
+  errors.host = undefined
+  errors.path = undefined
+}
+
+function populateFormFromTunnel(tunnel: Tunnel) {
+  form.name = tunnel.name
+  form.protocol = tunnel.protocol
+  form.localHost = tunnel.localHost
+  form.localPort = tunnel.localPort
+  form.remotePort = alignPublicPortWithProtocol(tunnel.protocol, tunnel.remotePort)
+  form.host = tunnel.host ?? ''
+  form.path = tunnel.path ?? '/'
+  form.projectId = tunnel.projectId
+  form.serverId = tunnel.serverId
+  form.serverName = tunnel.serverName
+  form.autoStart = tunnel.autoStart
+  form.remark = tunnel.remark
+  form.tags = [...tunnel.tags]
+}
 
 // 初始化 / 重置表单
 watch(
-  () => props.visible,
-  (v) => {
-    if (v) {
-      if (props.tunnel) {
-        form.name = props.tunnel.name
-        form.protocol = props.tunnel.protocol
-        form.localHost = props.tunnel.localHost
-        form.localPort = props.tunnel.localPort
-        form.remotePort = props.tunnel.remotePort
-        form.host = props.tunnel.host ?? ''
-        form.path = props.tunnel.path ?? '/'
-        form.projectId = props.tunnel.projectId
-        form.serverId = props.tunnel.serverId
-        form.serverName = props.tunnel.serverName
-        form.autoStart = props.tunnel.autoStart
-        form.remark = props.tunnel.remark
-        form.tags = [...props.tunnel.tags]
-      } else {
-        resetForm()
-      }
-      errors.name = undefined
-      errors.localHost = undefined
-      errors.localPort = undefined
-      errors.remotePort = undefined
-      errors.host = undefined
-      errors.path = undefined
+  () => ({ visible: props.visible, tunnel: props.tunnel }),
+  ({ visible, tunnel }) => {
+    if (!visible) return
+    if (tunnel) {
+      populateFormFromTunnel(tunnel)
+    } else {
+      resetForm()
     }
+    clearFieldErrors()
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 )
 
 function resetForm() {
@@ -363,18 +377,31 @@ function onHostChanged() {
   const defaults = applySubdomainTunnelDefaults(form.protocol, host)
   form.host = defaults.host
   form.path = defaults.path
-  form.remotePort = defaults.remotePort
+  if (!isValidPort(form.remotePort)) {
+    form.remotePort = defaults.remotePort
+  }
   validateField('remotePort')
 }
 
 watch(
   () => form.protocol,
-  (protocol) => {
+  (protocol, previous) => {
     if (protocol === 'tcp') {
       form.path = ''
       return
     }
+    if (protocol === 'http') {
+      form.host = ''
+    }
     form.path = '/'
+    if (
+      previous &&
+      previous !== protocol &&
+      (protocol === 'http' || protocol === 'https') &&
+      (previous === 'http' || previous === 'https')
+    ) {
+      form.remotePort = alignPublicPortOnProtocolSwitch(protocol, previous, form.remotePort)
+    }
     if (form.host?.trim()) onHostChanged()
   },
 )
@@ -396,7 +423,7 @@ function validateField(field: keyof typeof errors) {
     else errors.localPort = undefined
   }
   if (field === 'remotePort') {
-    if (isHttpLike.value && form.host?.trim()) {
+    if (form.protocol === 'https' && form.host?.trim() && !isValidPort(form.remotePort)) {
       form.remotePort = standardPublicPort(form.protocol)
       errors.remotePort = undefined
       return

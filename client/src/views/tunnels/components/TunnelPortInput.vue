@@ -5,7 +5,11 @@
   支持自定义 placeholder 与 label。
 -->
 <template>
-  <GPortInput :model-value="modelValue" :size="size" :disabled="disabled" />
+  <GPortInput
+    :model-value="modelValue"
+    :size="size"
+    :disabled="disabled"
+    @update:model-value="emit('update:modelValue', $event)" />
 </template>
 
 <script setup lang="ts">
@@ -20,5 +24,5 @@ withDefaults(
   { size: 'md', disabled: false },
 )
 
-defineEmits<{ 'update:modelValue': [value: number | null] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: number | null] }>()
 </script>

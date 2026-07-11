@@ -158,6 +158,20 @@ fn classify_tunnel_error(source: &str) -> AppError {
             json!({ "source": source }),
         );
     }
+    if lower.contains("permission denied") || lower.contains("os error 13") {
+        return AppError::with_details(
+            "TUNNEL_BIND_PERMISSION_DENIED",
+            "tunnel.errors.bindPermissionDenied",
+            json!({ "source": source }),
+        );
+    }
+    if lower.contains("already bound to tunnel") {
+        return AppError::with_details(
+            "TUNNEL_DOMAIN_ALREADY_BOUND",
+            "tunnel.errors.domainAlreadyBound",
+            json!({ "source": source }),
+        );
+    }
     if lower.contains("server unavailable") || lower.contains("control connection disconnected") {
         return AppError::with_details(
             "TUNNEL_SERVER_CONTROL_FAILED",

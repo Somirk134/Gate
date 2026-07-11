@@ -60,6 +60,20 @@ fn domain_bind_and_unbind_updates_state() -> Result<(), Box<dyn std::error::Erro
 }
 
 #[test]
+fn domain_rebind_replaces_existing_tunnel() -> Result<(), Box<dyn std::error::Error>> {
+    let mut domain =
+        Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?).build()?;
+    let first = TunnelId::new("tunnel-1")?;
+    let second = TunnelId::new("tunnel-2")?;
+
+    domain.bind(first)?;
+    domain.rebind(second.clone())?;
+    assert_eq!(domain.tunnel_id(), Some(&second));
+    assert_eq!(domain.bind_status(), &BindStatus::Bound);
+    Ok(())
+}
+
+#[test]
 fn binding_disabled_domain_is_rejected() -> Result<(), Box<dyn std::error::Error>> {
     let mut domain =
         Domain::builder(DomainId::new("domain-1")?, Host::new("api.gate.dev")?).build()?;

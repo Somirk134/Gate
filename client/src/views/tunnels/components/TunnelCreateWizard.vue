@@ -14,15 +14,15 @@
 
         <div class="wizard__steps">
           <span
-            v-for="item in steps"
-            :key="item.index"
-            :class="{ active: step === item.index, done: step > item.index }">
-            {{ item.index }}
+            v-for="(kind, index) in wizardStepFlow"
+            :key="`${kind}-${index}`"
+            :class="{ active: step === index, done: step > index }">
+            {{ index + 1 }}
           </span>
         </div>
 
         <main class="wizard__body">
-          <section v-if="step === 1" class="wizard-step">
+          <section v-if="currentStepKind === 'server'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step1Title') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step1Desc') }}</p>
@@ -56,7 +56,7 @@
             </div>
           </section>
 
-          <section v-else-if="step === 2" class="wizard-step">
+          <section v-else-if="currentStepKind === 'service'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step2Title') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step2Desc') }}</p>
@@ -178,7 +178,7 @@
             </div>
           </section>
 
-          <section v-else-if="step === 3" class="wizard-step">
+          <section v-else-if="currentStepKind === 'protocol'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step3Title') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step3Desc') }}</p>
@@ -197,10 +197,11 @@
             </div>
           </section>
 
-          <section v-else-if="step === 4 && !isHttpLike" class="wizard-step">
+          <section v-else-if="currentStepKind === 'remotePort'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step4Title') }}</strong>
-              <p>{{ t('tunnel.wizard.flow.step4DescTcp') }}</p>
+              <p v-if="form.protocol === 'tcp'">{{ t('tunnel.wizard.flow.step4DescTcp') }}</p>
+              <p v-else>{{ t('tunnel.wizard.flow.step4DescHttp') }}</p>
             </div>
             <label>
               <span>{{ t('tunnel.wizard.flow.manualPort') }}</span>
@@ -208,14 +209,22 @@
                 v-model.number="form.remotePort"
                 inputmode="numeric"
                 type="number"
-                placeholder="18080" />
+                min="1024"
+                max="65535"
+                :placeholder="form.protocol === 'http' ? String(standardPublicPort('http')) : '18080'" />
+              <small v-if="form.protocol === 'http'" class="field-hint">
+                {{ t('tunnel.wizard.flow.httpHighPortHint') }}
+              </small>
             </label>
+            <p v-if="form.protocol === 'http' && previewAccessUrl" class="wizard-alert access-preview">
+              {{ t('tunnel.wizard.flow.accessPreview', { url: previewAccessUrl }) }}
+            </p>
             <p v-if="portCheckMessage" class="wizard-alert" :class="{ error: portConflict }">
               {{ portCheckMessage }}
             </p>
           </section>
 
-          <section v-else-if="step === 4 && isHttpLike" class="wizard-step">
+          <section v-else-if="currentStepKind === 'domain'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step4TitleDomain') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step4DescDomain') }}</p>
@@ -224,7 +233,6 @@
             <label>
               <span>{{ t('tunnel.wizard.flow.labels.domain') }}</span>
               <div
-                v-if="form.protocol === 'https'"
                 ref="domainPickerRef"
                 class="domain-picker"
                 :class="{ 'domain-picker--open': domainPickerOpen }">
@@ -250,21 +258,8 @@
                   </button>
                 </div>
               </div>
-              <input
-                v-else
-                v-model.trim="form.host"
-                autocomplete="off"
-                list="tunnel-domain-suggestions"
-                placeholder="dev.example.com"
-                @blur="applySubdomainDefaults" />
-              <datalist v-if="form.protocol === 'http'" id="tunnel-domain-suggestions">
-                <option
-                  v-for="option in suggestedSubdomainOptions"
-                  :key="`suggest-${option}`"
-                  :value="option" />
-              </datalist>
             </label>
-            <label v-if="form.protocol === 'https'">
+            <label>
               <span>{{ t('tunnel.wizard.flow.subdomainLabel') }}</span>
               <div class="subdomain-row">
                 <input
@@ -292,10 +287,19 @@
             </label>
             <label>
               <span>{{ t('tunnel.wizard.flow.standardPortLabel') }}</span>
-              <input :value="form.remotePort ?? standardPublicPort(form.protocol)" readonly />
+              <input
+                v-model.number="form.remotePort"
+                inputmode="numeric"
+                type="number"
+                min="1024"
+                max="65535"
+                :placeholder="String(standardPublicPort(form.protocol))" />
+              <small v-if="isHttpLike" class="field-hint">
+                {{ t('tunnel.wizard.flow.highPortHint') }}
+              </small>
             </label>
             <p
-              v-if="form.protocol === 'https' && !certificatesLoading && !availableDomainOptions.length"
+              v-if="!certificatesLoading && !availableDomainOptions.length"
               class="wizard-alert error">
               {{ t('tunnel.wizard.flow.noCertificateDomains') }}
             </p>
@@ -305,13 +309,13 @@
             <p v-if="form.host && !certificateCoversSelectedHost" class="wizard-alert error">
               {{ t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host }) }}
             </p>
-            <div v-if="form.protocol === 'https'" class="certificate-state">
+            <div class="certificate-state">
               <GIcon :name="hasCertificate ? 'check-circle' : 'alert-circle'" :size="18" />
               <span>{{ certificateMessage }}</span>
             </div>
           </section>
 
-          <section v-else-if="step === 5 && isHttpLike" class="wizard-step">
+          <section v-else-if="currentStepKind === 'dns'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step5TitleDns') }}</strong>
               <p>{{ t('tunnel.wizard.flow.dnsGuideDesc') }}</p>
@@ -328,7 +332,7 @@
             <p v-else class="wizard-alert error">{{ t('tunnel.wizard.flow.dnsGuideMissing') }}</p>
           </section>
 
-          <section v-else-if="step === 5" class="wizard-step">
+          <section v-else-if="currentStepKind === 'tcpNote'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step5TitleTcp') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step5DescTcp') }}</p>
@@ -336,7 +340,7 @@
             <p class="wizard-alert">{{ t('tunnel.wizard.flow.tcpNoDomainCert') }}</p>
           </section>
 
-          <section v-else class="wizard-step">
+          <section v-else-if="currentStepKind === 'confirm'" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.confirmCreate') }}</strong>
               <p>{{ t('tunnel.wizard.flow.step6Desc') }}</p>
@@ -346,7 +350,14 @@
               <div><span>{{ t('tunnel.wizard.flow.confirmList.localService') }}</span><strong>{{ form.localHost }}:{{ form.localPort }}</strong></div>
               <div><span>{{ t('tunnel.wizard.flow.confirmList.protocol') }}</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
               <div><span>{{ t('tunnel.wizard.flow.confirmList.remotePort') }}</span><strong>{{ form.remotePort ?? '-' }}</strong></div>
-              <div v-if="isHttpLike"><span>{{ t('tunnel.wizard.flow.confirmList.domain') }}</span><strong>{{ previewAccessUrl || form.host || '-' }}</strong></div>
+              <div v-if="form.protocol === 'https'">
+                <span>{{ t('tunnel.wizard.flow.confirmList.domain') }}</span>
+                <strong>{{ previewAccessUrl || form.host || '-' }}</strong>
+              </div>
+              <div v-else-if="previewAccessUrl">
+                <span>{{ t('tunnel.wizard.flow.confirmList.access') }}</span>
+                <strong>{{ previewAccessUrl }}</strong>
+              </div>
             </div>
             <div v-if="diagnosis" class="diagnosis-list">
               <article
@@ -361,10 +372,10 @@
         </main>
 
         <footer class="wizard__footer">
-          <GButton v-if="step > 1" variant="ghost" @click="step -= 1">{{ t('tunnel.wizard.previous') }}</GButton>
+          <GButton v-if="step > 0" variant="ghost" @click="previous">{{ t('tunnel.wizard.previous') }}</GButton>
           <span class="wizard__error">{{ errorMessage }}</span>
           <GButton
-            v-if="step < 6"
+            v-if="currentStepKind !== 'confirm'"
             variant="primary"
             trailing-icon="arrow-right"
             :loading="stepLoading"
@@ -374,7 +385,7 @@
           <GButton v-else variant="secondary" icon="activity" @click="runDiagnosis">
             {{ t('tunnel.wizard.flow.healthCheck') }}
           </GButton>
-          <GButton v-if="step === 6" variant="primary" icon="plus" :loading="creating" @click="createTunnel">
+          <GButton v-if="currentStepKind === 'confirm'" variant="primary" icon="plus" :loading="creating" @click="createTunnel">
             {{ t('tunnel.wizard.finish') }}
           </GButton>
         </footer>
@@ -402,6 +413,8 @@ import type { Server, ServerStatus } from '@views/servers'
 import type { TunnelFormData, TunnelProtocol } from '../types'
 import {
   SUBDOMAIN_PREFIX_PRESETS,
+  alignPublicPortOnProtocolSwitch,
+  alignPublicPortWithProtocol,
   applySubdomainTunnelDefaults,
   buildDnsRecordGuide,
   buildSubdomainHost,
@@ -411,7 +424,6 @@ import {
   splitSubdomainHost,
   standardPublicPort,
   suggestSubdomainPrefix,
-  suggestedSubdomainHosts,
 } from '../utils/domainAccess'
 import { isValidPort } from '../utils'
 
@@ -452,27 +464,44 @@ const form = reactive<TunnelFormData>({
   tags: [],
 })
 
-const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
-const steps = computed(() => [
-  { index: 1, title: t('tunnel.wizard.flow.step1Title') },
-  { index: 2, title: t('tunnel.wizard.flow.step2Title') },
-  { index: 3, title: t('tunnel.wizard.flow.step3Title') },
-  {
-    index: 4,
-    title: isHttpLike.value
-      ? t('tunnel.wizard.flow.step4TitleDomain')
-      : t('tunnel.wizard.flow.step4Title'),
-  },
-  {
-    index: 5,
-    title: isHttpLike.value
-      ? t('tunnel.wizard.flow.step5TitleDns')
-      : t('tunnel.wizard.flow.step5TitleTcp'),
-  },
-  { index: 6, title: t('tunnel.wizard.flow.step6Title') },
-])
+type WizardStepKind = 'server' | 'service' | 'protocol' | 'remotePort' | 'domain' | 'dns' | 'tcpNote' | 'confirm'
 
-const step = ref(1)
+function buildWizardStepFlow(protocol: string): WizardStepKind[] {
+  const head: WizardStepKind[] = ['server', 'service', 'protocol']
+  if (protocol === 'https') {
+    return [...head, 'domain', 'dns', 'confirm']
+  }
+  if (protocol === 'http') {
+    return [...head, 'remotePort', 'confirm']
+  }
+  return [...head, 'remotePort', 'tcpNote', 'confirm']
+}
+
+function stepTitleForKind(kind: WizardStepKind): string {
+  switch (kind) {
+    case 'server':
+      return t('tunnel.wizard.flow.step1Title')
+    case 'service':
+      return t('tunnel.wizard.flow.step2Title')
+    case 'protocol':
+      return t('tunnel.wizard.flow.step3Title')
+    case 'remotePort':
+      return t('tunnel.wizard.flow.step4Title')
+    case 'domain':
+      return t('tunnel.wizard.flow.step4TitleDomain')
+    case 'dns':
+      return t('tunnel.wizard.flow.step5TitleDns')
+    case 'tcpNote':
+      return t('tunnel.wizard.flow.step5TitleTcp')
+    case 'confirm':
+      return t('tunnel.wizard.flow.step6Title')
+  }
+}
+
+const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
+const wizardStepFlow = computed(() => buildWizardStepFlow(form.protocol))
+const step = ref(0)
+const currentStepKind = computed(() => wizardStepFlow.value[step.value] ?? 'confirm')
 const stepLoading = ref(false)
 const creating = ref(false)
 const discoveryLoading = ref(false)
@@ -510,7 +539,7 @@ const manualService = reactive<{
   name: '',
 })
 
-const stepTitle = computed(() => steps.value.find((item) => item.index === step.value)?.title ?? t('tunnel.wizard.flow.step6Title'))
+const stepTitle = computed(() => stepTitleForKind(currentStepKind.value))
 const recommendedProtocol = computed(() => selectedService.value?.recommendedProtocol ?? 'tcp')
 const selectedServer = computed(
   () => props.servers.find((server) => server.id === form.serverId) ?? null,
@@ -536,21 +565,22 @@ const filteredLocalServices = computed(() => {
   )
 })
 const normalizedHost = computed(() => form.host?.trim().toLowerCase() ?? '')
-const suggestedSubdomainOptions = computed(() => suggestedSubdomainHosts(certificates.value))
 const certificateCoversSelectedHost = computed(() =>
   normalizedHost.value ? certificateCoversHost(normalizedHost.value, certificates.value) : true,
 )
 const hasCertificate = computed(() => certificateCoversSelectedHost.value)
+const serverPublicIp = computed(
+  () => selectedServer.value?.publicIp || selectedServer.value?.settings.host || '',
+)
 const previewAccessUrl = computed(() =>
   buildTunnelPublicUrl({
     protocol: form.protocol,
-    host: form.host,
+    host: form.protocol === 'https' ? form.host : undefined,
     path: form.path,
     remotePort: form.remotePort,
+    serverHost:
+      form.protocol === 'http' && !form.host?.trim() ? serverPublicIp.value : undefined,
   }),
-)
-const serverPublicIp = computed(
-  () => selectedServer.value?.publicIp || selectedServer.value?.settings.host || '',
 )
 const dnsRecordGuide = computed(() =>
   buildDnsRecordGuide(form.host ?? '', serverPublicIp.value),
@@ -661,7 +691,7 @@ function handleScanComplete(payload: DiscoveryScanComplete) {
 
 function applyStandardPublicPort() {
   if (!isHttpLike.value || !form.host?.trim()) return
-  form.remotePort = standardPublicPort(form.protocol)
+  form.remotePort = alignPublicPortWithProtocol(form.protocol, form.remotePort)
 }
 
 function syncHttpsHostFromParts() {
@@ -672,7 +702,7 @@ function syncHttpsHostFromParts() {
   const defaults = applySubdomainTunnelDefaults(form.protocol, buildSubdomainHost(subdomainPrefix.value, selectedCertDomain.value))
   form.host = defaults.host
   form.path = defaults.path
-  form.remotePort = defaults.remotePort
+  form.remotePort = alignPublicPortWithProtocol(form.protocol, form.remotePort ?? defaults.remotePort)
 }
 
 function applyCertDomainSelection() {
@@ -695,25 +725,12 @@ function selectCertDomain(value: string) {
   applyCertDomainSelection()
 }
 
-function applySubdomainDefaults() {
-  const host = form.host?.trim().toLowerCase() ?? ''
-  if (!host) return
-  const defaults = applySubdomainTunnelDefaults(form.protocol, host)
-  form.host = defaults.host
-  form.path = defaults.path
-  form.remotePort = defaults.remotePort
-}
-
 function selectSubdomainPrefix(prefix: string) {
   subdomainPrefix.value = prefix
   syncHttpsHostFromParts()
 }
 
 onClickOutside(domainPickerRef, () => {
-  domainPickerOpen.value = false
-})
-
-watch(step, () => {
   domainPickerOpen.value = false
 })
 
@@ -732,13 +749,53 @@ watch(
 )
 
 watch(step, (value, oldValue) => {
-  if (value === 2 && oldValue === 1 && props.visible) {
+  domainPickerOpen.value = false
+  const flow = wizardStepFlow.value
+  const kind = flow[value]
+  const oldKind = flow[oldValue]
+  if (kind === 'service' && oldKind === 'server' && props.visible) {
     void startDiscoveryScan({ selectFirst: true })
   }
-  if (value === 4 && isHttpLike.value && props.visible) {
+  if (kind === 'domain' && props.visible) {
     void prepareDomainStep()
   }
+  if (
+    kind === 'remotePort' &&
+    form.protocol === 'http' &&
+    props.visible &&
+    !isValidPort(form.remotePort)
+  ) {
+    form.remotePort = standardPublicPort('http')
+  }
 })
+
+watch(
+  () => form.protocol,
+  (protocol, previous) => {
+    if (!props.visible) return
+    if (protocol === 'tcp') {
+      form.path = ''
+      return
+    }
+    if (protocol === 'http') {
+      form.host = ''
+      form.path = '/'
+    }
+    if (
+      previous &&
+      previous !== protocol &&
+      (protocol === 'http' || protocol === 'https') &&
+      (previous === 'http' || previous === 'https')
+    ) {
+      form.remotePort = alignPublicPortOnProtocolSwitch(protocol, previous, form.remotePort)
+    }
+    const flow = buildWizardStepFlow(protocol)
+    const kind = currentStepKind.value
+    if (!flow.includes(kind)) {
+      step.value = flow.indexOf('protocol')
+    }
+  },
+)
 
 onUnmounted(() => {
   teardownScanListeners()
@@ -765,7 +822,7 @@ watch(
 )
 
 async function reset() {
-  step.value = 1
+  step.value = 0
   stepLoading.value = false
   creating.value = false
   discoveryLoading.value = false
@@ -884,10 +941,6 @@ async function loadCertificates() {
 
 async function prepareDomainStep() {
   await loadCertificates()
-  if (form.protocol !== 'https') {
-    applySubdomainDefaults()
-    return
-  }
   const options = availableDomainOptions.value
   if (!options.length) {
     form.host = ''
@@ -913,9 +966,12 @@ function selectService(service: LocalServiceRecord) {
   selectedService.value = service
   form.localHost = service.host || '127.0.0.1'
   form.localPort = service.port
-  form.protocol = service.recommendedProtocol
+  // 步骤 3 之后用户已手动选择协议，重新扫描/点选服务不应覆盖 HTTPS 等选择。
+  if (step.value < wizardStepFlow.value.indexOf('protocol')) {
+    form.protocol = service.recommendedProtocol
+    form.path = form.protocol === 'tcp' ? '' : '/'
+  }
   form.name = service.technology || service.process || `Service ${service.port}`
-  form.path = form.protocol === 'tcp' ? '' : '/'
   form.tags = [service.technology, service.process].filter(Boolean)
   manualService.host = form.localHost
   manualService.port = form.localPort
@@ -939,6 +995,10 @@ async function runDiagnosis() {
   })
 }
 
+function previous() {
+  if (step.value > 0) step.value -= 1
+}
+
 async function next() {
   if (stepLoading.value) return
   if (!(await validateStep())) return
@@ -946,7 +1006,7 @@ async function next() {
   stepLoading.value = true
   try {
     step.value += 1
-    if (step.value === 6) await runDiagnosis()
+    if (currentStepKind.value === 'confirm') await runDiagnosis()
   } finally {
     stepLoading.value = false
   }
@@ -955,7 +1015,8 @@ async function next() {
 async function validateStep() {
   errorMessage.value = ''
   const server = selectedServer.value
-  if (step.value === 1) {
+  const kind = currentStepKind.value
+  if (kind === 'server') {
     if (!server) {
       errorMessage.value = t('tunnel.wizard.flow.selectCreatedServer')
       return false
@@ -965,7 +1026,7 @@ async function validateStep() {
       return false
     }
   }
-  if (step.value === 2) {
+  if (kind === 'service') {
     if (!selectedService.value) {
       errorMessage.value = t('tunnel.wizard.flow.selectLocalService')
       return false
@@ -978,22 +1039,26 @@ async function validateStep() {
       return false
     }
   }
-  if (step.value === 4 && !isHttpLike.value) {
+  if (kind === 'remotePort') {
     if (!isValidPort(form.remotePort)) {
       errorMessage.value = t('tunnel.wizard.flow.remotePortRequired')
     } else if (portConflict.value) {
       errorMessage.value = t('tunnel.wizard.flow.remotePortConflict')
     }
+    if (!errorMessage.value && form.protocol === 'http' && form.remotePort) {
+      await checkPort(form.remotePort)
+      if (portConflict.value) {
+        errorMessage.value = t('tunnel.wizard.flow.remotePortConflict')
+      }
+    }
   }
-  if (step.value === 4 && isHttpLike.value) {
+  if (kind === 'domain') {
     if (!normalizedHost.value) {
       errorMessage.value = t('tunnel.wizard.flow.domainRequiredHttps')
-    } else if (form.protocol === 'https') {
-      if (!availableDomainOptions.value.length) {
-        errorMessage.value = t('tunnel.wizard.flow.noCertificateDomains')
-      } else if (!certificateCoversSelectedHost.value) {
-        errorMessage.value = t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host })
-      }
+    } else if (!availableDomainOptions.value.length) {
+      errorMessage.value = t('tunnel.wizard.flow.noCertificateDomains')
+    } else if (!certificateCoversSelectedHost.value) {
+      errorMessage.value = t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host })
     }
     if (!errorMessage.value) {
       applyStandardPublicPort()
@@ -1003,7 +1068,7 @@ async function validateStep() {
       }
     }
   }
-  if (step.value === 5 && isHttpLike.value && !dnsRecordGuide.value) {
+  if (kind === 'dns' && !dnsRecordGuide.value) {
     errorMessage.value = t('tunnel.wizard.flow.dnsGuideMissing')
   }
   return !errorMessage.value

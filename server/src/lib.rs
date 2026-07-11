@@ -1,6 +1,7 @@
 pub mod bootstrap;
 pub mod discovery;
 pub mod gateway;
+pub mod logging;
 pub mod runtime;
 
 pub use bootstrap::ServerBootstrap;

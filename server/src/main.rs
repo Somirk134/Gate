@@ -1,11 +1,18 @@
+use gate_server::logging;
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() {
+    logging::init();
+    logging::startup_line("process starting");
+
     if std::env::args().any(|arg| arg == "--healthcheck") {
-        return gate_server::healthcheck().await;
+        match gate_server::healthcheck().await {
+            Ok(()) => std::process::exit(0),
+            Err(error) => logging::fatal(format!("healthcheck failed: {error:#}")),
+        }
     }
 
-    tracing_subscriber::fmt::init();
-
-    gate_server::ServerBootstrap::new().boot().await?;
-    Ok(())
+    if let Err(error) = gate_server::ServerBootstrap::new().boot().await {
+        logging::fatal(format!("{error:#}"));
+    }
 }

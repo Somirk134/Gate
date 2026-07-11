@@ -107,6 +107,17 @@ impl Domain {
         Ok(())
     }
 
+    /// 将域名改绑到另一条隧道（用于用户删除旧隧道后重建、或隧道 ID 变更）。
+    pub fn rebind(&mut self, tunnel_id: TunnelId) -> Result<(), BindError> {
+        if self.status == DomainStatus::Disabled {
+            return Err(BindError::DisabledDomain(self.id.to_string()));
+        }
+
+        self.tunnel_id = Some(tunnel_id);
+        self.bind_status = BindStatus::Bound;
+        Ok(())
+    }
+
     pub fn unbind(&mut self) -> Result<(), BindError> {
         if self.tunnel_id.is_none() {
             return Err(BindError::NotBound(self.id.to_string()));
