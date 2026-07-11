@@ -297,6 +297,7 @@ import { useI18n } from 'vue-i18n'
 import { listen } from '@tauri-apps/api/event'
 import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
+import { translateIfExists } from '@/utils/i18n'
 import { useFeedback } from '@/composables/useFeedback'
 import { certificateService } from '../service'
 import type { AcmePrepareResponse, CertificateWizardForm } from '../types'
@@ -304,6 +305,7 @@ import type { AcmePrepareResponse, CertificateWizardForm } from '../types'
 const props = defineProps<{
   visible: boolean
   servers: Array<{ id: string; name: string; status: string; publicIp?: string; host?: string }>
+  initialForm?: Partial<CertificateWizardForm> | null
 }>()
 
 const emit = defineEmits<{
@@ -394,7 +396,14 @@ watch(
   async (val) => {
     if (val) {
       currentStep.value = 0
-      form.value = { serverId: '', domain: '', email: '', challengeType: 'http01', staging: false }
+      const preset = props.initialForm ?? {}
+      form.value = {
+        serverId: preset.serverId ?? '',
+        domain: preset.domain ?? '',
+        email: preset.email ?? '',
+        challengeType: preset.challengeType ?? 'http01',
+        staging: preset.staging ?? false,
+      }
       prepareStatus.value = 'idle'
       prepareError.value = ''
       verifyStatus.value = 'idle'
@@ -502,7 +511,7 @@ async function copyText(text: string) {
 
 function serverStatusLabel(status: string) {
   const key = `server.statusLabels.${status}`
-  return te(key) ? t(key) : status
+  return translateIfExists(t, te, key, status)
 }
 </script>
 

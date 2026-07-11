@@ -1,8 +1,8 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::{DateTime, Utc};
 use instant_acme::{
-    Account, AuthorizationStatus, ChallengeType as InstantChallengeType, Identifier, NewAccount,
-    NewOrder, OrderStatus, RetryPolicy,
+    Account, AccountCredentials, AuthorizationStatus, ChallengeType as InstantChallengeType,
+    Identifier, NewAccount, NewOrder, OrderStatus, RetryPolicy,
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -572,31 +572,259 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
     }))
 }
 
+/* ────────────────────────── ACME 客户端配置（可视化） ────────────────────────── */
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AcmeClientConfig {
+    #[serde(default)]
+    enabled: bool,
+    #[serde(default)]
+    email: String,
+    #[serde(default)]
+    staging: bool,
+    #[serde(default)]
+    directory_url: Option<String>,
+    #[serde(default = "default_acme_http01_port")]
+    http01_port: u16,
+    #[serde(default = "default_renew_before_days")]
+    renew_before_days: i64,
+    #[serde(default = "default_check_interval_hours")]
+    check_interval_hours: i64,
+}
+
+impl Default for AcmeClientConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            email: String::new(),
+            staging: false,
+            directory_url: None,
+            http01_port: default_acme_http01_port(),
+            renew_before_days: default_renew_before_days(),
+            check_interval_hours: default_check_interval_hours(),
+        }
+    }
+}
+
+fn default_acme_http01_port() -> u16 {
+    80
+}
+
+fn default_renew_before_days() -> i64 {
+    30
+}
+
+fn default_check_interval_hours() -> i64 {
+    24
+}
+
+fn acme_config_path() -> PathBuf {
+    app_data_dir()
+        .unwrap_or_else(|| PathBuf::from(".gate"))
+        .join("acme-config.json")
+}
+
+fn load_acme_client_config() -> Result<AcmeClientConfig, AppError> {
+    let path = acme_config_path();
+    if !path.exists() {
+        return Ok(AcmeClientConfig::default());
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| {
+        AppError::from_source(
+            "ACME_CONFIG_LOAD_FAILED",
+            "errors.certificate.acmeConfigLoadFailed",
+            e,
+        )
+    })?;
+    serde_json::from_str(&raw).map_err(|e| {
+        AppError::from_source(
+            "ACME_CONFIG_PARSE_FAILED",
+            "errors.certificate.acmeConfigParseFailed",
+            e,
+        )
+    })
+}
+
+fn save_acme_client_config(config: &AcmeClientConfig) -> Result<(), AppError> {
+    let path = acme_config_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| {
+            AppError::from_source(
+                "ACME_CONFIG_SAVE_FAILED",
+                "errors.certificate.acmeConfigSaveFailed",
+                e,
+            )
+        })?;
+    }
+    fs::write(
+        &path,
+        serde_json::to_vec_pretty(config).unwrap_or_default(),
+    )
+    .map_err(|e| {
+        AppError::from_source(
+            "ACME_CONFIG_SAVE_FAILED",
+            "errors.certificate.acmeConfigSaveFailed",
+            e,
+        )
+    })
+}
+
+fn apply_acme_client_config_to_env(config: &AcmeClientConfig) {
+    if config.email.trim().is_empty() {
+        env::remove_var("GATE_ACME_EMAIL");
+    } else {
+        env::set_var("GATE_ACME_EMAIL", config.email.trim());
+    }
+
+    env::set_var(
+        "GATE_ACME_AUTO",
+        if config.enabled { "true" } else { "false" },
+    );
+
+    if config.staging {
+        env::set_var("GATE_ACME_STAGING", "true");
+    } else {
+        env::remove_var("GATE_ACME_STAGING");
+    }
+
+    if let Some(url) = config
+        .directory_url
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
+        env::set_var("GATE_ACME_DIRECTORY_URL", url);
+    } else {
+        env::remove_var("GATE_ACME_DIRECTORY_URL");
+    }
+
+    env::set_var("GATE_ACME_HTTP01_PORT", config.http01_port.to_string());
+    env::set_var(
+        "GATE_RENEW_BEFORE_DAYS",
+        config.renew_before_days.to_string(),
+    );
+    env::set_var(
+        "GATE_RENEW_CHECK_INTERVAL",
+        (config.check_interval_hours * 3600).to_string(),
+    );
+}
+
+fn resolve_acme_runtime_settings() -> AcmeClientConfig {
+    if env::var("GATE_ACME_EMAIL").is_err() {
+        if let Ok(config) = load_acme_client_config() {
+            if !config.email.trim().is_empty() {
+                apply_acme_client_config_to_env(&config);
+            }
+        }
+    }
+
+    let mut config = load_acme_client_config().unwrap_or_default();
+
+    if let Ok(email) = env::var("GATE_ACME_EMAIL") {
+        if !email.trim().is_empty() {
+            config.email = email;
+        }
+    }
+    if let Ok(auto) = env::var("GATE_ACME_AUTO") {
+        config.enabled = auto == "true" || auto == "1";
+    }
+    if let Ok(staging) = env::var("GATE_ACME_STAGING") {
+        config.staging = staging == "true" || staging == "1";
+    }
+    if let Ok(url) = env::var("GATE_ACME_DIRECTORY_URL") {
+        if !url.trim().is_empty() {
+            config.directory_url = Some(url);
+        }
+    }
+    if let Ok(port) = env::var("GATE_ACME_HTTP01_PORT") {
+        if let Ok(p) = port.parse::<u16>() {
+            config.http01_port = p;
+        }
+    }
+    if let Ok(days) = env::var("GATE_RENEW_BEFORE_DAYS") {
+        if let Ok(d) = days.parse::<i64>() {
+            config.renew_before_days = d;
+        }
+    }
+    if let Ok(interval) = env::var("GATE_RENEW_CHECK_INTERVAL") {
+        if let Ok(secs) = interval.parse::<i64>() {
+            config.check_interval_hours = (secs / 3600).max(1);
+        }
+    }
+
+    config
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AcmeClientConfigSaveRequest {
+    enabled: bool,
+    email: String,
+    staging: bool,
+    directory_url: Option<String>,
+    http01_port: u16,
+    renew_before_days: i64,
+    check_interval_hours: i64,
+}
+
+#[tauri::command]
+pub async fn certificate_acme_config_get() -> CommandResult<Value> {
+    let config = resolve_acme_runtime_settings();
+    let configured = !config.email.trim().is_empty();
+    Ok(json!({
+        "config": config,
+        "configured": configured,
+        "generatedAt": Utc::now().timestamp_millis(),
+    }))
+}
+
+#[tauri::command]
+pub async fn certificate_acme_config_save(
+    request: AcmeClientConfigSaveRequest,
+) -> CommandResult<Value> {
+    let email = request.email.trim().to_string();
+    if request.enabled && email.is_empty() {
+        return Err(AppError::with_details(
+            "ACME_CONFIG_EMAIL_REQUIRED",
+            "errors.certificate.acmeConfigEmailRequired",
+            json!({ "hint": "启用自动续期需要填写 ACME 联系邮箱" }),
+        ));
+    }
+
+    let config = AcmeClientConfig {
+        enabled: request.enabled,
+        email,
+        staging: request.staging,
+        directory_url: request
+            .directory_url
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty()),
+        http01_port: request.http01_port.max(1),
+        renew_before_days: request.renew_before_days.clamp(1, 90),
+        check_interval_hours: request.check_interval_hours.clamp(1, 168),
+    };
+
+    save_acme_client_config(&config)?;
+    apply_acme_client_config_to_env(&config);
+
+    Ok(json!({
+        "saved": true,
+        "config": config,
+        "configured": !config.email.is_empty(),
+        "generatedAt": Utc::now().timestamp_millis(),
+    }))
+}
+
 /* ────────────────────────── 自动续期状态 ────────────────────────── */
 
 #[tauri::command]
 pub async fn certificate_auto_renewal_status() -> CommandResult<Value> {
-    let acme_email = env::var("GATE_ACME_EMAIL").ok();
-    let acme_auto = env::var("GATE_ACME_AUTO").ok();
-    let acme_staging = env::var("GATE_ACME_STAGING").ok();
-    let acme_dir_url = env::var("GATE_ACME_DIRECTORY_URL").ok();
-    let acme_http01_port = env::var("GATE_ACME_HTTP01_PORT").ok();
+    let acme = resolve_acme_runtime_settings();
+    let enabled = acme.enabled && !acme.email.trim().is_empty();
 
-    let enabled = acme_email.is_some()
-        || acme_auto.as_deref() == Some("true")
-        || acme_auto.as_deref() == Some("1");
-
-    // 检查间隔默认 86400 秒（24 小时）
-    let check_interval = env::var("GATE_RENEW_CHECK_INTERVAL")
-        .ok()
-        .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(86400);
-
-    // 续期提前天数默认 30
-    let renew_before_days = env::var("GATE_RENEW_BEFORE_DAYS")
-        .ok()
-        .and_then(|v| v.parse::<i64>().ok())
-        .unwrap_or(30);
+    let check_interval = acme.check_interval_hours * 3600;
+    let renew_before_days = acme.renew_before_days;
 
     // 统计最近续期情况
     let root = certificate_store_root();
@@ -638,10 +866,10 @@ pub async fn certificate_auto_renewal_status() -> CommandResult<Value> {
 
     Ok(json!({
         "enabled": enabled,
-        "acmeEmail": acme_email,
-        "acmeStaging": acme_staging.as_deref() == Some("true") || acme_staging.as_deref() == Some("1"),
-        "acmeDirectoryUrl": acme_dir_url,
-        "acmeHttp01Port": acme_http01_port.and_then(|p| p.parse::<u16>().ok()).unwrap_or(80),
+        "acmeEmail": if acme.email.is_empty() { Value::Null } else { json!(acme.email) },
+        "acmeStaging": acme.staging,
+        "acmeDirectoryUrl": acme.directory_url,
+        "acmeHttp01Port": acme.http01_port,
         "checkIntervalSeconds": check_interval,
         "renewBeforeDays": renew_before_days,
         "scheduleDescription": format!("Every {} hours", check_interval / 3600),
@@ -857,6 +1085,12 @@ struct AcmeSessionPersisted {
     http01_content: String,
     directory_url: String,
     created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    order_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    account_credentials: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    record_id: Option<String>,
 }
 
 /// ACME 运行时状态（内存中保存 instant-acme 的 Account + Order）
@@ -909,7 +1143,7 @@ pub async fn certificate_acme_prepare(
     // 创建 ACME 账户
     let contact = format!("mailto:{}", request.email);
     let contacts = vec![contact.as_str()];
-    let (account, _credentials) = Account::builder()
+    let (account, credentials) = Account::builder()
         .map_err(|e| {
             AppError::from_source(
                 "ACME_ACCOUNT_INIT_FAILED",
@@ -1010,6 +1244,7 @@ pub async fn certificate_acme_prepare(
     };
 
     // 保存运行时到内存
+    let order_url = order.url().to_string();
     *state.session.lock().await = Some(AcmeRuntime {
         domain: domain.clone(),
         account,
@@ -1021,6 +1256,24 @@ pub async fn certificate_acme_prepare(
 
     // 持久化关键信息到磁盘（用于 app 重启后恢复提示）
     let email_for_history = request.email.clone();
+    let credentials_value = serde_json::to_value(&credentials).map_err(|e| {
+        AppError::from_source(
+            "ACME_SESSION_PERSIST_FAILED",
+            "errors.certificate.acmeSessionPersistFailed",
+            e,
+        )
+    })?;
+    let record_id = create_acme_history_record(
+        &domain,
+        &email_for_history,
+        &request.challenge_type,
+        request.staging,
+        &directory_url,
+        &txt_host,
+        &txt_value,
+        &order_url,
+        &credentials_value,
+    )?;
     let persisted = AcmeSessionPersisted {
         domain: domain.clone(),
         email: request.email,
@@ -1036,6 +1289,9 @@ pub async fn certificate_acme_prepare(
         },
         directory_url: directory_url.clone(),
         created_at: Utc::now().timestamp_millis(),
+        order_url: Some(order_url),
+        account_credentials: Some(credentials_value),
+        record_id: Some(record_id.clone()),
     };
     let session_path = acme_session_path();
     fs::write(
@@ -1062,8 +1318,7 @@ pub async fn certificate_acme_prepare(
         "staging": request.staging,
         "persisted": true,
         "generatedAt": Utc::now().timestamp_millis(),
-        // 创建申请历史记录
-        "recordId": create_acme_history_record(&domain, &email_for_history, &request.challenge_type, request.staging, &directory_url).unwrap_or_default(),
+        "recordId": record_id,
     }))
 }
 
@@ -1076,6 +1331,10 @@ fn create_acme_history_record(
     challenge_type: &str,
     staging: bool,
     directory_url: &str,
+    txt_host: &str,
+    txt_value: &str,
+    order_url: &str,
+    account_credentials: &Value,
 ) -> Result<String, AppError> {
     let mut records = load_acme_history()?;
     let record = AcmeApplicationRecord::pending(
@@ -1084,6 +1343,10 @@ fn create_acme_history_record(
         challenge_type.to_string(),
         staging,
         directory_url.to_string(),
+        Some(txt_host.to_string()),
+        Some(txt_value.to_string()),
+        Some(order_url.to_string()),
+        Some(account_credentials.clone()),
     );
     let record_id = record.id.clone();
     records.push(record);
@@ -1132,6 +1395,88 @@ fn mark_acme_record_failed(
     .map(|_| ())
 }
 
+fn load_persisted_acme_session(domain: &str) -> Option<AcmeSessionPersisted> {
+    let path = acme_session_path();
+    if !path.exists() {
+        return None;
+    }
+    let data = fs::read(&path).ok()?;
+    let session: AcmeSessionPersisted = serde_json::from_slice(&data).ok()?;
+    if session.domain == domain {
+        Some(session)
+    } else {
+        None
+    }
+}
+
+/// 从申请记录（或磁盘会话）恢复 ACME 运行时，复用同一订单和 DNS 记录
+async fn restore_acme_runtime_from_record(
+    record: &AcmeApplicationRecord,
+) -> Result<AcmeRuntime, String> {
+    let (order_url, credentials_value, txt_host, txt_value) =
+        if let (Some(url), Some(creds)) = (&record.order_url, &record.account_credentials) {
+            (
+                url.clone(),
+                creds.clone(),
+                record.txt_host.clone().unwrap_or_default(),
+                record.txt_value.clone().unwrap_or_default(),
+            )
+        } else if let Some(session) = load_persisted_acme_session(&record.domain) {
+            let url = session.order_url.ok_or_else(|| {
+                "该申请记录无法复用 DNS 验证（缺少订单信息），请重新申请证书".to_string()
+            })?;
+            let creds = session.account_credentials.ok_or_else(|| {
+                "该申请记录无法复用 DNS 验证（缺少会话信息），请重新申请证书".to_string()
+            })?;
+            (url, creds, session.txt_host, session.txt_value)
+        } else {
+            return Err(
+                "该申请记录无法复用 DNS 验证（会话已过期），请重新申请证书".to_string(),
+            );
+        };
+
+    let credentials: AccountCredentials = serde_json::from_value(credentials_value)
+        .map_err(|e| format!("会话数据损坏，请重新申请证书: {}", e))?;
+
+    let account = Account::builder()
+        .map_err(|e| format!("ACME 账户初始化失败: {}", e))?
+        .from_credentials(credentials)
+        .await
+        .map_err(|e| format!("ACME 账户恢复失败: {}", e))?;
+
+    let mut order = account
+        .order(order_url.clone())
+        .await
+        .map_err(|e| {
+            format!(
+                "ACME 订单恢复失败: {}。订单可能已过期，请重新申请证书。",
+                e
+            )
+        })?;
+
+    match order.state().status {
+        OrderStatus::Valid => {
+            return Err("该订单已完成签发，无需重新验证".to_string());
+        }
+        OrderStatus::Invalid => {
+            return Err(
+                "该 ACME 订单已失效，请重新申请证书。DNS 记录无需修改时可先保留，新申请会提供新的 TXT 值。"
+                    .to_string(),
+            );
+        }
+        _ => {}
+    }
+
+    Ok(AcmeRuntime {
+        domain: record.domain.clone(),
+        account,
+        order,
+        challenge_type: record.challenge_type.clone(),
+        txt_host,
+        txt_value,
+    })
+}
+
 /// DNS TXT 记录预检查：在告诉 Let's Encrypt 验证之前，先确认记录已传播
 async fn dns_txt_record_resolvable(
     txt_host: &str,
@@ -1143,13 +1488,13 @@ async fn dns_txt_record_resolvable(
     let result = tokio::task::spawn_blocking(move || {
         #[cfg(target_os = "windows")]
         {
-            std::process::Command::new("nslookup")
+            gate_shared::process::hidden_command("nslookup")
                 .args(["-type=TXT", &txt_host_owned])
                 .output()
         }
         #[cfg(not(target_os = "windows"))]
         {
-            std::process::Command::new("dig")
+            gate_shared::process::hidden_command("dig")
                 .args(["+short", "TXT", &txt_host_owned])
                 .output()
         }
@@ -1159,11 +1504,50 @@ async fn dns_txt_record_resolvable(
     match result {
         Ok(Ok(out)) => {
             let stdout = String::from_utf8_lossy(&out.stdout);
-            Ok(stdout.contains(&expected_value_owned) || stdout.contains("\""))
+            // 去除引号和空白后匹配（兼容 nslookup / dig 不同输出格式）
+            let normalized = stdout.replace('"', "").replace(' ', "");
+            let expected = expected_value_owned.replace('"', "");
+            Ok(normalized.contains(&expected))
         }
         Ok(Err(_)) => Err("DNS query command failed to execute".into()),
         Err(_) => Err("DNS query task failed".into()),
     }
+}
+
+/// 向 CA 提交 challenge ready，通知 Let's Encrypt 开始验证
+async fn submit_acme_challenges(
+    order: &mut instant_acme::Order,
+    challenge_type: &str,
+) -> Result<(), String> {
+    let ct = if challenge_type == "dns01" {
+        InstantChallengeType::Dns01
+    } else {
+        InstantChallengeType::Http01
+    };
+
+    let mut submitted = false;
+    let mut authorizations = order.authorizations();
+    while let Some(result) = authorizations.next().await {
+        let mut auth_result = result.map_err(|e| format!("ACME 授权获取失败: {:?}", e))?;
+
+        if auth_result.status == AuthorizationStatus::Valid {
+            continue;
+        }
+
+        if let Some(mut challenge) = auth_result.challenge(ct.clone()) {
+            challenge
+                .set_ready()
+                .await
+                .map_err(|e| format!("提交验证请求失败: {}", e))?;
+            submitted = true;
+        }
+    }
+
+    if !submitted {
+        return Err("未找到可用的 ACME challenge，无法提交验证".to_string());
+    }
+
+    Ok(())
 }
 
 /// ACME 验证核心逻辑（被后台任务调用）
@@ -1194,41 +1578,21 @@ async fn run_acme_verification(runtime: AcmeRuntime) -> Result<Value, String> {
             }
         }
         if !dns_ok {
-            tracing::warn!(host = %txt_host, "DNS pre-check did not confirm the TXT record");
+            return Err(format!(
+                "DNS 记录尚未生效：在 {} 未检测到 TXT 值「{}」。请确认记录已正确添加并等待 DNS 传播（通常 1-5 分钟）后重试。",
+                txt_host, txt_value
+            ));
         }
+        // DNS 记录已确认，额外等待传播到 CA 侧
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
     }
 
     // 2. 取出 order（需要 move 进去）
     let mut order = runtime.order;
     let challenge_type = runtime.challenge_type.clone();
 
-    // 3. 重新获取授权并设置 challenge ready
-    let mut authorizations = order.authorizations();
-    while let Some(result) = authorizations.next().await {
-        let mut auth_result = result.map_err(|e| format!("ACME 授权获取失败: {:?}", e))?;
-
-        // 需要重新 fetch authorization 来获取 challenge
-        // instant-acme 的 Authorization 对象可能不支持直接修改
-        // 这里我们通过 order 的 poll_ready 来驱动验证
-
-        if auth_result.status == AuthorizationStatus::Valid {
-            continue;
-        }
-
-        let ct = if challenge_type == "dns01" {
-            InstantChallengeType::Dns01
-        } else {
-            InstantChallengeType::Http01
-        };
-
-        // 尝试获取并激活 challenge
-        if auth_result.challenge(ct).is_some() {
-            // DNS-01 等待传播
-            if challenge_type == "dns01" {
-                tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-            }
-        }
-    }
+    // 3. 向 CA 提交 challenge ready，通知 Let's Encrypt 开始验证
+    submit_acme_challenges(&mut order, &challenge_type).await?;
 
     // 4. 轮询订单状态直到 Ready（5 分钟超时）
     let retry_policy = RetryPolicy::new()
@@ -1610,6 +1974,18 @@ struct AcmeApplicationRecord {
     /// 证书是否可下载（即证书目录存在且有 PEM 文件）
     #[serde(default)]
     certificate_available: bool,
+    /// DNS-01 验证主机名（用于重新验证时复用同一 DNS 记录）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    txt_host: Option<String>,
+    /// DNS-01 验证 TXT 值
+    #[serde(skip_serializing_if = "Option::is_none")]
+    txt_value: Option<String>,
+    /// ACME 订单 URL（用于重新验证时恢复同一订单）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    order_url: Option<String>,
+    /// ACME 账户凭证（序列化的 AccountCredentials）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    account_credentials: Option<Value>,
 }
 
 impl AcmeApplicationRecord {
@@ -1623,6 +1999,10 @@ impl AcmeApplicationRecord {
         challenge_type: String,
         staging: bool,
         directory_url: String,
+        txt_host: Option<String>,
+        txt_value: Option<String>,
+        order_url: Option<String>,
+        account_credentials: Option<Value>,
     ) -> Self {
         let now = Utc::now().timestamp_millis();
         Self {
@@ -1643,6 +2023,10 @@ impl AcmeApplicationRecord {
             error_code: None,
             retry_count: 0,
             certificate_available: false,
+            txt_host,
+            txt_value,
+            order_url,
+            account_credentials,
         }
     }
 }
@@ -1825,7 +2209,7 @@ pub async fn certificate_acme_record_detail(record_id: String) -> CommandResult<
     }))
 }
 
-/// 重试失败的或正在验证的申请
+/// 重新验证：复用原 ACME 订单和 DNS 记录，无需重新配置 DNS
 #[tauri::command]
 pub async fn certificate_acme_retry(
     record_id: String,
@@ -1844,12 +2228,12 @@ pub async fn certificate_acme_retry(
             )
         })?;
 
-    // 只有 failed 和 verifying 状态可以重试
-    if record.status != AcmeRecordStatus::Failed && record.status != AcmeRecordStatus::Verifying {
+    // pending / verifying / failed 均可重新验证
+    if record.status == AcmeRecordStatus::Issued {
         return Err(AppError::with_details(
             "ACME_RECORD_CANNOT_RETRY",
             "errors.certificate.recordCannotRetry",
-            json!({ "status": record.status.to_string(), "hint": "只有「验证中」和「失败」状态的记录可以重试" }),
+            json!({ "status": record.status.to_string(), "hint": "已签发的记录无需重新验证" }),
         ));
     }
 
@@ -1860,43 +2244,34 @@ pub async fn certificate_acme_retry(
     record.error_code = None;
     record.updated_at = Utc::now().timestamp_millis();
 
-    // 在 save 之前提取需要的值（避免借用冲突）
-    let domain = record.domain.clone();
-    let challenge_type = record.challenge_type.clone();
-    let email = record.email.clone();
-    let staging = record.staging;
-    let directory_url = record.directory_url.clone();
+    let record_snapshot = record.clone();
     let retry_record_id = record_id.clone();
-    let domain_for_return = domain.clone();
     let retry_record_id_for_return = retry_record_id.clone();
+    let domain_for_return = record_snapshot.domain.clone();
 
     save_acme_history(&records)?;
 
-    // 启动后台重试验证
+    // 启动后台重新验证（复用原订单，不创建新 DNS 值）
     tokio::spawn(async move {
+        let domain = record_snapshot.domain.clone();
         let _ = app.emit(
             "acme-verify:progress",
             json!({
                 "domain": domain,
                 "recordId": retry_record_id,
                 "stage": "retry_started",
-                "message": "正在重新验证...",
+                "message": "正在重新验证（复用已有 DNS 记录）...",
             }),
         );
 
-        // 重新走 prepare 流程创建新的 ACME 订单
-        let result = redo_acme_verification(
-            domain.clone(),
-            email,
-            challenge_type,
-            staging,
-            directory_url,
-        )
+        let result = async {
+            let runtime = restore_acme_runtime_from_record(&record_snapshot).await?;
+            run_acme_verification(runtime).await
+        }
         .await;
 
         match result {
             Ok(success_info) => {
-                // 更新历史记录为 issued
                 let _ = update_acme_record(&retry_record_id, |rec| {
                     rec.status = AcmeRecordStatus::Issued;
                     rec.issued_at = Some(Utc::now().timestamp_millis());
@@ -1923,10 +2298,12 @@ pub async fn certificate_acme_retry(
                 );
             }
             Err(err_msg) => {
-                let err_code = if err_msg.contains("Invalid") {
+                let err_code = if err_msg.contains("Invalid") || err_msg.contains("失效") {
                     "acmeOrderNotReady"
                 } else if err_msg.contains("超时") {
                     "timeout"
+                } else if err_msg.contains("重新申请") {
+                    "sessionExpired"
                 } else {
                     "unknown"
                 }
@@ -1954,7 +2331,8 @@ pub async fn certificate_acme_retry(
         "recordId": retry_record_id_for_return,
         "domain": domain_for_return,
         "retryStarted": true,
-        "message": "重试验证已在后台启动"
+        "reusedDns": true,
+        "message": "重新验证已在后台启动，将复用已有 DNS 记录"
     }))
 }
 
@@ -1978,205 +2356,6 @@ pub async fn certificate_acme_delete_record(record_id: String) -> CommandResult<
     Ok(json!({
         "recordId": record_id,
         "deleted": true
-    }))
-}
-
-/// 重试验证的完整流程（在后台任务中执行）
-async fn redo_acme_verification(
-    domain: String,
-    email: String,
-    challenge_type: String,
-    _staging: bool,
-    directory_url: String,
-) -> Result<Value, String> {
-    // 1. 创建新账户和新订单
-    let contact = format!("mailto:{}", email);
-    let contacts = vec![contact.as_str()];
-    let (account, _credentials) = Account::builder()
-        .map_err(|e| format!("ACME 账户初始化失败: {}", e))?
-        .create(
-            &NewAccount {
-                contact: &contacts,
-                terms_of_service_agreed: true,
-                only_return_existing: false,
-            },
-            directory_url.clone(),
-            None,
-        )
-        .await
-        .map_err(|e| format!("ACME 账户创建失败: {}", e))?;
-
-    let identifier = Identifier::Dns(domain.clone());
-    let mut order = account
-        .new_order(&NewOrder::new(&[identifier]))
-        .await
-        .map_err(|e| format!("ACME 订单创建失败: {}", e))?;
-
-    // 2. 获取 challenge 并设置 ready
-    let challenge_type_enum = if challenge_type == "dns01" {
-        InstantChallengeType::Dns01
-    } else {
-        InstantChallengeType::Http01
-    };
-
-    // 遍历授权
-    let mut authorizations = order.authorizations();
-    while let Some(result) = authorizations.next().await {
-        let mut auth_result = result.map_err(|e| format!("ACME 授权获取失败: {:?}", e))?;
-
-        if auth_result.status == AuthorizationStatus::Valid {
-            continue;
-        }
-
-        if auth_result.challenge(challenge_type_enum.clone()).is_some() {
-            if challenge_type == "dns01" {
-                tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-            }
-        }
-    }
-
-    // 3. 轮询 Ready
-    let retry_policy = RetryPolicy::new()
-        .initial_delay(std::time::Duration::from_secs(5))
-        .backoff(10.0)
-        .timeout(std::time::Duration::from_secs(300));
-
-    let status = order
-        .poll_ready(&retry_policy)
-        .await
-        .map_err(|e| format!("ACME 轮询失败: {}", e))?;
-
-    if status != OrderStatus::Ready {
-        return Err(match status {
-            OrderStatus::Invalid => {
-                "验证失败：订单状态 Invalid。DNS 记录可能未正确配置。".to_string()
-            }
-            OrderStatus::Pending => "验证超时：订单仍处于 Pending 状态。".to_string(),
-            OrderStatus::Processing => "验证超时：处理中未完成。请稍后重试。".to_string(),
-            _ => format!("验证失败：异常订单状态 {:?}", status),
-        });
-    }
-
-    // 4. Finalize + 下载
-    let private_key_pem = order
-        .finalize()
-        .await
-        .map_err(|e| format!("证书签发失败: {}", e))?;
-    let certificate_pem = order
-        .poll_certificate(&RetryPolicy::default())
-        .await
-        .map_err(|e| format!("证书下载失败: {}", e))?;
-
-    // 5. 保存到证书存储
-    let dir = certificate_domain_dir(&domain);
-    fs::create_dir_all(&dir).map_err(|e| format!("证书目录创建失败: {}", e))?;
-    fs::write(dir.join("certificate.pem"), &certificate_pem)
-        .map_err(|e| format!("证书写入失败: {}", e))?;
-    fs::write(dir.join("private_key.pem"), &private_key_pem)
-        .map_err(|e| format!("私钥写入失败: {}", e))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(
-            dir.join("private_key.pem"),
-            fs::Permissions::from_mode(0o600),
-        );
-    }
-
-    // 6. 解析证书写 metadata
-    let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone())
-        .await
-        .map_err(|e| format!("证书解析失败: {:?}", e))?;
-    let validation_obj = validation
-        .as_object()
-        .ok_or_else(|| "证书验证结果格式无效".to_string())?;
-
-    let now = Utc::now();
-    let not_after_str = validation_obj
-        .get("notAfter")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let not_before_str = validation_obj
-        .get("notBefore")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let expire_time = DateTime::parse_from_rfc3339(not_after_str)
-        .map(|dt| dt.with_timezone::<Utc>(&Utc))
-        .unwrap_or(now);
-    let create_time = DateTime::parse_from_rfc3339(not_before_str)
-        .map(|dt| dt.with_timezone::<Utc>(&Utc))
-        .unwrap_or(now);
-    let days_remaining = (expire_time - now).num_days();
-    let status_str = if days_remaining < 0 {
-        "expired"
-    } else if days_remaining <= 30 {
-        "expiringSoon"
-    } else {
-        "active"
-    };
-
-    let cert_record = CertificateRecord {
-        domain: domain.clone(),
-        issuer: validation_obj
-            .get("issuer")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown")
-            .to_string(),
-        expire_time,
-        create_time,
-        renew_time: Some(now),
-        status: status_str.to_string(),
-        fingerprint: CertificateFingerprint {
-            sha256: validation_obj
-                .get("fingerprintSha256")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-        },
-        algorithm: Value::String(
-            validation_obj
-                .get("algorithm")
-                .and_then(|v| v.as_str())
-                .unwrap_or("Unknown")
-                .to_string(),
-        ),
-        san: validation_obj
-            .get("san")
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        cert_path: Some(dir.join("certificate.pem")),
-        key_path: Some(dir.join("private_key.pem")),
-        serial_number: Some(
-            validation_obj
-                .get("serialNumber")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-        ),
-        last_error: None,
-        auto_renewal_enabled: Some(true),
-        tls_version: Some("TLS1.3".to_string()),
-        deploy_status: Some("deployed".to_string()),
-    };
-
-    fs::write(
-        dir.join("metadata.json"),
-        serde_json::to_vec_pretty(&cert_record).unwrap_or_default(),
-    )
-    .map_err(|e| format!("metadata 写入失败: {}", e))?;
-
-    Ok(json!({
-        "domain": domain,
-        "success": true,
-        "issuer": cert_record.issuer,
-        "expireTime": expire_time.to_rfc3339(),
-        "daysRemaining": days_remaining,
     }))
 }
 

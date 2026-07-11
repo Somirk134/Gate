@@ -11,10 +11,10 @@
         <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
           {{ t('certificate.refresh') }}
         </GButton>
-        <GButton variant="secondary" icon="upload" @click="importVisible = true">
+        <GButton variant="secondary" icon="upload" @click="openImportDialog">
           {{ t('certificate.import') }}
         </GButton>
-        <GButton variant="primary" icon="plus" @click="wizardVisible = true">
+        <GButton variant="primary" icon="plus" @click="openCertificateWizard">
           {{ t('certificate.request') }}
         </GButton>
       </div>
@@ -46,10 +46,10 @@
         <span><GIcon name="check" :size="14" /> {{ t('certificate.emptyFeatures.sni') }}</span>
       </div>
       <div class="cert-empty__actions">
-        <GButton variant="primary" icon="plus" @click="wizardVisible = true">
+        <GButton variant="primary" icon="plus" @click="openCertificateWizard">
           {{ t('certificate.request') }}
         </GButton>
-        <GButton variant="secondary" icon="upload" @click="importVisible = true">
+        <GButton variant="secondary" icon="upload" @click="openImportDialog">
           {{ t('certificate.import') }}
         </GButton>
       </div>
@@ -132,18 +132,23 @@
           <div class="cert-panel__heading">
             <h3>{{ t('certificate.donut.title') }}</h3>
           </div>
-          <div class="donut-chart">
+          <div v-if="donutData.length" class="donut-chart">
             <div class="donut-chart__ring" :style="donutStyle">
-              <span>{{ stats.total }}</span>
-              <small>{{ t('certificate.donut.total') }}</small>
+              <div class="donut-chart__center">
+                <span>{{ stats.total }}</span>
+                <small>{{ t('certificate.donut.total') }}</small>
+              </div>
             </div>
             <div class="donut-chart__legend">
               <article v-for="item in donutData" :key="item.key">
                 <i :style="{ background: item.color }" />
-                <span>{{ item.label }}</span>
-                <strong>{{ item.count }} ({{ item.percent }})</strong>
+                <span class="donut-chart__label">{{ item.label }}</span>
+                <strong>{{ item.count }} · {{ item.percent }}</strong>
               </article>
             </div>
+          </div>
+          <div v-else class="donut-empty">
+            <span>{{ t('certificate.donut.empty') }}</span>
           </div>
         </article>
 
@@ -219,7 +224,95 @@
           <GIcon name="alert-triangle" :size="14" />
           {{ t('certificate.autoRenewalPanel.notConfigured') }}
         </p>
+
+        <!-- ACME 可视化配置 -->
+        <section class="acme-config">
+          <div class="acme-config__intro">
+            <h4>{{ t('certificate.acmeConfig.title') }}</h4>
+            <p>{{ t('certificate.acmeConfig.description') }}</p>
+          </div>
+
+          <div class="acme-config__form">
+            <div class="acme-switch-row">
+              <div class="acme-switch-row__text">
+                <strong>{{ t('certificate.acmeConfig.enableAutoRenewal') }}</strong>
+                <small>{{ acmeForm.enabled ? t('certificate.acmeConfig.switchOn') : t('certificate.acmeConfig.switchOff') }}</small>
+              </div>
+              <button
+                type="button"
+                class="acme-switch"
+                :class="{ on: acmeForm.enabled }"
+                :aria-pressed="acmeForm.enabled"
+                @click="acmeForm.enabled = !acmeForm.enabled">
+                <span class="acme-switch__knob" />
+              </button>
+            </div>
+
+            <label class="acme-field">
+              <span>{{ t('certificate.acmeConfig.email') }}</span>
+              <input
+                v-model.trim="acmeForm.email"
+                type="email"
+                :placeholder="t('certificate.acmeConfig.emailPlaceholder')" />
+              <small>{{ t('certificate.acmeConfig.emailHint') }}</small>
+            </label>
+
+            <div class="acme-switch-row acme-switch-row--staging">
+              <div class="acme-switch-row__text">
+                <strong>{{ t('certificate.acmeConfig.staging') }}</strong>
+                <small>{{ t('certificate.acmeConfig.stagingHint') }}</small>
+              </div>
+              <button
+                type="button"
+                class="acme-switch acme-switch--staging"
+                :class="{ on: acmeForm.staging }"
+                :aria-pressed="acmeForm.staging"
+                @click="acmeForm.staging = !acmeForm.staging">
+                <span class="acme-switch__knob" />
+              </button>
+            </div>
+
+            <div class="acme-config__grid">
+              <label class="acme-field">
+                <span>{{ t('certificate.acmeConfig.renewBeforeDays') }}</span>
+                <input v-model.number="acmeForm.renewBeforeDays" type="number" min="1" max="90" />
+              </label>
+              <label class="acme-field">
+                <span>{{ t('certificate.acmeConfig.checkIntervalHours') }}</span>
+                <input v-model.number="acmeForm.checkIntervalHours" type="number" min="1" max="168" />
+              </label>
+              <label class="acme-field">
+                <span>{{ t('certificate.acmeConfig.http01Port') }}</span>
+                <input v-model.number="acmeForm.http01Port" type="number" min="1" max="65535" />
+              </label>
+            </div>
+
+            <label class="acme-field">
+              <span>{{ t('certificate.acmeConfig.directoryUrl') }}</span>
+              <input
+                v-model.trim="acmeForm.directoryUrl"
+                type="url"
+                :placeholder="t('certificate.acmeConfig.directoryPlaceholder')" />
+              <small>{{ t('certificate.acmeConfig.directoryHint') }}</small>
+            </label>
+
+            <div class="acme-config__actions">
+              <GButton variant="primary" size="sm" :loading="acmeSaving" @click="saveAcmeConfig">
+                {{ t('certificate.acmeConfig.save') }}
+              </GButton>
+              <span v-if="acmeConfigured" class="acme-config__status is-ok">
+                {{ t('certificate.acmeConfig.configured') }}
+              </span>
+            </div>
+          </div>
+        </section>
       </section>
+
+      <!-- 申请记录（紧跟自动续期，避免被工作区挤压遮挡） -->
+      <CertHistory
+        :refresh-trigger="historyRefreshTrigger"
+        @record-updated="onHistoryRecordUpdated"
+        @reapply="handleHistoryReapply" />
 
       <!-- 第三行：列表 + 详情 -->
       <div class="cert-workspace">
@@ -465,13 +558,18 @@
       </div>
     </template>
 
-    <!-- 申请历史（独立面板，无证书时也显示） -->
-    <CertHistory :refresh-trigger="historyRefreshTrigger" @record-updated="onHistoryRecordUpdated" />
+    <!-- 申请历史（无证书时也显示） -->
+    <CertHistory
+      v-if="!loading && !error && certificates.length === 0"
+      :refresh-trigger="historyRefreshTrigger"
+      @record-updated="onHistoryRecordUpdated"
+      @reapply="handleHistoryReapply" />
 
     <!-- ═══════════════ 弹窗 ═══════════════ -->
     <CertWizard
       v-model:visible="wizardVisible"
       :servers="serverOptions"
+      :initial-form="wizardInitialForm"
       @submitted="handleWizardSubmitted" />
 
     <CertImportDialog
@@ -494,14 +592,17 @@ import CertImportDialog from './components/CertImportDialog.vue'
 import CertLoading from './components/CertLoading.vue'
 import CertHistory from './components/CertHistory.vue'
 import type {
+  AcmeApplicationRecord,
   CertificateDetailResponse,
   CertificateDomainAssociations,
   CertificateStats,
   CertificateSummary,
+  CertificateWizardForm,
   CertFilterType,
   CertSortType,
   AutoRenewalStatusResponse,
 } from './types'
+import { reopenOverlay } from '@/utils/i18n'
 import { useServerStore } from '@views/servers'
 
 const { t, locale } = useI18n()
@@ -530,7 +631,19 @@ const loading = ref(false)
 const error = ref('')
 const actionLoading = ref<string | null>(null)
 const renewalExecuting = ref(false)
+const acmeSaving = ref(false)
+const acmeConfigured = ref(false)
+const acmeForm = ref({
+  enabled: false,
+  email: '',
+  staging: false,
+  directoryUrl: '',
+  http01Port: 80,
+  renewBeforeDays: 30,
+  checkIntervalHours: 24,
+})
 const wizardVisible = ref(false)
+const wizardInitialForm = ref<Partial<CertificateWizardForm> | null>(null)
 const importVisible = ref(false)
 const historyRefreshTrigger = ref(0)
 const timers = new Set<ReturnType<typeof window.setTimeout> | ReturnType<typeof window.setInterval>>()
@@ -600,7 +713,7 @@ const healthDashOffset = computed(() => {
 const healthCheckItems = computed(() => stats.value.healthChecks)
 const checkLabels = computed<Record<string, string>>(() => ({
   autoRenewal: t('certificate.health.autoRenewal'),
-  acme: t('certificate.health.autoRenewal'),
+  acme: t('certificate.health.acme'),
   dns: t('certificate.health.dns'),
   http01: t('certificate.health.http01'),
   tls13: t('certificate.health.tls13'),
@@ -609,12 +722,14 @@ const checkLabels = computed<Record<string, string>>(() => ({
 
 const donutData = computed(() => {
   const dist = stats.value.statusDistribution
-  const total = Math.max(1, dist.active + dist.expiringSoon + dist.expired + dist.failed)
+  const total = stats.value.total
+  if (total <= 0) return []
+  const pct = (count: number) => `${Math.round((count / total) * 100)}%`
   return [
-    { key: 'active', label: t('certificate.donut.active'), count: dist.active, color: '#2fd17c', percent: `${Math.round((dist.active / total) * 100)}%` },
-    { key: 'expiringSoon', label: t('certificate.donut.expiringSoon'), count: dist.expiringSoon, color: '#f5b84b', percent: `${Math.round((dist.expiringSoon / total) * 100)}%` },
-    { key: 'expired', label: t('certificate.donut.expired'), count: dist.expired, color: '#ff5c5c', percent: `${Math.round((dist.expired / total) * 100)}%` },
-    { key: 'failed', label: t('certificate.donut.failed'), count: dist.failed, color: '#9b8cff', percent: `${Math.round((dist.failed / total) * 100)}%` },
+    { key: 'active', label: t('certificate.donut.active'), count: dist.active, color: '#2fd17c', percent: pct(dist.active) },
+    { key: 'expiringSoon', label: t('certificate.donut.expiringSoon'), count: dist.expiringSoon, color: '#f5b84b', percent: pct(dist.expiringSoon) },
+    { key: 'expired', label: t('certificate.donut.expired'), count: dist.expired, color: '#ff5c5c', percent: pct(dist.expired) },
+    { key: 'failed', label: t('certificate.donut.failed'), count: dist.failed, color: '#9b8cff', percent: pct(dist.failed) },
   ].filter((item) => item.count > 0)
 })
 
@@ -720,9 +835,13 @@ watch(
 /* 每次打开证书向导时，强制刷新服务器列表以获取最新状态
    修复：应用重启后首次打开向导可能显示"离线"(后端连接尚未重建完成)，
    而服务器实际已运行的状态不一致问题 */
-watch(wizardVisible, (visible) => {
+watch(wizardVisible, (visible, wasVisible) => {
   if (visible) {
     void serverStore.load()
+  } else if (wasVisible) {
+    wizardInitialForm.value = null
+    // 关闭申请向导后自动刷新申请记录（用户可能在验证过程中手动关闭窗口）
+    historyRefreshTrigger.value++
   }
 })
 
@@ -746,6 +865,7 @@ async function refresh() {
     certificates.value = listRes.certificates
     if (statsRes) stats.value = statsRes
     if (renewalRes) renewalStatus.value = renewalRes
+    await loadAcmeConfig()
 
     // 自动选中第一个
     if (!selectedDomain.value && certificates.value.length) {
@@ -886,6 +1006,52 @@ async function toggleAutoRenewal(domain: string, enabled: boolean) {
   }
 }
 
+async function loadAcmeConfig() {
+  try {
+    const res = await certificateService.acmeConfigGet()
+    acmeForm.value = {
+      enabled: res.config.enabled,
+      email: res.config.email,
+      staging: res.config.staging,
+      directoryUrl: res.config.directoryUrl || '',
+      http01Port: res.config.http01Port,
+      renewBeforeDays: res.config.renewBeforeDays,
+      checkIntervalHours: res.config.checkIntervalHours,
+    }
+    acmeConfigured.value = res.configured
+  } catch {
+    // 配置读取失败时保留当前表单
+  }
+}
+
+async function saveAcmeConfig() {
+  if (acmeForm.value.enabled && !acmeForm.value.email.trim()) {
+    toast.error(t('certificate.acmeConfig.emailRequired'))
+    return
+  }
+  acmeSaving.value = true
+  try {
+    const res = await certificateService.acmeConfigSave({
+      enabled: acmeForm.value.enabled,
+      email: acmeForm.value.email.trim(),
+      staging: acmeForm.value.staging,
+      directoryUrl: acmeForm.value.directoryUrl.trim() || null,
+      http01Port: acmeForm.value.http01Port,
+      renewBeforeDays: acmeForm.value.renewBeforeDays,
+      checkIntervalHours: acmeForm.value.checkIntervalHours,
+    })
+    acmeConfigured.value = res.configured
+    toast.success(t('certificate.acmeConfig.saved'))
+    const renewalRes = await certificateService.autoRenewalStatus().catch(() => null)
+    if (renewalRes) renewalStatus.value = renewalRes
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    notify.error(t('certificate.acmeConfig.saveFailed'), msg, 8000)
+  } finally {
+    acmeSaving.value = false
+  }
+}
+
 async function executeRenewal() {
   renewalExecuting.value = true
   try {
@@ -908,6 +1074,24 @@ async function executeRenewal() {
   } finally {
     renewalExecuting.value = false
   }
+}
+
+async function openCertificateWizard(initialForm?: Partial<CertificateWizardForm> | null) {
+  wizardInitialForm.value = initialForm ?? null
+  await reopenOverlay(wizardVisible)
+}
+
+async function handleHistoryReapply(record: AcmeApplicationRecord) {
+  await openCertificateWizard({
+    domain: record.domain,
+    email: record.email,
+    challengeType: record.challengeType === 'dns01' ? 'dns01' : 'http01',
+    staging: record.staging,
+  })
+}
+
+async function openImportDialog() {
+  await reopenOverlay(importVisible)
 }
 
 function handleWizardSubmitted() {
@@ -1029,7 +1213,6 @@ onBeforeUnmount(() => {
 /* ═══════════════ 页面布局 ═══════════════ */
 .cert-page {
   width: min(100%, var(--content-max-width));
-  height: 100%;
   min-height: 0;
   margin: 0 auto;
   display: flex;
@@ -1258,52 +1441,79 @@ onBeforeUnmount(() => {
 .donut-chart__ring::after {
   content: '';
   position: absolute;
-  inset: 24px;
+  inset: 22px;
   border-radius: inherit;
-  background: var(--bg-surface);
-  box-shadow: inset 0 0 0 1px rgba(108, 124, 147, 0.1);
+  background: var(--bg-input);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 
-.donut-chart__ring span,
-.donut-chart__ring small {
+.donut-chart__center {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  line-height: 1.1;
 }
 
-.donut-chart__ring span {
+.donut-chart__center span {
   font-size: var(--text-xl);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
-.donut-chart__ring small {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
+.donut-chart__center small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
 }
 
 .donut-chart__legend {
   display: grid;
   gap: var(--space-2);
+  width: 100%;
 }
 
 .donut-chart__legend article {
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-xs);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
 }
 
 .donut-chart__legend i {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.donut-chart__label {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
 }
 
 .donut-chart__legend strong {
   color: var(--text-primary);
   font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.donut-empty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
 }
 
 /* ── 趋势图 ── */
@@ -1403,13 +1613,175 @@ onBeforeUnmount(() => {
   font-size: var(--text-xs);
 }
 
+.acme-config {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.acme-config__intro h4 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.acme-config__intro p {
+  margin: 0 0 var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.acme-config__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.acme-config__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.acme-field {
+  display: grid;
+  gap: 6px;
+}
+
+.acme-field > span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.acme-field input {
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.acme-field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.acme-field small {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.acme-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.acme-switch-row--staging {
+  border-color: rgba(245, 184, 75, 0.22);
+  background: rgba(245, 184, 75, 0.04);
+}
+
+.acme-switch-row__text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.acme-switch-row__text strong {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.acme-switch-row__text small {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.acme-switch {
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--bg-surface) 70%, var(--text-tertiary) 30%);
+  position: relative;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.acme-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.acme-switch.on {
+  background: var(--color-primary, #3b82f6);
+  border-color: color-mix(in srgb, var(--color-primary, #3b82f6) 80%, #fff 20%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #3b82f6) 18%, transparent);
+}
+
+.acme-switch.on .acme-switch__knob {
+  transform: translateX(20px);
+}
+
+.acme-switch--staging.on {
+  background: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 80%, #fff 20%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning) 18%, transparent);
+}
+
+.acme-switch:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.acme-config__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.acme-config__status {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.acme-config__status.is-ok {
+  color: var(--color-success);
+}
+
 /* ═══════════════ 工作区 (列表 + 详情) ═══════════════ */
 .cert-workspace {
-  min-height: 0;
+  min-height: 360px;
+  max-height: 70vh;
   display: grid;
   grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: var(--space-4);
-  flex: 1;
+  flex-shrink: 0;
 }
 
 /* ── 列表 ── */
@@ -2079,6 +2451,10 @@ onBeforeUnmount(() => {
   .donut-chart {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+
+  .acme-config__grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

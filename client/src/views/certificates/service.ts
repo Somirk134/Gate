@@ -1,5 +1,7 @@
 import { TauriIpcClient } from '@/ipc'
 import type {
+  AcmeClientConfig,
+  AcmeConfigResponse,
   AcmePrepareRequest,
   AcmePrepareResponse,
   AcmeVerifyResponse,
@@ -68,6 +70,14 @@ export const certificateService = {
     return ipc.invoke<AutoRenewalStatusResponse>('certificate_auto_renewal_status')
   },
 
+  acmeConfigGet() {
+    return ipc.invoke<AcmeConfigResponse>('certificate_acme_config_get')
+  },
+
+  acmeConfigSave(config: AcmeClientConfig) {
+    return ipc.invoke<AcmeConfigResponse>('certificate_acme_config_save', { request: config })
+  },
+
   /* ── 域名关联 ── */
   domainAssociations(domain: string) {
     return ipc.invoke<CertificateDomainAssociations>('certificate_domain_associations', { domain })
@@ -97,7 +107,7 @@ export const certificateService = {
     return ipc.invoke<AcmeRecordDetailResponse>('certificate_acme_record_detail', { recordId })
   },
 
-  /** 重试失败的或正在验证的申请 */
+  /** 重试失败的或正在验证的申请（复用原 DNS 记录） */
   retryApplication(recordId: string) {
     return ipc.invoke<AcmeRetryResponse>('certificate_acme_retry', { recordId })
   },

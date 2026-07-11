@@ -9,19 +9,21 @@
         </h3>
         <!-- 行内统计摘要 -->
         <div v-if="records.length > 0" class="history-chips">
-          <span class="history-chip">{{ summary.total }} {{ t('certificate.history.summary.totalLabel') }}</span>
+          <span class="history-chip">{{ t('certificate.history.summary.total', { count: summary.total }) }}</span>
           <span v-if="summary.verifying > 0" class="history-chip is-verifying">
             <GIcon name="loader" :size="10" spin />
-            {{ summary.verifying }} {{ t('certificate.history.summary.verifyingLabel') }}
+            {{ t('certificate.history.summary.verifying', { count: summary.verifying }) }}
           </span>
-          <span class="history-chip is-success">{{ summary.issued }} {{ t('certificate.history.summary.issuedLabel') }}</span>
-          <span v-if="summary.failed > 0" class="history-chip is-error">{{ summary.failed }} {{ t('certificate.history.summary.failedLabel') }}</span>
+          <span class="history-chip is-success">{{ t('certificate.history.summary.issued', { count: summary.issued }) }}</span>
+          <span v-if="summary.failed > 0" class="history-chip is-error">{{ t('certificate.history.summary.failed', { count: summary.failed }) }}</span>
         </div>
       </div>
       <div class="history-heading__right">
-        <GButton variant="ghost" size="sm" icon="refresh" :loading="loading" @click="fetchHistory" />
-        <button type="button" class="collapse-btn" :class="{ collapsed: !expanded }" @click="expanded = !expanded">
-          <GIcon name="chevron-down" :size="14" />
+        <button type="button" class="text-action" :disabled="loading" @click="fetchHistory">
+          {{ loading ? t('certificate.history.refreshing') : t('certificate.history.refreshList') }}
+        </button>
+        <button type="button" class="text-action" @click="expanded = !expanded">
+          {{ expanded ? t('certificate.history.collapse') : t('certificate.history.expand') }}
         </button>
       </div>
     </div>
@@ -58,10 +60,8 @@
           >
             <!-- 主行 -->
             <div class="history-row__main" @click="toggleDetail(record.id)">
-              <!-- 状态指示条 -->
               <span class="history-row__indicator" />
 
-              <!-- 状态徽标 -->
               <span class="history-badge" :class="`is-${record.status}`">
                 <GIcon v-if="record.status === 'verifying'" name="loader" :size="11" spin />
                 <GIcon v-else-if="record.status === 'issued'" name="check" :size="11" />
@@ -69,47 +69,52 @@
                 <GIcon v-else name="clock" :size="11" />
               </span>
 
-              <!-- 信息 -->
               <div class="history-row__info">
                 <strong>{{ record.domain }}</strong>
                 <span class="history-meta">
-                  <GIcon name="mail" :size="11" />{{ record.email }}
+                  {{ record.email }}
                   <span class="meta-divider">·</span>
                   <span class="challenge-tag">{{ challengeLabel(record.challengeType) }}</span>
-                      <span v-if="record.staging" class="staging-tag">S</span>
-                    </span>
-                  </div>
+                  <span v-if="record.staging" class="staging-tag">S</span>
+                </span>
+              </div>
 
-                  <!-- 时间 -->
-                  <time class="history-row__time">{{ formatTime(record.updatedAt) }}</time>
+              <div class="history-row__aside">
+                <time class="history-row__time">{{ formatTime(record.updatedAt) }}</time>
 
-                  <!-- 操作（hover 显示） -->
-                  <div class="history-row__ops" @click.stop>
-                    <button
-                      v-if="record.status === 'verifying' || record.status === 'failed'"
-                      type="button"
-                      class="op-btn"
-                      :title="t('certificate.history.retry')"
-                      @click="handleRetry(record)">
-                      <GIcon name="refresh" :size="13" />
-                    </button>
-                    <button
-                      v-if="record.status === 'issued' && record.certificateAvailable"
-                      type="button"
-                      class="op-btn"
-                      :title="t('certificate.history.download')"
-                      @click="handleDownload(record)">
-                      <GIcon name="download" :size="13" />
-                    </button>
-                    <button
-                      type="button"
-                      class="op-btn op-btn--danger"
-                      :title="t('certificate.history.delete')"
-                      @click="handleDelete(record)">
-                      <GIcon name="trash" :size="13" />
-                    </button>
-                  </div>
+                <div class="history-row__ops" @click.stop>
+                  <button
+                    v-if="hasReverifySession(record)"
+                    type="button"
+                    class="text-action"
+                    :disabled="retryingId === record.id"
+                    @click="handleRetry(record)">
+                    {{ retryingId === record.id ? t('certificate.history.reverifying') : t('certificate.history.refreshAction') }}
+                  </button>
+                  <button
+                    v-if="canReapply(record)"
+                    type="button"
+                    class="text-action text-action--primary"
+                    @click="handleReapply(record)">
+                    {{ t('certificate.history.reapply') }}
+                  </button>
+                  <button
+                    v-if="record.status === 'issued' && record.certificateAvailable"
+                    type="button"
+                    class="text-action"
+                    :disabled="downloadingId === record.id"
+                    @click="handleDownload(record)">
+                    {{ t('certificate.history.download') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="text-action text-action--danger"
+                    @click="handleDelete(record)">
+                    {{ t('certificate.history.deleteShort') }}
+                  </button>
                 </div>
+              </div>
+            </div>
 
                 <!-- 展开详情 -->
                 <Transition name="slide-down">
@@ -164,6 +169,45 @@
                       <dd>{{ record.error }}</dd>
                     </div>
 
+                    <!-- DNS 记录（可复用重新验证） -->
+                    <div
+                      v-if="record.challengeType === 'dns01' && record.txtHost && record.txtValue"
+                      class="detail-dns">
+                      <div class="detail-dns__header">
+                        <strong>{{ t('certificate.history.detail.dnsTitle') }}</strong>
+                        <span class="detail-dns__hint">{{ t('certificate.history.detail.dnsHint') }}</span>
+                      </div>
+                      <div class="detail-dns__row">
+                        <span class="detail-dns__label">{{ t('certificate.wizard.dnsStep.host') }}</span>
+                        <code>{{ record.txtHost }}</code>
+                        <button type="button" class="text-action text-action--sm" @click="copyDnsText(record.txtHost)">
+                          {{ t('certificate.wizard.dnsStep.copy') }}
+                        </button>
+                      </div>
+                      <div class="detail-dns__row">
+                        <span class="detail-dns__label">{{ t('certificate.wizard.dnsStep.value') }}</span>
+                        <code class="detail-dns__value">{{ record.txtValue }}</code>
+                        <button type="button" class="text-action text-action--sm" @click="copyDnsText(record.txtValue)">
+                          {{ t('certificate.wizard.dnsStep.copy') }}
+                        </button>
+                      </div>
+                      <div v-if="hasReverifySession(record)" class="detail-dns__actions">
+                        <button
+                          type="button"
+                          class="text-action"
+                          :disabled="retryingId === record.id"
+                          @click="handleRetry(record)">
+                          {{ retryingId === record.id ? t('certificate.history.reverifying') : t('certificate.history.refreshAction') }}
+                        </button>
+                        <button
+                          type="button"
+                          class="text-action text-action--primary"
+                          @click="handleReapply(record)">
+                          {{ t('certificate.history.reapply') }}
+                        </button>
+                      </div>
+                    </div>
+
                     <!-- 证书 PEM 下载区 -->
                     <div v-if="record.status === 'issued' && certInfo && certInfoForId === record.id" class="cert-pem-block">
                       <div class="pem-file">
@@ -190,7 +234,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listen } from '@tauri-apps/api/event'
-import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import { useFeedback } from '@composables/useFeedback'
 import { certificateService } from '../service'
@@ -207,6 +250,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'record-updated'): void
+  (e: 'reapply', record: AcmeApplicationRecord): void
 }>()
 
 const { t } = useI18n()
@@ -270,6 +314,30 @@ function challengeLabel(type: string): string {
     : t('certificate.wizard.http01')
 }
 
+function hasReverifySession(record: AcmeApplicationRecord): boolean {
+  return (
+    (record.status === 'pending' || record.status === 'verifying' || record.status === 'failed') &&
+    !!(record.txtHost && record.txtValue)
+  )
+}
+
+function canReapply(record: AcmeApplicationRecord): boolean {
+  return record.status !== 'issued'
+}
+
+function handleReapply(record: AcmeApplicationRecord) {
+  emit('reapply', record)
+}
+
+async function copyDnsText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success(t('certificate.wizard.dnsStep.copied'))
+  } catch {
+    toast.error(t('common.copyFailed'))
+  }
+}
+
 function formatTime(ts: number): string {
   if (!ts) return '-'
   const d = new Date(ts)
@@ -314,7 +382,7 @@ async function handleRetry(record: AcmeApplicationRecord) {
   retryingId.value = record.id
   try {
     await certificateService.retryApplication(record.id)
-    toast.info(t('certificate.history.notifications.retryStarted', { domain: record.domain }))
+    toast.info(t('certificate.history.notifications.reverifyStarted', { domain: record.domain }))
     await fetchHistory()
     emit('record-updated')
   } catch (e: any) {
@@ -409,17 +477,33 @@ watch(() => props.refreshTrigger, () => {
 </script>
 
 <style scoped>
-/* ═══════════════ 面板容器 — 与 .cert-panel 完全一致 ═══════════════ */
+/* ═══════════════ 面板容器 ═══════════════ */
 .cert-panel--history {
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.cert-panel--history .cert-panel__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 /* ── 头部 ── */
 .history-heading__left {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3);
   min-width: 0;
+  flex: 1;
 }
 
 .history-heading__left h3 {
@@ -473,27 +557,10 @@ watch(() => props.refreshTrigger, () => {
 .history-heading__right {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
   flex-shrink: 0;
-}
-
-.collapse-btn {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-input);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: transform 0.2s ease, background 0.15s;
-}
-.collapse-btn:hover {
-  background: var(--bg-surface-hover);
-}
-.collapse-btn.collapsed {
-  transform: rotate(-90deg);
 }
 
 /* ── 内容区 ── */
@@ -557,21 +624,22 @@ watch(() => props.refreshTrigger, () => {
   cursor: pointer;
   user-select: none;
 }
+
 .history-row__main:hover strong {
   color: var(--color-primary);
 }
 
-/* 左侧状态条 */
 .history-row__indicator {
-  width: 3px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 2px;
-  opacity: 0;
+  display: none;
 }
-.history-row.status-verifying .history-row__indicator { background: var(--color-warning); opacity: 1; }
-.history-row.status-issued .history-row__indicator { background: var(--color-success); opacity: 1; }
-.history-row.status-failed .history-row__indicator { background: var(--color-error); opacity: 1; }
+
+.history-row__aside {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  margin-left: auto;
+}
 
 /* 状态徽标 */
 .history-badge {
@@ -602,6 +670,7 @@ watch(() => props.refreshTrigger, () => {
 .history-row__info {
   flex: 1;
   min-width: 0;
+  max-width: 420px;
 }
 .history-row__info strong {
   display: block;
@@ -656,35 +725,61 @@ watch(() => props.refreshTrigger, () => {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-left: var(--space-2);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.history-row:hover .history-row__ops,
-.history-row__ops:focus-within {
-  opacity: 1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-2);
 }
 
-.op-btn {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
+.text-action {
   border: none;
-  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-tertiary);
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
 }
-.op-btn:hover {
-  background: var(--bg-input);
+
+.text-action:hover:not(:disabled) {
   color: var(--text-primary);
+  background: var(--bg-input);
 }
-.op-btn--danger:hover {
-  background: var(--color-error-muted);
+
+.text-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.text-action--primary {
+  color: var(--color-primary, #3b82f6);
+}
+
+.text-action--primary:hover:not(:disabled) {
+  color: var(--color-primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.text-action--danger {
   color: var(--color-error);
+}
+
+.text-action--danger:hover:not(:disabled) {
+  color: var(--color-error);
+  background: var(--color-error-muted);
+}
+
+.text-action--sm {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.detail-dns__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 /* ── 展开详情 ── */
@@ -751,6 +846,92 @@ watch(() => props.refreshTrigger, () => {
   padding: var(--space-2);
   border-radius: var(--radius-sm);
   background: rgba(255, 69, 58, 0.06);
+}
+
+/* DNS 记录块（重新验证复用） */
+.detail-dns {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-dns__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-dns__header strong {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.detail-dns__hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.detail-dns__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.detail-dns__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  min-width: 64px;
+}
+
+.detail-dns__row code {
+  flex: 1;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.detail-dns__value {
+  font-size: 11px;
+}
+
+.history-heading__right .text-action {
+  font-size: var(--text-sm);
+  padding: 5px 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+}
+
+@media (max-width: 900px) {
+  .cert-panel--history .cert-panel__heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .history-heading__right {
+    justify-content: flex-start;
+  }
+
+  .history-row__main {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .history-row__aside {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    padding-top: var(--space-2);
+    border-top: 1px dashed var(--border-subtle);
+  }
 }
 
 /* ── 证书下载区 ── */

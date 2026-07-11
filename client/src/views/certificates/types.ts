@@ -87,6 +87,22 @@ export interface CertificateStats {
 
 /* ────────────────────────── 自动续期 ────────────────────────── */
 
+export interface AcmeClientConfig {
+  enabled: boolean
+  email: string
+  staging: boolean
+  directoryUrl?: string | null
+  http01Port: number
+  renewBeforeDays: number
+  checkIntervalHours: number
+}
+
+export interface AcmeConfigResponse {
+  config: AcmeClientConfig
+  configured: boolean
+  generatedAt: number
+}
+
 export interface AutoRenewalStatusResponse {
   enabled: boolean
   acmeEmail?: string | null
@@ -235,6 +251,8 @@ export interface AcmeApplicationRecord {
   errorCode?: string | null
   retryCount: number
   certificateAvailable: boolean
+  txtHost?: string | null
+  txtValue?: string | null
 }
 
 export interface AcmeHistorySummary {
@@ -272,6 +290,7 @@ export interface AcmeRetryResponse {
   recordId: string
   domain: string
   retryStarted: boolean
+  reusedDns?: boolean
   message: string
 }
 
