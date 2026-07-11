@@ -103,6 +103,17 @@ export interface Tunnel {
 /* ── 筛选类型 ── */
 export type TunnelFilterType = 'all' | 'http' | 'tcp' | 'running' | 'stopped'
 
+/* ── 列表分组方式 ── */
+export type TunnelGroupMode = 'none' | 'project' | 'server' | 'protocol' | 'tag'
+
+/* ── 分组结果 ── */
+export interface TunnelGroup {
+  key: string
+  label: string
+  tunnels: Tunnel[]
+  runningCount: number
+}
+
 /* ── 排序类型 ── */
 export type TunnelSortType = 'name' | 'status' | 'traffic' | 'connections'
 

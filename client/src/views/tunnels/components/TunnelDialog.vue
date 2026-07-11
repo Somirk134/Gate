@@ -70,6 +70,9 @@
                   prefix="route"
                   :state="errors.path ? 'error' : 'normal'"
                   @update:model-value="validateField('path')" />
+                <template v-if="form.path && form.path.trim() !== '/'" #hint>
+                  {{ t('tunnel.settings.pathSubpathHint') }}
+                </template>
               </GFormField>
             </div>
 

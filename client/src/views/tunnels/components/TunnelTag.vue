@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { translateIfExists } from '@/utils/i18n'
 import GIcon from '@components/icons/GIcon.vue'
 
 const props = withDefaults(
@@ -39,7 +40,7 @@ const { t, te } = useI18n()
 
 const displayName = computed(() => {
   const key = `tunnel.tags.${props.name}`
-  return te(key) ? t(key) : props.name
+  return translateIfExists(t, te, key, props.name)
 })
 
 const tagStyle = computed(() => {

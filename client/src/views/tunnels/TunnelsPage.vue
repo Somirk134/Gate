@@ -49,26 +49,36 @@
           <GIcon name="search" :size="15" />
           <input v-model.trim="query" :placeholder="t('tunnel.searchPlaceholder')" />
         </label>
-        <select v-model="filter">
-          <option value="all">{{ t('tunnel.filters.all') }}</option>
-          <option value="running">{{ t('tunnel.filters.running') }}</option>
-          <option value="stopped">{{ t('tunnel.filters.stopped') }}</option>
-          <option value="http">HTTP</option>
-          <option value="tcp">TCP</option>
-        </select>
-        <select v-model="sortBy">
-          <option value="name">{{ t('tunnel.sort.name') }}</option>
-          <option value="status">{{ t('tunnel.sort.status') }}</option>
-          <option value="traffic">{{ t('tunnel.sort.traffic') }}</option>
-          <option value="connections">{{ t('tunnel.sort.connections') }}</option>
-        </select>
-        <button
-          type="button"
-          class="sort-direction"
-          @click="direction = direction === 'asc' ? 'desc' : 'asc'">
-          <GIcon name="arrow-up-down" :size="15" />
-          {{ direction === 'asc' ? t('tunnel.sort.asc') : t('tunnel.sort.desc') }}
-        </button>
+        <div class="tunnel-toolbar__controls">
+          <select v-model="filter">
+            <option value="all">{{ t('tunnel.filters.all') }}</option>
+            <option value="running">{{ t('tunnel.filters.running') }}</option>
+            <option value="stopped">{{ t('tunnel.filters.stopped') }}</option>
+            <option value="http">HTTP</option>
+            <option value="tcp">TCP</option>
+          </select>
+          <select v-model="sortBy">
+            <option value="name">{{ t('tunnel.sort.name') }}</option>
+            <option value="status">{{ t('tunnel.sort.status') }}</option>
+            <option value="traffic">{{ t('tunnel.sort.traffic') }}</option>
+            <option value="connections">{{ t('tunnel.sort.connections') }}</option>
+          </select>
+          <select v-model="groupMode">
+            <option value="none">{{ t('tunnel.group.none') }}</option>
+            <option value="project">{{ t('tunnel.group.project') }}</option>
+            <option value="server">{{ t('tunnel.group.server') }}</option>
+            <option value="protocol">{{ t('tunnel.group.protocol') }}</option>
+            <option value="tag">{{ t('tunnel.group.tag') }}</option>
+          </select>
+          <button
+            type="button"
+            class="sort-direction"
+            :title="t('tunnel.sort.directionTooltip')"
+            @click="direction = direction === 'asc' ? 'desc' : 'asc'">
+            <GIcon name="arrow-up-down" :size="15" />
+            <span>{{ direction === 'asc' ? t('tunnel.sort.asc') : t('tunnel.sort.desc') }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="tunnel-workspace">
@@ -78,31 +88,80 @@
             <span>{{ query ? t('tunnel.matching', { query }) : t('tunnel.ready') }}</span>
           </div>
 
-          <button
-            v-for="tunnel in finalTunnels"
-            :key="tunnel.id"
-            type="button"
-            class="tunnel-row"
-            :class="{ active: selectedId === tunnel.id }"
-            @click="selectTunnel(tunnel.id)">
-            <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
-            <div class="tunnel-row__main">
-              <strong>{{ tunnel.name }}</strong>
-              <small
-                >{{ tunnel.protocol.toUpperCase() }} · {{ tunnel.localHost }}:{{
-                  tunnel.localPort
-                }}</small
-              >
-            </div>
-            <div class="tunnel-row__meta">
-              <span>{{
-                formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed)
-              }}</span>
-              <small>{{
-                t('tunnel.connectionUnit', { count: tunnel.statistics.connections })
-              }}</small>
-            </div>
-          </button>
+          <template v-if="groupMode === 'none'">
+            <button
+              v-for="tunnel in finalTunnels"
+              :key="tunnel.id"
+              type="button"
+              class="tunnel-row"
+              :class="[`tunnel-row--${tunnel.protocol}`, { active: selectedId === tunnel.id }]"
+              @click="selectTunnel(tunnel.id)">
+              <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
+              <div class="tunnel-row__main">
+                <strong>{{ tunnel.name }}</strong>
+                <small class="tunnel-row__route">{{ tunnelRouteLine(tunnel) }}</small>
+                <small class="tunnel-row__ownership">{{ tunnelSubtitle(tunnel) }}</small>
+              </div>
+              <div class="tunnel-row__meta">
+                <span>{{
+                  formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed)
+                }}</span>
+                <small>{{
+                  t('tunnel.connectionUnit', { count: tunnel.statistics.connections })
+                }}</small>
+              </div>
+            </button>
+          </template>
+
+          <template v-else>
+            <section
+              v-for="group in tunnelGroups"
+              :key="group.key"
+              class="tunnel-group">
+              <button
+                type="button"
+                class="tunnel-group__header"
+                @click="toggleGroup(group.key)">
+                <GIcon
+                  :name="isGroupCollapsed(group.key) ? 'chevron-right' : 'chevron-down'"
+                  :size="14" />
+                <strong>{{
+                  groupMode === 'tag' ? tagLabel(group.label) : group.label
+                }}</strong>
+                <span>{{
+                  t('tunnel.group.runningCount', {
+                    running: group.runningCount,
+                    total: group.tunnels.length,
+                  })
+                }}</span>
+              </button>
+
+              <div v-show="!isGroupCollapsed(group.key)" class="tunnel-group__items">
+                <button
+                  v-for="tunnel in group.tunnels"
+                  :key="`${group.key}-${tunnel.id}`"
+                  type="button"
+                  class="tunnel-row tunnel-row--grouped"
+                  :class="[`tunnel-row--${tunnel.protocol}`, { active: selectedId === tunnel.id }]"
+                  @click="selectTunnel(tunnel.id)">
+                  <span class="tunnel-row__status" :class="`is-${statusTone(tunnel.status)}`" />
+                  <div class="tunnel-row__main">
+                    <strong>{{ tunnel.name }}</strong>
+                    <small class="tunnel-row__route">{{ tunnelRouteLine(tunnel) }}</small>
+                    <small class="tunnel-row__ownership">{{ tunnelSubtitle(tunnel) }}</small>
+                  </div>
+                  <div class="tunnel-row__meta">
+                    <span>{{
+                      formatSpeed(tunnel.traffic.downloadSpeed + tunnel.traffic.uploadSpeed)
+                    }}</span>
+                    <small>{{
+                      t('tunnel.connectionUnit', { count: tunnel.statistics.connections })
+                    }}</small>
+                  </div>
+                </button>
+              </div>
+            </section>
+          </template>
 
           <div v-if="!finalTunnels.length" class="tunnel-list__empty">
             <GIcon name="search" :size="24" />
@@ -140,11 +199,53 @@
               </div>
             </div>
 
+            <section class="tunnel-access-card">
+              <div class="tunnel-access-card__heading">
+                <div>
+                  <h3>{{ t('tunnel.accessEntry.title') }}</h3>
+                  <p>{{ tunnelRouteLine(selectedTunnel) }}</p>
+                </div>
+                <div class="tunnel-access-card__actions">
+                  <GButton variant="secondary" icon="copy" @click="copyAccessUrl(selectedTunnel)">
+                    {{ t('tunnel.detail.copy') }}
+                  </GButton>
+                  <GButton
+                    v-if="canOpenAccessUrl(selectedTunnel)"
+                    variant="primary"
+                    icon="external-link"
+                    @click="openAccessUrl(selectedTunnel)">
+                    {{ t('tunnel.detail.open') }}
+                  </GButton>
+                </div>
+              </div>
+              <dl class="tunnel-access-card__grid">
+                <div>
+                  <dt>{{ t('tunnel.detail.publicAddress') }}</dt>
+                  <dd class="tunnel-access-card__mono">{{ selectedTunnel.publicAddr }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('tunnel.accessEntry.localTarget') }}</dt>
+                  <dd class="tunnel-access-card__mono">{{ localTargetLabel(selectedTunnel) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('tunnel.accessEntry.ownership') }}</dt>
+                  <dd>{{ tunnelSubtitle(selectedTunnel) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('tunnel.detail.tags') }}</dt>
+                  <dd class="tunnel-access-card__tags">
+                    <TunnelTag
+                      v-for="tag in selectedTunnel.tags"
+                      :key="tag"
+                      :name="tag"
+                      :color="tagPresetColor(tag)" />
+                    <span v-if="!selectedTunnel.tags.length">{{ t('tunnel.detail.noTags') }}</span>
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
             <div class="detail-metrics">
-              <article>
-                <span>{{ t('tunnel.detail.publicAddress') }}</span>
-                <strong>{{ selectedTunnel.publicAddr }}</strong>
-              </article>
               <article>
                 <span>{{ t('tunnel.detail.totalTraffic') }}</span>
                 <strong>{{ formatBytes(selectedTunnel.traffic.total) }}</strong>
@@ -251,25 +352,6 @@
               </section>
             </div>
 
-            <div class="test-url-panel">
-              <div>
-                <span>{{ t('tunnel.detail.localTestUrl') }}</span>
-                <strong>{{ accessUrl(selectedTunnel) }}</strong>
-              </div>
-              <div class="test-url-panel__actions">
-                <GButton variant="secondary" icon="copy" @click="copyAccessUrl(selectedTunnel)">
-                  {{ t('tunnel.detail.copy') }}
-                </GButton>
-                <GButton
-                  v-if="canOpenAccessUrl(selectedTunnel)"
-                  variant="primary"
-                  icon="external-link"
-                  @click="openAccessUrl(selectedTunnel)">
-                  {{ t('tunnel.detail.open') }}
-                </GButton>
-              </div>
-            </div>
-
             <div class="detail-grid">
               <section class="detail-card">
                 <div class="detail-card__heading">
@@ -366,12 +448,17 @@ import GIcon from '@components/icons/GIcon.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
 import { GateAppError } from '@/ipc'
+import { formatTunnelOperationError } from '@/utils/operationError'
+import { reopenOverlay, translateIfExists } from '@/utils/i18n'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 import TunnelLoading from './components/TunnelLoading.vue'
 import TunnelCreateWizard from './components/TunnelCreateWizard.vue'
 import TunnelDialog from './components/TunnelDialog.vue'
+import TunnelTag from './components/TunnelTag.vue'
 import { useTunnel } from './composables/useTunnel'
 import { useTunnelMonitor } from './composables/useTunnelMonitor'
+import { useTunnelGrouping } from './composables/useTunnelGrouping'
+import { localTargetLabel, tagPresetColor } from './utils'
 import { useServerStore } from '@views/servers'
 import { useProjectStore } from '@views/projects/store/project'
 import type {
@@ -379,6 +466,7 @@ import type {
   Tunnel,
   TunnelFilterType,
   TunnelFormData,
+  TunnelGroupMode,
   TunnelSortType,
   TunnelStatus,
 } from './types'
@@ -410,10 +498,19 @@ const { dashboard } = useMonitoringDashboard()
 
 useTunnelMonitor(store)
 
+const GROUP_MODE_STORAGE_KEY = 'gate:tunnel-group-mode'
+const GROUP_MODE_VALUES: TunnelGroupMode[] = ['none', 'project', 'server', 'protocol', 'tag']
+
+function readGroupMode(): TunnelGroupMode {
+  const stored = localStorage.getItem(GROUP_MODE_STORAGE_KEY)
+  return GROUP_MODE_VALUES.includes(stored as TunnelGroupMode) ? (stored as TunnelGroupMode) : 'none'
+}
+
 const query = ref('')
 const filter = ref<TunnelFilterType>('all')
 const sortBy = ref<TunnelSortType>('name')
 const direction = ref<SortDirection>('desc')
+const groupMode = ref<TunnelGroupMode>(readGroupMode())
 const selectedId = ref<string | null>(null)
 const wizardVisible = ref(false)
 const editVisible = ref(false)
@@ -452,6 +549,8 @@ const finalTunnels = computed(() => {
         tunnel.projectName,
         tunnel.serverName,
         tunnel.publicAddr,
+        String(tunnel.localPort),
+        String(tunnel.remotePort),
         ...tunnel.tags,
       ]
         .join(' ')
@@ -474,6 +573,16 @@ const finalTunnels = computed(() => {
   })
 
   return sorted
+})
+
+const { groups: tunnelGroups, isCollapsed: isGroupCollapsed, toggleGroup } = useTunnelGrouping(
+  finalTunnels,
+  groupMode,
+  t,
+)
+
+watch(groupMode, (mode) => {
+  localStorage.setItem(GROUP_MODE_STORAGE_KEY, mode)
 })
 
 const selectedTunnel = computed(() =>
@@ -576,7 +685,7 @@ async function openCreate() {
     void router.push('/servers')
     return
   }
-  wizardVisible.value = true
+  await reopenOverlay(wizardVisible)
 }
 
 async function handleCreate(form: TunnelFormData) {
@@ -691,9 +800,9 @@ function deleteSelected() {
   })
 }
 
-function openEdit(tunnel: Tunnel) {
+async function openEdit(tunnel: Tunnel) {
   editingTunnel.value = tunnelWithOwnership(tunnel)
-  editVisible.value = true
+  await reopenOverlay(editVisible)
 }
 
 function canStart(status: TunnelStatus) {
@@ -790,47 +899,27 @@ function tunnelSubtitle(tunnel: Tunnel): string {
   )
 }
 
-function errorMessage(err: unknown): string {
-  const raw =
-    typeof err === 'string'
-      ? err
-      : err instanceof Error && err.message
-        ? err.message
-        : err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string'
-          ? String((err as { message?: unknown }).message)
-          : ''
-  const friendly = friendlyDiagnosis(raw)
-  if (friendly) return friendly
-  if (raw) return raw
-  if (err && typeof err === 'object' && 'message' in err) {
-    const message = (err as { message?: unknown }).message
-    if (typeof message === 'string' && message.trim()) return message
+function tunnelRouteLine(tunnel: Tunnel): string {
+  if ((tunnel.protocol === 'http' || tunnel.protocol === 'https') && tunnel.host?.trim()) {
+    const path = tunnel.path?.trim()
+    const suffix = path ? (path.startsWith('/') ? path : `/${path}`) : ''
+    return `${tunnel.protocol.toUpperCase()} · ${tunnel.host}${suffix}`
   }
-  return t('tunnel.notifications.configCheck')
+
+  const localPort = tunnel.localPort ? String(tunnel.localPort) : tunnel.localHost
+  if (tunnel.remotePort) {
+    return t('tunnel.list.routeMapping', {
+      protocol: tunnel.protocol.toUpperCase(),
+      local: localPort,
+      remote: tunnel.remotePort,
+    })
+  }
+
+  return `${tunnel.protocol.toUpperCase()} · ${tunnel.localHost}:${tunnel.localPort}`
 }
 
-function friendlyDiagnosis(message: string): string {
-  const lower = message.toLowerCase()
-  if (!message) return ''
-  if (message.includes('REMOTE_PORT_OCCUPIED') || lower.includes('already used')) {
-    return '远程端口已被占用。请选择推荐端口，或切换为 Auto Allocate 后重新创建。'
-  }
-  if (message.includes('LOCAL_PORT_REQUIRED')) {
-    return '未选择本地服务端口。请从 Local Services 选择一个正在监听的服务。'
-  }
-  if (lower.includes('local service') && (lower.includes('unreachable') || lower.includes('refused'))) {
-    return '本地服务不可达。请确认服务正在运行并监听所选端口，然后再启动 Tunnel。'
-  }
-  if (lower.includes('token') || lower.includes('auth')) {
-    return '服务器认证失败。请检查 Token 后重新连接服务器。'
-  }
-  if (lower.includes('certificate') || lower.includes('acme')) {
-    return '证书或 ACME 检查失败。请在 Certificate 页面确认域名证书状态。'
-  }
-  if (lower.includes('server is disconnected') || lower.includes('no active connection')) {
-    return '服务器离线。请先重新连接服务器，再启动服务。'
-  }
-  return ''
+function errorMessage(err: unknown): string {
+  return formatTunnelOperationError(err, 'tunnel.errors.unknown')
 }
 
 function formatBytes(bytes: number): string {
@@ -862,7 +951,7 @@ function formatDuration(seconds: number): string {
 
 function tagLabel(tag: string): string {
   const key = `tunnel.tags.${tag}`
-  return te(key) ? t(key) : tag
+  return translateIfExists(t, te, key, tag)
 }
 
 function formatLogTime(timestamp: number): string {
@@ -921,8 +1010,16 @@ function formatLogTime(timestamp: number): string {
 }
 
 .tunnel-toolbar {
-  display: grid;
-  grid-template-columns: minmax(240px, 1fr) 136px 148px auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.tunnel-toolbar__controls {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
 }
@@ -938,11 +1035,25 @@ function formatLogTime(timestamp: number): string {
 }
 
 .toolbar-search {
+  flex: 1 1 240px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-3);
   color: var(--text-tertiary);
+}
+
+.tunnel-toolbar select {
+  width: auto;
+  min-width: 96px;
+  max-width: 132px;
+  padding: 0 var(--space-3);
+}
+
+.tunnel-toolbar__controls select:nth-child(3) {
+  min-width: 108px;
+  max-width: 148px;
 }
 
 .toolbar-search:focus-within {
@@ -959,17 +1070,18 @@ function formatLogTime(timestamp: number): string {
   color: var(--text-primary);
 }
 
-.tunnel-toolbar select,
-.sort-direction {
-  padding: 0 var(--space-3);
-}
-
 .sort-direction {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  padding: 0 var(--space-3);
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.sort-direction span {
+  font-size: var(--text-sm);
 }
 
 .tunnel-workspace {
@@ -1009,7 +1121,7 @@ function formatLogTime(timestamp: number): string {
 
 .tunnel-row {
   width: 100%;
-  min-height: 72px;
+  min-height: 88px;
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto;
   align-items: center;
@@ -1022,6 +1134,23 @@ function formatLogTime(timestamp: number): string {
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+.tunnel-row--http {
+  border-left-color: rgb(91 141 239 / 55%);
+}
+
+.tunnel-row--https {
+  border-left-color: rgb(124 111 242 / 55%);
+}
+
+.tunnel-row--tcp {
+  border-left-color: rgb(34 197 94 / 55%);
+}
+
+.tunnel-row--grouped {
+  margin-left: var(--space-2);
 }
 
 .tunnel-row:hover,
@@ -1077,6 +1206,60 @@ function formatLogTime(timestamp: number): string {
 .tunnel-row__meta small {
   color: var(--text-tertiary);
   font-size: var(--text-xs);
+}
+
+.tunnel-row__route {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.tunnel-row__ownership {
+  color: var(--text-tertiary);
+}
+
+.tunnel-group {
+  margin-top: var(--space-2);
+}
+
+.tunnel-group__header {
+  width: 100%;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tunnel-group__header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tunnel-group__header span {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.tunnel-group__header:hover {
+  border-color: var(--border-default);
+  background: var(--bg-surface-hover);
+}
+
+.tunnel-group__items {
+  margin-top: var(--space-1);
 }
 
 .tunnel-row__meta {
@@ -1188,9 +1371,78 @@ function formatLogTime(timestamp: number): string {
 
 .detail-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-5);
+}
+
+.tunnel-access-card {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgb(91 141 239 / 8%), transparent 72%), var(--bg-input);
+}
+
+.tunnel-access-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.tunnel-access-card__heading h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.tunnel-access-card__heading p {
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.tunnel-access-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.tunnel-access-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.tunnel-access-card__grid div {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.tunnel-access-card__grid dt {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.tunnel-access-card__grid dd {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.tunnel-access-card__mono {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+}
+
+.tunnel-access-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .detail-metrics article {
@@ -1314,44 +1566,6 @@ function formatLogTime(timestamp: number): string {
   color: var(--text-tertiary);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-}
-
-.test-url-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-  padding: var(--space-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-input);
-}
-
-.test-url-panel span,
-.test-url-panel strong {
-  display: block;
-  min-width: 0;
-}
-
-.test-url-panel span {
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-}
-
-.test-url-panel strong {
-  margin-top: 2px;
-  overflow-wrap: anywhere;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-
-.test-url-panel__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
 }
 
 .detail-grid {
@@ -1525,7 +1739,28 @@ function formatLogTime(timestamp: number): string {
     flex-direction: column;
   }
 
-  .tunnel-toolbar,
+  .tunnel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tunnel-toolbar__controls {
+    flex-wrap: wrap;
+  }
+
+  .tunnel-toolbar select {
+    flex: 1 1 calc(50% - var(--space-1));
+    max-width: none;
+  }
+
+  .tunnel-toolbar__controls select:nth-child(3) {
+    max-width: none;
+  }
+
+  .sort-direction {
+    flex: 1 1 100%;
+  }
+
   .detail-metrics,
   .tunnel-runtime-grid {
     grid-template-columns: 1fr;
@@ -1536,13 +1771,12 @@ function formatLogTime(timestamp: number): string {
     flex-wrap: wrap;
   }
 
-  .test-url-panel {
-    align-items: stretch;
+  .tunnel-access-card__heading {
     flex-direction: column;
   }
 
-  .test-url-panel__actions {
-    flex-wrap: wrap;
+  .tunnel-access-card__grid {
+    grid-template-columns: 1fr;
   }
 
   .mini-log-list article {

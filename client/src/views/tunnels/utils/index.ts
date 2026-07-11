@@ -252,3 +252,16 @@ export function buildPublicAddr(serverDomain: string, remotePort: number): strin
 export function totalTraffic(t: Tunnel): number {
   return t.traffic.total
 }
+
+/* ── 本地目标地址 ── */
+export function localTargetLabel(tunnel: Tunnel): string {
+  if (tunnel.localPort) {
+    return `${tunnel.localHost}:${tunnel.localPort}`
+  }
+  return tunnel.localHost
+}
+
+/* ── 标签预设颜色 ── */
+export function tagPresetColor(name: string): string {
+  return TUNNEL_TAGS.find((tag) => tag.name === name)?.color ?? ''
+}

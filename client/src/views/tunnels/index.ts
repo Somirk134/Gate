@@ -17,5 +17,6 @@ export { useTunnelStore } from './store/tunnel'
 // ── Composables ──
 export { useTunnel } from './composables/useTunnel'
 export { useTunnelMonitor } from './composables/useTunnelMonitor'
+export { useTunnelGrouping, buildTunnelGroups } from './composables/useTunnelGrouping'
 
 export { defaultTunnelForm } from './store/tunnel'

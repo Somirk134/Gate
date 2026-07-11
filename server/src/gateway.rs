@@ -612,6 +612,11 @@ impl TunnelGateway {
             self.ensure_https_certificate(&config).await?;
         }
 
+        if is_http_tunnel_protocol(&config.protocol) {
+            self.purge_stale_http_tunnels_on_port(&tunnel_id, config.remote_port)
+                .await;
+        }
+
         if let Err(source) = self.ensure_listener(tunnel_id.clone(), &config).await {
             self.mark_tunnel_status(&tunnel_id, TunnelSessionStatus::Failed)
                 .await;
@@ -1281,7 +1286,10 @@ impl TunnelGateway {
         } else {
             request.host.as_str()
         };
-        let Some(tunnel_id) = self.resolve_http_tunnel_id(remote_port, route_host).await else {
+        let Some(tunnel_id) = self
+            .resolve_http_tunnel_id(remote_port, route_host, &request.path)
+            .await
+        else {
             let bytes = write_http_gateway_error(&mut public_stream, 404, "Not Found").await?;
             self.record_http_access(
                 None,
@@ -1372,6 +1380,9 @@ impl TunnelGateway {
             .last_activity
             .store(now_millis_u64(), Ordering::Relaxed);
 
+        let relay_head_bytes = rewrite_http_request_path(&head_bytes, config.path.as_deref())
+            .unwrap_or_else(|_| head_bytes.clone());
+
         let relay_result = async {
             let mut relay_stream = self.next_relay_worker(&tunnel).await?;
             let protocol = ProtocolBuilder::new().build();
@@ -1391,18 +1402,18 @@ impl TunnelGateway {
                 Metadata::default(),
             );
             write_message(&mut relay_stream, &protocol, &start).await?;
-            relay_stream.write_all(&head_bytes).await?;
+            relay_stream.write_all(&relay_head_bytes).await?;
             record_tunnel_bytes(
                 &tunnel,
                 &self.inner.counters,
                 CopyDirection::BytesIn,
-                head_bytes.len() as u64,
+                relay_head_bytes.len() as u64,
             );
 
             let mut outcome = self
                 .relay_bidirectional(public_stream, relay_stream, &tunnel, config.runtime)
                 .await?;
-            outcome.bytes_in = outcome.bytes_in.saturating_add(head_bytes.len() as u64);
+            outcome.bytes_in = outcome.bytes_in.saturating_add(relay_head_bytes.len() as u64);
             Ok::<RelayCopyOutcome, anyhow::Error>(outcome)
         }
         .await;
@@ -1964,7 +1975,12 @@ impl TunnelGateway {
             .map_err(|error| anyhow::anyhow!(error.to_string()))
     }
 
-    async fn resolve_http_tunnel_id(&self, remote_port: u16, host: &str) -> Option<String> {
+    async fn resolve_http_tunnel_id(
+        &self,
+        remote_port: u16,
+        host: &str,
+        request_path: &str,
+    ) -> Option<String> {
         let normalized_host = normalize_http_host(host);
         if !normalized_host.is_empty() {
             if let Some(repository) = &self.inner.domain_repository {
@@ -1973,7 +1989,14 @@ impl TunnelGateway {
                         if domain.is_enabled() {
                             if let Some(tunnel_id) = domain.tunnel_id() {
                                 let tunnel_id = tunnel_id.as_str().to_string();
-                                if self.http_tunnel_matches_port(&tunnel_id, remote_port).await {
+                                if self
+                                    .http_tunnel_matches_request(
+                                        &tunnel_id,
+                                        remote_port,
+                                        request_path,
+                                    )
+                                    .await
+                                {
                                     return Some(tunnel_id);
                                 }
                             }
@@ -1984,8 +2007,7 @@ impl TunnelGateway {
         }
 
         let tunnels = self.inner.tunnels.lock().await;
-        let mut fallback = None;
-        let mut fallback_count = 0_u64;
+        let mut matched = Vec::<(String, usize)>::new();
         for (tunnel_id, tunnel) in tunnels.iter() {
             let config = tunnel.config.lock().await.clone();
             if !config.enabled
@@ -1995,23 +2017,88 @@ impl TunnelGateway {
                 continue;
             }
 
-            fallback_count = fallback_count.saturating_add(1);
-            fallback = Some(tunnel_id.clone());
-            if config
+            let lifecycle = tunnel.lifecycle.lock().await.clone();
+            if lifecycle.status.is_terminal() {
+                continue;
+            }
+
+            if !http_path_matches(config.path.as_deref(), request_path) {
+                continue;
+            }
+
+            let host_matches = config
                 .host
                 .as_deref()
                 .map(|configured| http_host_matches(configured, &normalized_host))
-                .unwrap_or(false)
-            {
-                return Some(tunnel_id.clone());
+                .unwrap_or(false);
+            let has_workers = !tunnel.relay_workers.lock().await.is_empty();
+            if host_matches {
+                matched.push((tunnel_id.clone(), http_path_prefix_len(config.path.as_deref())));
+                continue;
+            }
+
+            if !http_tunnel_is_routable(&lifecycle, has_workers) {
+                continue;
+            }
+
+            if http_tunnel_host_unrestricted(config.host.as_deref()) {
+                matched.push((tunnel_id.clone(), http_path_prefix_len(config.path.as_deref())));
             }
         }
 
-        if fallback_count == 1 {
-            fallback
-        } else {
-            None
+        matched
+            .into_iter()
+            .max_by_key(|(_, score)| *score)
+            .map(|(tunnel_id, _)| tunnel_id)
+    }
+
+    async fn purge_stale_http_tunnels_on_port(&self, active_tunnel_id: &str, remote_port: u16) {
+        let stale_tunnel_ids = {
+            let tunnels = self.inner.tunnels.lock().await;
+            let mut stale_tunnel_ids = Vec::new();
+            for (tunnel_id, tunnel) in tunnels.iter() {
+                if tunnel_id == active_tunnel_id {
+                    continue;
+                }
+                let config = tunnel.config.lock().await;
+                if config.remote_port != remote_port
+                    || !is_http_tunnel_protocol(&config.protocol)
+                {
+                    continue;
+                }
+                let lifecycle = tunnel.lifecycle.lock().await;
+                if lifecycle.status.is_terminal()
+                    || matches!(lifecycle.status, TunnelSessionStatus::Offline)
+                {
+                    stale_tunnel_ids.push(tunnel_id.clone());
+                }
+            }
+            stale_tunnel_ids
+        };
+
+        for tunnel_id in stale_tunnel_ids {
+            let _ = self.stop_tunnel(&tunnel_id).await;
         }
+    }
+
+    async fn http_tunnel_matches_request(
+        &self,
+        tunnel_id: &str,
+        remote_port: u16,
+        request_path: &str,
+    ) -> bool {
+        let tunnel = {
+            let tunnels = self.inner.tunnels.lock().await;
+            tunnels.get(tunnel_id).cloned()
+        };
+        let Some(tunnel) = tunnel else {
+            return false;
+        };
+        let config = tunnel.config.lock().await;
+        config.enabled
+            && config.remote_port == remote_port
+            && is_http_tunnel_protocol(&config.protocol)
+            && http_path_matches(config.path.as_deref(), request_path)
     }
 
     async fn http_tunnel_matches_port(&self, tunnel_id: &str, remote_port: u16) -> bool {
@@ -2944,6 +3031,87 @@ fn host_from_absolute_uri(target: &str) -> Option<String> {
     Some(normalize_http_host(host))
 }
 
+fn normalize_http_path_prefix(path: Option<&str>) -> String {
+    let path = path.unwrap_or("/").trim();
+    if path.is_empty() || path == "/" {
+        return "/".to_string();
+    }
+    let mut normalized = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    };
+    while normalized.len() > 1 && normalized.ends_with('/') {
+        normalized.pop();
+    }
+    normalized
+}
+
+fn http_path_matches(configured_path: Option<&str>, request_path: &str) -> bool {
+    let prefix = normalize_http_path_prefix(configured_path);
+    if prefix == "/" {
+        return true;
+    }
+    request_path == prefix || request_path.starts_with(&format!("{prefix}/"))
+}
+
+fn http_path_prefix_len(configured_path: Option<&str>) -> usize {
+    let prefix = normalize_http_path_prefix(configured_path);
+    if prefix == "/" {
+        1
+    } else {
+        prefix.len()
+    }
+}
+
+fn strip_http_path_prefix(configured_path: Option<&str>, request_path: &str) -> String {
+    let prefix = normalize_http_path_prefix(configured_path);
+    if prefix == "/" {
+        return request_path.to_string();
+    }
+    if request_path == prefix {
+        return "/".to_string();
+    }
+    if let Some(rest) = request_path.strip_prefix(&format!("{prefix}/")) {
+        if rest.is_empty() {
+            return "/".to_string();
+        }
+        return format!("/{rest}");
+    }
+    request_path.to_string()
+}
+
+fn rewrite_http_request_path(head_bytes: &[u8], configured_path: Option<&str>) -> Result<Vec<u8>, String> {
+    let prefix = normalize_http_path_prefix(configured_path);
+    if prefix == "/" {
+        return Ok(head_bytes.to_vec());
+    }
+
+    let text = std::str::from_utf8(head_bytes).map_err(|error| error.to_string())?;
+    let line_end = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    let lines = text.split(line_end).collect::<Vec<_>>();
+    let request_line = lines
+        .first()
+        .ok_or_else(|| "missing request line".to_string())?;
+    let parts = request_line.split_whitespace().collect::<Vec<_>>();
+    if parts.len() != 3 {
+        return Err("invalid request line".to_string());
+    }
+
+    let old_path = target_to_http_path(parts[1]);
+    let new_path = strip_http_path_prefix(configured_path, &old_path);
+    if new_path == old_path {
+        return Ok(head_bytes.to_vec());
+    }
+
+    let mut rebuilt = format!("{} {} {}", parts[0], new_path, parts[2]);
+    for line in lines.iter().skip(1) {
+        rebuilt.push_str(line_end);
+        rebuilt.push_str(line);
+    }
+    Ok(rebuilt.into_bytes())
+}
+
 fn target_to_http_path(target: &str) -> String {
     if target.starts_with('/') {
         return target.to_string();
@@ -2981,6 +3149,94 @@ fn http_host_matches(configured: &str, host: &str) -> bool {
         return host == suffix || host.ends_with(&format!(".{suffix}"));
     }
     configured == host
+}
+
+#[derive(Debug, Clone)]
+struct HttpTunnelRouteCandidate {
+    tunnel_id: String,
+    host_unrestricted: bool,
+    lifecycle: TunnelLifecycle,
+    has_workers: bool,
+}
+
+fn http_tunnel_host_unrestricted(host: Option<&str>) -> bool {
+    host.map(str::trim).is_none_or(str::is_empty)
+}
+
+fn http_tunnel_is_routable(lifecycle: &TunnelLifecycle, has_workers: bool) -> bool {
+    if lifecycle.status.is_terminal() {
+        return false;
+    }
+    if matches!(
+        lifecycle.status,
+        TunnelSessionStatus::Online
+            | TunnelSessionStatus::Recovering
+            | TunnelSessionStatus::Initializing
+    ) {
+        return true;
+    }
+    has_workers
+}
+
+fn is_literal_http_host(host: &str) -> bool {
+    if host.is_empty() {
+        return true;
+    }
+    if host.parse::<IpAddr>().is_ok() {
+        return true;
+    }
+    host.starts_with('[') && host.ends_with(']') && host[1..host.len() - 1].parse::<IpAddr>().is_ok()
+}
+
+fn select_http_tunnel_candidate(
+    candidates: &[HttpTunnelRouteCandidate],
+    normalized_host: &str,
+) -> Option<String> {
+    if candidates.is_empty() {
+        return None;
+    }
+    if candidates.len() == 1 {
+        return Some(candidates[0].tunnel_id.clone());
+    }
+
+    if is_literal_http_host(normalized_host) {
+        let unrestricted = candidates
+            .iter()
+            .filter(|candidate| candidate.host_unrestricted)
+            .collect::<Vec<_>>();
+        if unrestricted.len() == 1 {
+            return Some(unrestricted[0].tunnel_id.clone());
+        }
+    }
+
+    let active = candidates
+        .iter()
+        .filter(|candidate| {
+            candidate.has_workers
+                || matches!(
+                    candidate.lifecycle.status,
+                    TunnelSessionStatus::Online | TunnelSessionStatus::Recovering
+                )
+        })
+        .collect::<Vec<_>>();
+    if active.len() == 1 {
+        return Some(active[0].tunnel_id.clone());
+    }
+
+    let pool: Vec<&HttpTunnelRouteCandidate> = if active.is_empty() {
+        candidates.iter().collect()
+    } else {
+        active
+    };
+    pool.iter()
+        .max_by_key(|candidate| {
+            (
+                candidate.has_workers,
+                matches!(candidate.lifecycle.status, TunnelSessionStatus::Online),
+                candidate.lifecycle.last_heartbeat,
+            )
+        })
+        .map(|candidate| candidate.tunnel_id.clone())
 }
 
 fn is_http_tunnel_protocol(protocol: &str) -> bool {
@@ -3153,6 +3409,34 @@ mod tests {
     use rustls::{ClientConfig, RootCertStore};
     use tokio_rustls::client::TlsStream as ClientTlsStream;
     use tokio_rustls::TlsConnector;
+
+    #[test]
+    fn http_path_matches_prefix_routes() {
+        assert!(http_path_matches(Some("/hello"), "/hello"));
+        assert!(http_path_matches(Some("/hello"), "/hello/world"));
+        assert!(!http_path_matches(Some("/hello"), "/"));
+        assert!(!http_path_matches(Some("/hello"), "/other"));
+        assert!(http_path_matches(Some("/"), "/anything"));
+    }
+
+    #[test]
+    fn strip_http_path_prefix_rewrites_to_backend_root() {
+        assert_eq!(strip_http_path_prefix(Some("/hello"), "/hello"), "/");
+        assert_eq!(
+            strip_http_path_prefix(Some("/hello"), "/hello/api"),
+            "/api"
+        );
+        assert_eq!(strip_http_path_prefix(Some("/"), "/hello"), "/hello");
+    }
+
+    #[test]
+    fn rewrite_http_request_path_updates_request_line() {
+        let head = b"GET /hello HTTP/1.1\r\nHost: maven666.top\r\n\r\n";
+        let rewritten = rewrite_http_request_path(head, Some("/hello")).expect("rewrite");
+        let text = std::str::from_utf8(&rewritten).expect("utf8");
+        assert!(text.starts_with("GET / HTTP/1.1\r\n"));
+        assert!(text.contains("Host: maven666.top"));
+    }
 
     #[tokio::test]
     async fn gateway_relays_public_connection_to_waiting_worker() -> anyhow::Result<()> {
@@ -3555,6 +3839,88 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn http_gateway_routes_ip_host_to_single_tunnel_without_domain() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let session_id = gateway.create_session().await;
+        let remote_port = unused_loopback_port().await?;
+        let tunnel_id = "ip-http";
+
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body_without_host(tunnel_id, remote_port, 18084),
+            )
+            .await?;
+
+        let (relay_server, relay_client) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker(tunnel_id, &session_id, relay_server)
+            .await?;
+        let worker = tokio::spawn(http_worker_response(relay_client, "127.0.0.1", "ip"));
+
+        let mut public = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        public
+            .write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = String::new();
+        public.read_to_string(&mut response).await?;
+        assert!(response.contains("200 OK"));
+        assert!(response.ends_with("ip"));
+        drop(public);
+        worker.await??;
+
+        gateway.stop_tunnel(tunnel_id).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn http_gateway_purges_stale_tunnel_and_routes_active_ip_request() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let session_id = gateway.create_session().await;
+        let remote_port = unused_loopback_port().await?;
+
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body("stale-http", remote_port, 18085, "stale.example.com"),
+            )
+            .await?;
+        gateway
+            .mark_tunnel_status("stale-http", TunnelSessionStatus::Offline)
+            .await;
+
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body_without_host("active-http", remote_port, 18086),
+            )
+            .await?;
+
+        let statistics = gateway.statistics().await;
+        assert_eq!(statistics["tunnels"].as_array().map(Vec::len), Some(1));
+
+        let (relay_server, relay_client) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker("active-http", &session_id, relay_server)
+            .await?;
+        let worker = tokio::spawn(http_worker_response(relay_client, "127.0.0.1", "active"));
+
+        let mut public = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        public
+            .write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = String::new();
+        public.read_to_string(&mut response).await?;
+        assert!(response.contains("200 OK"));
+        assert!(response.ends_with("active"));
+        drop(public);
+        worker.await??;
+
+        gateway.stop_tunnel("active-http").await?;
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn domain_binding_is_persisted_and_can_be_unbound_deleted() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db_path = temp_dir.path().join("domains.sqlite3");
@@ -3686,6 +4052,17 @@ mod tests {
             "localHost": "127.0.0.1",
             "localPort": local_port,
             "host": host,
+            "path": "/"
+        })
+    }
+
+    fn http_tunnel_body_without_host(tunnel_id: &str, remote_port: u16, local_port: u16) -> Value {
+        json!({
+            "id": tunnel_id,
+            "protocol": "http",
+            "remotePort": remote_port,
+            "localHost": "127.0.0.1",
+            "localPort": local_port,
             "path": "/"
         })
     }
