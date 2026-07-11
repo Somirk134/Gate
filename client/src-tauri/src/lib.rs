@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod config;
 pub mod discovery;
+pub mod domain_center;
 pub mod native;
 pub mod project;
 pub mod runtime;
@@ -131,6 +132,16 @@ pub fn run() -> Result<()> {
             commands::project::project_recommend_tunnels,
             commands::project::project_start,
             commands::project::project_stop,
+            commands::domain::domain_list_command,
+            commands::domain::domain_stats_command,
+            commands::domain::domain_detail_command,
+            commands::domain::domain_check_dns_command,
+            commands::domain::domain_create_command,
+            commands::domain::domain_delete_command,
+            commands::domain::domain_bind_tunnel_command,
+            commands::domain::domain_unbind_tunnel_command,
+            commands::domain::domain_batch_command,
+            commands::domain::domain_topology_command,
             updater::check_for_updates,
             updater::download_update,
             updater::install_update,

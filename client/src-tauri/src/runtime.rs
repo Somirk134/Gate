@@ -65,7 +65,7 @@ struct RuntimeLog {
     tunnel_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTunnelRequest {
     pub name: Option<String>,

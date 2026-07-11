@@ -4,6 +4,7 @@ pub mod config;
 pub mod connection;
 pub mod diagnostics;
 pub mod discovery;
+pub mod domain;
 pub mod error;
 pub mod project;
 pub mod runtime;
