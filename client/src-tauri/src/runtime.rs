@@ -1529,7 +1529,7 @@ impl ClientRuntimeState {
         if remote_port == 0 {
             return Err("REMOTE_PORT_REQUIRED".to_string());
         }
-        if occupied_ports.contains(&remote_port) {
+        if occupied_ports.contains(&remote_port) && !allows_shared_public_port(&protocol, remote_port) {
             return Err(format!("REMOTE_PORT_OCCUPIED:{remote_port}"));
         }
 
@@ -1829,7 +1829,7 @@ impl ClientRuntimeState {
 
     pub async fn check_remote_port(&self, server_id: Option<String>, port: u16) -> Value {
         let occupied = self.remote_occupied_ports(server_id.as_deref()).await;
-        let available = port > 1023 && !occupied.contains(&port);
+        let available = public_port_available_for_tunnel(port, &occupied);
         json!({
             "port": port,
             "available": available,
@@ -3996,6 +3996,24 @@ fn is_attention_tunnel_status(status: &str) -> bool {
 
 fn is_running_tunnel_status(status: &str) -> bool {
     matches!(status, "running" | "starting" | "restarting" | "recovering")
+}
+
+fn is_public_tunnel_port_available(port: u16) -> bool {
+    port > 1023 || matches!(port, 80 | 443)
+}
+
+fn allows_shared_public_port(protocol: &str, port: u16) -> bool {
+    matches!(protocol, "http" | "https") && matches!(port, 80 | 443)
+}
+
+fn public_port_available_for_tunnel(port: u16, occupied: &BTreeSet<u16>) -> bool {
+    if !is_public_tunnel_port_available(port) {
+        return false;
+    }
+    if !occupied.contains(&port) {
+        return true;
+    }
+    matches!(port, 80 | 443)
 }
 
 fn tunnel_public_address(tunnel: &TunnelRecord, public_host: Option<&str>) -> String {

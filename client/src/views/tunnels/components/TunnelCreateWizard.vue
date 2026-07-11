@@ -197,10 +197,10 @@
             </div>
           </section>
 
-          <section v-else-if="step === 4" class="wizard-step">
+          <section v-else-if="step === 4 && !isHttpLike" class="wizard-step">
             <div class="wizard-copy">
               <strong>{{ t('tunnel.wizard.flow.step4Title') }}</strong>
-              <p>{{ t('tunnel.wizard.flow.step4Desc') }}</p>
+              <p>{{ t('tunnel.wizard.flow.step4DescTcp') }}</p>
             </div>
             <label>
               <span>{{ t('tunnel.wizard.flow.manualPort') }}</span>
@@ -215,27 +215,41 @@
             </p>
           </section>
 
-          <section v-else-if="step === 5" class="wizard-step">
+          <section v-else-if="step === 4 && isHttpLike" class="wizard-step">
             <div class="wizard-copy">
-              <strong>{{ t('tunnel.wizard.flow.step5Title') }}</strong>
-              <p>{{ t('tunnel.wizard.flow.step5Desc') }}</p>
+              <strong>{{ t('tunnel.wizard.flow.step4TitleDomain') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step4DescDomain') }}</p>
             </div>
-            <p v-if="isHttpLike" class="wizard-alert">{{ t('tunnel.wizard.flow.subdomainModeHint') }}</p>
-            <label v-if="isHttpLike">
+            <p class="wizard-alert">{{ t('tunnel.wizard.flow.subdomainModeHint') }}</p>
+            <label>
               <span>{{ t('tunnel.wizard.flow.labels.domain') }}</span>
-              <select
+              <div
                 v-if="form.protocol === 'https'"
-                v-model="selectedCertDomain"
-                :disabled="certificatesLoading || !availableDomainOptions.length"
-                @change="applyCertDomainSelection">
-                <option value="" disabled>{{ t('tunnel.wizard.flow.domainSelectPlaceholder') }}</option>
-                <option
-                  v-for="option in availableDomainOptions"
-                  :key="option.value"
-                  :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
+                ref="domainPickerRef"
+                class="domain-picker"
+                :class="{ 'domain-picker--open': domainPickerOpen }">
+                <button
+                  type="button"
+                  class="domain-picker__trigger"
+                  :disabled="certificatesLoading || !availableDomainOptions.length"
+                  @click="toggleDomainPicker">
+                  <span>{{ selectedDomainLabel }}</span>
+                  <GIcon name="chevron-down" :size="14" class="domain-picker__chevron" />
+                </button>
+                <div v-if="domainPickerOpen" class="domain-picker__menu" role="listbox">
+                  <button
+                    v-for="option in availableDomainOptions"
+                    :key="option.value"
+                    type="button"
+                    class="domain-picker__option"
+                    :class="{ active: selectedCertDomain === option.value }"
+                    role="option"
+                    :aria-selected="selectedCertDomain === option.value"
+                    @click="selectCertDomain(option.value)">
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
               <input
                 v-else
                 v-model.trim="form.host"
@@ -250,38 +264,76 @@
                   :value="option" />
               </datalist>
             </label>
-            <label v-if="isHttpLike && form.protocol === 'https'">
+            <label v-if="form.protocol === 'https'">
               <span>{{ t('tunnel.wizard.flow.subdomainLabel') }}</span>
               <div class="subdomain-row">
                 <input
                   v-model.trim="subdomainPrefix"
                   autocomplete="off"
                   placeholder="dev"
-                  @blur="syncHttpsHostFromParts" />
+                  @input="syncHttpsHostFromParts" />
                 <span class="subdomain-row__dot">.</span>
                 <input
                   :value="selectedCertDomain || t('tunnel.wizard.flow.subdomainBasePlaceholder')"
                   readonly
                   class="subdomain-row__base" />
               </div>
+              <div class="prefix-presets">
+                <button
+                  v-for="prefix in SUBDOMAIN_PREFIX_PRESETS"
+                  :key="prefix"
+                  type="button"
+                  :class="{ active: subdomainPrefix === prefix }"
+                  @click="selectSubdomainPrefix(prefix)">
+                  {{ prefix }}
+                </button>
+              </div>
               <small class="field-hint">{{ t('tunnel.wizard.flow.subdomainInputHint') }}</small>
+            </label>
+            <label>
+              <span>{{ t('tunnel.wizard.flow.standardPortLabel') }}</span>
+              <input :value="form.remotePort ?? standardPublicPort(form.protocol)" readonly />
             </label>
             <p
               v-if="form.protocol === 'https' && !certificatesLoading && !availableDomainOptions.length"
               class="wizard-alert error">
               {{ t('tunnel.wizard.flow.noCertificateDomains') }}
             </p>
-            <p v-if="isHttpLike && previewAccessUrl" class="wizard-alert access-preview">
+            <p v-if="previewAccessUrl" class="wizard-alert access-preview">
               {{ t('tunnel.wizard.flow.accessPreview', { url: previewAccessUrl }) }}
             </p>
-            <p v-if="isHttpLike && form.host && !certificateCoversSelectedHost" class="wizard-alert error">
+            <p v-if="form.host && !certificateCoversSelectedHost" class="wizard-alert error">
               {{ t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host }) }}
             </p>
             <div v-if="form.protocol === 'https'" class="certificate-state">
               <GIcon :name="hasCertificate ? 'check-circle' : 'alert-circle'" :size="18" />
               <span>{{ certificateMessage }}</span>
             </div>
-            <p v-if="form.protocol === 'tcp'" class="wizard-alert">{{ t('tunnel.wizard.flow.tcpNoDomainCert') }}</p>
+          </section>
+
+          <section v-else-if="step === 5 && isHttpLike" class="wizard-step">
+            <div class="wizard-copy">
+              <strong>{{ t('tunnel.wizard.flow.step5TitleDns') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.dnsGuideDesc') }}</p>
+            </div>
+            <div v-if="dnsRecordGuide" class="dns-guide">
+              <div class="dns-guide__record">
+                <div><span>{{ t('tunnel.wizard.flow.dnsType') }}</span><strong>{{ dnsRecordGuide.type }}</strong></div>
+                <div><span>{{ t('tunnel.wizard.flow.dnsName') }}</span><strong>{{ dnsRecordGuide.name }}</strong></div>
+                <div><span>{{ t('tunnel.wizard.flow.dnsValue') }}</span><strong>{{ dnsRecordGuide.value }}</strong></div>
+                <div><span>{{ t('tunnel.wizard.flow.dnsHost') }}</span><strong>{{ dnsRecordGuide.host }}</strong></div>
+              </div>
+              <p class="field-hint">{{ t('tunnel.wizard.flow.dnsGuideNote') }}</p>
+            </div>
+            <p v-else class="wizard-alert error">{{ t('tunnel.wizard.flow.dnsGuideMissing') }}</p>
+          </section>
+
+          <section v-else-if="step === 5" class="wizard-step">
+            <div class="wizard-copy">
+              <strong>{{ t('tunnel.wizard.flow.step5TitleTcp') }}</strong>
+              <p>{{ t('tunnel.wizard.flow.step5DescTcp') }}</p>
+            </div>
+            <p class="wizard-alert">{{ t('tunnel.wizard.flow.tcpNoDomainCert') }}</p>
           </section>
 
           <section v-else class="wizard-step">
@@ -294,7 +346,7 @@
               <div><span>{{ t('tunnel.wizard.flow.confirmList.localService') }}</span><strong>{{ form.localHost }}:{{ form.localPort }}</strong></div>
               <div><span>{{ t('tunnel.wizard.flow.confirmList.protocol') }}</span><strong>{{ form.protocol.toUpperCase() }}</strong></div>
               <div><span>{{ t('tunnel.wizard.flow.confirmList.remotePort') }}</span><strong>{{ form.remotePort ?? '-' }}</strong></div>
-              <div v-if="isHttpLike"><span>{{ t('tunnel.wizard.flow.confirmList.domain') }}</span><strong>{{ form.host || '-' }}</strong></div>
+              <div v-if="isHttpLike"><span>{{ t('tunnel.wizard.flow.confirmList.domain') }}</span><strong>{{ previewAccessUrl || form.host || '-' }}</strong></div>
             </div>
             <div v-if="diagnosis" class="diagnosis-list">
               <article
@@ -348,6 +400,20 @@ import {
 import type { Disposable } from '@/utils/disposable'
 import type { Server, ServerStatus } from '@views/servers'
 import type { TunnelFormData, TunnelProtocol } from '../types'
+import {
+  SUBDOMAIN_PREFIX_PRESETS,
+  applySubdomainTunnelDefaults,
+  buildDnsRecordGuide,
+  buildSubdomainHost,
+  buildTunnelPublicUrl,
+  certificateCoversHost,
+  listCertificateBaseDomains,
+  splitSubdomainHost,
+  standardPublicPort,
+  suggestSubdomainPrefix,
+  suggestedSubdomainHosts,
+} from '../utils/domainAccess'
+import { isValidPort } from '../utils'
 
 const props = defineProps<{
   visible: boolean
@@ -369,12 +435,40 @@ interface ScanLogEntry {
   found: boolean
   message: string
 }
+
+const form = reactive<TunnelFormData>({
+  name: '',
+  protocol: 'tcp',
+  localHost: '127.0.0.1',
+  localPort: null,
+  remotePort: null,
+  host: '',
+  path: '/',
+  projectId: '',
+  serverId: '',
+  serverName: '',
+  autoStart: true,
+  remark: '',
+  tags: [],
+})
+
+const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 const steps = computed(() => [
   { index: 1, title: t('tunnel.wizard.flow.step1Title') },
   { index: 2, title: t('tunnel.wizard.flow.step2Title') },
   { index: 3, title: t('tunnel.wizard.flow.step3Title') },
-  { index: 4, title: t('tunnel.wizard.flow.step4Title') },
-  { index: 5, title: t('tunnel.wizard.flow.step5Title') },
+  {
+    index: 4,
+    title: isHttpLike.value
+      ? t('tunnel.wizard.flow.step4TitleDomain')
+      : t('tunnel.wizard.flow.step4Title'),
+  },
+  {
+    index: 5,
+    title: isHttpLike.value
+      ? t('tunnel.wizard.flow.step5TitleDns')
+      : t('tunnel.wizard.flow.step5TitleTcp'),
+  },
   { index: 6, title: t('tunnel.wizard.flow.step6Title') },
 ])
 
@@ -402,6 +496,8 @@ const certificateDomains = ref<string[]>([])
 const certificates = ref<CertificateSummary[]>([])
 const certificatesLoading = ref(false)
 const selectedCertDomain = ref('')
+const domainPickerOpen = ref(false)
+const domainPickerRef = ref<HTMLElement | null>(null)
 const subdomainPrefix = ref('dev')
 const diagnosis = ref<TunnelDiagnosis | null>(null)
 const manualService = reactive<{
@@ -414,24 +510,7 @@ const manualService = reactive<{
   name: '',
 })
 
-const form = reactive<TunnelFormData>({
-  name: '',
-  protocol: 'tcp',
-  localHost: '127.0.0.1',
-  localPort: null,
-  remotePort: null,
-  host: '',
-  path: '/',
-  projectId: '',
-  serverId: '',
-  serverName: '',
-  autoStart: true,
-  remark: '',
-  tags: [],
-})
-
 const stepTitle = computed(() => steps.value.find((item) => item.index === step.value)?.title ?? t('tunnel.wizard.flow.step6Title'))
-const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
 const recommendedProtocol = computed(() => selectedService.value?.recommendedProtocol ?? 'tcp')
 const selectedServer = computed(
   () => props.servers.find((server) => server.id === form.serverId) ?? null,
@@ -457,29 +536,25 @@ const filteredLocalServices = computed(() => {
   )
 })
 const normalizedHost = computed(() => form.host?.trim().toLowerCase() ?? '')
-const suggestedSubdomainOptions = computed(() => {
-  const prefixes = ['dev', 'api', 'app', 'test']
-  const bases = new Set<string>()
-  for (const cert of certificates.value) {
-    if (cert.status !== 'active' && cert.status !== 'expiringSoon') continue
-    for (const domain of [cert.domain, ...cert.san]) {
-      const normalized = domain.trim().toLowerCase()
-      if (!normalized || normalized.startsWith('*.')) continue
-      bases.add(normalized)
-    }
-  }
-  return [...bases].flatMap((base) => prefixes.map((prefix) => `${prefix}.${base}`))
-})
+const suggestedSubdomainOptions = computed(() => suggestedSubdomainHosts(certificates.value))
 const certificateCoversSelectedHost = computed(() =>
   normalizedHost.value ? certificateCoversHost(normalizedHost.value, certificates.value) : true,
 )
 const hasCertificate = computed(() => certificateCoversSelectedHost.value)
-const previewAccessUrl = computed(() => {
-  const host = normalizedHost.value
-  if (!host || !isHttpLike.value) return ''
-  const protocol = form.protocol === 'https' ? 'https' : 'http'
-  return `${protocol}://${host}/`
-})
+const previewAccessUrl = computed(() =>
+  buildTunnelPublicUrl({
+    protocol: form.protocol,
+    host: form.host,
+    path: form.path,
+    remotePort: form.remotePort,
+  }),
+)
+const serverPublicIp = computed(
+  () => selectedServer.value?.publicIp || selectedServer.value?.settings.host || '',
+)
+const dnsRecordGuide = computed(() =>
+  buildDnsRecordGuide(form.host, serverPublicIp.value),
+)
 const availableDomainOptions = computed(() => {
   const seen = new Set<string>()
   const options: Array<{ value: string; label: string }> = []
@@ -504,6 +579,12 @@ const availableDomainOptions = computed(() => {
   }
 
   return options.sort((left, right) => left.value.localeCompare(right.value))
+})
+const selectedDomainLabel = computed(() => {
+  if (certificatesLoading.value) return t('common.loading')
+  if (!availableDomainOptions.value.length) return t('tunnel.wizard.flow.noCertificateDomains')
+  const option = availableDomainOptions.value.find((item) => item.value === selectedCertDomain.value)
+  return option?.label ?? selectedCertDomain.value ?? t('tunnel.wizard.flow.domainSelectPlaceholder')
 })
 const certificateMessage = computed(() => {
   if (!normalizedHost.value) return t('tunnel.wizard.flow.certPromptHttps')
@@ -578,49 +659,9 @@ function handleScanComplete(payload: DiscoveryScanComplete) {
   selectFirstAfterScan.value = false
 }
 
-function isApexDomain(domain: string): boolean {
-  const normalized = domain.trim().toLowerCase()
-  if (!normalized || normalized.startsWith('*.')) return false
-  const labels = normalized.split('.').filter(Boolean)
-  return labels.length === 2
-}
-
-function suggestSubdomainPrefix(baseDomain: string): string {
-  return isApexDomain(baseDomain) ? 'dev' : baseDomain.split('.')[0] || 'dev'
-}
-
-function buildSubdomainHost(prefix: string, baseDomain: string): string {
-  const normalizedPrefix = prefix.trim().toLowerCase().replace(/\.$/, '')
-  const normalizedBase = baseDomain.trim().toLowerCase()
-  if (!normalizedBase) return ''
-  if (!normalizedPrefix || normalizedPrefix === '@') return normalizedBase
-  if (normalizedBase.startsWith(`${normalizedPrefix}.`)) return normalizedBase
-  return `${normalizedPrefix}.${normalizedBase}`
-}
-
-function certificateCoversHost(host: string, certs: CertificateSummary[]): boolean {
-  const normalizedHost = host.trim().toLowerCase()
-  if (!normalizedHost) return false
-  for (const cert of certs) {
-    if (cert.status !== 'active' && cert.status !== 'expiringSoon') continue
-    for (const domain of [cert.domain, ...cert.san]) {
-      const normalizedDomain = domain.trim().toLowerCase()
-      if (!normalizedDomain) continue
-      if (normalizedDomain === normalizedHost) return true
-      if (normalizedDomain.startsWith('*.')) {
-        const suffix = normalizedDomain.slice(2)
-        if (normalizedHost === suffix || normalizedHost.endsWith(`.${suffix}`)) {
-          return true
-        }
-      }
-    }
-  }
-  return false
-}
-
 function applyStandardPublicPort() {
   if (!isHttpLike.value || !form.host?.trim()) return
-  form.remotePort = form.protocol === 'https' ? 443 : 80
+  form.remotePort = standardPublicPort(form.protocol)
 }
 
 function syncHttpsHostFromParts() {
@@ -628,9 +669,10 @@ function syncHttpsHostFromParts() {
     form.host = ''
     return
   }
-  form.host = buildSubdomainHost(subdomainPrefix.value, selectedCertDomain.value)
-  form.path = '/'
-  applyStandardPublicPort()
+  const defaults = applySubdomainTunnelDefaults(form.protocol, buildSubdomainHost(subdomainPrefix.value, selectedCertDomain.value))
+  form.host = defaults.host
+  form.path = defaults.path
+  form.remotePort = defaults.remotePort
 }
 
 function applyCertDomainSelection() {
@@ -642,13 +684,38 @@ function applyCertDomainSelection() {
   syncHttpsHostFromParts()
 }
 
+function toggleDomainPicker() {
+  if (certificatesLoading.value || !availableDomainOptions.value.length) return
+  domainPickerOpen.value = !domainPickerOpen.value
+}
+
+function selectCertDomain(value: string) {
+  selectedCertDomain.value = value
+  domainPickerOpen.value = false
+  applyCertDomainSelection()
+}
+
 function applySubdomainDefaults() {
   const host = form.host.trim().toLowerCase()
   if (!host) return
-  form.host = host
-  form.path = '/'
-  applyStandardPublicPort()
+  const defaults = applySubdomainTunnelDefaults(form.protocol, host)
+  form.host = defaults.host
+  form.path = defaults.path
+  form.remotePort = defaults.remotePort
 }
+
+function selectSubdomainPrefix(prefix: string) {
+  subdomainPrefix.value = prefix
+  syncHttpsHostFromParts()
+}
+
+onClickOutside(domainPickerRef, () => {
+  domainPickerOpen.value = false
+})
+
+watch(step, () => {
+  domainPickerOpen.value = false
+})
 
 watch(
   () => props.visible,
@@ -668,7 +735,7 @@ watch(step, (value, oldValue) => {
   if (value === 2 && oldValue === 1 && props.visible) {
     void startDiscoveryScan({ selectFirst: true })
   }
-  if (value === 5 && props.visible) {
+  if (value === 4 && isHttpLike.value && props.visible) {
     void prepareDomainStep()
   }
 })
@@ -828,12 +895,14 @@ async function prepareDomainStep() {
     return
   }
   const current = normalizedHost.value
+  const baseDomains = listCertificateBaseDomains(certificates.value)
   const matchedOption =
     options.find((option) => option.value === current) ??
     options.find((option) => current.endsWith(`.${option.value}`))
   selectedCertDomain.value = matchedOption?.value ?? options[0].value
-  if (matchedOption && current.endsWith(`.${matchedOption.value}`)) {
-    subdomainPrefix.value = current.slice(0, -(matchedOption.value.length + 1)) || 'dev'
+  const split = splitSubdomainHost(current, baseDomains)
+  if (split && split.baseDomain === selectedCertDomain.value) {
+    subdomainPrefix.value = split.prefix || suggestSubdomainPrefix(selectedCertDomain.value)
   } else {
     subdomainPrefix.value = suggestSubdomainPrefix(selectedCertDomain.value)
   }
@@ -909,21 +978,33 @@ async function validateStep() {
       return false
     }
   }
-  if (step.value === 4) {
+  if (step.value === 4 && !isHttpLike.value) {
     if (!isValidPort(form.remotePort)) {
       errorMessage.value = t('tunnel.wizard.flow.remotePortRequired')
     } else if (portConflict.value) {
       errorMessage.value = t('tunnel.wizard.flow.remotePortConflict')
     }
   }
-  if (step.value === 5 && form.protocol === 'https') {
-    if (!availableDomainOptions.value.length) {
-      errorMessage.value = t('tunnel.wizard.flow.noCertificateDomains')
-    } else if (!normalizedHost.value) {
+  if (step.value === 4 && isHttpLike.value) {
+    if (!normalizedHost.value) {
       errorMessage.value = t('tunnel.wizard.flow.domainRequiredHttps')
-    } else if (!certificateCoversSelectedHost.value) {
-      errorMessage.value = t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host })
+    } else if (form.protocol === 'https') {
+      if (!availableDomainOptions.value.length) {
+        errorMessage.value = t('tunnel.wizard.flow.noCertificateDomains')
+      } else if (!certificateCoversSelectedHost.value) {
+        errorMessage.value = t('tunnel.wizard.flow.subdomainCertMissing', { host: form.host })
+      }
     }
+    if (!errorMessage.value) {
+      applyStandardPublicPort()
+      if (form.remotePort) await checkPort(form.remotePort)
+      if (portConflict.value) {
+        errorMessage.value = t('tunnel.wizard.flow.remotePortConflict')
+      }
+    }
+  }
+  if (step.value === 5 && isHttpLike.value && !dnsRecordGuide.value) {
+    errorMessage.value = t('tunnel.wizard.flow.dnsGuideMissing')
   }
   return !errorMessage.value
 }
@@ -1525,6 +1606,64 @@ label span {
   font-size: var(--text-xs);
 }
 
+.prefix-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prefix-presets button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.prefix-presets button.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgb(91 141 239 / 10%);
+}
+
+.dns-guide {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+
+.dns-guide__record {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dns-guide__record div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: 6px;
+  background: var(--bg-surface);
+}
+
+.dns-guide__record span {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.dns-guide__record strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
 input,
 select {
   width: 100%;
@@ -1535,6 +1674,79 @@ select {
   color: var(--text-primary);
   padding: 0 var(--space-3);
   outline: 0;
+}
+
+.domain-picker {
+  position: relative;
+}
+
+.domain-picker__trigger {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.domain-picker__trigger:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.domain-picker__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.domain-picker--open .domain-picker__trigger {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.domain-picker__chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.domain-picker--open .domain-picker__chevron {
+  transform: rotate(180deg);
+}
+
+.domain-picker__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-floating);
+}
+
+.domain-picker__option {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.domain-picker__option:hover,
+.domain-picker__option.active {
+  background: var(--bg-surface);
 }
 
 .certificate-state {

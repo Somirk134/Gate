@@ -12,7 +12,7 @@ import type {
   TunnelProtocol,
   TunnelStatus,
 } from '../types'
-import { TUNNEL_STATUS_CONFIG, isRunningStatus } from '../utils'
+import { TUNNEL_STATUS_CONFIG, buildTunnelPublicUrl, isRunningStatus } from '../utils'
 
 function t(key: string, params?: Record<string, unknown>): string {
   return (i18n.global as unknown as { t: (key: string, params?: Record<string, unknown>) => string }).t(
@@ -331,26 +331,13 @@ function publicAddress(row: DashboardTunnel): string {
   const runtimeAddress = row.publicAddress?.trim()
   if (runtimeAddress) return runtimeAddress
 
-  const publicHost = row.publicHost?.trim()
-  const path = normalizePath(row.path)
-
-  if ((row.protocol === 'http' || row.protocol === 'https') && row.host) {
-    return `${row.protocol}://${row.host}${path}`
-  }
-
-  if ((row.protocol === 'http' || row.protocol === 'https') && publicHost && row.remotePort) {
-    return `${row.protocol}://${publicHost}:${row.remotePort}${path}`
-  }
-
-  if (publicHost && row.remotePort) {
-    return `${publicHost}:${row.remotePort}`
-  }
-
-  if (row.remotePort) {
-    return `:${row.remotePort}`
-  }
-
-  return t('tunnel.notAssigned')
+  return buildTunnelPublicUrl({
+    protocol: row.protocol,
+    host: row.host,
+    path: row.path,
+    remotePort: row.remotePort,
+    serverHost: row.publicHost,
+  }) || t('tunnel.notAssigned')
 }
 
 function optionalText(value: string | undefined): string | undefined {

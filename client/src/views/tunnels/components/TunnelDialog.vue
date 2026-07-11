@@ -52,27 +52,24 @@
               <TunnelProtocolSelect v-model="form.protocol" />
             </GFormField>
 
-            <div v-if="isHttpLike" class="tunnel-port-row">
+            <div v-if="isHttpLike" class="tunnel-domain-panel">
+              <p class="tunnel-domain-panel__hint">{{ t('tunnel.settings.subdomainModeHint') }}</p>
               <GFormField :error="errors.host" :required="form.protocol === 'https'">
                 <template #label>{{ t('tunnel.settings.host') }}</template>
                 <GInput
                   v-model="form.host"
-                  placeholder="api.example.com"
+                  placeholder="dev.example.com"
                   prefix="globe"
                   :state="errors.host ? 'error' : 'normal'"
-                  @update:model-value="validateField('host')" />
+                  @update:model-value="onHostChanged" />
+                <template #hint>{{ t('tunnel.settings.subdomainInputHint') }}</template>
               </GFormField>
-              <GFormField :error="errors.path">
-                <template #label>{{ t('tunnel.settings.path') }}</template>
-                <GInput
-                  v-model="form.path"
-                  placeholder="/"
-                  prefix="route"
-                  :state="errors.path ? 'error' : 'normal'"
-                  @update:model-value="validateField('path')" />
-                <template v-if="form.path && form.path.trim() !== '/'" #hint>
-                  {{ t('tunnel.settings.pathSubpathHint') }}
-                </template>
+              <div v-if="previewAccessUrl" class="tunnel-domain-panel__preview">
+                {{ t('tunnel.wizard.flow.accessPreview', { url: previewAccessUrl }) }}
+              </div>
+              <GFormField :error="errors.remotePort">
+                <template #label>{{ t('tunnel.settings.standardPortLabel') }}</template>
+                <GInput :model-value="String(form.remotePort ?? standardPublicPort(form.protocol))" readonly />
               </GFormField>
             </div>
 
@@ -93,9 +90,9 @@
                 <template #label>{{ t('tunnel.settings.localPort') }}</template>
                 <TunnelPortInput v-model="form.localPort" />
               </GFormField>
-              <GFormField :error="errors.remotePort" required>
+              <GFormField :error="errors.remotePort" :required="!isHttpLike">
                 <template #label>{{ t('tunnel.settings.remotePort') }}</template>
-                <TunnelPortInput v-model="form.remotePort" />
+                <TunnelPortInput v-model="form.remotePort" :disabled="isHttpLike" />
               </GFormField>
             </div>
 
@@ -221,7 +218,8 @@ import TunnelProtocolSelect from './TunnelProtocolSelect.vue'
 import TunnelPortInput from './TunnelPortInput.vue'
 import TunnelTag from './TunnelTag.vue'
 import type { Tunnel, TunnelFormData } from '../types'
-import { PROTOCOL_MAP, TUNNEL_TAGS, isValidPort } from '../utils'
+import { PROTOCOL_MAP, TUNNEL_TAGS, buildTunnelPublicUrl, isValidPort, standardPublicPort } from '../utils'
+import { applySubdomainTunnelDefaults } from '../utils/domainAccess'
 
 const props = defineProps<{
   visible: boolean
@@ -269,6 +267,16 @@ const errors = reactive<{
 
 const protocolPreset = computed(() => PROTOCOL_MAP[form.protocol])
 const isHttpLike = computed(() => form.protocol === 'http' || form.protocol === 'https')
+const previewAccessUrl = computed(() =>
+  isHttpLike.value
+    ? buildTunnelPublicUrl({
+        protocol: form.protocol,
+        host: form.host,
+        path: form.path,
+        remotePort: form.remotePort,
+      })
+    : '',
+)
 
 const previewStyle = computed(() => ({
   background: `${protocolPreset.value.color}22`,
@@ -294,7 +302,7 @@ const isValid = computed(
     !errors.host &&
     !errors.path &&
     isValidPort(form.localPort) &&
-    isValidPort(form.remotePort) &&
+    (isHttpLike.value ? Boolean(form.host?.trim()) && isValidPort(form.remotePort) : isValidPort(form.remotePort)) &&
     (form.protocol !== 'https' || Boolean(form.host?.trim())),
 )
 
@@ -348,6 +356,29 @@ function resetForm() {
   tagInput.value = ''
 }
 
+function onHostChanged() {
+  validateField('host')
+  const host = form.host?.trim()
+  if (!host || !isHttpLike.value) return
+  const defaults = applySubdomainTunnelDefaults(form.protocol, host)
+  form.host = defaults.host
+  form.path = defaults.path
+  form.remotePort = defaults.remotePort
+  validateField('remotePort')
+}
+
+watch(
+  () => form.protocol,
+  (protocol) => {
+    if (protocol === 'tcp') {
+      form.path = ''
+      return
+    }
+    form.path = '/'
+    if (form.host?.trim()) onHostChanged()
+  },
+)
+
 function validateField(field: keyof typeof errors) {
   if (field === 'name') {
     const v = form.name.trim()
@@ -365,6 +396,11 @@ function validateField(field: keyof typeof errors) {
     else errors.localPort = undefined
   }
   if (field === 'remotePort') {
+    if (isHttpLike.value && form.host?.trim()) {
+      form.remotePort = standardPublicPort(form.protocol)
+      errors.remotePort = undefined
+      return
+    }
     if (!isValidPort(form.remotePort)) errors.remotePort = t('tunnel.settings.validation.portRange')
     else errors.remotePort = undefined
   }
@@ -426,3 +462,26 @@ function handleSubmit() {
   emit('update:visible', false)
 }
 </script>
+
+<style scoped>
+.tunnel-domain-panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tunnel-domain-panel__hint,
+.tunnel-domain-panel__preview {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.tunnel-domain-panel__preview {
+  padding: var(--space-3);
+  border-radius: 8px;
+  background: var(--bg-input);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+</style>

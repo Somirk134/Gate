@@ -436,6 +436,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'tunnels' })
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -458,7 +459,7 @@ import TunnelTag from './components/TunnelTag.vue'
 import { useTunnel } from './composables/useTunnel'
 import { useTunnelMonitor } from './composables/useTunnelMonitor'
 import { useTunnelGrouping } from './composables/useTunnelGrouping'
-import { localTargetLabel, tagPresetColor } from './utils'
+import { buildTunnelPublicUrl, localTargetLabel, tagPresetColor } from './utils'
 import { useServerStore } from '@views/servers'
 import { useProjectStore } from '@views/projects/store/project'
 import type {
@@ -471,7 +472,6 @@ import type {
   TunnelStatus,
 } from './types'
 import type { DashboardTunnel } from '@/monitoring/types'
-import './styles/tunnel.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -900,10 +900,14 @@ function tunnelSubtitle(tunnel: Tunnel): string {
 }
 
 function tunnelRouteLine(tunnel: Tunnel): string {
-  if ((tunnel.protocol === 'http' || tunnel.protocol === 'https') && tunnel.host?.trim()) {
-    const path = tunnel.path?.trim()
-    const suffix = path ? (path.startsWith('/') ? path : `/${path}`) : ''
-    return `${tunnel.protocol.toUpperCase()} · ${tunnel.host}${suffix}`
+  if (tunnel.protocol === 'http' || tunnel.protocol === 'https') {
+    const url = buildTunnelPublicUrl({
+      protocol: tunnel.protocol,
+      host: tunnel.host,
+      path: tunnel.path,
+      remotePort: tunnel.remotePort,
+    })
+    if (url) return url
   }
 
   const localPort = tunnel.localPort ? String(tunnel.localPort) : tunnel.localHost
@@ -963,6 +967,7 @@ function formatLogTime(timestamp: number): string {
 }
 </script>
 
+<style src="./styles/tunnel.css"></style>
 <style scoped>
 .tunnels-page {
   width: min(100%, var(--content-max-width));

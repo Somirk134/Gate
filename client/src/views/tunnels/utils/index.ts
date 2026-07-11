@@ -244,6 +244,8 @@ export function isValidPort(port: number | null): boolean {
 }
 
 /* ── 公网地址拼接 ── */
+export { buildTunnelPublicUrl, standardPublicPort, usesSubdomainAccess } from './domainAccess'
+
 export function buildPublicAddr(serverDomain: string, remotePort: number): string {
   return `${serverDomain}:${remotePort}`
 }
