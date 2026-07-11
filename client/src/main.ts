@@ -12,8 +12,8 @@ import { APP_CONTEXT_KEY, setApplicationContext } from './providers/appContext'
 import { initAppearancePreferences } from './composables/useAppearancePreferences'
 import { i18n, persistRuntimeLocale, resolveInitialLocale } from './i18n'
 import { APP_VERSION } from './constants'
-
 const app = createApp(App)
+const pinia = createPinia()
 
 initAppearancePreferences()
 
@@ -22,7 +22,9 @@ const router = createRouter({
   routes,
 })
 
-const pinia = createPinia()
+app.use(pinia)
+app.use(router)
+app.use(i18n)
 
 const application = await AppBootstrap.create({
   app,
@@ -39,9 +41,6 @@ i18n.global.locale.value = configuredLocale
 application.context.configuration.set('locale', configuredLocale)
 void persistRuntimeLocale(configuredLocale)
 
-app.use(router)
-app.use(i18n)
-app.use(pinia)
 app.use(designSystemPlugin)
 
 app.mount('#app')

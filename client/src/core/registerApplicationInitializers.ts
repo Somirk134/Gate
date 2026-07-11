@@ -1,6 +1,7 @@
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
 import type { AppContext } from './AppContext'
+import { registerCommandShortcuts } from './registerCommandShortcuts'
 import { installAppRouterGuards } from './routerGuard'
 import {
   ERROR_HANDLER_SERVICE,
@@ -16,23 +17,7 @@ export function registerApplicationInitializers(context: AppContext, app: App, r
 
   installAppRouterGuards(router, context)
 
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.commandPalette.toggle',
-    commandId: 'app.commandPalette.toggle',
-    shortcut: context.configuration.get<string>('shortcuts.app.commandPalette.toggle') ?? 'Ctrl+K',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.settings.open',
-    commandId: 'settings.open',
-    shortcut: context.configuration.get<string>('shortcuts.settings.open') ?? 'Ctrl+,',
-  })
-
-  context.services.resolve(SHORTCUT_SERVICE).register({
-    id: 'shortcut.sidebar.toggle',
-    commandId: 'app.sidebar.toggle',
-    shortcut: 'Ctrl+\\',
-  })
+  registerCommandShortcuts(context)
 
   context.initializers.register({
     id: 'theme.start',

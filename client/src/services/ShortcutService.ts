@@ -83,20 +83,20 @@ export class BrowserShortcutService implements ShortcutService {
   }
 
   start() {
-    if (this.started || typeof document === 'undefined') {
+    if (this.started || typeof window === 'undefined') {
       return
     }
 
-    document.addEventListener('keydown', this.handleKeydown)
+    window.addEventListener('keydown', this.handleKeydown, true)
     this.started = true
   }
 
   stop() {
-    if (!this.started || typeof document === 'undefined') {
+    if (!this.started || typeof window === 'undefined') {
       return
     }
 
-    document.removeEventListener('keydown', this.handleKeydown)
+    window.removeEventListener('keydown', this.handleKeydown, true)
     this.started = false
   }
 
@@ -141,7 +141,26 @@ export class BrowserShortcutService implements ShortcutService {
       return false
     }
 
-    return event.key.toLowerCase() === key
+    const pressedKey = event.key.toLowerCase()
+    const pressedCode = event.code.toLowerCase()
+
+    if (pressedKey === key) {
+      return true
+    }
+
+    if (key.length === 1 && pressedCode === `key${key}`) {
+      return true
+    }
+
+    if (key === ',' && (pressedKey === ',' || pressedCode === 'comma')) {
+      return true
+    }
+
+    if (key === '\\' && (pressedKey === '\\' || pressedKey === '|' || pressedCode === 'backslash')) {
+      return true
+    }
+
+    return false
   }
 
   private isTextInput(target: EventTarget | null) {
