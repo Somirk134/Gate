@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.9.1",
   "scripts": {
-    "dev:server": "cargo run -p gate-server",
-    "dev:server:release": "cargo run -p gate-server --release",
+    "dev:server": "powershell -ExecutionPolicy Bypass -File scripts/dev/start-server.ps1",
+    "dev:server:release": "powershell -ExecutionPolicy Bypass -File scripts/dev/start-server.ps1 -Release",
     "dev:server:local": "powershell -ExecutionPolicy Bypass -File scripts/dev/start-server.ps1",
     "dev:client": "npm --prefix client run dev",
     "dev:desktop": "npm --prefix client run tauri dev",
