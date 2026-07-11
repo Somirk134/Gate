@@ -13,7 +13,6 @@ const PLATFORM_KEYS = {
 
 function parseArgs(argv) {
   const bundleRoots = []
-const releaseRoots = []
   let tag = ''
   let platform = ''
   let out = ''
@@ -23,13 +22,14 @@ const releaseRoots = []
     if (arg === '--tag') tag = argv[++i] ?? ''
     else if (arg === '--platform') platform = argv[++i] ?? ''
     else if (arg === '--out') out = argv[++i] ?? ''
-    else if (!arg.startsWith('--')) {
-      bundleRoots.push(arg)
-      releaseRoots.push(arg.replace(/\/bundle\/?$/, '/release').replace(/\\bundle\\?$/, '\\release'))
-    }
+    else if (!arg.startsWith('--')) bundleRoots.push(arg)
   }
 
-  return { bundleRoots, tag, platform, out }
+  const releaseRoots = bundleRoots.map((root) =>
+    root.replace(/\/bundle\/?$/, '/release').replace(/\\bundle\\?$/, '\\release'),
+  )
+
+  return { bundleRoots, releaseRoots, tag, platform, out }
 }
 
 function walkFiles(dir, files = []) {
@@ -121,7 +121,7 @@ function describeBundleFiles(files) {
   return interesting.map((f) => f.replace(/\\/g, '/')).sort()
 }
 
-const { bundleRoots, tag, platform, out } = parseArgs(process.argv)
+const { bundleRoots, releaseRoots, tag, platform, out } = parseArgs(process.argv)
 const platformKey = PLATFORM_KEYS[platform]
 
 if (!tag || !platform || !out || !platformKey || bundleRoots.length === 0) {
