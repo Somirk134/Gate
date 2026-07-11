@@ -1,7 +1,9 @@
 <template>
-  <Transition name="cert-wizard">
-    <div v-if="visible" class="wizard-backdrop" @keydown.esc="close">
-      <section class="wizard" role="dialog" aria-modal="true" tabindex="-1">
+  <Teleport to="body">
+    <Transition name="cert-wizard">
+      <div v-if="visible" class="wizard-backdrop" @keydown.esc="close">
+        <div class="wizard-backdrop__scrim" aria-hidden="true" @click="close" />
+        <section class="wizard" role="dialog" aria-modal="true" @mousedown.stop>
         <header class="wizard__header">
           <div>
             <p>HTTPS / TLS</p>
@@ -70,7 +72,8 @@
             <label class="wizard-field">
               <span>{{ t('certificate.wizard.domainLabel') }}</span>
               <input
-                v-model.trim="form.domain"
+                ref="domainInputRef"
+                v-model="form.domain"
                 autocomplete="off"
                 :placeholder="t('certificate.wizard.domainPlaceholder')"
                 @keydown.enter.prevent="next" />
@@ -286,13 +289,14 @@
             </GButton>
           </div>
         </footer>
-      </section>
-    </div>
-  </Transition>
+        </section>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listen } from '@tauri-apps/api/event'
 import GButton from '@components/base/GButton.vue'
@@ -318,6 +322,7 @@ const { t, te } = useI18n()
 const { toast, notify } = useFeedback()
 
 const currentStep = ref(0)
+const domainInputRef = ref<HTMLInputElement | null>(null)
 
 const form = ref<CertificateWizardForm>({
   serverId: '',
@@ -421,11 +426,23 @@ watch(
   },
 )
 
+watch(currentStep, async (step) => {
+  if (!props.visible || step !== 1) return
+  await nextTick()
+  domainInputRef.value?.focus()
+})
+
 function close() {
   emit('update:visible', false)
 }
 
 function next() {
+  if (currentStep.value === 1) {
+    form.value.domain = form.value.domain.trim()
+  }
+  if (currentStep.value === 2) {
+    form.value.email = form.value.email.trim()
+  }
   if (!canProceed.value) return
   currentStep.value = Math.min(currentStep.value + 1, stepLabels.value.length - 1)
 }
@@ -522,11 +539,19 @@ function serverStatusLabel(status: string) {
   z-index: var(--z-modal);
   display: grid;
   place-items: center;
+  padding: var(--space-6);
+}
+
+.wizard-backdrop__scrim {
+  position: absolute;
+  inset: 0;
   background: var(--color-overlay);
   backdrop-filter: blur(12px);
 }
 
 .wizard {
+  position: relative;
+  z-index: 1;
   width: min(720px, calc(100vw - 48px));
   max-height: min(680px, calc(100vh - 48px));
   display: grid;

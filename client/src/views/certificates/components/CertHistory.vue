@@ -1,5 +1,5 @@
 <template>
-  <section class="cert-panel cert-panel--history">
+  <section class="cert-panel cert-panel--history" :class="{ 'is-compact': compact }">
     <!-- 面板头部：标题 + 统计摘要 + 折叠/刷新 -->
     <div class="cert-panel__heading">
       <div class="history-heading__left">
@@ -22,7 +22,7 @@
         <button type="button" class="text-action" :disabled="loading" @click="fetchHistory">
           {{ loading ? t('certificate.history.refreshing') : t('certificate.history.refreshList') }}
         </button>
-        <button type="button" class="text-action" @click="expanded = !expanded">
+        <button v-if="!compact" type="button" class="text-action" @click="expanded = !expanded">
           {{ expanded ? t('certificate.history.collapse') : t('certificate.history.expand') }}
         </button>
       </div>
@@ -246,6 +246,7 @@ import type {
 
 const props = defineProps<{
   refreshTrigger?: number
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -266,6 +267,14 @@ const downloadingId = ref<string | null>(null)
 const certInfo = ref<AcmeCertificateInfo | null>(null)
 const certInfoForId = ref<string | null>(null)
 const expanded = ref(true)
+
+watch(
+  () => props.compact,
+  (compact) => {
+    if (compact) expanded.value = true
+  },
+  { immediate: true },
+)
 
 const summary = computed(() => {
   const total = records.value.length
@@ -486,6 +495,16 @@ watch(() => props.refreshTrigger, () => {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
+}
+
+.cert-panel--history.is-compact {
+  border: 0;
+  background: transparent;
+  padding: var(--space-6) var(--space-2) var(--space-2);
+}
+
+.cert-panel--history.is-compact .cert-panel__heading {
+  padding-right: var(--space-8);
 }
 
 .cert-panel--history .cert-panel__heading {

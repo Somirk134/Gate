@@ -11,6 +11,9 @@
         <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
           {{ t('certificate.refresh') }}
         </GButton>
+        <GButton variant="secondary" icon="history" @click="openHistory">
+          {{ t('certificate.history.title') }}
+        </GButton>
         <GButton variant="secondary" icon="upload" @click="openImportDialog">
           {{ t('certificate.import') }}
         </GButton>
@@ -158,9 +161,33 @@
             <h3>{{ t('certificate.trend.title') }}</h3>
           </div>
           <div v-if="trendData.length" class="trend-chart">
-            <svg viewBox="0 0 320 120" class="trend-chart__svg">
+            <svg viewBox="0 0 320 128" class="trend-chart__svg" role="img" :aria-label="t('certificate.trend.title')">
               <g class="trend-chart__grid">
-                <line v-for="i in 4" :key="`grid-${i}`" x1="0" :x2="320" :y1="i * 24" :y2="i * 24" />
+                <line
+                  v-for="tick in trendYAxisTicks"
+                  :key="`grid-y-${tick.y}`"
+                  :x1="trendPlot.left"
+                  :x2="trendPlot.right"
+                  :y1="tick.y"
+                  :y2="tick.y" />
+              </g>
+              <g class="trend-chart__axis">
+                <text
+                  v-for="tick in trendYAxisTicks"
+                  :key="`y-${tick.y}`"
+                  class="trend-chart__y-label"
+                  :x="trendPlot.left - 6"
+                  :y="tick.y">
+                  {{ tick.label }}
+                </text>
+                <text
+                  v-for="tick in trendXAxisTicks"
+                  :key="`x-${tick.x}`"
+                  class="trend-chart__x-label"
+                  :x="tick.x"
+                  :y="trendPlot.bottom + 14">
+                  {{ tick.label }}
+                </text>
               </g>
               <polyline
                 v-for="series in trendSeries"
@@ -307,12 +334,6 @@
           </div>
         </section>
       </section>
-
-      <!-- 申请记录（紧跟自动续期，避免被工作区挤压遮挡） -->
-      <CertHistory
-        :refresh-trigger="historyRefreshTrigger"
-        @record-updated="onHistoryRecordUpdated"
-        @reapply="handleHistoryReapply" />
 
       <!-- 第三行：列表 + 详情 -->
       <div class="cert-workspace">
@@ -558,14 +579,25 @@
       </div>
     </template>
 
-    <!-- 申请历史（无证书时也显示） -->
-    <CertHistory
-      v-if="!loading && !error && certificates.length === 0"
-      :refresh-trigger="historyRefreshTrigger"
-      @record-updated="onHistoryRecordUpdated"
-      @reapply="handleHistoryReapply" />
-
     <!-- ═══════════════ 弹窗 ═══════════════ -->
+    <Teleport to="body">
+      <Transition name="cert-history-modal">
+        <div v-if="historyVisible" class="cert-history-modal" @keydown.esc="historyVisible = false">
+          <div class="cert-history-modal__scrim" aria-hidden="true" @click="historyVisible = false" />
+          <section class="cert-history-modal__panel" @mousedown.stop>
+            <button type="button" class="cert-history-modal__close" @click="historyVisible = false">
+              <GIcon name="close" :size="16" />
+            </button>
+            <CertHistory
+              compact
+              :refresh-trigger="historyRefreshTrigger"
+              @record-updated="onHistoryRecordUpdated"
+              @reapply="handleHistoryReapply" />
+          </section>
+        </div>
+      </Transition>
+    </Teleport>
+
     <CertWizard
       v-model:visible="wizardVisible"
       :servers="serverOptions"
@@ -643,6 +675,7 @@ const acmeForm = ref({
   checkIntervalHours: 24,
 })
 const wizardVisible = ref(false)
+const historyVisible = ref(false)
 const wizardInitialForm = ref<Partial<CertificateWizardForm> | null>(null)
 const importVisible = ref(false)
 const historyRefreshTrigger = ref(0)
@@ -746,16 +779,32 @@ const donutStyle = computed(() => {
   return { background: `conic-gradient(${stops.join(', ')})` }
 })
 
+const trendPlot = {
+  left: 34,
+  right: 308,
+  top: 10,
+  bottom: 96,
+}
+
+const trendPlotWidth = trendPlot.right - trendPlot.left
+const trendPlotHeight = trendPlot.bottom - trendPlot.top
+
 const trendData = computed(() => {
-  // 从证书记录中提取近 30 天的签发/续期/失败趋势
-  // 如果没有足够的历史数据，返回空数组
   const now = Date.now()
-  const buckets = Array.from({ length: 30 }, (_, i) => ({
-    day: i,
-    issued: 0,
-    renewed: 0,
-    failed: 0,
-  }))
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const buckets = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(startOfToday)
+    date.setDate(date.getDate() - (29 - index))
+    return {
+      day: index,
+      date: date.getTime(),
+      issued: 0,
+      renewed: 0,
+      failed: 0,
+    }
+  })
 
   for (const cert of certificates.value) {
     const created = new Date(cert.createTime).getTime()
@@ -778,12 +827,76 @@ const trendData = computed(() => {
   return buckets
 })
 
+const trendMaxValue = computed(() =>
+  Math.max(1, ...trendData.value.flatMap((bucket) => [bucket.issued, bucket.renewed, bucket.failed])),
+)
+
+function formatTrendDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  if (locale.value.startsWith('zh')) {
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  }
+  return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
+}
+
+function formatTrendCount(value: number): string {
+  const rounded = Math.round(value)
+  if (locale.value.startsWith('zh')) {
+    return `${rounded}${t('certificate.trend.axisCount')}`
+  }
+  return String(rounded)
+}
+
+const trendYAxisTicks = computed(() => {
+  const max = trendMaxValue.value
+  const values = (() => {
+    if (max <= 1) return [0, 1]
+    if (max <= 4) return Array.from({ length: max + 1 }, (_, index) => index)
+    const step = Math.max(1, Math.ceil(max / 3))
+    const ticks = [0]
+    for (let value = step; value < max; value += step) ticks.push(value)
+    if (ticks[ticks.length - 1] !== max) ticks.push(max)
+    return ticks
+  })()
+
+  return values.map((value) => ({
+    y: Math.round((trendPlot.bottom - (value / max) * trendPlotHeight) * 10) / 10,
+    label: formatTrendCount(value),
+  }))
+})
+
+const trendXAxisTicks = computed(() => {
+  const buckets = trendData.value
+  if (!buckets.length) return []
+
+  const toX = (index: number) =>
+    Math.round((trendPlot.left + (index / Math.max(buckets.length - 1, 1)) * trendPlotWidth) * 10) / 10
+
+  const first = buckets[0]
+  const middle = buckets[Math.floor((buckets.length - 1) / 2)]
+  const last = buckets[buckets.length - 1]
+
+  return [
+    { x: toX(0), label: formatTrendDate(first.date) },
+    { x: toX(Math.floor((buckets.length - 1) / 2)), label: formatTrendDate(middle.date) },
+    { x: toX(buckets.length - 1), label: t('certificate.trend.axisToday') },
+  ]
+})
+
 const trendSeries = computed(() => {
   if (!trendData.value.length) return []
-  const maxVal = Math.max(1, ...trendData.value.flatMap((b) => [b.issued, b.renewed, b.failed]))
+  const maxVal = trendMaxValue.value
   const toPoints = (key: 'issued' | 'renewed' | 'failed') =>
     trendData.value
-      .map((b, i) => `${(i / (trendData.value.length - 1)) * 320},${120 - (b[key] / maxVal) * 100}`)
+      .map((bucket, index) => {
+        const x =
+          Math.round(
+            (trendPlot.left + (index / Math.max(trendData.value.length - 1, 1)) * trendPlotWidth) * 10,
+          ) / 10
+        const y =
+          Math.round((trendPlot.bottom - (bucket[key] / maxVal) * trendPlotHeight) * 10) / 10
+        return `${x},${y}`
+      })
       .join(' ')
   return [
     { name: t('certificate.trend.issued'), color: '#5b8def', points: toPoints('issued') },
@@ -1076,12 +1189,18 @@ async function executeRenewal() {
   }
 }
 
+async function openHistory() {
+  historyRefreshTrigger.value++
+  await reopenOverlay(historyVisible)
+}
+
 async function openCertificateWizard(initialForm?: Partial<CertificateWizardForm> | null) {
   wizardInitialForm.value = initialForm ?? null
   await reopenOverlay(wizardVisible)
 }
 
 async function handleHistoryReapply(record: AcmeApplicationRecord) {
+  historyVisible.value = false
   await openCertificateWizard({
     domain: record.domain,
     email: record.email,
@@ -1253,6 +1372,66 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+}
+
+.cert-history-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.cert-history-modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--color-overlay);
+  backdrop-filter: blur(8px);
+}
+
+.cert-history-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(860px, calc(100vw - 48px));
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-floating);
+  padding: var(--space-4);
+}
+
+.cert-history-modal__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cert-history-modal__close:hover {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.cert-history-modal-enter-active,
+.cert-history-modal-leave-active {
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.cert-history-modal-enter-from,
+.cert-history-modal-leave-to {
+  opacity: 0;
 }
 
 /* ═══════════════ 统计卡片 ═══════════════ */
@@ -1519,13 +1698,27 @@ onBeforeUnmount(() => {
 /* ── 趋势图 ── */
 .trend-chart__svg {
   width: 100%;
-  height: 100px;
+  height: 128px;
 }
 
 .trend-chart__grid line {
   stroke: var(--border-subtle);
   stroke-width: 1;
   stroke-dasharray: 3 5;
+}
+
+.trend-chart__axis text {
+  fill: var(--text-tertiary);
+  font-size: 10px;
+  dominant-baseline: middle;
+}
+
+.trend-chart__y-label {
+  text-anchor: end;
+}
+
+.trend-chart__x-label {
+  text-anchor: middle;
 }
 
 .trend-chart__line {
