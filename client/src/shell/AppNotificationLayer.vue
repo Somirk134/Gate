@@ -6,7 +6,8 @@
         :key="notif.id"
         class="notification-item"
         :class="`type-${notif.type}`"
-        @click="notificationStore.dismiss(notif.id)">
+        :title="t('common.viewNotificationDetail')"
+        @click="notificationStore.showDetail(notif)">
         <div class="notification-icon">
           <GIcon :name="iconForType(notif.type)" :size="16" />
         </div>
@@ -27,11 +28,13 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '@stores'
 import type { NotificationType } from '@/types/shell'
 import GIcon from '@components/icons/GIcon.vue'
 
 const notificationStore = useNotificationStore()
+const { t } = useI18n()
 
 function iconForType(type: NotificationType): string {
   switch (type) {

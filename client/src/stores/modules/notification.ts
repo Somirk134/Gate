@@ -22,6 +22,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<NotificationItem[]>([])
   /** 持久化通知历史 — 不自动消失，用于铃铛弹窗展示 */
   const history = ref<NotificationItem[]>([])
+  const detailItem = ref<NotificationItem | null>(null)
   const maxNotifications = ref(8)
   const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -123,9 +124,18 @@ export const useNotificationStore = defineStore('notification', () => {
     history.value = []
   }
 
+  function showDetail(item: NotificationItem) {
+    detailItem.value = item
+  }
+
+  function closeDetail() {
+    detailItem.value = null
+  }
+
   return {
     notifications,
     history,
+    detailItem,
     activeNotifications,
     recentHistory,
     notify,
@@ -138,5 +148,7 @@ export const useNotificationStore = defineStore('notification', () => {
     dismissHistory,
     clearAll,
     clearHistory,
+    showDetail,
+    closeDetail,
   }
 })

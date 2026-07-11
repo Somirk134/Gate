@@ -66,7 +66,9 @@
           :title="t('common.notifications')"
           @click.stop="toggleNotifications">
           <GIcon name="bell" :size="16" />
-          <span v-if="notificationCount > 0" class="notification-dot" />
+          <span v-if="notificationCount > 0" class="notification-badge">
+            {{ notificationCount > 99 ? '99+' : notificationCount }}
+          </span>
         </button>
 
         <div v-if="notificationOpen" class="notification-popover" @click.stop>
@@ -86,9 +88,14 @@
               v-for="item in notificationItems"
               :key="item.id"
               class="notification-item"
-              :class="`is-${item.type}`">
+              :class="`is-${item.type}`"
+              role="button"
+              tabindex="0"
+              :title="t('common.viewNotificationDetail')"
+              @click="openNotificationDetail(item)"
+              @keydown.enter.prevent="openNotificationDetail(item)">
               <span>{{ notificationTypeLabel(item.type) }}</span>
-              <div>
+              <div class="notification-item__body">
                 <strong>{{ item.title }}</strong>
                 <p v-if="item.content">{{ item.content }}</p>
                 <small>{{ formatNotificationTime(item.timestamp) }}</small>
@@ -98,7 +105,7 @@
                 class="notification-dismiss"
                 type="button"
                 :title="t('common.closeNotification')"
-                @click="notificationStore.dismissHistory(item.id)">
+                @click.stop="notificationStore.dismissHistory(item.id)">
                 <GIcon name="close" :size="14" />
               </button>
             </article>
@@ -124,6 +131,7 @@ import { useLayoutStore, useNavigationStore, useNotificationStore, useThemeStore
 import GIcon from '@components/icons/GIcon.vue'
 import LangSwitch from '@components/common/LangSwitch.vue'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
+import type { NotificationItem } from '@/stores/modules/notification'
 
 // vClickOutside 指令
 const vClickOutside = {
@@ -210,6 +218,11 @@ const runtimeSummary = computed(
 
 function toggleNotifications() {
   notificationOpen.value = !notificationOpen.value
+}
+
+function openNotificationDetail(item: NotificationItem) {
+  notificationStore.showDetail(item)
+  notificationOpen.value = false
 }
 
 function notificationTypeLabel(type: string) {
@@ -390,20 +403,30 @@ function formatSpeed(bytesPerSecond: number): string {
   cursor: default;
 }
 
-/* ── Notification Dot ── */
+/* ── Notification Badge ── */
 .notification-wrap {
   position: relative;
 }
 
-.notification-dot {
+.notification-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 6px;
-  height: 6px;
+  top: -4px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-error);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
   border-radius: var(--radius-full);
   border: 2px solid var(--bg-toolbar);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-error) 24%, transparent);
+  pointer-events: none;
 }
 
 .notification-popover {
@@ -463,6 +486,12 @@ function formatSpeed(bytesPerSecond: number): string {
   gap: var(--space-2);
   padding: var(--space-2);
   border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.notification-item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
+  outline-offset: 1px;
 }
 
 .notification-item:hover {
@@ -497,11 +526,18 @@ function formatSpeed(bytesPerSecond: number): string {
 }
 
 .notification-item p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   margin-top: 2px;
-  overflow-wrap: anywhere;
   color: var(--text-secondary);
   font-size: var(--text-xs);
   line-height: var(--leading-normal);
+}
+
+.notification-item__body {
+  min-width: 0;
 }
 
 .notification-item small {

@@ -17,6 +17,7 @@
     <!-- Layers -->
     <AppCommandPalette v-if="layout.commandPaletteOpen" />
     <AppNotificationLayer />
+    <NotificationDetailDialog />
     <AppDialogLayer />
     <AppLoadingLayer v-if="loading.isLoading" />
     <AppWelcomeOverlay />
@@ -31,6 +32,7 @@ import AppContent from './AppContent.vue'
 import AppStatusBar from './AppStatusBar.vue'
 import AppCommandPalette from './AppCommandPalette.vue'
 import AppNotificationLayer from './AppNotificationLayer.vue'
+import NotificationDetailDialog from './NotificationDetailDialog.vue'
 import AppDialogLayer from './AppDialogLayer.vue'
 import AppLoadingLayer from './AppLoadingLayer.vue'
 import AppWelcomeOverlay from './AppWelcomeOverlay.vue'
