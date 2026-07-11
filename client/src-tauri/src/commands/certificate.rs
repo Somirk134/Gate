@@ -154,13 +154,17 @@ pub async fn certificate_stats() -> CommandResult<Value> {
                     e,
                 )
             })?;
-            if !entry.file_type().map_err(|e| {
-                AppError::from_source(
-                    "CERTIFICATE_DIRECTORY_READ_FAILED",
-                    "errors.certificate.readDirectoryFailed",
-                    e,
-                )
-            })?.is_dir() {
+            if !entry
+                .file_type()
+                .map_err(|e| {
+                    AppError::from_source(
+                        "CERTIFICATE_DIRECTORY_READ_FAILED",
+                        "errors.certificate.readDirectoryFailed",
+                        e,
+                    )
+                })?
+                .is_dir()
+            {
                 continue;
             }
             let mp = entry.path().join("metadata.json");
@@ -172,18 +176,28 @@ pub async fn certificate_stats() -> CommandResult<Value> {
 
     let now = Utc::now();
     let total = all.len();
-    let active = all.iter().filter(|r| {
-        let s = normalize_status(&r.status);
-        s == "active" && (r.expire_time - now).num_days() > 30
-    }).count();
-    let expiring_soon = all.iter().filter(|r| {
-        let days = (r.expire_time - now).num_days();
-        days >= 0 && days <= 30
-    }).count();
-    let expired = all.iter().filter(|r| {
-        (r.expire_time - now).num_days() < 0
-    }).count();
-    let failed = all.iter().filter(|r| normalize_status(&r.status) == "failed").count();
+    let active = all
+        .iter()
+        .filter(|r| {
+            let s = normalize_status(&r.status);
+            s == "active" && (r.expire_time - now).num_days() > 30
+        })
+        .count();
+    let expiring_soon = all
+        .iter()
+        .filter(|r| {
+            let days = (r.expire_time - now).num_days();
+            days >= 0 && days <= 30
+        })
+        .count();
+    let expired = all
+        .iter()
+        .filter(|r| (r.expire_time - now).num_days() < 0)
+        .count();
+    let failed = all
+        .iter()
+        .filter(|r| normalize_status(&r.status) == "failed")
+        .count();
     let auto_renewal_failed = all.iter().filter(|r| r.last_error.is_some()).count();
     let auto_renewal_ok = total - auto_renewal_failed;
 
@@ -206,8 +220,8 @@ pub async fn certificate_stats() -> CommandResult<Value> {
     });
 
     // 健康检查项
-    let acme_enabled = env::var_os("GATE_ACME_EMAIL").is_some()
-        || env::var_os("GATE_ACME_AUTO").is_some();
+    let acme_enabled =
+        env::var_os("GATE_ACME_EMAIL").is_some() || env::var_os("GATE_ACME_AUTO").is_some();
     let health_checks = json!({
         "autoRenewal": auto_renewal_failed == 0 && total > 0,
         "acme": acme_enabled,
@@ -295,30 +309,37 @@ pub async fn certificate_validate_import(
     }
 
     // 2. 解析 x509 证书
-    let (_, cert) = X509Certificate::from_der(cert_block.contents())
-        .map_err(|e| AppError::from_source(
+    let (_, cert) = X509Certificate::from_der(cert_block.contents()).map_err(|e| {
+        AppError::from_source(
             "CERTIFICATE_X509_PARSE_FAILED",
             "errors.certificate.x509ParseFailed",
             e,
-        ))?;
+        )
+    })?;
 
     let subject = cert.subject();
-    let cn = subject.iter_common_name().next()
+    let cn = subject
+        .iter_common_name()
+        .next()
         .and_then(|c| c.as_str().ok())
         .unwrap_or("unknown");
 
     let issuer = cert.issuer();
-    let issuer_cn = issuer.iter_common_name().next()
+    let issuer_cn = issuer
+        .iter_common_name()
+        .next()
         .and_then(|c| c.as_str().ok())
         .unwrap_or("unknown");
 
     // SAN 域名 — 使用 ParsedExtension 迭代
-    let san: Vec<String> = cert.extensions()
+    let san: Vec<String> = cert
+        .extensions()
         .iter()
         .find_map(|ext| {
             if let ParsedExtension::SubjectAlternativeName(san_ext) = ext.parsed_extension() {
                 Some(
-                    san_ext.general_names
+                    san_ext
+                        .general_names
                         .iter()
                         .filter_map(|gn| match gn {
                             GeneralName::DNSName(n) => Some(n.to_string()),
@@ -360,7 +381,8 @@ pub async fn certificate_validate_import(
     let mut hasher = Sha256::new();
     hasher.update(cert_block.contents());
     let fingerprint = hasher.finalize();
-    let fingerprint_hex: String = fingerprint.iter()
+    let fingerprint_hex: String = fingerprint
+        .iter()
         .map(|b| format!("{:02x}", b))
         .collect::<Vec<_>>()
         .join("");
@@ -374,7 +396,10 @@ pub async fn certificate_validate_import(
         )
     })?;
 
-    let key_valid = matches!(key_block.tag(), "PRIVATE KEY" | "RSA PRIVATE KEY" | "EC PRIVATE KEY" | "ENCRYPTED PRIVATE KEY");
+    let key_valid = matches!(
+        key_block.tag(),
+        "PRIVATE KEY" | "RSA PRIVATE KEY" | "EC PRIVATE KEY" | "ENCRYPTED PRIVATE KEY"
+    );
 
     // 4. TLS 兼容性
     let tls_supported = !is_expired && key_valid;
@@ -405,7 +430,8 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
     let validation = certificate_validate_import(
         request.certificate_pem.clone(),
         request.private_key_pem.clone(),
-    ).await?;
+    )
+    .await?;
 
     let validation_obj = validation.as_object().ok_or_else(|| {
         AppError::new(
@@ -452,8 +478,14 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
 
     // 构建 metadata
     let now = Utc::now();
-    let not_after_str = validation_obj.get("notAfter").and_then(|v| v.as_str()).unwrap_or("");
-    let not_before_str = validation_obj.get("notBefore").and_then(|v| v.as_str()).unwrap_or("");
+    let not_after_str = validation_obj
+        .get("notAfter")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let not_before_str = validation_obj
+        .get("notBefore")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let expire_time = DateTime::parse_from_rfc3339(not_after_str)
         .map(|dt| dt.with_timezone::<Utc>(&Utc))
         .unwrap_or(now);
@@ -472,21 +504,47 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
 
     let record = CertificateRecord {
         domain: domain.clone(),
-        issuer: validation_obj.get("issuer").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+        issuer: validation_obj
+            .get("issuer")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string(),
         expire_time,
         create_time,
         renew_time: None,
         status: status.to_string(),
         fingerprint: CertificateFingerprint {
-            sha256: validation_obj.get("fingerprintSha256").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            sha256: validation_obj
+                .get("fingerprintSha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
         },
-        algorithm: Value::String(validation_obj.get("algorithm").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string()),
-        san: validation_obj.get("san").and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        algorithm: Value::String(
+            validation_obj
+                .get("algorithm")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Unknown")
+                .to_string(),
+        ),
+        san: validation_obj
+            .get("san")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default(),
         cert_path: Some(cert_path.clone()),
         key_path: Some(key_path.clone()),
-        serial_number: Some(validation_obj.get("serialNumber").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+        serial_number: Some(
+            validation_obj
+                .get("serialNumber")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+        ),
         last_error: None,
         auto_renewal_enabled: Some(false),
         tls_version: Some("TLS1.3".to_string()),
@@ -494,12 +552,17 @@ pub async fn certificate_import(request: ImportRequest) -> CommandResult<Value> 
     };
 
     let metadata_path = dir.join("metadata.json");
-    fs::write(&metadata_path, serde_json::to_vec_pretty(&record).unwrap_or_default())
-        .map_err(|e| AppError::from_source(
+    fs::write(
+        &metadata_path,
+        serde_json::to_vec_pretty(&record).unwrap_or_default(),
+    )
+    .map_err(|e| {
+        AppError::from_source(
             "CERTIFICATE_METADATA_WRITE_FAILED",
             "errors.certificate.metadataWriteFailed",
             e,
-        ))?;
+        )
+    })?;
 
     Ok(json!({
         "domain": domain,
@@ -519,7 +582,9 @@ pub async fn certificate_auto_renewal_status() -> CommandResult<Value> {
     let acme_dir_url = env::var("GATE_ACME_DIRECTORY_URL").ok();
     let acme_http01_port = env::var("GATE_ACME_HTTP01_PORT").ok();
 
-    let enabled = acme_email.is_some() || acme_auto.as_deref() == Some("true") || acme_auto.as_deref() == Some("1");
+    let enabled = acme_email.is_some()
+        || acme_auto.as_deref() == Some("true")
+        || acme_auto.as_deref() == Some("1");
 
     // 检查间隔默认 86400 秒（24 小时）
     let check_interval = env::var("GATE_RENEW_CHECK_INTERVAL")
@@ -604,12 +669,16 @@ pub async fn certificate_domain_associations(domain: String) -> CommandResult<Va
             // 查询匹配的域名记录
             let like_pattern = format!("%{}%", domain);
             let mut stmt = conn
-                .prepare("SELECT host, tunnel_id, status, verify_status FROM domains WHERE host LIKE ?1")
-                .map_err(|e| AppError::from_source(
-                    "DOMAIN_DB_QUERY_FAILED",
-                    "errors.certificate.domainDbQueryFailed",
-                    e,
-                ))?;
+                .prepare(
+                    "SELECT host, tunnel_id, status, verify_status FROM domains WHERE host LIKE ?1",
+                )
+                .map_err(|e| {
+                    AppError::from_source(
+                        "DOMAIN_DB_QUERY_FAILED",
+                        "errors.certificate.domainDbQueryFailed",
+                        e,
+                    )
+                })?;
 
             let rows = stmt
                 .query_map([&like_pattern], |row| {
@@ -620,14 +689,19 @@ pub async fn certificate_domain_associations(domain: String) -> CommandResult<Va
                         "verifyStatus": row.get::<_, String>(3)?,
                     }))
                 })
-                .map_err(|e| AppError::from_source(
-                    "DOMAIN_DB_QUERY_FAILED",
-                    "errors.certificate.domainDbQueryFailed",
-                    e,
-                ))?;
+                .map_err(|e| {
+                    AppError::from_source(
+                        "DOMAIN_DB_QUERY_FAILED",
+                        "errors.certificate.domainDbQueryFailed",
+                        e,
+                    )
+                })?;
 
             for row in rows.flatten() {
-                let tunnel_id = row.get("tunnelId").and_then(|v| v.as_str()).map(String::from);
+                let tunnel_id = row
+                    .get("tunnelId")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
                 if let Some(tid) = tunnel_id {
                     associated_tunnels.push(json!({ "tunnelId": tid, "domain": row.get("host") }));
                 }
@@ -667,8 +741,8 @@ pub async fn certificate_renew_now(domain: String) -> CommandResult<Value> {
     }
 
     // 检查是否配置了 ACME
-    let acme_configured = env::var_os("GATE_ACME_EMAIL").is_some()
-        || env::var_os("GATE_ACME_AUTO").is_some();
+    let acme_configured =
+        env::var_os("GATE_ACME_EMAIL").is_some() || env::var_os("GATE_ACME_AUTO").is_some();
 
     if !acme_configured {
         return Err(AppError::with_details(
@@ -685,7 +759,10 @@ pub async fn certificate_renew_now(domain: String) -> CommandResult<Value> {
         let mut record = load_record(&metadata_path)?;
         record.status = "pending".to_string();
         record.last_error = None;
-        let _ = fs::write(&metadata_path, serde_json::to_vec_pretty(&record).unwrap_or_default());
+        let _ = fs::write(
+            &metadata_path,
+            serde_json::to_vec_pretty(&record).unwrap_or_default(),
+        );
     }
 
     Ok(json!({
@@ -713,7 +790,10 @@ pub async fn certificate_redeploy(domain: String) -> CommandResult<Value> {
     if metadata_path.exists() {
         let mut record = load_record(&metadata_path)?;
         record.deploy_status = Some("pending".to_string());
-        let _ = fs::write(&metadata_path, serde_json::to_vec_pretty(&record).unwrap_or_default());
+        let _ = fs::write(
+            &metadata_path,
+            serde_json::to_vec_pretty(&record).unwrap_or_default(),
+        );
     }
 
     Ok(json!({
@@ -724,7 +804,10 @@ pub async fn certificate_redeploy(domain: String) -> CommandResult<Value> {
 }
 
 #[tauri::command]
-pub async fn certificate_toggle_auto_renewal(domain: String, enabled: bool) -> CommandResult<Value> {
+pub async fn certificate_toggle_auto_renewal(
+    domain: String,
+    enabled: bool,
+) -> CommandResult<Value> {
     let domain = normalize_domain(&domain)?;
     let dir = certificate_domain_dir(&domain);
 
@@ -740,7 +823,10 @@ pub async fn certificate_toggle_auto_renewal(domain: String, enabled: bool) -> C
     if metadata_path.exists() {
         let mut record = load_record(&metadata_path)?;
         record.auto_renewal_enabled = Some(enabled);
-        let _ = fs::write(&metadata_path, serde_json::to_vec_pretty(&record).unwrap_or_default());
+        let _ = fs::write(
+            &metadata_path,
+            serde_json::to_vec_pretty(&record).unwrap_or_default(),
+        );
     }
 
     Ok(json!({
@@ -753,7 +839,9 @@ pub async fn certificate_toggle_auto_renewal(domain: String, enabled: bool) -> C
 
 /// ACME 会话持久化路径
 fn acme_session_path() -> PathBuf {
-    app_data_dir().unwrap_or_else(|| PathBuf::from(".gate")).join("acme-session.json")
+    app_data_dir()
+        .unwrap_or_else(|| PathBuf::from(".gate"))
+        .join("acme-session.json")
 }
 
 /// ACME 会话序列化结构（可持久化到磁盘）
@@ -822,7 +910,13 @@ pub async fn certificate_acme_prepare(
     let contact = format!("mailto:{}", request.email);
     let contacts = vec![contact.as_str()];
     let (account, _credentials) = Account::builder()
-        .map_err(|e| AppError::from_source("ACME_ACCOUNT_INIT_FAILED", "errors.certificate.acmeAccountInit", e))?
+        .map_err(|e| {
+            AppError::from_source(
+                "ACME_ACCOUNT_INIT_FAILED",
+                "errors.certificate.acmeAccountInit",
+                e,
+            )
+        })?
         .create(
             &NewAccount {
                 contact: &contacts,
@@ -833,14 +927,26 @@ pub async fn certificate_acme_prepare(
             None,
         )
         .await
-        .map_err(|e| AppError::from_source("ACME_ACCOUNT_CREATE_FAILED", "errors.certificate.acmeAccountCreate", e))?;
+        .map_err(|e| {
+            AppError::from_source(
+                "ACME_ACCOUNT_CREATE_FAILED",
+                "errors.certificate.acmeAccountCreate",
+                e,
+            )
+        })?;
 
     // 创建订单
     let identifier = Identifier::Dns(domain.clone());
     let mut order = account
         .new_order(&NewOrder::new(&[identifier]))
         .await
-        .map_err(|e| AppError::from_source("ACME_ORDER_CREATE_FAILED", "errors.certificate.acmeOrderCreate", e))?;
+        .map_err(|e| {
+            AppError::from_source(
+                "ACME_ORDER_CREATE_FAILED",
+                "errors.certificate.acmeOrderCreate",
+                e,
+            )
+        })?;
 
     // 获取授权和 challenge
     let challenge_type_enum = if request.challenge_type == "dns01" {
@@ -853,8 +959,19 @@ pub async fn certificate_acme_prepare(
     let mut auth_result = authorizations
         .next()
         .await
-        .ok_or_else(|| AppError::new("ACME_NO_AUTHORIZATION", "errors.certificate.acmeNoAuthorization"))?
-        .map_err(|e| AppError::from_source("ACME_AUTH_FETCH_FAILED", "errors.certificate.acmeAuthFetch", e))?;
+        .ok_or_else(|| {
+            AppError::new(
+                "ACME_NO_AUTHORIZATION",
+                "errors.certificate.acmeNoAuthorization",
+            )
+        })?
+        .map_err(|e| {
+            AppError::from_source(
+                "ACME_AUTH_FETCH_FAILED",
+                "errors.certificate.acmeAuthFetch",
+                e,
+            )
+        })?;
 
     match auth_result.status {
         AuthorizationStatus::Valid => {}
@@ -868,9 +985,12 @@ pub async fn certificate_acme_prepare(
         }
     }
 
-    let challenge = auth_result
-        .challenge(challenge_type_enum)
-        .ok_or_else(|| AppError::new("ACME_CHALLENGE_NOT_AVAILABLE", "errors.certificate.acmeChallengeNotAvailable"))?;
+    let challenge = auth_result.challenge(challenge_type_enum).ok_or_else(|| {
+        AppError::new(
+            "ACME_CHALLENGE_NOT_AVAILABLE",
+            "errors.certificate.acmeChallengeNotAvailable",
+        )
+    })?;
 
     let token = challenge.token.clone();
     let key_auth = challenge.key_authorization().as_str().to_string();
@@ -909,17 +1029,26 @@ pub async fn certificate_acme_prepare(
         txt_value: txt_value.clone(),
         http01_token: http01_token.clone(),
         http01_path: http01_path.clone(),
-        http01_content: if request.challenge_type == "http01" { key_auth_for_http } else { String::new() },
+        http01_content: if request.challenge_type == "http01" {
+            key_auth_for_http
+        } else {
+            String::new()
+        },
         directory_url: directory_url.clone(),
         created_at: Utc::now().timestamp_millis(),
     };
     let session_path = acme_session_path();
-    fs::write(&session_path, serde_json::to_vec_pretty(&persisted).unwrap_or_default())
-        .map_err(|e| AppError::from_source(
+    fs::write(
+        &session_path,
+        serde_json::to_vec_pretty(&persisted).unwrap_or_default(),
+    )
+    .map_err(|e| {
+        AppError::from_source(
             "ACME_SESSION_PERSIST_FAILED",
             "errors.certificate.acmeSessionPersistFailed",
             e,
-        ))?;
+        )
+    })?;
 
     Ok(json!({
         "domain": domain,
@@ -966,7 +1095,8 @@ fn create_acme_history_record(
 fn mark_acme_record_verifying(record_id: &str) -> Result<(), AppError> {
     update_acme_record(record_id, |rec| {
         rec.status = AcmeRecordStatus::Verifying;
-    }).map(|_| ())
+    })
+    .map(|_| ())
 }
 
 /// 验证成功后更新记录为 issued
@@ -984,20 +1114,29 @@ fn mark_acme_record_issued(
         rec.days_remaining = days_remaining;
         rec.error = None;
         rec.certificate_available = true;
-    }).map(|_| ())
+    })
+    .map(|_| ())
 }
 
 /// 验证失败后更新记录为 failed
-fn mark_acme_record_failed(record_id: &str, error_msg: &str, error_code: Option<String>) -> Result<(), AppError> {
+fn mark_acme_record_failed(
+    record_id: &str,
+    error_msg: &str,
+    error_code: Option<String>,
+) -> Result<(), AppError> {
     update_acme_record(record_id, |rec| {
         rec.status = AcmeRecordStatus::Failed;
         rec.error = Some(error_msg.to_string());
         rec.error_code = error_code;
-    }).map(|_| ())
+    })
+    .map(|_| ())
 }
 
 /// DNS TXT 记录预检查：在告诉 Let's Encrypt 验证之前，先确认记录已传播
-async fn dns_txt_record_resolvable(txt_host: &str, expected_value: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+async fn dns_txt_record_resolvable(
+    txt_host: &str,
+    expected_value: &str,
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let txt_host_owned = txt_host.to_string();
     let expected_value_owned = expected_value.to_string();
 
@@ -1014,7 +1153,8 @@ async fn dns_txt_record_resolvable(txt_host: &str, expected_value: &str) -> Resu
                 .args(["+short", "TXT", &txt_host_owned])
                 .output()
         }
-    }).await;
+    })
+    .await;
 
     match result {
         Ok(Ok(out)) => {
@@ -1028,9 +1168,7 @@ async fn dns_txt_record_resolvable(txt_host: &str, expected_value: &str) -> Resu
 
 /// ACME 验证核心逻辑（被后台任务调用）
 /// 返回 Ok(Value) 表示成功（含证书信息），Err(String) 表示失败原因
-async fn run_acme_verification(
-    runtime: AcmeRuntime,
-) -> Result<Value, String> {
+async fn run_acme_verification(runtime: AcmeRuntime) -> Result<Value, String> {
     let domain = runtime.domain.clone();
 
     // 1. 如果是 DNS-01，先做 DNS 传播预检查
@@ -1040,7 +1178,10 @@ async fn run_acme_verification(
         let mut dns_ok = false;
         for attempt in 1..=3 {
             match dns_txt_record_resolvable(txt_host, txt_value).await {
-                Ok(true) => { dns_ok = true; break; }
+                Ok(true) => {
+                    dns_ok = true;
+                    break;
+                }
                 Ok(false) => {
                     if attempt < 3 {
                         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
@@ -1129,8 +1270,7 @@ async fn run_acme_verification(
 
     // 8. 保存到证书存储
     let dir = certificate_domain_dir(&domain);
-    fs::create_dir_all(&dir)
-        .map_err(|e| format!("证书目录创建失败: {}", e))?;
+    fs::create_dir_all(&dir).map_err(|e| format!("证书目录创建失败: {}", e))?;
 
     fs::write(dir.join("certificate.pem"), &certificate_pem)
         .map_err(|e| format!("证书写入失败: {}", e))?;
@@ -1140,19 +1280,29 @@ async fn run_acme_verification(
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(dir.join("private_key.pem"), fs::Permissions::from_mode(0o600));
+        let _ = fs::set_permissions(
+            dir.join("private_key.pem"),
+            fs::Permissions::from_mode(0o600),
+        );
     }
 
     // 9. 解析证书并写入 metadata
-    let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone()).await
+    let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone())
+        .await
         .map_err(|e| format!("证书解析失败: {:?}", e))?;
     let validation_obj = validation
         .as_object()
         .ok_or_else(|| "证书验证结果格式无效".to_string())?;
 
     let now = Utc::now();
-    let not_after_str = validation_obj.get("notAfter").and_then(|v| v.as_str()).unwrap_or("");
-    let not_before_str = validation_obj.get("notBefore").and_then(|v| v.as_str()).unwrap_or("");
+    let not_after_str = validation_obj
+        .get("notAfter")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let not_before_str = validation_obj
+        .get("notBefore")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let expire_time = DateTime::parse_from_rfc3339(not_after_str)
         .map(|dt| dt.with_timezone::<Utc>(&Utc))
         .unwrap_or(now);
@@ -1160,27 +1310,57 @@ async fn run_acme_verification(
         .map(|dt| dt.with_timezone::<Utc>(&Utc))
         .unwrap_or(now);
     let days_remaining = (expire_time - now).num_days();
-    let status_str = if days_remaining < 0 { "expired" }
-    else if days_remaining <= 30 { "expiringSoon" }
-    else { "active" };
+    let status_str = if days_remaining < 0 {
+        "expired"
+    } else if days_remaining <= 30 {
+        "expiringSoon"
+    } else {
+        "active"
+    };
 
     let record = CertificateRecord {
         domain: domain.clone(),
-        issuer: validation_obj.get("issuer").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+        issuer: validation_obj
+            .get("issuer")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string(),
         expire_time,
         create_time,
         renew_time: Some(now),
         status: status_str.to_string(),
         fingerprint: CertificateFingerprint {
-            sha256: validation_obj.get("fingerprintSha256").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            sha256: validation_obj
+                .get("fingerprintSha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
         },
-        algorithm: Value::String(validation_obj.get("algorithm").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string()),
-        san: validation_obj.get("san").and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        algorithm: Value::String(
+            validation_obj
+                .get("algorithm")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Unknown")
+                .to_string(),
+        ),
+        san: validation_obj
+            .get("san")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default(),
         cert_path: Some(dir.join("certificate.pem")),
         key_path: Some(dir.join("private_key.pem")),
-        serial_number: Some(validation_obj.get("serialNumber").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+        serial_number: Some(
+            validation_obj
+                .get("serialNumber")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+        ),
         last_error: None,
         auto_renewal_enabled: Some(true),
         tls_version: Some("TLS1.3".to_string()),
@@ -1190,7 +1370,8 @@ async fn run_acme_verification(
     fs::write(
         dir.join("metadata.json"),
         serde_json::to_vec_pretty(&record).unwrap_or_default(),
-    ).map_err(|e| format!("metadata 写入失败: {}", e))?;
+    )
+    .map_err(|e| format!("metadata 写入失败: {}", e))?;
 
     Ok(json!({
         "domain": domain,
@@ -1226,7 +1407,10 @@ pub async fn certificate_acme_start_verify(
                     }),
                 ));
             }
-            return Err(AppError::new("ACME_SESSION_NOT_FOUND", "errors.certificate.acmeSessionNotFound"));
+            return Err(AppError::new(
+                "ACME_SESSION_NOT_FOUND",
+                "errors.certificate.acmeSessionNotFound",
+            ));
         }
     };
 
@@ -1234,16 +1418,20 @@ pub async fn certificate_acme_start_verify(
     let domain_for_return = domain.clone();
 
     // 如果有 recordId，更新记录状态为 verifying
-    let effective_record_id: Option<String> = record_id.clone()
-        .or_else(|| {
-            // 如果没传 recordId，尝试从历史记录中找最新的 pending/verifying 记录
-            load_acme_history().ok().and_then(|records| {
-                records.iter()
-                    .filter(|r| r.domain == domain && (r.status == AcmeRecordStatus::Pending || r.status == AcmeRecordStatus::Verifying))
-                    .max_by_key(|r| r.created_at)
-                    .map(|r| r.id.clone())
-            })
-        });
+    let effective_record_id: Option<String> = record_id.clone().or_else(|| {
+        // 如果没传 recordId，尝试从历史记录中找最新的 pending/verifying 记录
+        load_acme_history().ok().and_then(|records| {
+            records
+                .iter()
+                .filter(|r| {
+                    r.domain == domain
+                        && (r.status == AcmeRecordStatus::Pending
+                            || r.status == AcmeRecordStatus::Verifying)
+                })
+                .max_by_key(|r| r.created_at)
+                .map(|r| r.id.clone())
+        })
+    });
 
     if let Some(ref rid) = effective_record_id {
         if mark_acme_record_verifying(rid).is_err() {
@@ -1256,47 +1444,66 @@ pub async fn certificate_acme_start_verify(
     // 在后台启动验证任务，不阻塞前端
     tokio::spawn(async move {
         // 发送开始事件（携带 recordId）
-        let _ = app.emit("acme-verify:progress", json!({
-            "domain": domain,
-            "recordId": task_record_id,
-            "stage": "started",
-            "message": "正在验证...",
-        }));
+        let _ = app.emit(
+            "acme-verify:progress",
+            json!({
+                "domain": domain,
+                "recordId": task_record_id,
+                "stage": "started",
+                "message": "正在验证...",
+            }),
+        );
 
         match run_acme_verification(runtime).await {
             Ok(result) => {
                 // 更新历史记录为 issued
                 if let Some(ref rid) = task_record_id {
-                    let issuer = result.get("issuer").and_then(|v| v.as_str()).map(String::from);
-                    let expire_time = result.get("expireTime").and_then(|v| v.as_str()).map(String::from);
+                    let issuer = result
+                        .get("issuer")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    let expire_time = result
+                        .get("expireTime")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
                     let days_remaining = result.get("daysRemaining").and_then(|v| v.as_i64());
                     if mark_acme_record_issued(rid, issuer, expire_time, days_remaining).is_err() {
                         eprintln!("警告：无法更新申请记录 {} 为 issued 状态", rid);
                     }
                 }
 
-                let _ = app.emit("acme-verify:result", json!({
-                    "success": true,
-                    "data": result,
-                    "recordId": task_record_id,
-                }));
+                let _ = app.emit(
+                    "acme-verify:result",
+                    json!({
+                        "success": true,
+                        "data": result,
+                        "recordId": task_record_id,
+                    }),
+                );
             }
             Err(err_msg) => {
                 // 更新历史记录为 failed
                 if let Some(ref rid) = task_record_id {
-                    let err_code = if err_msg.contains("Invalid") { Some("acmeOrderNotReady".to_string()) }
-                        else if err_msg.contains("超时") { Some("timeout".to_string()) }
-                        else { None };
+                    let err_code = if err_msg.contains("Invalid") {
+                        Some("acmeOrderNotReady".to_string())
+                    } else if err_msg.contains("超时") {
+                        Some("timeout".to_string())
+                    } else {
+                        None
+                    };
                     if mark_acme_record_failed(rid, &err_msg, err_code).is_err() {
                         eprintln!("警告：无法更新申请记录 {} 为 failed 状态", rid);
                     }
                 }
 
-                let _ = app.emit("acme-verify:result", json!({
-                    "success": false,
-                    "error": err_msg,
-                    "recordId": task_record_id,
-                }));
+                let _ = app.emit(
+                    "acme-verify:result",
+                    json!({
+                        "success": false,
+                        "error": err_msg,
+                        "recordId": task_record_id,
+                    }),
+                );
             }
         }
     });
@@ -1312,9 +1519,7 @@ pub async fn certificate_acme_start_verify(
 
 /// （保留）同步阻塞式验证——用于需要等待结果的场景
 #[tauri::command]
-pub async fn certificate_acme_verify(
-    state: State<'_, AcmeState>,
-) -> CommandResult<Value> {
+pub async fn certificate_acme_verify(state: State<'_, AcmeState>) -> CommandResult<Value> {
     let session_opt = state.session.lock().await.take();
     let runtime = match session_opt {
         Some(s) => s,
@@ -1327,7 +1532,10 @@ pub async fn certificate_acme_verify(
                     json!({ "hint": "ACME 会话已过期，请重新申请。" }),
                 ));
             }
-            return Err(AppError::new("ACME_SESSION_NOT_FOUND", "errors.certificate.acmeSessionNotFound"));
+            return Err(AppError::new(
+                "ACME_SESSION_NOT_FOUND",
+                "errors.certificate.acmeSessionNotFound",
+            ));
         }
     };
 
@@ -1409,7 +1617,13 @@ impl AcmeApplicationRecord {
         format!("{:08x}", rand_random())
     }
 
-    fn pending(domain: String, email: String, challenge_type: String, staging: bool, directory_url: String) -> Self {
+    fn pending(
+        domain: String,
+        email: String,
+        challenge_type: String,
+        staging: bool,
+        directory_url: String,
+    ) -> Self {
         let now = Utc::now().timestamp_millis();
         Self {
             id: Self::new_id(),
@@ -1436,13 +1650,17 @@ impl AcmeApplicationRecord {
 /// 生成随机 ID（简单实现，不依赖额外 crate）
 fn rand_random() -> u32 {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let dur = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let dur = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
     (dur.as_nanos() as u32).wrapping_add(dur.as_secs() as u32)
 }
 
 /// 申请记录持久化路径
 fn acme_history_path() -> PathBuf {
-    app_data_dir().unwrap_or_else(|| PathBuf::from(".gate")).join("acme-history.json")
+    app_data_dir()
+        .unwrap_or_else(|| PathBuf::from(".gate"))
+        .join("acme-history.json")
 }
 
 /// 读取所有申请记录
@@ -1489,7 +1707,10 @@ fn save_acme_history(records: &[AcmeApplicationRecord]) -> Result<(), AppError> 
 }
 
 /// 根据记录 ID 查找并更新记录
-fn update_acme_record<F>(record_id: &str, updater: F) -> Result<Option<AcmeApplicationRecord>, AppError>
+fn update_acme_record<F>(
+    record_id: &str,
+    updater: F,
+) -> Result<Option<AcmeApplicationRecord>, AppError>
 where
     F: FnOnce(&mut AcmeApplicationRecord),
 {
@@ -1501,8 +1722,8 @@ where
             rec.updated_at = Utc::now().timestamp_millis();
             // 检查证书是否可用
             let cert_dir = certificate_domain_dir(&rec.domain);
-            rec.certificate_available = cert_dir.exists()
-                && cert_dir.join("certificate.pem").exists();
+            rec.certificate_available =
+                cert_dir.exists() && cert_dir.join("certificate.pem").exists();
             updated = Some(rec.clone());
             break;
         }
@@ -1526,7 +1747,8 @@ pub async fn certificate_acme_history() -> CommandResult<Value> {
     for rec in &mut records {
         if rec.status == AcmeRecordStatus::Issued || rec.status == AcmeRecordStatus::Verifying {
             let cert_dir = certificate_domain_dir(&rec.domain);
-            rec.certificate_available = cert_dir.exists() && cert_dir.join("certificate.pem").exists();
+            rec.certificate_available =
+                cert_dir.exists() && cert_dir.join("certificate.pem").exists();
             // 如果是 verifying 但证书已经存在了，说明之前验证成功了但没更新状态
             if rec.status == AcmeRecordStatus::Verifying && rec.certificate_available {
                 rec.status = AcmeRecordStatus::Issued;
@@ -1540,9 +1762,18 @@ pub async fn certificate_acme_history() -> CommandResult<Value> {
     save_acme_history(&records).ok();
 
     let total = records.len();
-    let verifying = records.iter().filter(|r| r.status == AcmeRecordStatus::Verifying).count();
-    let issued = records.iter().filter(|r| r.status == AcmeRecordStatus::Issued).count();
-    let failed = records.iter().filter(|r| r.status == AcmeRecordStatus::Failed).count();
+    let verifying = records
+        .iter()
+        .filter(|r| r.status == AcmeRecordStatus::Verifying)
+        .count();
+    let issued = records
+        .iter()
+        .filter(|r| r.status == AcmeRecordStatus::Issued)
+        .count();
+    let failed = records
+        .iter()
+        .filter(|r| r.status == AcmeRecordStatus::Failed)
+        .count();
 
     Ok(json!({
         "records": records,
@@ -1555,13 +1786,16 @@ pub async fn certificate_acme_history() -> CommandResult<Value> {
 #[tauri::command]
 pub async fn certificate_acme_record_detail(record_id: String) -> CommandResult<Value> {
     let records = load_acme_history()?;
-    let record = records.into_iter().find(|r| r.id == record_id).ok_or_else(|| {
-        AppError::with_details(
-            "ACME_RECORD_NOT_FOUND",
-            "errors.certificate.recordNotFound",
-            json!({ "id": record_id }),
-        )
-    })?;
+    let record = records
+        .into_iter()
+        .find(|r| r.id == record_id)
+        .ok_or_else(|| {
+            AppError::with_details(
+                "ACME_RECORD_NOT_FOUND",
+                "errors.certificate.recordNotFound",
+                json!({ "id": record_id }),
+            )
+        })?;
 
     // 如果是已签发状态且证书可用，尝试读取证书信息
     let mut cert_info: Value = json!(null);
@@ -1599,13 +1833,16 @@ pub async fn certificate_acme_retry(
     _state: State<'_, AcmeState>,
 ) -> CommandResult<Value> {
     let mut records = load_acme_history()?;
-    let record = records.iter_mut().find(|r| r.id == record_id).ok_or_else(|| {
-        AppError::with_details(
-            "ACME_RECORD_NOT_FOUND",
-            "errors.certificate.recordNotFound",
-            json!({ "id": record_id }),
-        )
-    })?;
+    let record = records
+        .iter_mut()
+        .find(|r| r.id == record_id)
+        .ok_or_else(|| {
+            AppError::with_details(
+                "ACME_RECORD_NOT_FOUND",
+                "errors.certificate.recordNotFound",
+                json!({ "id": record_id }),
+            )
+        })?;
 
     // 只有 failed 和 verifying 状态可以重试
     if record.status != AcmeRecordStatus::Failed && record.status != AcmeRecordStatus::Verifying {
@@ -1637,12 +1874,15 @@ pub async fn certificate_acme_retry(
 
     // 启动后台重试验证
     tokio::spawn(async move {
-        let _ = app.emit("acme-verify:progress", json!({
-            "domain": domain,
-            "recordId": retry_record_id,
-            "stage": "retry_started",
-            "message": "正在重新验证...",
-        }));
+        let _ = app.emit(
+            "acme-verify:progress",
+            json!({
+                "domain": domain,
+                "recordId": retry_record_id,
+                "stage": "retry_started",
+                "message": "正在重新验证...",
+            }),
+        );
 
         // 重新走 prepare 流程创建新的 ACME 订单
         let result = redo_acme_verification(
@@ -1651,7 +1891,8 @@ pub async fn certificate_acme_retry(
             challenge_type,
             staging,
             directory_url,
-        ).await;
+        )
+        .await;
 
         match result {
             Ok(success_info) => {
@@ -1659,23 +1900,37 @@ pub async fn certificate_acme_retry(
                 let _ = update_acme_record(&retry_record_id, |rec| {
                     rec.status = AcmeRecordStatus::Issued;
                     rec.issued_at = Some(Utc::now().timestamp_millis());
-                    rec.expire_time = success_info.get("expireTime").and_then(|v| v.as_str()).map(String::from);
-                    rec.issuer = success_info.get("issuer").and_then(|v| v.as_str()).map(String::from);
+                    rec.expire_time = success_info
+                        .get("expireTime")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    rec.issuer = success_info
+                        .get("issuer")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
                     rec.days_remaining = success_info.get("daysRemaining").and_then(|v| v.as_i64());
                     rec.error = None;
                     rec.certificate_available = true;
                 });
 
-                let _ = app.emit("acme-verify:result", json!({
-                    "success": true,
-                    "data": success_info,
-                    "recordId": retry_record_id,
-                }));
+                let _ = app.emit(
+                    "acme-verify:result",
+                    json!({
+                        "success": true,
+                        "data": success_info,
+                        "recordId": retry_record_id,
+                    }),
+                );
             }
             Err(err_msg) => {
-                let err_code = if err_msg.contains("Invalid") { "acmeOrderNotReady" }
-                    else if err_msg.contains("超时") { "timeout" }
-                    else { "unknown" }.to_string();
+                let err_code = if err_msg.contains("Invalid") {
+                    "acmeOrderNotReady"
+                } else if err_msg.contains("超时") {
+                    "timeout"
+                } else {
+                    "unknown"
+                }
+                .to_string();
 
                 let _ = update_acme_record(&retry_record_id, |rec| {
                     rec.status = AcmeRecordStatus::Failed;
@@ -1683,11 +1938,14 @@ pub async fn certificate_acme_retry(
                     rec.error_code = Some(err_code);
                 });
 
-                let _ = app.emit("acme-verify:result", json!({
-                    "success": false,
-                    "error": err_msg,
-                    "recordId": retry_record_id,
-                }));
+                let _ = app.emit(
+                    "acme-verify:result",
+                    json!({
+                        "success": false,
+                        "error": err_msg,
+                        "recordId": retry_record_id,
+                    }),
+                );
             }
         }
     });
@@ -1790,7 +2048,9 @@ async fn redo_acme_verification(
 
     if status != OrderStatus::Ready {
         return Err(match status {
-            OrderStatus::Invalid => "验证失败：订单状态 Invalid。DNS 记录可能未正确配置。".to_string(),
+            OrderStatus::Invalid => {
+                "验证失败：订单状态 Invalid。DNS 记录可能未正确配置。".to_string()
+            }
             OrderStatus::Pending => "验证超时：订单仍处于 Pending 状态。".to_string(),
             OrderStatus::Processing => "验证超时：处理中未完成。请稍后重试。".to_string(),
             _ => format!("验证失败：异常订单状态 {:?}", status),
@@ -1798,9 +2058,13 @@ async fn redo_acme_verification(
     }
 
     // 4. Finalize + 下载
-    let private_key_pem = order.finalize().await
+    let private_key_pem = order
+        .finalize()
+        .await
         .map_err(|e| format!("证书签发失败: {}", e))?;
-    let certificate_pem = order.poll_certificate(&RetryPolicy::default()).await
+    let certificate_pem = order
+        .poll_certificate(&RetryPolicy::default())
+        .await
         .map_err(|e| format!("证书下载失败: {}", e))?;
 
     // 5. 保存到证书存储
@@ -1814,19 +2078,29 @@ async fn redo_acme_verification(
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(dir.join("private_key.pem"), fs::Permissions::from_mode(0o600));
+        let _ = fs::set_permissions(
+            dir.join("private_key.pem"),
+            fs::Permissions::from_mode(0o600),
+        );
     }
 
     // 6. 解析证书写 metadata
-    let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone()).await
+    let validation = certificate_validate_import(certificate_pem.clone(), private_key_pem.clone())
+        .await
         .map_err(|e| format!("证书解析失败: {:?}", e))?;
     let validation_obj = validation
         .as_object()
         .ok_or_else(|| "证书验证结果格式无效".to_string())?;
 
     let now = Utc::now();
-    let not_after_str = validation_obj.get("notAfter").and_then(|v| v.as_str()).unwrap_or("");
-    let not_before_str = validation_obj.get("notBefore").and_then(|v| v.as_str()).unwrap_or("");
+    let not_after_str = validation_obj
+        .get("notAfter")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let not_before_str = validation_obj
+        .get("notBefore")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     let expire_time = DateTime::parse_from_rfc3339(not_after_str)
         .map(|dt| dt.with_timezone::<Utc>(&Utc))
         .unwrap_or(now);
@@ -1834,25 +2108,57 @@ async fn redo_acme_verification(
         .map(|dt| dt.with_timezone::<Utc>(&Utc))
         .unwrap_or(now);
     let days_remaining = (expire_time - now).num_days();
-    let status_str = if days_remaining < 0 { "expired" } else if days_remaining <= 30 { "expiringSoon" } else { "active" };
+    let status_str = if days_remaining < 0 {
+        "expired"
+    } else if days_remaining <= 30 {
+        "expiringSoon"
+    } else {
+        "active"
+    };
 
     let cert_record = CertificateRecord {
         domain: domain.clone(),
-        issuer: validation_obj.get("issuer").and_then(|v| v.as_str()).unwrap_or("unknown").to_string(),
+        issuer: validation_obj
+            .get("issuer")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string(),
         expire_time,
         create_time,
         renew_time: Some(now),
         status: status_str.to_string(),
         fingerprint: CertificateFingerprint {
-            sha256: validation_obj.get("fingerprintSha256").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            sha256: validation_obj
+                .get("fingerprintSha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
         },
-        algorithm: Value::String(validation_obj.get("algorithm").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string()),
-        san: validation_obj.get("san").and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        algorithm: Value::String(
+            validation_obj
+                .get("algorithm")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Unknown")
+                .to_string(),
+        ),
+        san: validation_obj
+            .get("san")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default(),
         cert_path: Some(dir.join("certificate.pem")),
         key_path: Some(dir.join("private_key.pem")),
-        serial_number: Some(validation_obj.get("serialNumber").and_then(|v| v.as_str()).unwrap_or("").to_string()),
+        serial_number: Some(
+            validation_obj
+                .get("serialNumber")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+        ),
         last_error: None,
         auto_renewal_enabled: Some(true),
         tls_version: Some("TLS1.3".to_string()),
@@ -1862,7 +2168,8 @@ async fn redo_acme_verification(
     fs::write(
         dir.join("metadata.json"),
         serde_json::to_vec_pretty(&cert_record).unwrap_or_default(),
-    ).map_err(|e| format!("metadata 写入失败: {}", e))?;
+    )
+    .map_err(|e| format!("metadata 写入失败: {}", e))?;
 
     Ok(json!({
         "domain": domain,
@@ -1894,7 +2201,11 @@ fn certificate_summary(record: CertificateRecord, domain_dir: &std::path::Path) 
     let has_certificate_pem = domain_dir.join("certificate.pem").exists();
     let last_error = record.last_error.clone();
     let deploy_status = record.deploy_status.clone().unwrap_or_else(|| {
-        if has_certificate_pem { "deployed".to_string() } else { "pending".to_string() }
+        if has_certificate_pem {
+            "deployed".to_string()
+        } else {
+            "pending".to_string()
+        }
     });
 
     json!({

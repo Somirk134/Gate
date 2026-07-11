@@ -1,10 +1,10 @@
 use crate::error::DomainError;
 use crate::model::{Domain, DomainId, Host, TunnelId};
-#[cfg(feature = "sqlite")]
-use crate::storage::SqliteDomainStorage;
 use crate::storage::DomainStorage;
 #[cfg(test)]
 use crate::storage::MemoryDomainStorage;
+#[cfg(feature = "sqlite")]
+use crate::storage::SqliteDomainStorage;
 
 pub type DomainRepositoryResult<T> = Result<T, DomainError>;
 

@@ -74,7 +74,6 @@ pub enum ConfigError {
         to_version: u32,
         message: String,
     },
-
 }
 
 #[derive(Debug, Error)]

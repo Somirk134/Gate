@@ -46,7 +46,9 @@ impl ServerBootstrap {
         let bound_addr = listener.local_addr().map_err(network_error)?;
         let gateway = TunnelGateway::new();
 
-        let local_ip_str = local_ip().map(|ip| ip.to_string()).unwrap_or_else(|_| "unknown".to_string());
+        let local_ip_str = local_ip()
+            .map(|ip| ip.to_string())
+            .unwrap_or_else(|_| "unknown".to_string());
         let access_addr = SocketAddr::new(
             local_ip().map(|ip| ip).unwrap_or_else(|_| bound_addr.ip()),
             bound_addr.port(),

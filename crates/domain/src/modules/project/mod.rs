@@ -9,9 +9,9 @@ pub use entity::{
     ProjectEnvironmentVariable, ProjectNote, UpdateProjectRequest,
 };
 pub use error::{ProjectError, ProjectResult};
-pub use repository::{ProjectRepository, SqliteProjectRepository};
 #[cfg(test)]
 pub use repository::MemoryProjectRepository;
+pub use repository::{ProjectRepository, SqliteProjectRepository};
 pub use service::ProjectService;
 pub use types::{
     project_template_profiles, recommendations_for_template, ProjectTemplate,

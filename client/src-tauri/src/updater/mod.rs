@@ -89,11 +89,7 @@ async fn check_via_github_api(
         .user_agent("gate-client-updater")
         .build()
         .map_err(|source| {
-            AppError::from_source(
-                "UPDATE_CLIENT_FAILED",
-                "errors.updateCheckFailed",
-                source,
-            )
+            AppError::from_source("UPDATE_CLIENT_FAILED", "errors.updateCheckFailed", source)
         })?;
 
     let release: GithubRelease = client
@@ -102,11 +98,7 @@ async fn check_via_github_api(
         .send()
         .await
         .map_err(|source| {
-            AppError::from_source(
-                "UPDATE_CHECK_FAILED",
-                "errors.updateCheckFailed",
-                source,
-            )
+            AppError::from_source("UPDATE_CHECK_FAILED", "errors.updateCheckFailed", source)
         })?
         .json()
         .await
@@ -172,10 +164,7 @@ pub async fn check_for_updates(
                 .0
                 .lock()
                 .map_err(|_| {
-                    AppError::new(
-                        "UPDATE_STATE_UNAVAILABLE",
-                        "errors.updateStateUnavailable",
-                    )
+                    AppError::new("UPDATE_STATE_UNAVAILABLE", "errors.updateStateUnavailable")
                 })?
                 .replace((update, Vec::new()));
 
@@ -212,10 +201,7 @@ pub async fn download_update(app: AppHandle) -> CommandResult<()> {
     let (update, _) = {
         let state = app.state::<UpdateState>();
         let mut guard = state.0.lock().map_err(|_| {
-            AppError::new(
-                "UPDATE_STATE_UNAVAILABLE",
-                "errors.updateStateUnavailable",
-            )
+            AppError::new("UPDATE_STATE_UNAVAILABLE", "errors.updateStateUnavailable")
         })?;
         guard.take()
     }
@@ -235,10 +221,7 @@ pub async fn download_update(app: AppHandle) -> CommandResult<()> {
     {
         let state = app.state::<UpdateState>();
         let mut guard = state.0.lock().map_err(|_| {
-            AppError::new(
-                "UPDATE_STATE_UNAVAILABLE",
-                "errors.updateStateUnavailable",
-            )
+            AppError::new("UPDATE_STATE_UNAVAILABLE", "errors.updateStateUnavailable")
         })?;
         guard.replace((update, bytes));
     }
@@ -251,10 +234,7 @@ pub async fn install_update(app: AppHandle) -> CommandResult<()> {
     let (update, bytes) = {
         let state = app.state::<UpdateState>();
         let mut guard = state.0.lock().map_err(|_| {
-            AppError::new(
-                "UPDATE_STATE_UNAVAILABLE",
-                "errors.updateStateUnavailable",
-            )
+            AppError::new("UPDATE_STATE_UNAVAILABLE", "errors.updateStateUnavailable")
         })?;
         guard.take()
     }
