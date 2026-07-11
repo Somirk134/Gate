@@ -110,50 +110,6 @@
         </div>
       </section>
 
-      <section class="dashboard-panel dashboard-panel--services">
-        <div class="panel-heading">
-          <div>
-            <h2>{{ t('dashboard.runningServices.title') }}</h2>
-            <p>{{ t('dashboard.runningServices.subtitle') }}</p>
-          </div>
-        </div>
-        <div v-if="runningServices.length" class="service-table">
-          <article v-for="service in runningServices" :key="service.id">
-            <span class="service-table__status" :class="`is-${service.statusTone}`" />
-            <div class="service-table__main">
-              <strong>{{ service.name }}</strong>
-              <small>{{ service.address }}</small>
-            </div>
-            <code>{{ service.protocol }}</code>
-            <span>{{ service.metric }}</span>
-            <div class="service-actions">
-              <button type="button" :title="t('dashboard.runningServices.copyUrl')" @click="copyServiceUrl(service)">
-                <GIcon name="copy" :size="14" />
-              </button>
-              <button type="button" :title="t('dashboard.runningServices.openBrowser')" @click="openServiceUrl(service)">
-                <GIcon name="external-link" :size="14" />
-              </button>
-              <button type="button" :title="t('dashboard.runningServices.restartTunnel')" @click="restartService(service)">
-                <GIcon name="refresh" :size="14" />
-              </button>
-              <button type="button" :title="t('dashboard.runningServices.viewLogs')" @click="router.push('/logs')">
-                <GIcon name="logs" :size="14" />
-              </button>
-              <button type="button" :title="t('dashboard.runningServices.openLocalService')" @click="openLocalService(service)">
-                <GIcon name="terminal" :size="14" />
-              </button>
-              <button type="button" :title="t('dashboard.runningServices.healthCheck')" @click="healthCheckService(service)">
-                <GIcon name="activity" :size="14" />
-              </button>
-            </div>
-          </article>
-        </div>
-        <GEmptyState
-          v-else
-          :title="t('dashboard.runningServices.emptyTitle')"
-          :description="t('dashboard.runningServices.emptyDescription')" />
-      </section>
-
       <GEmptyState
         v-if="isRuntimeEmpty"
         class="dashboard-onboarding"
@@ -172,7 +128,7 @@
       </GEmptyState>
 
       <div class="dashboard-workbench">
-        <div class="dashboard-grid">
+        <div class="dashboard-primary-row">
           <section class="dashboard-panel dashboard-panel--traffic">
           <div class="panel-heading">
             <div>
@@ -243,8 +199,54 @@
             v-else
             :title="t('dashboard.empty.noTraffic')"
             :description="t('dashboard.empty.noTrafficDesc')" />
-        </section>
+          </section>
 
+          <section class="dashboard-panel dashboard-panel--services">
+            <div class="panel-heading">
+              <div>
+                <h2>{{ t('dashboard.runningServices.title') }}</h2>
+                <p>{{ t('dashboard.runningServices.subtitle') }}</p>
+              </div>
+            </div>
+            <div v-if="runningServices.length" class="service-table">
+              <article v-for="service in runningServices" :key="service.id">
+                <span class="service-table__status" :class="`is-${service.statusTone}`" />
+                <div class="service-table__main">
+                  <strong>{{ service.name }}</strong>
+                  <small>{{ service.address }}</small>
+                </div>
+                <code>{{ service.protocol }}</code>
+                <span>{{ service.metric }}</span>
+                <div class="service-actions">
+                  <button type="button" :title="t('dashboard.runningServices.copyUrl')" @click="copyServiceUrl(service)">
+                    <GIcon name="copy" :size="14" />
+                  </button>
+                  <button type="button" :title="t('dashboard.runningServices.openBrowser')" @click="openServiceUrl(service)">
+                    <GIcon name="external-link" :size="14" />
+                  </button>
+                  <button type="button" :title="t('dashboard.runningServices.restartTunnel')" @click="restartService(service)">
+                    <GIcon name="refresh" :size="14" />
+                  </button>
+                  <button type="button" :title="t('dashboard.runningServices.viewLogs')" @click="router.push('/logs')">
+                    <GIcon name="logs" :size="14" />
+                  </button>
+                  <button type="button" :title="t('dashboard.runningServices.openLocalService')" @click="openLocalService(service)">
+                    <GIcon name="terminal" :size="14" />
+                  </button>
+                  <button type="button" :title="t('dashboard.runningServices.healthCheck')" @click="healthCheckService(service)">
+                    <GIcon name="activity" :size="14" />
+                  </button>
+                </div>
+              </article>
+            </div>
+            <GEmptyState
+              v-else
+              :title="t('dashboard.runningServices.emptyTitle')"
+              :description="t('dashboard.runningServices.emptyDescription')" />
+          </section>
+        </div>
+
+        <div class="dashboard-grid">
         <section class="dashboard-panel dashboard-panel--donut">
           <div class="panel-heading">
             <div>
@@ -344,34 +346,7 @@
             :description="t('dashboard.empty.noHttpDesc')" />
         </section>
 
-        <section class="dashboard-panel dashboard-panel--quick">
-          <div class="panel-heading">
-            <div>
-              <h2>{{ t('dashboard.quickActions') }}</h2>
-              <p>{{ t('dashboard.controlCenter') }}</p>
-            </div>
-          </div>
-          <div class="quick-list">
-            <button
-              v-for="action in quickActions"
-              :key="action.key"
-              type="button"
-              @click="router.push(action.path)">
-              <span><GIcon :name="action.icon" :size="18" /></span>
-              <div>
-                <strong>{{ action.label }}</strong>
-                <small>{{ action.description }}</small>
-              </div>
-              <GIcon name="chevron-right" :size="15" />
-            </button>
-          </div>
-          </section>
         </div>
-
-        <RuntimeActivityFeed
-          class="dashboard-activity-feed"
-          :items="dashboard.recentActivity"
-          :max="22" />
       </div>
 
     <p v-if="error" class="dashboard-error">
@@ -389,7 +364,6 @@ import GButton from '@components/base/GButton.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GEmptyState from '@components/feedback/GEmptyState.vue'
 import GSkeleton from '@components/feedback/GSkeleton.vue'
-import RuntimeActivityFeed from '@components/runtime/RuntimeActivityFeed.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
 import RuntimeTrendChart from '@components/runtime/RuntimeTrendChart.vue'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
@@ -488,37 +462,6 @@ const rangeOptions = computed<Array<{ value: TrafficRange; label: string }>>(() 
   { value: '24h', label: t('dashboard.range.last24h') },
   { value: '7d', label: t('dashboard.range.last7d') },
   { value: '30d', label: t('dashboard.range.last30d') },
-])
-
-const quickActions = computed(() => [
-  {
-    key: 'createTunnel',
-    icon: 'router',
-    label: t('dashboard.quick.createTunnel'),
-    description: t('dashboard.quick.createTunnelDesc'),
-    path: '/tunnels?create=1',
-  },
-  {
-    key: 'addServer',
-    icon: 'servers',
-    label: t('dashboard.quick.addServer'),
-    description: t('dashboard.quick.addServerDesc'),
-    path: '/servers',
-  },
-  {
-    key: 'certificate',
-    icon: 'shield-check',
-    label: t('dashboard.quick.requestCertificate'),
-    description: t('dashboard.quick.requestCertificateDesc'),
-    path: '/certificates',
-  },
-  {
-    key: 'logs',
-    icon: 'logs',
-    label: t('dashboard.quick.viewLogs'),
-    description: t('dashboard.quick.viewLogsDesc'),
-    path: '/logs',
-  },
 ])
 
 const formattedLastUpdated = computed(() => formatRelativeTime(lastUpdated.value.getTime()))
@@ -1442,18 +1385,20 @@ function formatRelativeTime(timestamp: number): string {
 .dashboard-workbench {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+}
+
+.dashboard-primary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-}
-
-.dashboard-activity-feed {
-  min-height: 420px;
 }
 
 .dashboard-panel {
@@ -1466,15 +1411,50 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .dashboard-panel--donut {
-  min-height: 258px;
-}
-
-.dashboard-panel--quick {
-  min-height: 320px;
+  min-height: 0;
 }
 
 .dashboard-panel--services {
   padding: 18px;
+  min-height: 258px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-primary-row .service-table {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dashboard-primary-row .service-table article {
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  row-gap: 4px;
+  padding: 10px var(--space-3);
+}
+
+.dashboard-primary-row .service-table__main {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.dashboard-primary-row .service-table code {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.dashboard-primary-row .service-table article > span:not(.service-table__status) {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+}
+
+.dashboard-primary-row .service-actions {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: flex-end;
+  margin-top: 2px;
 }
 
 .server-overview-card {
@@ -1731,26 +1711,26 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .type-chart {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: var(--space-5);
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: var(--space-4);
 }
 
 .donut {
-  width: 164px;
+  width: 148px;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   border-radius: var(--radius-full);
   position: relative;
-  justify-self: center;
+  flex-shrink: 0;
 }
 
 .donut::after {
   content: '';
   position: absolute;
-  inset: 34px;
+  inset: 30px;
   border-radius: inherit;
   background: var(--bg-surface);
   box-shadow: inset 0 0 0 1px rgba(108, 124, 147, 0.1);
@@ -1776,8 +1756,9 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .type-list {
+  width: 100%;
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
 .type-list article {
@@ -1793,12 +1774,21 @@ function formatRelativeTime(timestamp: number): string {
   width: 10px;
   height: 10px;
   border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.type-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .type-list strong {
   color: var(--text-primary);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
+  white-space: nowrap;
 }
 
 .connection-bar {
@@ -1879,61 +1869,6 @@ function formatRelativeTime(timestamp: number): string {
   background: color-mix(in srgb, var(--color-error) 76%, #ffffff 24%);
 }
 
-.quick-list {
-  display: grid;
-  gap: 10px;
-}
-
-.quick-list button {
-  width: 100%;
-  min-height: 56px;
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 12px;
-  border: 1px solid rgba(108, 124, 147, 0.09);
-  border-radius: 8px;
-  background: var(--bg-input);
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
-}
-
-.quick-list button:hover {
-  border-color: color-mix(in srgb, var(--color-primary) 32%, var(--border-subtle));
-  background: var(--bg-surface-hover);
-}
-
-.quick-list button > span {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--color-primary-muted);
-  color: var(--color-primary);
-}
-
-.quick-list strong,
-.quick-list small {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-list strong {
-  font-size: var(--text-sm);
-}
-
-.quick-list small {
-  margin-top: 2px;
-  color: var(--text-tertiary);
-  font-size: var(--text-xs);
-}
-
 .dashboard-error {
   color: var(--color-error);
   font-size: var(--text-sm);
@@ -1945,33 +1880,19 @@ function formatRelativeTime(timestamp: number): string {
   }
 }
 
+@media (min-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 1700px) {
   .dashboard-page {
-    width: min(100%, 1880px);
+    width: min(100%, 1540px);
   }
 
   .runtime-chart-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .dashboard-workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-    align-items: start;
-  }
-
-  .dashboard-activity-feed {
-    position: sticky;
-    top: 0;
-    height: min(780px, calc(100vh - 180px));
-  }
-
-  .dashboard-grid {
-    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.75fr) minmax(280px, 0.75fr);
-  }
-
-  .dashboard-panel--traffic,
-  .dashboard-panel--services {
-    grid-column: span 2;
   }
 }
 
@@ -1992,6 +1913,31 @@ function formatRelativeTime(timestamp: number): string {
 
   .dashboard-header__meta {
     justify-content: flex-start;
+  }
+
+  .dashboard-primary-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-primary-row .service-table article {
+    grid-template-columns: 10px minmax(0, 1fr) 70px 92px auto;
+    grid-template-rows: auto;
+    row-gap: 0;
+    padding: 0 var(--space-3);
+  }
+
+  .dashboard-primary-row .service-table__main,
+  .dashboard-primary-row .service-table code,
+  .dashboard-primary-row .service-table article > span:not(.service-table__status) {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: auto;
+  }
+
+  .dashboard-primary-row .service-actions {
+    grid-column: auto;
+    grid-row: auto;
+    margin-top: 0;
   }
 
   .dashboard-grid {

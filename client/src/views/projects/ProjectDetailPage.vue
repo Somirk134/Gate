@@ -426,6 +426,8 @@ import GInput from '@components/form/GInput.vue'
 import GSearchInput from '@components/form/GSearchInput.vue'
 import GTextarea from '@components/form/GTextarea.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import { reopenOverlay } from '@/utils/i18n'
+import { formatTunnelOperationError } from '@/utils/operationError'
 import { useMonitoringDashboard } from '@/monitoring/composables/useMonitoringDashboard'
 import type { DashboardTunnel } from '@/monitoring/types'
 import ProjectDeleteDialog from './components/ProjectDeleteDialog.vue'
@@ -582,12 +584,12 @@ watch(
   { immediate: true },
 )
 
-function openEdit() {
-  dialogVisible.value = true
+async function openEdit() {
+  await reopenOverlay(dialogVisible)
 }
 
-function openDelete() {
-  deleteVisible.value = true
+async function openDelete() {
+  await reopenOverlay(deleteVisible)
 }
 
 function createTunnel() {
@@ -827,9 +829,7 @@ function readSelectValue(event: Event) {
 }
 
 function errorMessage(err: unknown): string {
-  if (typeof err === 'string') return err
-  if (err instanceof Error && err.message) return err.message
-  return t('project.notifications.storageCheck')
+  return formatTunnelOperationError(err, 'project.notifications.storageCheck')
 }
 
 const MetricCard = defineComponent({

@@ -6,6 +6,7 @@
 
 import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { translateIfExists } from '@/utils/i18n'
 import type { Project } from '../types'
 
 export function useProjectSearch(projects: Ref<Project[]>, query: Ref<string>) {
@@ -36,7 +37,7 @@ export function useProjectSearch(projects: Ref<Project[]>, query: Ref<string>) {
 
   function localizedTag(tag: string): string {
     const key = `project.tags.${tag}`
-    return te(key) ? t(key) : tag
+    return translateIfExists(t, te, key, tag)
   }
 
   const hasQuery = computed(() => normalizedQuery.value.length > 0)

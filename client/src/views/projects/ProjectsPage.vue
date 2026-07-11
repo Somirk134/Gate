@@ -87,6 +87,8 @@ import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
+import { reopenOverlay } from '@/utils/i18n'
+import { formatTunnelOperationError } from '@/utils/operationError'
 import ProjectCard from './components/ProjectCard.vue'
 import ProjectDeleteDialog from './components/ProjectDeleteDialog.vue'
 import ProjectDialog from './components/ProjectDialog.vue'
@@ -145,19 +147,19 @@ const { results } = useProjectSearch(projects, query)
 const { filtered, counts } = useProjectFilter(results, filter)
 const { sorted } = useProjectSort(filtered, sortBy, direction)
 
-function openCreate() {
+async function openCreate() {
   editingProject.value = null
-  dialogVisible.value = true
+  await reopenOverlay(dialogVisible)
 }
 
-function openEdit(project: Project) {
+async function openEdit(project: Project) {
   editingProject.value = project
-  dialogVisible.value = true
+  await reopenOverlay(dialogVisible)
 }
 
-function openDelete(project: Project) {
+async function openDelete(project: Project) {
   deletingProject.value = project
-  deleteVisible.value = true
+  await reopenOverlay(deleteVisible)
 }
 
 function openProject(project: Project) {
@@ -224,9 +226,7 @@ async function stopWorkspace(project: Project) {
 }
 
 function errorMessage(err: unknown): string {
-  if (typeof err === 'string') return err
-  if (err instanceof Error && err.message) return err.message
-  return t('project.notifications.storageCheck')
+  return formatTunnelOperationError(err, 'project.notifications.storageCheck')
 }
 </script>
 
