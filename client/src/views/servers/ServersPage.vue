@@ -561,6 +561,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'servers' })
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -574,7 +575,6 @@ import { reopenOverlay } from '@/utils/i18n'
 import { useServer } from './composables/useServer'
 import { defaultServerForm } from './store/server'
 import type { Server, ServerFormData, ServerKind, ServerLoadMetric, ServerStatus } from './types'
-import './styles/server.css'
 
 const router = useRouter()
 const route = useRoute()
@@ -994,6 +994,7 @@ function formatBytes(bytes: number): string {
 
 </script>
 
+<style src="./styles/server.css"></style>
 <style scoped>
 .servers-page {
   width: min(100%, var(--content-max-width));

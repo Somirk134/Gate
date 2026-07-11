@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'projects' })
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -108,7 +109,6 @@ import type {
   ProjectSortType,
   SortDirection,
 } from './types'
-import './styles/project.css'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -230,6 +230,7 @@ function errorMessage(err: unknown): string {
 }
 </script>
 
+<style src="./styles/project.css"></style>
 <style scoped>
 .projects-page__eyebrow {
   color: var(--text-tertiary);

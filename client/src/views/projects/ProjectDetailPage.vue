@@ -443,7 +443,6 @@ import type {
   ProjectLogEntry,
 } from './types'
 import { formatBytes } from './utils'
-import './styles/project.css'
 
 type ProjectTab = 'overview' | 'tunnel' | 'domain' | 'certificate' | 'logs' | 'metrics' | 'settings'
 
@@ -911,6 +910,7 @@ const EmptyPanel = defineComponent({
 })
 </script>
 
+<style src="./styles/project.css"></style>
 <style scoped>
 .project-tabs {
   display: flex;

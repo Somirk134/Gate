@@ -186,6 +186,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'settings' })
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'

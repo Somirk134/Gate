@@ -111,7 +111,6 @@ import { LOG_SOURCE_LIST, LOG_SOURCES } from './constants'
 import type { LogFilter, LogItem, LogSource } from './types'
 import type { LogExportFormat } from './utils'
 import { serializeLogs } from './utils'
-import './styles/log.css'
 
 const { toast } = useFeedback()
 const { t } = useI18n()
@@ -264,3 +263,5 @@ watch(
   { deep: true },
 )
 </script>
+
+<style src="./styles/log.css"></style>

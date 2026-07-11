@@ -2,9 +2,12 @@
   <main class="app-content">
     <router-view v-slot="{ Component, route }">
       <transition name="page" mode="out-in" appear>
-        <keep-alive :include="cachedViews">
-          <component :is="Component" :key="route.path" />
-        </keep-alive>
+        <div :key="String(route.name ?? route.path)" class="app-route-view">
+          <keep-alive v-if="route.meta.keepAlive" :include="cachedViews">
+            <component :is="Component" />
+          </keep-alive>
+          <component v-else :is="Component" />
+        </div>
       </transition>
     </router-view>
 
@@ -15,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GEmptyState from '@components/feedback/GEmptyState.vue'
@@ -23,9 +26,16 @@ import GEmptyState from '@components/feedback/GEmptyState.vue'
 const route = useRoute()
 const { t } = useI18n()
 
-const cachedViews = ref<string[]>(['dashboard', 'projects', 'settings'])
+// keep-alive include 匹配的是组件 name，需与各页面 defineOptions 保持一致。
+const cachedViews = [
+  'dashboard',
+  'projects',
+  'tunnels',
+  'http-tunnels',
+  'servers',
+  'settings',
+]
 
-// 路由兜底文案走 i18n，避免语言切换后空状态不刷新。
 const routeHasComponent = computed(() => {
   return route.matched.length > 0
 })
@@ -41,6 +51,10 @@ const routeHasComponent = computed(() => {
   padding: var(--space-6);
   position: relative;
   box-sizing: border-box;
+}
+
+.app-route-view {
+  min-height: 0;
 }
 
 .content-empty {

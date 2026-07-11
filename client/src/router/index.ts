@@ -96,8 +96,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    component: () => import('@views/about/AboutPage.vue'),
-    meta: { titleKey: 'nav.notFound', icon: 'alert-circle' },
+    redirect: '/',
   },
 ]
 
