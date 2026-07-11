@@ -13,6 +13,7 @@ const PLATFORM_KEYS = {
 
 function parseArgs(argv) {
   const bundleRoots = []
+const releaseRoots = []
   let tag = ''
   let platform = ''
   let out = ''
@@ -22,7 +23,10 @@ function parseArgs(argv) {
     if (arg === '--tag') tag = argv[++i] ?? ''
     else if (arg === '--platform') platform = argv[++i] ?? ''
     else if (arg === '--out') out = argv[++i] ?? ''
-    else if (!arg.startsWith('--')) bundleRoots.push(arg)
+    else if (!arg.startsWith('--')) {
+      bundleRoots.push(arg)
+      releaseRoots.push(arg.replace(/\/bundle\/?$/, '/release').replace(/\\bundle\\?$/, '\\release'))
+    }
   }
 
   return { bundleRoots, tag, platform, out }
@@ -76,9 +80,21 @@ function pickUpdaterArtifact(files, platform) {
     const artifact = artifactForSig(sig, files)
     if (!artifact) continue
     const name = basename(artifact).toLowerCase()
-    if (platform.startsWith('windows') && !name.endsWith('.exe')) continue
-    if (platform.startsWith('macos') && !name.endsWith('.tar.gz')) continue
-    if (platform.startsWith('linux') && !name.endsWith('.tar.gz') && !name.endsWith('.appimage')) continue
+    const rel = artifact.replace(/\\/g, '/').toLowerCase()
+    if (platform.startsWith('windows') && !name.endsWith('.exe') && !name.endsWith('.msi')) continue
+    if (platform.startsWith('macos')) {
+      const isMacUpdater =
+        name.endsWith('.app.tar.gz') ||
+        name.endsWith('.tar.gz') && (rel.includes('/macos/') || rel.includes('/osx/'))
+      if (!isMacUpdater) continue
+    }
+    if (platform.startsWith('linux')) {
+      const isLinuxUpdater =
+        name.endsWith('.appimage') ||
+        name.endsWith('.appimage.tar.gz') ||
+        (name.endsWith('.tar.gz') && rel.includes('/appimage/'))
+      if (!isLinuxUpdater) continue
+    }
     pairs.push({ artifact, sig })
   }
 
@@ -87,7 +103,8 @@ function pickUpdaterArtifact(files, platform) {
   const priority = (artifact) => {
     const name = basename(artifact).toLowerCase()
     if (name.endsWith('.app.tar.gz')) return 0
-    if (name.endsWith('.appimage.tar.gz')) return 0
+    if (name.endsWith('.appimage')) return 1
+    if (name.endsWith('.appimage.tar.gz')) return 2
     if (name.endsWith('-setup.exe')) return 0
     if (name.endsWith('.msi')) return 1
     if (name.endsWith('.exe')) return 2
@@ -97,6 +114,11 @@ function pickUpdaterArtifact(files, platform) {
 
   pairs.sort((a, b) => priority(a.artifact) - priority(b.artifact))
   return pairs[0]
+}
+
+function describeBundleFiles(files) {
+  const interesting = files.filter((f) => /\.(sig|tar\.gz|exe|msi|appimage|dmg)$/i.test(f))
+  return interesting.map((f) => f.replace(/\\/g, '/')).sort()
 }
 
 const { bundleRoots, tag, platform, out } = parseArgs(process.argv)
@@ -109,11 +131,18 @@ if (!tag || !platform || !out || !platformKey || bundleRoots.length === 0) {
   process.exit(1)
 }
 
-const allFiles = bundleRoots.flatMap((root) => walkFiles(root))
+const searchRoots = [...new Set([...bundleRoots, ...releaseRoots])]
+const allFiles = searchRoots.flatMap((root) => walkFiles(root))
 const picked = pickUpdaterArtifact(allFiles, platform)
 
 if (!picked) {
-  console.error(`未在 ${bundleRoots.join(', ')} 找到 ${platform} 的签名更新包`)
+  console.error(`未在 ${searchRoots.join(', ')} 找到 ${platform} 的签名更新包`)
+  const sample = describeBundleFiles(allFiles)
+  if (sample.length > 0) {
+    console.error('可见产物:')
+    for (const line of sample.slice(0, 40)) console.error(`  - ${line}`)
+    if (sample.length > 40) console.error(`  ... 另有 ${sample.length - 40} 个文件`)
+  }
   process.exit(1)
 }
 

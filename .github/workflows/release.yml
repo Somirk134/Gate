@@ -90,17 +90,21 @@ jobs:
           - name: macos-x64
             os: macos-14
             target: x86_64-apple-darwin
-            bundles: dmg
+            bundles: app,dmg
             artifact_glob: |
               target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
               client/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              client/src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
           - name: macos-arm64
             os: macos-14
             target: aarch64-apple-darwin
-            bundles: dmg
+            bundles: app,dmg
             artifact_glob: |
               target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+              target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
               client/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+              client/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
           - name: linux-x64
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
@@ -152,6 +156,7 @@ jobs:
       - name: Build Tauri package
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm --prefix client run tauri build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
       - name: Build server binary
@@ -177,6 +182,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p updater
+          echo "== bundle tree =="
+          find target/${{ matrix.target }}/release client/src-tauri/target/${{ matrix.target }}/release \
+            \( -name '*.sig' -o -name '*.tar.gz' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.dmg' \) \
+            2>/dev/null | head -80 || true
           node scripts/generate-platform-updater-manifest.mjs \
             "target/${{ matrix.target }}/release/bundle" \
             "client/src-tauri/target/${{ matrix.target }}/release/bundle" \
