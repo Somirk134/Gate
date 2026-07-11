@@ -219,13 +219,8 @@
 
         <section v-else-if="activeTab === 'domain'" class="resource-section">
           <div class="resource-toolbar">
-            <GInput v-model="domainInput" placeholder="example.com" prefix="globe" />
-            <GButton
-              variant="primary"
-              icon="plus"
-              :disabled="!domainInput.trim()"
-              @click="addDomain">
-              {{ t('project.detail.bindDomain') }}
+            <GButton variant="primary" icon="external-link" @click="openDomainCenter">
+              {{ t('project.detail.openDomainCenter') }}
             </GButton>
           </div>
           <div v-if="project.domains.length" class="resource-list">
@@ -234,8 +229,8 @@
                 <strong>{{ domain }}</strong>
                 <span>{{ domainResolution(domain) }}</span>
               </div>
-              <GButton variant="ghost" size="sm" icon="unlink" @click="removeDomain(domain)">
-                {{ t('project.detail.unbind') }}
+              <GButton variant="ghost" size="sm" icon="external-link" @click="openDomainDetail(domain)">
+                {{ t('project.detail.manageDomains') }}
               </GButton>
             </article>
           </div>
@@ -456,7 +451,6 @@ const { metricHistory } = useMonitoringDashboard()
 const activeTab = ref<ProjectTab>('overview')
 const selectedTunnelId = ref('')
 const selectedCertificateId = ref('')
-const domainInput = ref('')
 const logQuery = ref('')
 const logLevel = ref('all')
 const logWindow = ref('all')
@@ -626,25 +620,12 @@ async function moveTunnel(tunnelId: string, targetProjectId: string) {
   }
 }
 
-async function addDomain() {
-  if (!project.value || !domainInput.value.trim()) return
-  try {
-    await store.addDomain(project.value.id, domainInput.value.trim())
-    domainInput.value = ''
-    toast.success(t('project.notifications.domainBound'))
-  } catch (err) {
-    notify.error(t('project.notifications.domainBindFailed'), errorMessage(err), 10000)
-  }
+function openDomainCenter() {
+  void router.push('/domains')
 }
 
-async function removeDomain(domain: string) {
-  if (!project.value) return
-  try {
-    await store.removeDomain(project.value.id, domain)
-    toast.success(t('project.notifications.domainUnbound'))
-  } catch (err) {
-    notify.error(t('project.notifications.domainUnbindFailed'), errorMessage(err), 10000)
-  }
+function openDomainDetail(host: string) {
+  void router.push({ path: '/domains', query: { host } })
 }
 
 async function addCertificate() {

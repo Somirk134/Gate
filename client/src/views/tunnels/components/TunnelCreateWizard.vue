@@ -553,7 +553,7 @@ const serverPublicIp = computed(
   () => selectedServer.value?.publicIp || selectedServer.value?.settings.host || '',
 )
 const dnsRecordGuide = computed(() =>
-  buildDnsRecordGuide(form.host, serverPublicIp.value),
+  buildDnsRecordGuide(form.host ?? '', serverPublicIp.value),
 )
 const availableDomainOptions = computed(() => {
   const seen = new Set<string>()
@@ -630,7 +630,7 @@ function handleScanProgress(payload: DiscoveryScanProgress) {
 
 function handleScanComplete(payload: DiscoveryScanComplete) {
   if (payload.scanId !== scanSessionId.value) return
-  const services = Array.isArray(payload.items) ? payload.items : []
+  const services: LocalServiceRecord[] = Array.isArray(payload.items) ? payload.items : []
   localServices.value = services
   discoveryLoading.value = false
   discoverySummary.value =
@@ -696,7 +696,7 @@ function selectCertDomain(value: string) {
 }
 
 function applySubdomainDefaults() {
-  const host = form.host.trim().toLowerCase()
+  const host = form.host?.trim().toLowerCase() ?? ''
   if (!host) return
   const defaults = applySubdomainTunnelDefaults(form.protocol, host)
   form.host = defaults.host
@@ -1088,10 +1088,6 @@ function upsertAndSelectService(service: LocalServiceRecord) {
     ...localServices.value.filter((item) => serviceKey(item) !== key),
   ]
   selectService(service)
-}
-
-function isValidPort(port: number | null | undefined): port is number {
-  return Number.isInteger(port) && port > 0 && port <= 65535
 }
 
 function serviceKey(service: LocalServiceRecord) {

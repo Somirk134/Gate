@@ -48,7 +48,7 @@ export function splitSubdomainHost(
   }
 }
 
-export function certificateCoversHost(host: string, certs: CertificateSummary[]): boolean {
+export function certificateCoversHost(host: string, certs: CertificateSummary[] = []): boolean {
   const normalizedHost = host.trim().toLowerCase()
   if (!normalizedHost) return false
   for (const cert of certs) {
@@ -68,7 +68,7 @@ export function certificateCoversHost(host: string, certs: CertificateSummary[])
   return false
 }
 
-export function listCertificateBaseDomains(certs: CertificateSummary[]): string[] {
+export function listCertificateBaseDomains(certs: CertificateSummary[] = []): string[] {
   const seen = new Set<string>()
   const domains: string[] = []
   for (const cert of certs) {
@@ -83,7 +83,7 @@ export function listCertificateBaseDomains(certs: CertificateSummary[]): string[
   return domains.sort((left, right) => left.localeCompare(right))
 }
 
-export function suggestedSubdomainHosts(certs: CertificateSummary[]): string[] {
+export function suggestedSubdomainHosts(certs: CertificateSummary[] = []): string[] {
   return listCertificateBaseDomains(certs).flatMap((base) =>
     SUBDOMAIN_PREFIX_PRESETS.map((prefix) => buildSubdomainHost(prefix, base)),
   )

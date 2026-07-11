@@ -380,6 +380,36 @@
 
               <section class="detail-card">
                 <div class="detail-card__heading">
+                  <h3>{{ t('tunnel.detail.boundDomains') }}</h3>
+                  <GIcon name="globe" :size="16" />
+                </div>
+                <div v-if="selectedTunnel.host" class="bound-domain-list">
+                  <article class="bound-domain-row">
+                    <div>
+                      <strong>{{ selectedTunnel.host }}</strong>
+                      <small>{{ selectedTunnel.protocol.toUpperCase() }}</small>
+                    </div>
+                    <div class="bound-domain-row__actions">
+                      <GButton variant="ghost" size="sm" icon="external-link" @click="openDomainDetail(selectedTunnel.host)">
+                        {{ t('tunnel.detail.manageDomain') }}
+                      </GButton>
+                      <GButton variant="ghost" size="sm" icon="unlink" @click="unbindTunnelDomain">
+                        {{ t('tunnel.detail.unbindDomain') }}
+                      </GButton>
+                    </div>
+                  </article>
+                </div>
+                <div v-else class="mini-empty">
+                  <GIcon name="globe" :size="22" />
+                  <span>{{ t('tunnel.detail.noBoundDomain') }}</span>
+                  <GButton variant="secondary" size="sm" icon="plus" @click="openDomainCenter">
+                    {{ t('tunnel.detail.manageDomain') }}
+                  </GButton>
+                </div>
+              </section>
+
+              <section class="detail-card">
+                <div class="detail-card__heading">
                   <h3>{{ t('tunnel.detail.tags') }}</h3>
                   <GIcon name="tag" :size="16" />
                 </div>
@@ -447,6 +477,7 @@ import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
+import { domainService } from '@views/domains/services/domain.service'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
 import { GateAppError } from '@/ipc'
 import { formatTunnelOperationError } from '@/utils/operationError'
@@ -872,6 +903,25 @@ async function openAccessUrl(tunnel: Tunnel) {
     }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : t('tunnel.notifications.openUrlFailed'))
+  }
+}
+
+function openDomainCenter() {
+  void router.push('/domains')
+}
+
+function openDomainDetail(host: string) {
+  void router.push({ path: '/domains', query: { host } })
+}
+
+async function unbindTunnelDomain() {
+  if (!selectedTunnel.value?.host) return
+  try {
+    await domainService.unbindTunnel(selectedTunnel.value.host)
+    await store.load({ silent: true })
+    toast.success(t('project.notifications.domainUnbound'))
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : t('tunnel.notifications.saveFailed'))
   }
 }
 
@@ -1791,5 +1841,34 @@ function formatLogTime(timestamp: number): string {
   .mini-log-list small {
     display: none;
   }
+}
+
+.bound-domain-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bound-domain-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bound-domain-row:first-child {
+  border-top: 0;
+}
+
+.bound-domain-row small {
+  color: var(--text-secondary);
+}
+
+.bound-domain-row__actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
 }
 </style>

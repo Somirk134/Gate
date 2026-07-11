@@ -345,9 +345,4 @@ function optionalText(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
-function normalizePath(value: string | null | undefined): string {
-  if (!value) return '/'
-  return value.startsWith('/') ? value : `/${value}`
-}
-
 export { TUNNEL_STATUS_CONFIG }

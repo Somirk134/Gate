@@ -33,8 +33,6 @@ export function useServer() {
     totalTraffic,
     totalUploadSpeed,
     totalDownloadSpeed,
-    activeServerId,
-    connectedServerIds,
     recoveryInProgress,
   } = storeToRefs(store)
 
