@@ -18,8 +18,15 @@ const CLIENT_BIN: &str = env!("CARGO_BIN_EXE_gate-e2e-client");
 const LOCAL_SERVICE_BIN: &str = env!("CARGO_BIN_EXE_gate-e2e-local-service");
 const AUTH_TOKEN: &str = "gate-integration-test-token-20260710-release-audit";
 
+// These real-world e2e tests each spawn multiple real processes (server + client +
+// local service). Running them in parallel causes resource contention that pushes the
+// client-ready handshake past its timeout, so we serialize them behind a global lock to
+// keep the suite deterministic on CI runners.
+static SERIAL: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn normal_tcp_and_http_tunnels_relay_through_real_processes() -> Result<()> {
+    let _serial = SERIAL.lock().await;
     let tcp = E2eStack::start("tcp", 4).await?;
     assert_eq!(
         wait_for_tcp_roundtrip(tcp.remote_port, b"gate-tcp", Duration::from_secs(10)).await?,
@@ -35,6 +42,7 @@ async fn normal_tcp_and_http_tunnels_relay_through_real_processes() -> Result<()
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn server_restart_recovery_restores_session_tunnel_and_public_access() -> Result<()> {
+    let _serial = SERIAL.lock().await;
     let mut stack = E2eStack::start("tcp", 8).await?;
     wait_for_tcp_roundtrip(stack.remote_port, b"before", Duration::from_secs(10)).await?;
 
@@ -84,6 +92,7 @@ async fn server_restart_recovery_restores_session_tunnel_and_public_access() -> 
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn client_restart_recovery_restores_tunnel_without_recreating_config() -> Result<()> {
+    let _serial = SERIAL.lock().await;
     let mut stack = E2eStack::start("tcp", 8).await?;
     wait_for_tcp_roundtrip(stack.remote_port, b"before", Duration::from_secs(10)).await?;
 
@@ -114,6 +123,7 @@ async fn client_restart_recovery_restores_tunnel_without_recreating_config() -> 
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn network_interruption_reconnects_after_short_outage() -> Result<()> {
+    let _serial = SERIAL.lock().await;
     run_network_interruption(Duration::from_secs(2)).await
 }
 
@@ -327,7 +337,7 @@ impl E2eStack {
         }
 
         let process = ProcessGuard::spawn(command)?;
-        wait_for_file(&self.client_ready, Duration::from_secs(15)).await?;
+        wait_for_file(&self.client_ready, Duration::from_secs(30)).await?;
         Ok(process)
     }
 }
