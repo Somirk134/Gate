@@ -91,10 +91,28 @@
               <input
                 v-model.trim="form.email"
                 type="email"
-                autocomplete="off"
+                autocomplete="email"
+                list="acme-email-options"
                 :placeholder="t('certificate.wizard.emailPlaceholder')"
                 @keydown.enter.prevent="next" />
+              <datalist id="acme-email-options">
+                <option v-for="email in emailOptions" :key="email" :value="email" />
+              </datalist>
             </label>
+            <div v-if="emailOptions.length" class="email-reuse">
+              <span class="email-reuse__label">{{ t('certificate.wizard.reuseEmail') }}</span>
+              <div class="email-reuse__chips">
+                <button
+                  v-for="email in emailOptions"
+                  :key="`reuse-${email}`"
+                  type="button"
+                  class="email-reuse__chip"
+                  :class="{ active: form.email === email }"
+                  @click="applySavedEmail(email)">
+                  {{ email }}
+                </button>
+              </div>
+            </div>
             <label class="wizard-field">
               <span>{{ t('certificate.wizard.challengeType') }}</span>
               <div class="challenge-options">
@@ -304,6 +322,7 @@ import GIcon from '@components/icons/GIcon.vue'
 import { translateIfExists } from '@/utils/i18n'
 import { useFeedback } from '@/composables/useFeedback'
 import { certificateService } from '../service'
+import { loadRecentAcmeEmails, mergeAcmeEmailOptions, rememberAcmeEmail } from '../utils/acmeEmail'
 import type { AcmePrepareResponse, CertificateWizardForm } from '../types'
 
 const props = defineProps<{
@@ -337,6 +356,12 @@ const prepareError = ref('')
 const verifyStatus = ref<'idle' | 'pending' | 'success' | 'failed'>('idle')
 const verifyError = ref('')
 const acmeResult = ref<AcmePrepareResponse | null>(null)
+const savedAcmeEmail = ref('')
+const recentAcmeEmails = ref<string[]>([])
+
+const emailOptions = computed(() =>
+  mergeAcmeEmailOptions(savedAcmeEmail.value, recentAcmeEmails.value),
+)
 
 // Tauri 事件监听器引用（用于清理）
 let unlistenFn: (() => void) | null = null
@@ -402,10 +427,11 @@ watch(
     if (val) {
       currentStep.value = 0
       const preset = props.initialForm ?? {}
+      await loadAcmeEmailDefaults()
       form.value = {
         serverId: preset.serverId ?? '',
         domain: preset.domain ?? '',
-        email: preset.email ?? '',
+        email: preset.email?.trim() || savedAcmeEmail.value || recentAcmeEmails.value[0] || '',
         challengeType: preset.challengeType ?? 'http01',
         staging: preset.staging ?? false,
       }
@@ -442,9 +468,44 @@ function next() {
   }
   if (currentStep.value === 2) {
     form.value.email = form.value.email.trim()
+    void persistAcmeEmail(form.value.email)
   }
   if (!canProceed.value) return
   currentStep.value = Math.min(currentStep.value + 1, stepLabels.value.length - 1)
+}
+
+async function loadAcmeEmailDefaults() {
+  recentAcmeEmails.value = loadRecentAcmeEmails()
+  savedAcmeEmail.value = ''
+  try {
+    const response = await certificateService.acmeConfigGet()
+    savedAcmeEmail.value = response.config.email.trim()
+  } catch {
+    savedAcmeEmail.value = ''
+  }
+}
+
+function applySavedEmail(email: string) {
+  form.value.email = email.trim()
+}
+
+async function persistAcmeEmail(email: string) {
+  const trimmed = email.trim()
+  if (!trimmed) return
+
+  rememberAcmeEmail(trimmed)
+  recentAcmeEmails.value = loadRecentAcmeEmails()
+  savedAcmeEmail.value = trimmed
+
+  try {
+    const response = await certificateService.acmeConfigGet()
+    await certificateService.acmeConfigSave({
+      ...response.config,
+      email: trimmed,
+    })
+  } catch {
+    // 本地最近邮箱已保存，配置同步失败不阻断申请流程
+  }
 }
 
 function prev() {
@@ -453,6 +514,8 @@ function prev() {
 
 async function goToDnsStep() {
   if (!canProceed.value) return
+  form.value.email = form.value.email.trim()
+  await persistAcmeEmail(form.value.email)
   currentStep.value = 3
   await prepareAcme()
 }
@@ -471,6 +534,7 @@ async function prepareAcme() {
       challengeType: form.value.challengeType,
       staging: form.value.staging,
     })
+    await persistAcmeEmail(form.value.email)
     prepareStatus.value = 'success'
 
     // HTTP-01 也使用后台模式（用户可关闭窗口）
@@ -786,6 +850,45 @@ function serverStatusLabel(status: string) {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
   outline: 0;
+}
+
+.email-reuse {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.email-reuse__label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.email-reuse__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.email-reuse__chip {
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.email-reuse__chip:hover,
+.email-reuse__chip.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-muted);
 }
 
 /* ── Challenge options ── */

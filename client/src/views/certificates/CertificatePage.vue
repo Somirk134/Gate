@@ -17,7 +17,7 @@
         <GButton variant="secondary" icon="upload" @click="openImportDialog">
           {{ t('certificate.import') }}
         </GButton>
-        <GButton variant="primary" icon="plus" @click="openCertificateWizard">
+        <GButton variant="primary" icon="plus" @click="() => void openCertificateWizard()">
           {{ t('certificate.request') }}
         </GButton>
       </div>
@@ -49,7 +49,7 @@
         <span><GIcon name="check" :size="14" /> {{ t('certificate.emptyFeatures.sni') }}</span>
       </div>
       <div class="cert-empty__actions">
-        <GButton variant="primary" icon="plus" @click="openCertificateWizard">
+        <GButton variant="primary" icon="plus" @click="() => void openCertificateWizard()">
           {{ t('certificate.request') }}
         </GButton>
         <GButton variant="secondary" icon="upload" @click="openImportDialog">
@@ -528,15 +528,24 @@
             <section class="cert-detail-card">
               <div class="cert-panel__heading">
                 <h3>{{ t('certificate.associations.title') }}</h3>
+                <GButton variant="ghost" size="sm" icon="external-link" @click="jumpToDomainCenter">
+                  {{ t('certificate.associations.jumpToDomain') }}
+                </GButton>
               </div>
               <div v-if="domainAssociations" class="associations">
                 <div class="assoc-section">
                   <span class="assoc-label">{{ t('certificate.associations.domains') }}</span>
                   <div class="assoc-list">
-                    <span v-for="d in domainAssociations.domains" :key="d.host" class="assoc-tag" :class="`is-${d.status}`">
+                    <button
+                      v-for="d in domainAssociations.domains"
+                      :key="d.host"
+                      type="button"
+                      class="assoc-tag assoc-tag--link"
+                      :class="`is-${d.status}`"
+                      @click="openDomainDetail(d.host)">
                       <GIcon name="globe" :size="12" />
                       {{ d.host }}
-                    </span>
+                    </button>
                     <span v-if="!domainAssociations.domains.length" class="is-empty">
                       {{ domainAssociations.dbAvailable ? t('certificate.associations.noAssociations') : t('certificate.associations.dbUnavailable') }}
                     </span>
@@ -612,6 +621,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import GButton from '@components/base/GButton.vue'
 import GCard from '@components/base/GCard.vue'
@@ -638,6 +648,7 @@ import { reopenOverlay } from '@/utils/i18n'
 import { useServerStore } from '@views/servers'
 
 const { t, locale } = useI18n()
+const router = useRouter()
 const { toast, notify, confirm, confirmDanger } = useFeedback()
 const serverStore = useServerStore()
 
@@ -874,7 +885,6 @@ const trendXAxisTicks = computed(() => {
 
   const first = buckets[0]
   const middle = buckets[Math.floor((buckets.length - 1) / 2)]
-  const last = buckets[buckets.length - 1]
 
   return [
     { x: toX(0), label: formatTrendDate(first.date) },
@@ -1211,6 +1221,15 @@ async function handleHistoryReapply(record: AcmeApplicationRecord) {
 
 async function openImportDialog() {
   await reopenOverlay(importVisible)
+}
+
+function jumpToDomainCenter() {
+  const host = selectedDomain.value || selectedDetail.value?.summary.domain
+  void router.push(host ? { path: '/domains', query: { host } } : { path: '/domains' })
+}
+
+function openDomainDetail(host: string) {
+  void router.push({ path: '/domains', query: { host } })
 }
 
 function handleWizardSubmitted() {
@@ -2476,6 +2495,13 @@ onBeforeUnmount(() => {
 
 .assoc-tag.is-connected { border-color: var(--color-success); color: var(--color-success); }
 .assoc-tag.is-disconnected { border-color: var(--text-tertiary); }
+.assoc-tag--link {
+  cursor: pointer;
+  background: transparent;
+}
+.assoc-tag--link:hover {
+  border-color: var(--color-primary);
+}
 
 .assoc-loading {
   display: grid;
