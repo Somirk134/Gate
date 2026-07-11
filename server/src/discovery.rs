@@ -1,10 +1,9 @@
 use chrono::Utc;
+use gate_shared::process::hidden_command;
 use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
     env,
-    net::TcpListener,
-    process::Command,
 };
 use sysinfo::{Disks, Networks, System};
 
@@ -69,17 +68,8 @@ pub fn port_discovery_json(occupied: &[Value], gate_reserved: &BTreeSet<u16>) ->
         .filter(|row| port_of(row).is_some_and(|port| gate_reserved.contains(&port)))
         .cloned()
         .collect::<Vec<_>>();
-    let available_ports = recommended_available_ports(
-        occupied
-            .iter()
-            .filter_map(port_of)
-            .chain(gate_reserved.iter().copied())
-            .collect(),
-    );
-
     json!({
         "occupiedPorts": occupied_ports,
-        "availablePorts": available_ports,
         "systemReservedPorts": system_reserved_ports,
         "gateReservedPorts": gate_reserved_ports,
         "updatedAt": Utc::now().timestamp_millis()
@@ -211,30 +201,6 @@ fn parse_csv_line(line: &str) -> Vec<String> {
         .collect()
 }
 
-fn recommended_available_ports(occupied: BTreeSet<u16>) -> Vec<Value> {
-    let mut rows = Vec::new();
-    // 根据当前真实占用情况从用户态端口区间动态寻找可用端口，不维护静态端口表。
-    for port in 10_000_u16..65_000_u16 {
-        if rows.len() >= 24 {
-            break;
-        }
-        if occupied.contains(&port) || !port_can_bind(port) {
-            continue;
-        }
-        rows.push(json!({
-            "port": port,
-            "protocol": "tcp",
-            "status": "available",
-            "recommended": rows.len() < 6
-        }));
-    }
-    rows
-}
-
-fn port_can_bind(port: u16) -> bool {
-    TcpListener::bind(("0.0.0.0", port)).is_ok()
-}
-
 fn port_of(value: &Value) -> Option<u16> {
     value
         .get("port")
@@ -304,7 +270,7 @@ fn network_usage(networks: &Networks) -> Value {
 }
 
 fn command_output(program: &str, args: &[&str]) -> String {
-    Command::new(program)
+    hidden_command(program)
         .args(args)
         .output()
         .ok()

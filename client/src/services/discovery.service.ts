@@ -30,7 +30,6 @@ export interface PortRecord {
 
 export interface PortDiscovery {
   occupiedPorts: PortRecord[]
-  availablePorts: PortRecord[]
   systemReservedPorts: PortRecord[]
   gateReservedPorts: PortRecord[]
   updatedAt: number
@@ -48,6 +47,20 @@ export interface TunnelDiagnosis {
   checkedAt: number
 }
 
+export interface DiscoveryScanProgress {
+  scanId: string
+  port: number
+  found: boolean
+  index: number
+  total: number
+}
+
+export interface DiscoveryScanComplete {
+  scanId: string
+  items: LocalServiceRecord[]
+  updatedAt: number
+}
+
 function ensureRuntime() {
   if (!isTauri()) {
     throw new GateAppError({
@@ -61,10 +74,27 @@ function ensureRuntime() {
 export const discoveryService = {
   async localServices() {
     ensureRuntime()
-    const payload = await ipc.invoke<{ items: LocalServiceRecord[]; updatedAt: number }>(
+    const payload = await ipc.invoke<{ items?: LocalServiceRecord[]; updatedAt?: number } | LocalServiceRecord[]>(
       'discovery_local_services',
     )
-    return payload.items
+    if (Array.isArray(payload)) return payload
+    return Array.isArray(payload?.items) ? payload.items : []
+  },
+
+  async startCommonPortScan(scanId?: string) {
+    ensureRuntime()
+    return ipc.invoke<{ scanId: string; started: boolean; total: number }>(
+      'discovery_start_common_port_scan',
+      { scanId },
+    )
+  },
+
+  onScanProgress(handler: (payload: DiscoveryScanProgress) => void) {
+    return ipc.listen<DiscoveryScanProgress>('discovery-scan:progress', ({ payload }) => handler(payload))
+  },
+
+  onScanComplete(handler: (payload: DiscoveryScanComplete) => void) {
+    return ipc.listen<DiscoveryScanComplete>('discovery-scan:complete', ({ payload }) => handler(payload))
   },
 
   async probeLocalService(host: string, port: number) {

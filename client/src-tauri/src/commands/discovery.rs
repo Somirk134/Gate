@@ -1,13 +1,32 @@
-use serde_json::Value;
-use tauri::State;
+use chrono::Utc;
+use serde_json::{json, Value};
+use tauri::{AppHandle, State};
 
-use crate::{commands::error::CommandResult, runtime::ClientRuntimeState};
+use crate::{
+    commands::error::CommandResult,
+    discovery::{self, common_dev_port_count},
+    runtime::ClientRuntimeState,
+};
 
 #[tauri::command]
 pub async fn discovery_local_services(
     state: State<'_, ClientRuntimeState>,
 ) -> CommandResult<Value> {
     Ok(state.local_services().await)
+}
+
+#[tauri::command]
+pub async fn discovery_start_common_port_scan(
+    app: AppHandle,
+    scan_id: Option<String>,
+) -> CommandResult<Value> {
+    let scan_id = scan_id.unwrap_or_else(|| format!("scan-{}", Utc::now().timestamp_millis()));
+    discovery::start_common_dev_port_scan(app, scan_id.clone());
+    Ok(json!({
+        "scanId": scan_id,
+        "started": true,
+        "total": common_dev_port_count(),
+    }))
 }
 
 #[tauri::command]
