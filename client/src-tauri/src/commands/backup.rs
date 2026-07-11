@@ -139,14 +139,14 @@ pub async fn backup_export(
         created_at_ms: created_at.timestamp_millis(),
         contents: contents.clone(),
         security: BackupSecurity {
-            server_tokens_included: false,
+            server_tokens_included: true,
             certificate_private_keys_included: false,
             certificate_pem_included: false,
             project_secrets_included: false,
             project_notes_included: false,
         },
         notes: vec![
-            "backup.notes.tokensExcluded".to_string(),
+            "backup.notes.tokensIncluded".to_string(),
             "backup.notes.certificateSecretsExcluded".to_string(),
             "backup.notes.manualReconnectRequired".to_string(),
         ],
@@ -445,7 +445,6 @@ fn sanitize_runtime_snapshot(value: &mut Value) {
     if let Some(servers) = value.get_mut("servers").and_then(Value::as_object_mut) {
         for server in servers.values_mut() {
             if let Some(server) = server.as_object_mut() {
-                server.insert("token".to_string(), Value::String(String::new()));
                 server.insert("lastError".to_string(), Value::Null);
                 server.insert("sessionId".to_string(), Value::Null);
                 server.insert(
@@ -461,31 +460,37 @@ fn sanitize_runtime_snapshot(value: &mut Value) {
     if let Some(active_server_id) = value.get_mut("activeServerId") {
         *active_server_id = Value::Null;
     }
-    // 对未来新增的嵌套敏感字段同样生效，避免依赖固定 schema 白名单。
-    redact_sensitive_values(value);
+    // 对未来新增的嵌套敏感字段同样生效，但保留 servers.*.token 以支持完整恢复。
+    redact_sensitive_values(value, &[]);
 }
 
-fn redact_sensitive_values(value: &mut Value) {
+fn redact_sensitive_values(value: &mut Value, path: &[&str]) {
     match value {
         Value::Object(map) => {
             for (key, child) in map.iter_mut() {
-                if is_sensitive_key(key) {
+                let mut child_path = path.to_vec();
+                child_path.push(key);
+                if is_sensitive_key(key) && !is_preserved_server_token(&child_path) {
                     *child = match child {
                         Value::String(_) => Value::String(String::new()),
                         _ => Value::Null,
                     };
                 } else {
-                    redact_sensitive_values(child);
+                    redact_sensitive_values(child, &child_path);
                 }
             }
         }
         Value::Array(items) => {
             for item in items {
-                redact_sensitive_values(item);
+                redact_sensitive_values(item, path);
             }
         }
         _ => {}
     }
+}
+
+fn is_preserved_server_token(path: &[&str]) -> bool {
+    path.len() == 3 && path[0] == "servers" && path[2] == "token"
 }
 
 fn sanitize_project(mut project: Project) -> Project {
@@ -944,7 +949,7 @@ mod tests {
     };
 
     #[test]
-    fn runtime_snapshot_excludes_nested_credentials_and_logs() {
+    fn runtime_snapshot_preserves_server_tokens_and_redacts_other_credentials() {
         let mut snapshot = json!({
             "servers": {
                 "primary": {
@@ -965,7 +970,10 @@ mod tests {
 
         sanitize_runtime_snapshot(&mut snapshot);
 
-        assert_eq!(snapshot.pointer("/servers/primary/token"), Some(&json!("")));
+        assert_eq!(
+            snapshot.pointer("/servers/primary/token"),
+            Some(&json!("server-token"))
+        );
         assert_eq!(
             snapshot.pointer("/servers/primary/status"),
             Some(&json!("disconnected"))
