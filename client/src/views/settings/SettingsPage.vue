@@ -857,3 +857,5 @@ function errorMessage(err: unknown, fallback: string) {
   return fallback
 }
 </script>
+
+<style src="./styles/settings.css"></style>
