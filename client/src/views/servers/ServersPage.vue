@@ -561,7 +561,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useFeedback } from '@composables/useFeedback'
@@ -570,6 +570,7 @@ import GCard from '@components/base/GCard.vue'
 import GErrorState from '@components/feedback/GErrorState.vue'
 import GIcon from '@components/icons/GIcon.vue'
 import RuntimeSparkline from '@components/runtime/RuntimeSparkline.vue'
+import { reopenOverlay } from '@/utils/i18n'
 import { useServer } from './composables/useServer'
 import { defaultServerForm } from './store/server'
 import type { Server, ServerFormData, ServerKind, ServerLoadMetric, ServerStatus } from './types'
@@ -594,6 +595,7 @@ const {
   connect,
   disconnect,
   checkHealth,
+  recoveryInProgress,
 } = useServer()
 
 const query = ref('')
@@ -744,8 +746,38 @@ watch(
 )
 
 onMounted(() => {
-  void refresh()
+  void refresh().then(() => {
+    if (recoveryInProgress.value) {
+      startRecoveryPolling()
+    }
+  })
 })
+
+onUnmounted(() => {
+  stopRecoveryPolling()
+})
+
+let recoveryPollTimer: ReturnType<typeof setInterval> | null = null
+
+function startRecoveryPolling() {
+  stopRecoveryPolling()
+  let attempts = 0
+  recoveryPollTimer = setInterval(() => {
+    attempts += 1
+    void refresh().finally(() => {
+      if (!recoveryInProgress.value || attempts >= 60) {
+        stopRecoveryPolling()
+      }
+    })
+  }, 2000)
+}
+
+function stopRecoveryPolling() {
+  if (recoveryPollTimer) {
+    clearInterval(recoveryPollTimer)
+    recoveryPollTimer = null
+  }
+}
 
 // 承接欢迎向导的“添加服务器”入口，打开后清理 query，避免刷新重复弹窗。
 watch(
@@ -758,15 +790,15 @@ watch(
   { immediate: true },
 )
 
-function openCreate() {
+async function openCreate() {
   editingId.value = null
   Object.assign(form, { ...defaultServerForm, tags: [] })
   formError.value = ''
   tokenVisible.value = false
-  dialogVisible.value = true
+  await reopenOverlay(dialogVisible)
 }
 
-function openEdit(server: Server) {
+async function openEdit(server: Server) {
   editingId.value = server.id
   Object.assign(form, {
     name: server.name,
@@ -783,7 +815,7 @@ function openEdit(server: Server) {
   })
   formError.value = ''
   tokenVisible.value = false
-  dialogVisible.value = true
+  await reopenOverlay(dialogVisible)
 }
 
 function closeDialog() {

@@ -40,6 +40,8 @@ export const useServerStore = defineStore('server-module', () => {
   const error = ref<string>('')
   const lastUpdated = ref<number>(0)
   const activeServerId = ref<string | null>(null)
+  const connectedServerIds = ref<string[]>([])
+  const recoveryInProgress = ref(false)
 
   const isLoading = computed(() => status.value === 'loading')
   const isError = computed(() => status.value === 'error')
@@ -85,8 +87,10 @@ export const useServerStore = defineStore('server-module', () => {
     try {
       const payload = await serverService.list()
       activeServerId.value = payload.activeServerId ?? null
+      connectedServerIds.value = payload.connectedServerIds ?? []
+      recoveryInProgress.value = payload.recoveryInProgress ?? false
       servers.value = payload.items.map((row) =>
-        mapRuntimeServer(row, payload.activeServerId ?? null),
+        mapRuntimeServer(row, connectedServerIds.value),
       )
       status.value = 'success'
       lastUpdated.value = Date.now()
@@ -182,6 +186,8 @@ export const useServerStore = defineStore('server-module', () => {
     error,
     lastUpdated,
     activeServerId,
+    connectedServerIds,
+    recoveryInProgress,
     isLoading,
     isError,
     isReady,
@@ -213,15 +219,16 @@ export const useServerStore = defineStore('server-module', () => {
   }
 })
 
-function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Server {
-  const status = normalizeStatus(row.status, row.id === activeId)
+function mapRuntimeServer(row: RuntimeServerRecord, connectedServerIds: string[]): Server {
+  const isLiveConnected = connectedServerIds.includes(row.id)
+  const status = normalizeStatus(row.status, isLiveConnected)
   const createdAt = toIso(row.createdAt)
   const updatedAt = toIso(row.updatedAt)
   const lastConnectedAt = row.lastConnectedAt
     ? formatRelative(row.lastConnectedAt)
     : t('server.neverConnected')
-  const ping = row.lastRttMs ?? 0
-  const discovery = row.discovery ?? undefined
+  const discovery = isLiveConnected ? (row.discovery ?? undefined) : undefined
+  const ping = isLiveConnected ? (row.lastRttMs ?? 0) : 0
   const memoryUsed = discovery?.memory?.usedBytes ?? 0
   const memoryTotal = discovery?.memory?.totalBytes ?? 0
   const diskUsed = discovery?.diskUsage?.usedBytes ?? 0
@@ -235,7 +242,9 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
     kind: normalizeKind(row.kind),
     region: row.region,
     publicIp: discovery?.publicIp || row.host,
-    version: discovery?.gateVersion || (row.sessionId ? t('server.connectedVersion') : t('common.unknown')),
+    version:
+      discovery?.gateVersion ||
+      (isLiveConnected && row.sessionId ? t('server.connectedVersion') : t('common.unknown')),
     status,
     connectionMethod: 'tcp' as ConnectionMethod,
     ping,
@@ -257,7 +266,9 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
       networkReceivedBytes: networkReceived,
       networkTransmittedBytes: networkTransmitted,
       rustVersion: discovery?.runtimeVersion || t('common.unknown'),
-      serverVersion: discovery?.gateVersion || (row.sessionId ? t('server.authenticated') : t('common.unknown')),
+      serverVersion:
+        discovery?.gateVersion ||
+        (isLiveConnected && row.sessionId ? t('server.authenticated') : t('common.unknown')),
       installTime: createdAt,
       lastOnline: lastConnectedAt,
       lastHeartbeat: row.lastCheckedAt ? formatRelative(row.lastCheckedAt) : t('server.neverConnected'),
@@ -302,11 +313,11 @@ function mapRuntimeServer(row: RuntimeServerRecord, activeId: string | null): Se
   }
 }
 
-function normalizeStatus(status: string, isActive: boolean): ServerStatus {
-  if (isActive && status === 'connected') return 'connected'
+function normalizeStatus(status: string, isLiveConnected: boolean): ServerStatus {
+  if (isLiveConnected) return 'connected'
   if (status === 'connecting') return 'connecting'
+  if (status === 'recovering') return 'reconnecting'
   if (status === 'error') return 'error'
-  if (status === 'connected' && !isActive) return 'disconnected'
   if (status === 'disconnected') return 'disconnected'
   return 'offline'
 }

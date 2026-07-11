@@ -65,7 +65,9 @@ export interface ServerDiscovery {
 export interface RuntimeServerList {
   items: RuntimeServerRecord[]
   activeServerId?: string | null
+  connectedServerIds?: string[]
   connected: boolean
+  recoveryInProgress?: boolean
 }
 
 export interface ServerTestResult {

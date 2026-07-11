@@ -33,9 +33,10 @@ pub fn run() -> Result<()> {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updater::UpdateState::default())
         .setup(|app| {
-            let _window = app
+            let window = app
                 .get_webview_window("main")
                 .ok_or_else(|| TauriError::WindowNotFound)?;
+            let _ = window.maximize();
             tray::setup_tray(app.handle())?;
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -45,7 +46,7 @@ pub fn run() -> Result<()> {
                     status = ?diagnostics.get("status"),
                     "启动诊断完成"
                 );
-                // 客户端异常退出后，启动时复用已保存的服务器和 Tunnel 配置自动恢复。
+                // 仅当服务器显式开启 auto_connect 时才在启动时自动重连。
                 if let Err(error) = state.recover_after_startup().await {
                     tracing::warn!("启动恢复失败: {error}");
                 }
@@ -64,6 +65,7 @@ pub fn run() -> Result<()> {
             commands::server::server_disconnect,
             commands::server::server_test,
             commands::discovery::discovery_local_services,
+            commands::discovery::discovery_start_common_port_scan,
             commands::discovery::discovery_probe_local_service,
             commands::discovery::discovery_remote_ports,
             commands::discovery::discovery_check_remote_port,
@@ -82,6 +84,8 @@ pub fn run() -> Result<()> {
             commands::certificate::certificate_validate_import,
             commands::certificate::certificate_import,
             commands::certificate::certificate_auto_renewal_status,
+            commands::certificate::certificate_acme_config_get,
+            commands::certificate::certificate_acme_config_save,
             commands::certificate::certificate_domain_associations,
             commands::certificate::certificate_renew_now,
             commands::certificate::certificate_redeploy,
@@ -131,7 +135,17 @@ pub fn run() -> Result<()> {
             updater::download_update,
             updater::install_update,
         ])
-        .run(tauri::generate_context!())?;
+        .build(tauri::generate_context!())?
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let state = app_handle.state::<runtime::ClientRuntimeState>();
+                tauri::async_runtime::block_on(async {
+                    if let Err(error) = state.shutdown_on_exit().await {
+                        tracing::warn!("退出清理失败: {error}");
+                    }
+                });
+            }
+        });
 
     Ok(())
 }

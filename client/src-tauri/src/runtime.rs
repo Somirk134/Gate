@@ -42,7 +42,6 @@ use uuid::Uuid;
 
 use crate::discovery::{
     diagnose_start_failure, local_port_discovery, local_service_discovery, probe_local_service,
-    recommend_remote_port,
 };
 use crate::utils::app_data_dir;
 
@@ -459,44 +458,15 @@ struct RuntimeInner {
 
 impl RuntimeInner {
     fn from_stored(stored: StoredRuntime) -> Self {
-        let stored_active_server_id = stored.active_server_id;
         let mut servers = stored.servers;
-        for server in servers.values_mut() {
-            if matches!(
-                server.status.as_str(),
-                "connected" | "connecting" | "recovering"
-            ) {
-                server.status = "recovering".to_string();
-                server.last_error = Some("CLIENT_RESTART_WAITING_RECOVERY".to_string());
-            }
-        }
+        deactivate_persisted_servers(&mut servers, "CLIENT_RESTART_MANUAL_START");
         let mut tunnels = stored.tunnels;
-        for tunnel in tunnels.values_mut() {
-            if matches!(
-                tunnel.status.as_str(),
-                "running" | "starting" | "restarting" | "stopping" | "recovering"
-            ) {
-                tunnel.status = "recovering".to_string();
-                tunnel.upload_speed_bps = 0.0;
-                tunnel.download_speed_bps = 0.0;
-                tunnel.connections = 0;
-            }
-        }
-        let active_server_id = stored_active_server_id.filter(|server_id| {
-            servers
-                .get(server_id)
-                .map(|server| server.status == "recovering" || server.auto_connect)
-                .unwrap_or(false)
-        });
-        let session_id = active_server_id
-            .as_deref()
-            .and_then(|server_id| servers.get(server_id))
-            .and_then(|server| server.session_id.clone());
+        deactivate_persisted_tunnels(&mut tunnels);
 
         Self {
             transport: None,
             server_addr: None,
-            session_id,
+            session_id: None,
             connected: false,
             started_at: Instant::now(),
             counters: stored.counters,
@@ -505,7 +475,7 @@ impl RuntimeInner {
             domains: stored.domains,
             certificate_references: stored.certificate_references,
             servers,
-            active_server_id,
+            active_server_id: None,
             logs: stored.logs,
         }
     }
@@ -655,6 +625,46 @@ impl ClientRuntimeState {
         serde_json::to_value(inner.snapshot()).map_err(|error| error.to_string())
     }
 
+    pub async fn shutdown_on_exit(&self) -> Result<(), String> {
+        use std::sync::atomic::{AtomicBool, Ordering};
+
+        static SHUTDOWN_DONE: AtomicBool = AtomicBool::new(false);
+        if SHUTDOWN_DONE.swap(true, Ordering::SeqCst) {
+            return Ok(());
+        }
+
+        self.shutdown_all_local_tunnels().await?;
+        let transports: Vec<_> = {
+            let mut connections = self.server_connections.lock().await;
+            std::mem::take(&mut *connections)
+                .into_values()
+                .map(|connection| connection.transport)
+                .collect()
+        };
+
+        let mut inner = self.inner.lock().await;
+        deactivate_persisted_tunnels(&mut inner.tunnels);
+        deactivate_persisted_servers(&mut inner.servers, "CLIENT_SHUTDOWN");
+        inner.transport = None;
+        inner.connected = false;
+        inner.server_addr = None;
+        inner.session_id = None;
+        inner.active_server_id = None;
+        inner.counters.disconnect_total = inner
+            .counters
+            .disconnect_total
+            .saturating_add(transports.len() as u64);
+        inner.log("info", "shutdown", "CLIENT_SHUTDOWN");
+        persist_runtime(&self.storage_path, &inner)?;
+        drop(inner);
+
+        for transport in transports {
+            let _ = transport.disconnect().await;
+        }
+
+        Ok(())
+    }
+
     pub async fn stop_for_restore(&self) -> Result<(), String> {
         self.shutdown_all_local_tunnels().await?;
         let transport = {
@@ -728,11 +738,38 @@ impl ClientRuntimeState {
     }
 
     pub async fn list_servers(&self) -> Value {
+        self.verify_server_connections().await;
+
+        let connected_ids: Vec<String> = self
+            .server_connections
+            .lock()
+            .await
+            .keys()
+            .cloned()
+            .collect();
+        let connected_set: BTreeSet<String> = connected_ids.iter().cloned().collect();
         let inner = self.inner.lock().await;
+        let recovery_in_progress = inner
+            .servers
+            .values()
+            .any(|server| server.status == "recovering");
+        let items = inner
+            .servers
+            .values()
+            .map(|server| {
+                let mut item = server_json(server);
+                if connected_set.contains(&server.id) {
+                    item["status"] = json!("connected");
+                }
+                item
+            })
+            .collect::<Vec<_>>();
         json!({
-            "items": inner.servers.values().map(|server| server_json(server)).collect::<Vec<_>>(),
+            "items": items,
             "activeServerId": inner.active_server_id,
-            "connected": inner.connected
+            "connectedServerIds": connected_ids,
+            "connected": !connected_set.is_empty(),
+            "recoveryInProgress": recovery_in_progress
         })
     }
 
@@ -830,31 +867,31 @@ impl ClientRuntimeState {
     }
 
     pub async fn delete_server(&self, server_id: String) -> Result<(), String> {
+        self.shutdown_local_tunnels_for_server(&server_id).await?;
         let transport = {
+            let transport = self
+                .server_connections
+                .lock()
+                .await
+                .remove(&server_id)
+                .map(|connection| connection.transport);
             let mut inner = self.inner.lock().await;
             if !inner.servers.contains_key(&server_id) {
                 return Err("server not found".to_string());
             }
-            let should_disconnect = inner.active_server_id.as_deref() == Some(server_id.as_str());
+            stop_running_tunnels_for_server(&mut inner, &server_id);
             inner.servers.remove(&server_id);
-            if should_disconnect {
-                inner.active_server_id = None;
-                inner.server_addr = None;
-                inner.session_id = None;
-                inner.connected = false;
+            if transport.is_some() {
                 inner.counters.disconnect_total += 1;
                 inner.log(
                     "info",
                     "server",
-                    "active server disconnected before deletion",
+                    "server disconnected before deletion",
                 );
             }
             inner.log("info", "server", "server configuration deleted");
-            let transport = if should_disconnect {
-                inner.transport.take()
-            } else {
-                None
-            };
+            self.sync_primary_from_connections_locked(&mut inner)
+                .await;
             persist_runtime(&self.storage_path, &inner)?;
             transport
         };
@@ -870,6 +907,23 @@ impl ClientRuntimeState {
     }
 
     pub async fn connect_server(&self, server_id: String) -> Result<String, String> {
+        if self.server_connections.lock().await.contains_key(&server_id) {
+            if self.verify_server_connection(&server_id).await {
+                return Ok(self
+                    .server_connections
+                    .lock()
+                    .await
+                    .get(&server_id)
+                    .map(|connection| connection.session_id.clone())
+                    .unwrap_or_default());
+            }
+            self.record_server_control_failure_for(
+                &server_id,
+                "stale connection detected; reconnecting",
+            )
+            .await;
+        }
+
         let (server_addr, token) = {
             let mut inner = self.inner.lock().await;
             let server = inner
@@ -890,12 +944,6 @@ impl ClientRuntimeState {
                 let now = Utc::now().timestamp_millis();
                 let mut inner = self.inner.lock().await;
 
-                for server in inner.servers.values_mut() {
-                    if server.status == "connecting" {
-                        server.status = "disconnected".to_string();
-                    }
-                }
-
                 if let Some(server) = inner.servers.get_mut(&server_id) {
                     server.status = "connected".to_string();
                     server.session_id = Some(session_id.clone());
@@ -913,9 +961,10 @@ impl ClientRuntimeState {
                 inner.active_server_id = Some(server_id.clone());
                 inner.counters.connection_total += 1;
                 inner.counters.auth_success += 1;
-                inner
-                    .config
-                    .insert("server.discovery".to_string(), discovery.to_string());
+                inner.config.insert(
+                    format!("server.discovery.{server_id}"),
+                    discovery.to_string(),
+                );
                 inner.log("info", "server", "server connected");
                 inner.log("info", "authentication", "session established");
                 persist_runtime(&self.storage_path, &inner)?;
@@ -951,29 +1000,18 @@ impl ClientRuntimeState {
 
     pub async fn disconnect_server(&self, server_id: String) -> Result<(), String> {
         self.shutdown_local_tunnels_for_server(&server_id).await?;
-        let (transport, remaining_connections) = {
-            let mut connections = self.server_connections.lock().await;
-            let transport = connections
-                .remove(&server_id)
-                .map(|connection| connection.transport);
-            let remaining = connections
-                .iter()
-                .map(|(id, connection)| {
-                    (
-                        id.clone(),
-                        (connection.transport.clone(), connection.session_id.clone()),
-                    )
-                })
-                .collect::<BTreeMap<_, _>>();
-            (transport, remaining)
-        };
+        let transport = self
+            .server_connections
+            .lock()
+            .await
+            .remove(&server_id)
+            .map(|connection| connection.transport);
         let transport = {
             let mut inner = self.inner.lock().await;
             if !inner.servers.contains_key(&server_id) {
                 return Err("server not found".to_string());
             }
 
-            let is_active = inner.active_server_id.as_deref() == Some(server_id.as_str());
             if let Some(server) = inner.servers.get_mut(&server_id) {
                 server.status = "disconnected".to_string();
                 server.session_id = None;
@@ -981,47 +1019,13 @@ impl ClientRuntimeState {
                 server.updated_at = Utc::now().timestamp_millis();
             }
 
-            if is_active {
-                stop_running_tunnels_for_server(&mut inner, &server_id);
-                let next_active = inner
-                    .servers
-                    .values()
-                    .find(|server| {
-                        server.id != server_id
-                            && server.status == "connected"
-                            && remaining_connections.contains_key(&server.id)
-                    })
-                    .map(|server| server.id.clone());
-                inner.transport = next_active
-                    .as_deref()
-                    .and_then(|id| remaining_connections.get(id))
-                    .map(|(transport, _)| transport.clone());
-                inner.active_server_id = next_active;
-                inner.connected = inner.active_server_id.is_some();
-                inner.session_id = inner.active_server_id.as_deref().and_then(|id| {
-                    remaining_connections
-                        .get(id)
-                        .map(|(_, session_id)| session_id.clone())
-                        .or_else(|| {
-                            inner
-                                .servers
-                                .get(id)
-                                .and_then(|server| server.session_id.clone())
-                        })
-                });
-                inner.server_addr = inner
-                    .active_server_id
-                    .as_deref()
-                    .and_then(|id| inner.servers.get(id))
-                    .map(|server| format!("{}:{}", server.host, server.port));
-                inner.counters.disconnect_total += 1;
-                inner.log("info", "server", "server disconnected");
-                persist_runtime(&self.storage_path, &inner)?;
-                transport
-            } else {
-                persist_runtime(&self.storage_path, &inner)?;
-                transport
-            }
+            stop_running_tunnels_for_server(&mut inner, &server_id);
+            self.sync_primary_from_connections_locked(&mut inner)
+                .await;
+            inner.counters.disconnect_total += 1;
+            inner.log("info", "server", "server disconnected");
+            persist_runtime(&self.storage_path, &inner)?;
+            transport
         };
 
         if let Some(transport) = transport {
@@ -1075,19 +1079,32 @@ impl ClientRuntimeState {
             }
             Err(error) => {
                 let now = Utc::now().timestamp_millis();
-                let mut inner = self.inner.lock().await;
-                if let Some(server) = inner.servers.get_mut(&server_id) {
-                    server.status = "error".to_string();
-                    server.last_error = Some(error.clone());
-                    server.last_checked_at = Some(now);
-                    server.updated_at = now;
+                let was_connected = self
+                    .server_connections
+                    .lock()
+                    .await
+                    .contains_key(&server_id);
+                if was_connected {
+                    self.record_server_control_failure_for(
+                        &server_id,
+                        &format!("server connection test failed: {error}"),
+                    )
+                    .await;
+                } else {
+                    let mut inner = self.inner.lock().await;
+                    if let Some(server) = inner.servers.get_mut(&server_id) {
+                        server.status = "error".to_string();
+                        server.last_error = Some(error.clone());
+                        server.last_checked_at = Some(now);
+                        server.updated_at = now;
+                    }
+                    inner.log(
+                        "error",
+                        "server",
+                        &format!("server connection test failed: {error}"),
+                    );
+                    persist_runtime(&self.storage_path, &inner)?;
                 }
-                inner.log(
-                    "error",
-                    "server",
-                    &format!("server connection test failed: {error}"),
-                );
-                persist_runtime(&self.storage_path, &inner)?;
                 Ok(json!({
                     "ok": false,
                     "error": error,
@@ -1130,63 +1147,102 @@ impl ClientRuntimeState {
     }
 
     pub async fn heartbeat(&self) -> Result<u64, String> {
-        let started = Instant::now();
-        let response = match self
-            .request(Command::HeartbeatPing, self.heartbeat_payload().await)
+        let server_ids: Vec<String> = self
+            .server_connections
+            .lock()
             .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                self.record_control_disconnect(&format!(
-                    "heartbeat failed; starting control recovery: {error}"
-                ))
-                .await;
-                self.restore_active_server_with_backoff(&default_reconnect_delays())
-                    .await?;
-                self.request(Command::HeartbeatPing, self.heartbeat_payload().await)
-                    .await?
-            }
-        };
-        ensure_ok(&response)?;
+            .keys()
+            .cloned()
+            .collect();
+        if server_ids.is_empty() {
+            return Err("runtime backend is not connected".to_string());
+        }
 
-        let rtt_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+        let started = Instant::now();
+        let mut last_rtt = 0_u64;
+        for server_id in server_ids {
+            last_rtt = match self
+                .request_for(
+                    &server_id,
+                    Command::HeartbeatPing,
+                    self.heartbeat_payload_for(&server_id).await,
+                )
+                .await
+            {
+                Ok(response) => {
+                    ensure_ok(&response)?;
+                    started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
+                }
+                Err(error) => {
+                    self.record_control_disconnect_for(
+                        &server_id,
+                        &format!("heartbeat failed; starting control recovery: {error}"),
+                    )
+                    .await;
+                    self.restore_server_with_backoff(&server_id, &default_reconnect_delays())
+                        .await?;
+                    let response = self
+                        .request_for(
+                            &server_id,
+                            Command::HeartbeatPing,
+                            self.heartbeat_payload_for(&server_id).await,
+                        )
+                        .await?;
+                    ensure_ok(&response)?;
+                    started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
+                }
+            };
+        }
+
         let mut inner = self.inner.lock().await;
         inner.counters.heartbeat_ping += 1;
         inner.counters.heartbeat_pong += 1;
-        inner.counters.last_rtt_ms = Some(rtt_ms);
+        inner.counters.last_rtt_ms = Some(last_rtt);
         inner.counters.average_rtt_ms = if inner.counters.heartbeat_pong == 1 {
-            rtt_ms as f64
+            last_rtt as f64
         } else {
             ((inner.counters.average_rtt_ms * (inner.counters.heartbeat_pong - 1) as f64)
-                + rtt_ms as f64)
+                + last_rtt as f64)
                 / inner.counters.heartbeat_pong as f64
         };
         inner.log("info", "heartbeat", "heartbeat completed");
         persist_runtime(&self.storage_path, &inner)?;
-        Ok(rtt_ms)
+        Ok(last_rtt)
     }
 
-    async fn heartbeat_payload(&self) -> Value {
+    async fn heartbeat_payload_for(&self, server_id: &str) -> Value {
         let inner = self.inner.lock().await;
-        let registered_tunnels = inner.tunnels.keys().cloned().collect::<Vec<_>>();
+        let registered_tunnels = inner
+            .tunnels
+            .values()
+            .filter(|tunnel| tunnel.server_id.as_deref() == Some(server_id))
+            .map(|tunnel| tunnel.id.clone())
+            .collect::<Vec<_>>();
         let running_tunnels = inner
             .tunnels
             .values()
-            .filter(|tunnel| is_running_tunnel_status(&tunnel.status))
+            .filter(|tunnel| {
+                tunnel.server_id.as_deref() == Some(server_id)
+                    && is_running_tunnel_status(&tunnel.status)
+            })
             .count();
         let active_connections = inner
             .tunnels
             .values()
+            .filter(|tunnel| tunnel.server_id.as_deref() == Some(server_id))
             .map(|tunnel| tunnel.connections)
             .sum::<u64>();
 
         json!({
             "sentAt": Utc::now().timestamp_millis(),
-            "clientId": runtime_client_id(inner.active_server_id.as_deref()),
-            "clientStatus": if inner.connected { "online" } else { "recovering" },
+            "clientId": runtime_client_id(Some(server_id)),
+            "clientStatus": "online",
             "registeredTunnels": registered_tunnels,
             "runtimeStatus": {
-                "sessionId": inner.session_id.clone(),
+                "sessionId": inner
+                    .servers
+                    .get(server_id)
+                    .and_then(|server| server.session_id.clone()),
                 "runningTunnels": running_tunnels,
                 "activeConnections": active_connections,
                 "requestTotal": inner.counters.request_total,
@@ -1197,29 +1253,31 @@ impl ClientRuntimeState {
     }
 
     // 控制连接恢复只复用现有 AuthLogin/TunnelRegister，不引入新的协议命令。
-    async fn record_control_disconnect(&self, reason: &str) {
-        let (active_server_id, transport) = {
+    async fn record_control_disconnect_for(&self, server_id: &str, reason: &str) {
+        let transport = {
             let mut inner = self.inner.lock().await;
-            inner.connected = false;
             inner.counters.heartbeat_timeout = inner.counters.heartbeat_timeout.saturating_add(1);
             inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
-            let active_server_id = inner.active_server_id.clone();
-            if let Some(server_id) = active_server_id.as_deref() {
-                if let Some(server) = inner.servers.get_mut(server_id) {
-                    server.status = "recovering".to_string();
-                    server.last_error = Some(reason.to_string());
-                    server.last_checked_at = Some(Utc::now().timestamp_millis());
-                    server.updated_at = Utc::now().timestamp_millis();
-                }
+            if let Some(server) = inner.servers.get_mut(server_id) {
+                server.status = "recovering".to_string();
+                server.last_error = Some(reason.to_string());
+                server.last_checked_at = Some(Utc::now().timestamp_millis());
+                server.updated_at = Utc::now().timestamp_millis();
             }
             inner.log("warn", "reconnect", reason);
-            let transport = inner.transport.take();
             let _ = persist_runtime(&self.storage_path, &inner);
-            (active_server_id, transport)
+            self.server_connections
+                .lock()
+                .await
+                .remove(server_id)
+                .map(|connection| connection.transport)
         };
 
-        if let Some(server_id) = active_server_id {
-            self.server_connections.lock().await.remove(&server_id);
+        {
+            let mut inner = self.inner.lock().await;
+            self.sync_primary_from_connections_locked(&mut inner)
+                .await;
+            let _ = persist_runtime(&self.storage_path, &inner);
         }
 
         if let Some(transport) = transport {
@@ -1227,40 +1285,61 @@ impl ClientRuntimeState {
         }
     }
 
+    async fn record_control_disconnect(&self, reason: &str) {
+        let active_server_id = {
+            let inner = self.inner.lock().await;
+            inner.active_server_id.clone()
+        };
+        if let Some(server_id) = active_server_id {
+            self.record_control_disconnect_for(&server_id, reason).await;
+        }
+    }
+
     async fn restore_active_server_with_backoff(
         &self,
         delays: &[Duration],
     ) -> Result<String, String> {
-        let (server_id, server_addr, token, previous_session_id, running_tunnels) = {
-            let mut inner = self.inner.lock().await;
-            let server_id = inner
+        let server_id = {
+            let inner = self.inner.lock().await;
+            inner
                 .active_server_id
                 .clone()
-                .ok_or_else(|| "NO_RECOVERABLE_ACTIVE_SERVER".to_string())?;
+                .ok_or_else(|| "NO_RECOVERABLE_ACTIVE_SERVER".to_string())?
+        };
+        self.restore_server_with_backoff(&server_id, delays).await
+    }
+
+    async fn restore_server_with_backoff(
+        &self,
+        server_id: &str,
+        delays: &[Duration],
+    ) -> Result<String, String> {
+        let (server_id, server_addr, token, previous_session_id, running_tunnels) = {
+            let mut inner = self.inner.lock().await;
             let server = inner
                 .servers
-                .get(&server_id)
+                .get(server_id)
                 .ok_or_else(|| "ACTIVE_SERVER_CONFIG_MISSING".to_string())?;
             let server_addr = format!("{}:{}", server.host, server.port);
             let token = server.token.clone();
-            let previous_session_id = inner
-                .session_id
-                .clone()
-                .or_else(|| server.session_id.clone());
+            let previous_session_id = server.session_id.clone();
             let running_tunnels = inner
                 .tunnels
                 .values()
-                .filter(|tunnel| matches!(tunnel.status.as_str(), "running" | "recovering"))
+                .filter(|tunnel| {
+                    tunnel.server_id.as_deref() == Some(server_id)
+                        && matches!(tunnel.status.as_str(), "running" | "recovering")
+                })
                 .cloned()
                 .collect::<Vec<_>>();
-            if let Some(server) = inner.servers.get_mut(&server_id) {
+            if let Some(server) = inner.servers.get_mut(server_id) {
                 server.status = "recovering".to_string();
                 server.updated_at = Utc::now().timestamp_millis();
             }
             inner.log("info", "reconnect", "RECONNECT_CONTROL_STARTED");
             persist_runtime(&self.storage_path, &inner)?;
             (
-                server_id,
+                server_id.to_string(),
                 server_addr,
                 token,
                 previous_session_id,
@@ -1269,7 +1348,8 @@ impl ClientRuntimeState {
         };
 
         let recovery_started = Instant::now();
-        self.shutdown_all_local_tunnels().await?;
+        self.shutdown_local_tunnels_for_server(&server_id)
+            .await?;
 
         let mut last_error = None;
         for delay in delays {
@@ -1312,17 +1392,26 @@ impl ClientRuntimeState {
             }
         }
 
+        let failure_message = format!(
+            "control recovery failed: {}",
+            last_error.unwrap_or_else(|| "no retry opportunity available".to_string())
+        );
         {
+            let now = Utc::now().timestamp_millis();
             let mut inner = self.inner.lock().await;
+            if let Some(server) = inner.servers.get_mut(&server_id) {
+                server.status = "error".to_string();
+                server.last_error = Some(failure_message.clone());
+                server.session_id = None;
+                server.last_checked_at = Some(now);
+                server.updated_at = now;
+            }
             inner.counters.recovery_failure = inner.counters.recovery_failure.saturating_add(1);
             inner.log("error", "reconnect", "RECONNECT_CONTROL_FAILED");
             let _ = persist_runtime(&self.storage_path, &inner);
         }
 
-        Err(format!(
-            "control recovery failed: {}",
-            last_error.unwrap_or_else(|| "no retry opportunity available".to_string())
-        ))
+        Err(failure_message)
     }
 
     async fn finish_control_recovery(
@@ -1363,9 +1452,10 @@ impl ClientRuntimeState {
                 .total_recovery_time_ms
                 .saturating_add(recovery_time_ms);
             inner.log("info", "reconnect", "RECONNECT_CONTROL_SUCCEEDED");
-            inner
-                .config
-                .insert("server.discovery".to_string(), discovery.to_string());
+            inner.config.insert(
+                format!("server.discovery.{server_id}"),
+                discovery.to_string(),
+            );
             persist_runtime(&self.storage_path, &inner)?;
         }
         self.server_connections.lock().await.insert(
@@ -1436,15 +1526,12 @@ impl ClientRuntimeState {
         let server_id = self.resolve_tunnel_server_id(server_id.as_deref()).await?;
         self.ensure_connected_server_for(&server_id).await?;
         let occupied_ports = self.remote_occupied_ports(Some(&server_id)).await;
-        let remote_port = if remote_port == 0 {
-            recommend_remote_port(local_port, &occupied_ports)
-                .ok_or_else(|| "REMOTE_PORT_AUTO_ALLOCATE_FAILED".to_string())?
-        } else {
-            if occupied_ports.contains(&remote_port) {
-                return Err(format!("REMOTE_PORT_OCCUPIED:{remote_port}"));
-            }
-            remote_port
-        };
+        if remote_port == 0 {
+            return Err("REMOTE_PORT_REQUIRED".to_string());
+        }
+        if occupied_ports.contains(&remote_port) {
+            return Err(format!("REMOTE_PORT_OCCUPIED:{remote_port}"));
+        }
 
         self.request_if_connected_for(
             &server_id,
@@ -1542,7 +1629,8 @@ impl ClientRuntimeState {
             .await
         {
             let message = explain_server_control_error(&error);
-            self.record_server_control_failure(&message).await;
+            self.record_server_control_failure_for(&server_id, &message)
+                .await;
             self.record_tunnel_start_failure(&tunnel_id, &message).await;
             return Err(message);
         }
@@ -1592,8 +1680,25 @@ impl ClientRuntimeState {
         self.ensure_tunnel_exists(&tunnel_id).await?;
         let server_id = self.tunnel_server_id(&tunnel_id).await?;
         self.shutdown_local_tunnel(&tunnel_id).await?;
-        self.request_required_for(&server_id, Command::TunnelStop, json!({ "id": tunnel_id }))
-            .await?;
+        if self
+            .server_connections
+            .lock()
+            .await
+            .contains_key(&server_id)
+        {
+            if let Err(error) = self
+                .request_required_for(
+                    &server_id,
+                    Command::TunnelStop,
+                    json!({ "id": tunnel_id }),
+                )
+                .await
+            {
+                tracing::warn!(
+                    "server tunnel stop skipped because control connection is unavailable: {error}"
+                );
+            }
+        }
 
         let mut inner = self.inner.lock().await;
         let name = if let Some(tunnel) = inner.tunnels.get_mut(&tunnel_id) {
@@ -2000,35 +2105,34 @@ impl ClientRuntimeState {
     }
 
     pub async fn recover_after_startup(&self) -> Result<Option<String>, String> {
-        let should_recover = {
-            let mut inner = self.inner.lock().await;
-            if inner.active_server_id.is_none() {
-                let auto_server_id = inner
-                    .servers
-                    .iter()
-                    .find(|(_, server)| server.auto_connect)
-                    .map(|(id, _)| id.clone());
-                inner.active_server_id = auto_server_id;
-            }
-
-            let Some(server_id) = inner.active_server_id.clone() else {
-                return Ok(None);
-            };
-            let Some(server) = inner.servers.get(&server_id) else {
-                inner.active_server_id = None;
-                return Ok(None);
-            };
-
-            server.auto_connect || matches!(server.status.as_str(), "recovering" | "connected")
+        let server_ids = {
+            let inner = self.inner.lock().await;
+            inner
+                .servers
+                .iter()
+                .filter(|(_, server)| server.auto_connect)
+                .map(|(id, _)| id.clone())
+                .collect::<Vec<_>>()
         };
 
-        if !should_recover {
+        if server_ids.is_empty() {
             return Ok(None);
         }
 
-        self.restore_active_server_with_backoff(&default_reconnect_delays())
-            .await
-            .map(Some)
+        let mut last_session = None;
+        for server_id in server_ids {
+            match self
+                .restore_server_with_backoff(&server_id, &default_reconnect_delays())
+                .await
+            {
+                Ok(session_id) => last_session = Some(session_id),
+                Err(error) => {
+                    tracing::warn!("startup recovery failed for server `{server_id}`: {error}");
+                }
+            }
+        }
+
+        Ok(last_session)
     }
 
     async fn shutdown_local_tunnel(&self, tunnel_id: &str) -> Result<(), String> {
@@ -2090,30 +2194,42 @@ impl ClientRuntimeState {
         let _ = persist_runtime(&self.storage_path, &inner);
     }
 
-    async fn record_server_control_failure(&self, reason: &str) {
+    async fn record_server_control_failure_for(&self, server_id: &str, reason: &str) {
         let transport = {
+            let transport = self
+                .server_connections
+                .lock()
+                .await
+                .remove(server_id)
+                .map(|connection| connection.transport);
             let mut inner = self.inner.lock().await;
-            let active_server_id = inner.active_server_id.take();
-            if let Some(server_id) = active_server_id.as_deref() {
-                if let Some(server) = inner.servers.get_mut(server_id) {
-                    server.status = "error".to_string();
-                    server.last_error = Some(reason.to_string());
-                    server.session_id = None;
-                    server.updated_at = Utc::now().timestamp_millis();
-                }
+            if let Some(server) = inner.servers.get_mut(server_id) {
+                server.status = "error".to_string();
+                server.last_error = Some(reason.to_string());
+                server.session_id = None;
+                server.updated_at = Utc::now().timestamp_millis();
             }
-            inner.connected = false;
-            inner.session_id = None;
-            inner.server_addr = None;
             inner.counters.disconnect_total = inner.counters.disconnect_total.saturating_add(1);
             inner.log("error", "server", reason);
-            let transport = inner.transport.take();
+            self.sync_primary_from_connections_locked(&mut inner)
+                .await;
             let _ = persist_runtime(&self.storage_path, &inner);
             transport
         };
 
         if let Some(transport) = transport {
             let _ = transport.disconnect().await;
+        }
+    }
+
+    async fn record_server_control_failure(&self, reason: &str) {
+        let active_server_id = {
+            let inner = self.inner.lock().await;
+            inner.active_server_id.clone()
+        };
+        if let Some(server_id) = active_server_id {
+            self.record_server_control_failure_for(&server_id, reason)
+                .await;
         }
     }
 
@@ -2288,6 +2404,73 @@ impl ClientRuntimeState {
         }
         let response = self.request_for(server_id, command, body).await?;
         ensure_ok(&response)
+    }
+
+    async fn verify_server_connection(&self, server_id: &str) -> bool {
+        let transport = self
+            .server_connections
+            .lock()
+            .await
+            .get(server_id)
+            .map(|connection| connection.transport.clone());
+        let Some(transport) = transport else {
+            return false;
+        };
+
+        let payload = self.heartbeat_payload_for(server_id).await;
+        match send_request(&transport, Command::HeartbeatPing, payload).await {
+            Ok(response) => ensure_ok(&response).is_ok(),
+            Err(_) => false,
+        }
+    }
+
+    async fn verify_server_connections(&self) {
+        let server_ids: Vec<String> = self
+            .server_connections
+            .lock()
+            .await
+            .keys()
+            .cloned()
+            .collect();
+
+        for server_id in server_ids {
+            if !self.verify_server_connection(&server_id).await {
+                self.record_server_control_failure_for(
+                    &server_id,
+                    "connection health check failed: server is unreachable",
+                )
+                .await;
+            }
+        }
+    }
+
+    async fn sync_primary_from_connections_locked(&self, inner: &mut RuntimeInner) {
+        let connections = self.server_connections.lock().await;
+        inner.connected = !connections.is_empty();
+        if connections.is_empty() {
+            inner.transport = None;
+            inner.session_id = None;
+            inner.server_addr = None;
+            inner.active_server_id = None;
+            return;
+        }
+
+        let primary_id = inner
+            .active_server_id
+            .clone()
+            .filter(|id| connections.contains_key(id))
+            .or_else(|| connections.keys().next().cloned());
+
+        if let Some(primary_id) = primary_id {
+            if let Some(connection) = connections.get(&primary_id) {
+                inner.transport = Some(connection.transport.clone());
+                inner.session_id = Some(connection.session_id.clone());
+            }
+            inner.active_server_id = Some(primary_id.clone());
+            if let Some(server) = inner.servers.get(&primary_id) {
+                inner.server_addr = Some(format!("{}:{}", server.host, server.port));
+            }
+        }
     }
 
     async fn request_required_for(
@@ -2824,20 +3007,28 @@ fn mark_restored_runtime_inactive(inner: &mut RuntimeInner) {
     inner.server_addr = None;
     inner.session_id = None;
     inner.active_server_id = None;
+    deactivate_persisted_servers(&mut inner.servers, "BACKUP_RESTORED_MANUAL_RECONNECT");
+    deactivate_persisted_tunnels(&mut inner.tunnels);
+}
 
-    for server in inner.servers.values_mut() {
+fn deactivate_persisted_servers(servers: &mut BTreeMap<String, ServerRecord>, reason: &str) {
+    let now = Utc::now().timestamp_millis();
+    for server in servers.values_mut() {
         if matches!(
             server.status.as_str(),
             "connected" | "connecting" | "recovering"
         ) {
             server.status = "disconnected".to_string();
             server.session_id = None;
-            server.last_error = Some("BACKUP_RESTORED_MANUAL_RECONNECT".to_string());
-            server.updated_at = Utc::now().timestamp_millis();
+            server.last_error = Some(reason.to_string());
+            server.updated_at = now;
         }
     }
+}
 
-    for tunnel in inner.tunnels.values_mut() {
+fn deactivate_persisted_tunnels(tunnels: &mut BTreeMap<String, TunnelRecord>) {
+    let now = Utc::now().timestamp_millis();
+    for tunnel in tunnels.values_mut() {
         if matches!(
             tunnel.status.as_str(),
             "running" | "starting" | "restarting" | "stopping" | "recovering"
@@ -2847,7 +3038,7 @@ fn mark_restored_runtime_inactive(inner: &mut RuntimeInner) {
             tunnel.download_speed_bps = 0.0;
             tunnel.connections = 0;
             tunnel.started_at = None;
-            tunnel.updated_at = Utc::now().timestamp_millis();
+            tunnel.updated_at = now;
         }
     }
 }
@@ -4322,12 +4513,13 @@ mod tests {
                 updated_at: now,
             },
         );
-        inner.active_server_id = Some(server_id);
+        inner.active_server_id = Some(server_id.clone());
         inner.session_id = Some(previous_session_id.clone());
         inner.connected = false;
 
         let mut tunnel =
             test_tunnel_record("tcp", target_addr.port(), unused_loopback_port().await?);
+        tunnel.server_id = Some(server_id);
         tunnel.status = "running".to_string();
         tunnel.started_at = Some(now);
         inner.tunnels.insert(tunnel.id.clone(), tunnel);

@@ -33,6 +33,9 @@ export function useServer() {
     totalTraffic,
     totalUploadSpeed,
     totalDownloadSpeed,
+    activeServerId,
+    connectedServerIds,
+    recoveryInProgress,
   } = storeToRefs(store)
 
   async function loadData() {
@@ -112,6 +115,7 @@ export function useServer() {
     totalTraffic,
     totalUploadSpeed,
     totalDownloadSpeed,
+    recoveryInProgress,
     // methods
     getById,
     loadData,
