@@ -3,6 +3,15 @@ use tauri::State;
 
 use crate::commands::error::{AppError, CommandResult};
 use crate::runtime::{ClientRuntimeState, UpdateTunnelRequest};
+use crate::tunnel_performance::TunnelPerformanceRecommendation;
+
+#[tauri::command]
+pub async fn tunnel_recommend_performance(
+    state: State<'_, ClientRuntimeState>,
+    mode: Option<String>,
+) -> CommandResult<TunnelPerformanceRecommendation> {
+    Ok(state.recommend_tunnel_performance(mode).await)
+}
 
 #[tauri::command]
 pub async fn create_tunnel(

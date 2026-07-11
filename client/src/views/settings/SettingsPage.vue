@@ -199,6 +199,17 @@ import { useFeedback } from '@composables/useFeedback'
 import { useLocaleSwitcher } from '@composables/useLocaleSwitcher'
 import { useThemeStore } from '@stores'
 import { isTauri } from '@tauri-apps/api/core'
+
+interface TunnelPerformanceRecommendation {
+  mode: string
+  effectiveMode: string
+  relayWorkers: number
+  maxConnections: number
+  relayWorkerWaitMs: number
+  cpuCores: number
+  memoryGb: number
+  reason: string
+}
 import { save } from '@tauri-apps/plugin-dialog'
 import { TauriIpcClient } from '@/ipc'
 import { backupService, type BackupPreview } from '@/services'
@@ -402,6 +413,33 @@ const categories: SettingCategory[] = [
           },
         ],
       },
+      {
+        titleKey: 'settings.polish.tunnelPerformance.title',
+        descriptionKey: 'settings.polish.tunnelPerformance.description',
+        items: [
+          {
+            key: 'tunnel.performance.mode',
+            labelKey: 'settings.polish.tunnelPerformance.modeLabel',
+            descriptionKey: 'settings.polish.tunnelPerformance.modeDescription',
+            control: 'select',
+            value: 'auto',
+            options: [
+              option('settings.polish.tunnelPerformance.modeAuto', 'auto'),
+              option('settings.polish.tunnelPerformance.modeConservative', 'conservative'),
+              option('settings.polish.tunnelPerformance.modeBalanced', 'balanced'),
+              option('settings.polish.tunnelPerformance.modeHigh', 'high'),
+              option('settings.polish.tunnelPerformance.modeUnlimited', 'unlimited'),
+            ],
+          },
+          {
+            key: 'tunnelPerformancePreview',
+            labelKey: 'settings.polish.tunnelPerformance.previewLabel',
+            descriptionKey: 'settings.polish.tunnelPerformance.previewDescription',
+            control: 'readonly',
+            value: '-',
+          },
+        ],
+      },
     ],
   },
   {
@@ -527,7 +565,15 @@ const defaultValues = { ...values }
 
 onMounted(async () => {
   await hydrateSettingsFromRuntime()
+  await refreshPerformanceRecommendation()
 })
+
+watch(
+  () => values['tunnel.performance.mode'],
+  () => {
+    void refreshPerformanceRecommendation()
+  },
+)
 
 watch(
   values,
@@ -606,6 +652,24 @@ watch(visibleCategories, (list) => {
     activeCategory.value = list[0]?.id ?? 'general'
   }
 })
+
+async function refreshPerformanceRecommendation() {
+  if (!isTauri()) return
+  try {
+    const mode = String(values['tunnel.performance.mode'] ?? 'auto')
+    const recommendation = await ipc.invoke<TunnelPerformanceRecommendation>(
+      'tunnel_recommend_performance',
+      { mode },
+    )
+    values.tunnelPerformancePreview = t('settings.polish.tunnelPerformance.previewValue', {
+      workers: recommendation.relayWorkers,
+      connections: recommendation.maxConnections,
+      mode: recommendation.effectiveMode,
+    })
+  } catch {
+    values.tunnelPerformancePreview = '-'
+  }
+}
 
 async function hydrateSettingsFromRuntime() {
   hydrating = true
@@ -830,12 +894,14 @@ function handleImportFile(event: Event) {
 async function persistAllSettings() {
   try {
     await Promise.all(
-      Object.entries(values).map(([key, value]) =>
-        ipc.invoke<void>('set_config', {
-          key,
-          value: JSON.stringify(value),
-        }),
-      ),
+      Object.entries(values)
+        .filter(([key]) => key !== 'tunnelPerformancePreview')
+        .map(([key, value]) =>
+          ipc.invoke<void>('set_config', {
+            key,
+            value: JSON.stringify(value),
+          }),
+        ),
     )
   } catch (err) {
     toast.error(errorMessage(err, t('settings.notifications.saveFailed')))

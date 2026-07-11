@@ -43,11 +43,14 @@ use uuid::Uuid;
 use crate::discovery::{
     diagnose_start_failure, local_port_discovery, local_service_discovery, probe_local_service,
 };
+use crate::tunnel_performance::{
+    self, recommend_tunnel_performance, resolve_tunnel_performance, TunnelPerformanceRecommendation,
+    CONFIG_KEY_MODE,
+};
 use crate::utils::app_data_dir;
 
 const STORE_VERSION: u32 = 1;
 const MAX_LOGS: usize = 500;
-const RELAY_WORKERS_PER_TUNNEL: usize = 4;
 const RECONNECT_DELAYS_SECS: [u64; 6] = [1, 2, 5, 10, 30, 60];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,6 +79,9 @@ pub struct UpdateTunnelRequest {
     pub remote_port: Option<u16>,
     pub host: Option<String>,
     pub path: Option<String>,
+    pub performance_mode: Option<String>,
+    pub relay_workers: Option<u32>,
+    pub max_connections: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +139,12 @@ struct TunnelRecord {
     certificate_expire_days: Option<i64>,
     #[serde(default)]
     certificate_issuer: Option<String>,
+    #[serde(default)]
+    performance_mode: Option<String>,
+    #[serde(default)]
+    relay_workers: Option<u32>,
+    #[serde(default)]
+    max_connections: Option<u64>,
     recent_requests: Vec<HttpRequestRecord>,
 }
 
@@ -594,6 +606,7 @@ pub struct ClientRuntimeState {
     inner: Mutex<RuntimeInner>,
     local_tunnels: Mutex<BTreeMap<String, LocalTunnelRuntime>>,
     server_connections: Mutex<BTreeMap<String, ServerConnectionRuntime>>,
+    control_io_lock: Mutex<()>,
 }
 
 impl Default for ClientRuntimeState {
@@ -613,6 +626,7 @@ impl Default for ClientRuntimeState {
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
             server_connections: Mutex::new(BTreeMap::new()),
+            control_io_lock: Mutex::new(()),
         }
     }
 }
@@ -773,6 +787,10 @@ impl ClientRuntimeState {
         })
     }
 
+    pub async fn has_active_server_connections(&self) -> bool {
+        !self.server_connections.lock().await.is_empty()
+    }
+
     pub async fn create_server(&self, request: CreateServerRequest) -> Result<String, String> {
         let now = Utc::now().timestamp_millis();
         let host = normalize_host(&request.host)?;
@@ -917,7 +935,7 @@ impl ClientRuntimeState {
                     .map(|connection| connection.session_id.clone())
                     .unwrap_or_default());
             }
-            self.record_server_control_failure_for(
+            self.record_control_disconnect_for(
                 &server_id,
                 "stale connection detected; reconnecting",
             )
@@ -1085,11 +1103,19 @@ impl ClientRuntimeState {
                     .await
                     .contains_key(&server_id);
                 if was_connected {
-                    self.record_server_control_failure_for(
+                    self.record_control_disconnect_for(
                         &server_id,
                         &format!("server connection test failed: {error}"),
                     )
                     .await;
+                    if let Err(recovery_error) = self
+                        .restore_server_with_backoff(&server_id, &default_reconnect_delays())
+                        .await
+                    {
+                        tracing::warn!(
+                            "control recovery after connection test failed: {recovery_error}"
+                        );
+                    }
                 } else {
                     let mut inner = self.inner.lock().await;
                     if let Some(server) = inner.servers.get_mut(&server_id) {
@@ -1352,9 +1378,11 @@ impl ClientRuntimeState {
             .await?;
 
         let mut last_error = None;
-        for delay in delays {
-            tokio::select! {
-                _ = sleep(*delay) => {}
+        for (attempt, delay) in delays.iter().enumerate() {
+            if attempt > 0 {
+                tokio::select! {
+                    _ = sleep(*delay) => {}
+                }
             }
 
             match establish_connection_with_session(
@@ -1458,6 +1486,7 @@ impl ClientRuntimeState {
             );
             persist_runtime(&self.storage_path, &inner)?;
         }
+        let global_config = self.inner.lock().await.config.clone();
         self.server_connections.lock().await.insert(
             server_id.clone(),
             ServerConnectionRuntime {
@@ -1470,10 +1499,17 @@ impl ClientRuntimeState {
             self.request_required_for(
                 &server_id,
                 Command::TunnelRegister,
-                tunnel_control_payload(&tunnel),
+                tunnel_control_payload(&tunnel, &global_config),
             )
             .await?;
-            match start_remote_tunnel_runtime(&tunnel, &server_addr, &token, &session_id).await {
+            match start_remote_tunnel_runtime(
+                &tunnel,
+                &global_config,
+                &server_addr,
+                &token,
+                &session_id,
+            )
+            .await {
                 Ok(runtime) => {
                     self.local_tunnels
                         .lock()
@@ -1598,6 +1634,9 @@ impl ClientRuntimeState {
                 certificate_status: None,
                 certificate_expire_days: None,
                 certificate_issuer: None,
+                performance_mode: None,
+                relay_workers: None,
+                max_connections: None,
                 recent_requests: Vec::new(),
             },
         );
@@ -1612,6 +1651,7 @@ impl ClientRuntimeState {
         self.ensure_tunnel_exists(&tunnel_id).await?;
         let (tunnel, server_id, server_addr, token, session_id) =
             self.active_relay_context(&tunnel_id).await?;
+        let global_config = self.inner.lock().await.config.clone();
         if let Err(error) = self.ensure_connected_server_for(&server_id).await {
             self.record_tunnel_start_failure(&tunnel_id, &error).await;
             return Err(error);
@@ -1634,7 +1674,7 @@ impl ClientRuntimeState {
             .request_required_for(
                 &server_id,
                 Command::TunnelStart,
-                tunnel_control_payload(&tunnel),
+                tunnel_control_payload(&tunnel, &global_config),
             )
             .await
         {
@@ -1646,7 +1686,14 @@ impl ClientRuntimeState {
         }
 
         if !self.local_tunnels.lock().await.contains_key(&tunnel_id) {
-            match start_remote_tunnel_runtime(&tunnel, &server_addr, &token, &session_id).await {
+            match start_remote_tunnel_runtime(
+                &tunnel,
+                &global_config,
+                &server_addr,
+                &token,
+                &session_id,
+            )
+            .await {
                 Ok(runtime) => {
                     self.local_tunnels
                         .lock()
@@ -1780,6 +1827,15 @@ impl ClientRuntimeState {
             if let Some(path) = patch.path {
                 tunnel.path = Some(normalize_http_path(&path));
             }
+            if let Some(performance_mode) = patch.performance_mode {
+                tunnel.performance_mode = Some(performance_mode);
+            }
+            if let Some(relay_workers) = patch.relay_workers {
+                tunnel.relay_workers = Some(relay_workers.max(1));
+            }
+            if let Some(max_connections) = patch.max_connections {
+                tunnel.max_connections = Some(max_connections.max(1));
+            }
             if matches!(tunnel.protocol.as_str(), "http" | "https") {
                 tunnel.remote_port =
                     normalize_http_tunnel_port(&tunnel.protocol, tunnel.remote_port);
@@ -1795,11 +1851,13 @@ impl ClientRuntimeState {
                 .clone()
                 .or(fallback_server_id)
                 .ok_or_else(|| "SERVER_REQUIRED_FOR_TUNNEL".to_string())?;
-            let control_payload = tunnel_control_payload(tunnel);
+            let updated_tunnel = tunnel.clone();
+            let global_config = inner.config.clone();
             inner.sync_domain_index_for_tunnel(&tunnel_id);
             sync_runtime_domains(&self.domain_repository, &inner.domains)?;
             inner.log("info", "tunnel", "tunnel configuration updated");
             persist_runtime(&self.storage_path, &inner)?;
+            let control_payload = tunnel_control_payload(&updated_tunnel, &global_config);
             (server_id, control_payload)
         };
 
@@ -1892,6 +1950,17 @@ impl ClientRuntimeState {
     pub async fn config(&self) -> Value {
         let inner = self.inner.lock().await;
         json!(&inner.config)
+    }
+
+    pub async fn recommend_tunnel_performance(
+        &self,
+        mode: Option<String>,
+    ) -> TunnelPerformanceRecommendation {
+        let inner = self.inner.lock().await;
+        let selected_mode = mode.or_else(|| inner.config.get(CONFIG_KEY_MODE).cloned());
+        recommend_tunnel_performance(tunnel_performance::parse_performance_mode(
+            selected_mode.as_deref(),
+        ))
     }
 
     pub async fn set_config(&self, key: String, value: String) -> Result<(), String> {
@@ -2440,6 +2509,7 @@ impl ClientRuntimeState {
     }
 
     async fn verify_server_connection(&self, server_id: &str) -> bool {
+        let _io_guard = self.control_io_lock.lock().await;
         let transport = self
             .server_connections
             .lock()
@@ -2467,12 +2537,32 @@ impl ClientRuntimeState {
             .collect();
 
         for server_id in server_ids {
-            if !self.verify_server_connection(&server_id).await {
-                self.record_server_control_failure_for(
-                    &server_id,
-                    "connection health check failed: server is unreachable",
-                )
-                .await;
+            let already_recovering = {
+                let inner = self.inner.lock().await;
+                inner
+                    .servers
+                    .get(&server_id)
+                    .map(|server| server.status == "recovering")
+                    .unwrap_or(false)
+            };
+            if already_recovering {
+                continue;
+            }
+
+            if self.verify_server_connection(&server_id).await {
+                continue;
+            }
+
+            self.record_control_disconnect_for(
+                &server_id,
+                "connection health check failed; starting control recovery",
+            )
+            .await;
+            if let Err(error) = self
+                .restore_server_with_backoff(&server_id, &default_reconnect_delays())
+                .await
+            {
+                tracing::warn!("control recovery after health check failed: {error}");
             }
         }
     }
@@ -2538,6 +2628,7 @@ impl ClientRuntimeState {
         command: Command,
         body: Value,
     ) -> Result<Value, String> {
+        let _io_guard = self.control_io_lock.lock().await;
         let transport = {
             {
                 let mut inner = self.inner.lock().await;
@@ -2619,6 +2710,7 @@ async fn start_local_tunnel_runtime(tunnel: &TunnelRecord) -> Result<LocalTunnel
 
 async fn start_remote_tunnel_runtime(
     tunnel: &TunnelRecord,
+    global_config: &BTreeMap<String, String>,
     server_addr: &str,
     token: &str,
     session_id: &str,
@@ -2634,7 +2726,13 @@ async fn start_remote_tunnel_runtime(
         Ordering::Relaxed,
     );
 
-    let worker_count = relay_workers_per_tunnel();
+    let worker_count = resolve_tunnel_performance(
+        tunnel.performance_mode.as_deref(),
+        tunnel.relay_workers,
+        tunnel.max_connections,
+        global_config,
+    )
+    .relay_workers;
     let mut tasks = Vec::with_capacity(worker_count);
     for worker_id in 0..worker_count {
         let config = RelayWorkerConfig {
@@ -2940,6 +3038,7 @@ fn default_config() -> BTreeMap<String, String> {
     config.insert("authentication.required".to_string(), "true".to_string());
     config.insert("heartbeat.interval_ms".to_string(), "15000".to_string());
     config.insert("network.transport".to_string(), "tcp".to_string());
+    config.insert(CONFIG_KEY_MODE.to_string(), "auto".to_string());
     config
 }
 
@@ -2961,15 +3060,6 @@ fn default_reconnect_delays() -> Vec<Duration> {
         .copied()
         .map(Duration::from_secs)
         .collect()
-}
-
-fn relay_workers_per_tunnel() -> usize {
-    env::var("GATE_RELAY_WORKERS_PER_TUNNEL")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .map(|value| value.clamp(1, 4096))
-        .unwrap_or(RELAY_WORKERS_PER_TUNNEL)
 }
 
 fn reconnect_delay(attempt: usize) -> Duration {
@@ -3562,7 +3652,13 @@ fn ensure_ok(response: &Value) -> Result<(), String> {
     Err(response.to_string())
 }
 
-fn tunnel_control_payload(tunnel: &TunnelRecord) -> Value {
+fn tunnel_control_payload(tunnel: &TunnelRecord, global_config: &BTreeMap<String, String>) -> Value {
+    let performance = resolve_tunnel_performance(
+        tunnel.performance_mode.as_deref(),
+        tunnel.relay_workers,
+        tunnel.max_connections,
+        global_config,
+    );
     json!({
         "id": &tunnel.id,
         "tunnelId": &tunnel.id,
@@ -3573,9 +3669,15 @@ fn tunnel_control_payload(tunnel: &TunnelRecord) -> Value {
         "localPort": tunnel.local_port,
         "host": &tunnel.host,
         "path": &tunnel.path,
+        "runtime": {
+            "maxConnections": performance.max_connections,
+            "relayWorkerWaitMs": performance.relay_worker_wait_ms,
+        },
         "metadata": {
             "createdAt": tunnel.created_at,
-            "updatedAt": tunnel.updated_at
+            "updatedAt": tunnel.updated_at,
+            "relayWorkers": performance.relay_workers,
+            "performanceMode": tunnel.performance_mode.as_deref().unwrap_or("auto"),
         }
     })
 }
@@ -4621,6 +4723,7 @@ mod tests {
             server_connections: Mutex::new(BTreeMap::new()),
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
+            control_io_lock: Mutex::new(()),
         };
 
         let restored_session = runtime
@@ -4681,6 +4784,9 @@ mod tests {
             certificate_status: None,
             certificate_expire_days: None,
             certificate_issuer: None,
+            performance_mode: None,
+            relay_workers: None,
+            max_connections: None,
             recent_requests: Vec::new(),
         }
     }

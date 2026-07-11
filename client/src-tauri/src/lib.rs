@@ -6,6 +6,7 @@ pub mod native;
 pub mod project;
 pub mod runtime;
 pub mod tray;
+pub mod tunnel_performance;
 pub mod updater;
 pub mod utils;
 pub mod windows;
@@ -52,6 +53,19 @@ pub fn run() -> Result<()> {
                     tracing::warn!("启动恢复失败: {error}");
                 }
             });
+            let heartbeat_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use std::time::Duration;
+                loop {
+                    tokio::time::sleep(Duration::from_secs(30)).await;
+                    let state = heartbeat_handle.state::<runtime::ClientRuntimeState>();
+                    if state.has_active_server_connections().await {
+                        if let Err(error) = state.heartbeat().await {
+                            tracing::warn!("control heartbeat failed: {error}");
+                        }
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -77,6 +91,7 @@ pub fn run() -> Result<()> {
             commands::tunnel::restart_tunnel,
             commands::tunnel::edit_tunnel,
             commands::tunnel::delete_tunnel,
+            commands::tunnel::tunnel_recommend_performance,
             commands::certificate::certificate_list,
             commands::certificate::certificate_detail,
             commands::certificate::certificate_export_pem,

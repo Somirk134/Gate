@@ -66,6 +66,7 @@ const ACME_HTTP01_PREFIX: &str = "/.well-known/acme-challenge/";
 const DEFAULT_ACME_HTTP_PORT: u16 = 80;
 const DEFAULT_HTTP_PUBLIC_PORT: u16 = 8880;
 const DEFAULT_HTTPS_PUBLIC_PORT: u16 = 8443;
+const DEFAULT_RELAY_WORKER_WAIT_MS: u64 = 60_000;
 
 #[derive(Debug, Clone)]
 pub struct TunnelGateway {
@@ -164,6 +165,7 @@ struct TunnelSession {
     // Tunnel 生命周期独立于控制连接，便于断线恢复时保留运行态指标。
     lifecycle: Mutex<TunnelLifecycle>,
     relay_workers: Mutex<VecDeque<TcpStream>>,
+    relay_worker_notify: tokio::sync::Notify,
     active_connections: AtomicU64,
     total_connections: AtomicU64,
     failed_connections: AtomicU64,
@@ -208,6 +210,7 @@ struct TunnelRuntimeConfig {
     max_connections: u64,
     idle_timeout_ms: u64,
     bandwidth_limit_bps: u64,
+    relay_worker_wait_ms: u64,
 }
 
 impl Default for TunnelRuntimeConfig {
@@ -216,6 +219,7 @@ impl Default for TunnelRuntimeConfig {
             max_connections: DEFAULT_MAX_CONNECTIONS,
             idle_timeout_ms: DEFAULT_IDLE_TIMEOUT_MS,
             bandwidth_limit_bps: DEFAULT_BANDWIDTH_LIMIT_BPS,
+            relay_worker_wait_ms: DEFAULT_RELAY_WORKER_WAIT_MS,
         }
     }
 }
@@ -508,8 +512,16 @@ impl TunnelGateway {
                 continue;
             }
             if now.saturating_sub(lifecycle.last_heartbeat) > timeout_ms {
-                lifecycle.status = TunnelSessionStatus::Offline;
-                tunnel.relay_workers.lock().await.clear();
+                let has_workers = !tunnel.relay_workers.lock().await.is_empty();
+                let active = tunnel.active_connections.load(Ordering::Relaxed);
+                if has_workers || active > 0 {
+                    lifecycle.last_heartbeat = now;
+                    if lifecycle.status == TunnelSessionStatus::Offline {
+                        lifecycle.status = TunnelSessionStatus::Online;
+                    }
+                } else {
+                    lifecycle.status = TunnelSessionStatus::Offline;
+                }
             }
         }
     }
@@ -579,6 +591,7 @@ impl TunnelGateway {
                         last_heartbeat: now,
                     }),
                     relay_workers: Mutex::new(VecDeque::new()),
+                    relay_worker_notify: tokio::sync::Notify::new(),
                     active_connections: AtomicU64::new(0),
                     total_connections: AtomicU64::new(0),
                     failed_connections: AtomicU64::new(0),
@@ -681,6 +694,7 @@ impl TunnelGateway {
         };
 
         tunnel.relay_workers.lock().await.push_back(stream);
+        tunnel.relay_worker_notify.notify_one();
         self.mark_tunnel_status(tunnel_id, TunnelSessionStatus::Online)
             .await;
         Ok(())
@@ -709,12 +723,7 @@ impl TunnelGateway {
         }
 
         let lifecycle = tunnel.lifecycle.lock().await.clone();
-        if matches!(
-            lifecycle.status,
-            TunnelSessionStatus::Offline
-                | TunnelSessionStatus::Closed
-                | TunnelSessionStatus::Failed
-        ) {
+        if lifecycle.status.is_terminal() {
             return Err(anyhow::anyhow!(
                 "tunnel session is not online: {}",
                 lifecycle.status.as_str()
@@ -1674,12 +1683,28 @@ impl TunnelGateway {
     }
 
     async fn next_relay_worker(&self, tunnel: &Arc<TunnelSession>) -> anyhow::Result<TcpStream> {
-        tunnel
-            .relay_workers
-            .lock()
-            .await
-            .pop_front()
-            .ok_or_else(|| anyhow::anyhow!("no relay worker is available for tunnel"))
+        let wait_timeout = {
+            let config = tunnel.config.lock().await;
+            Duration::from_millis(config.runtime.relay_worker_wait_ms.clamp(1_000, 300_000))
+        };
+        let deadline = Instant::now() + wait_timeout;
+        loop {
+            if let Some(stream) = tunnel.relay_workers.lock().await.pop_front() {
+                return Ok(stream);
+            }
+
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(anyhow::anyhow!("no relay worker is available for tunnel"));
+            }
+
+            tokio::select! {
+                _ = tunnel.relay_worker_notify.notified() => {}
+                _ = sleep(remaining) => {
+                    return Err(anyhow::anyhow!("no relay worker is available for tunnel"));
+                }
+            }
+        }
     }
 
     async fn record_connection_error(&self, tunnel: &Arc<TunnelSession>) {
@@ -2857,6 +2882,31 @@ fn parse_runtime_config(body: &Value) -> TunnelRuntimeConfig {
         )
     }) {
         runtime.bandwidth_limit_bps = value;
+    }
+
+    if let Some(value) = json_u64_any(
+        runtime_body,
+        &[
+            "relayWorkerWaitMs",
+            "relay_worker_wait_ms",
+            "relayWorkerWait",
+            "relay_worker_wait",
+        ],
+    )
+    .or_else(|| {
+        json_u64_any(
+            body,
+            &[
+                "relayWorkerWaitMs",
+                "relay_worker_wait_ms",
+                "relayWorkerWait",
+                "relay_worker_wait",
+            ],
+        )
+    })
+    .filter(|value| *value > 0)
+    {
+        runtime.relay_worker_wait_ms = value;
     }
 
     runtime
