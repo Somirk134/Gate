@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
         meta: { titleKey: 'nav.serverDetail', icon: 'servers', keepAlive: true },
       },
       {
+        path: 'domains',
+        name: 'domains',
+        component: () => import('@views/domains/DomainsPage.vue'),
+        meta: { titleKey: 'nav.domains', icon: 'globe', keepAlive: true },
+      },
+      {
         path: 'logs',
         name: 'logs',
         component: () => import('@views/logs/LogsPage.vue'),

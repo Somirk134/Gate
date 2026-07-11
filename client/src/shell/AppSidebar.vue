@@ -23,6 +23,7 @@
         class="nav-item"
         :class="{ active: isActive(item.path) }"
         :data-onboarding-target="item.tourTarget"
+        :title="isCollapsed ? item.label : undefined"
         @click="navigate(item.path)">
         <div class="nav-icon">
           <GIcon :name="item.icon" :size="18" />
@@ -103,7 +104,13 @@ const navItems = computed(() => [
     shortcut: '',
     tourTarget: 'servers',
   },
-  { path: '/logs', label: t('nav.logs'), icon: 'logs', shortcut: '', tourTarget: 'logs' },
+  {
+    path: '/domains',
+    label: t('nav.domains'),
+    icon: 'globe',
+    shortcut: '',
+    tourTarget: 'domains',
+  },
   {
     path: '/certificates',
     label: t('nav.certificates'),
@@ -111,6 +118,7 @@ const navItems = computed(() => [
     shortcut: '',
     tourTarget: 'certificates',
   },
+  { path: '/logs', label: t('nav.logs'), icon: 'logs', shortcut: '', tourTarget: 'logs' },
   {
     path: '/help',
     label: t('nav.help'),
@@ -289,11 +297,6 @@ function openOnboarding() {
   color: var(--text-primary);
 }
 
-.app-sidebar.collapsed:not(.hovered) .onboarding-link {
-  justify-content: center;
-  padding: 0;
-}
-
 .version-info {
   display: flex;
   align-items: center;
@@ -320,9 +323,26 @@ function openOnboarding() {
 }
 
 /* ── Collapsed State ── */
+.app-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.app-sidebar.collapsed.hovered {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  z-index: var(--z-fixed);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.28);
+}
+
 .app-sidebar.collapsed:not(.hovered) .nav-item {
   justify-content: center;
-  padding: var(--space-2);
+  width: 36px;
+  height: 36px;
+  margin-inline: auto;
+  padding: 0;
 }
 
 .app-sidebar.collapsed:not(.hovered) .nav-item.active::before {
@@ -331,5 +351,22 @@ function openOnboarding() {
 
 .app-sidebar.collapsed:not(.hovered) .sidebar-logo {
   justify-content: center;
+}
+
+.app-sidebar.collapsed:not(.hovered) .sidebar-header {
+  padding-inline: var(--space-2);
+}
+
+.app-sidebar.collapsed:not(.hovered) .sidebar-footer {
+  padding-inline: var(--space-2);
+  align-items: center;
+}
+
+.app-sidebar.collapsed:not(.hovered) .onboarding-link {
+  width: 36px;
+  height: 36px;
+  margin-inline: auto;
+  justify-content: center;
+  padding: 0;
 }
 </style>

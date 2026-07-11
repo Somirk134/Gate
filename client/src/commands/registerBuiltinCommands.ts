@@ -58,6 +58,11 @@ export function registerBuiltinCommands(context: AppContext, router: Router) {
       'server',
       'gateway',
     ]),
+    navigate(router, 'navigation.domains', 'commands.navigation.domains', '/domains', 'globe', [
+      'domain',
+      'hostname',
+      'dns',
+    ]),
     navigate(router, 'navigation.logs', 'commands.navigation.logs', '/logs', 'logs', ['log']),
     navigate(router, 'navigation.settings', 'commands.navigation.settings', '/settings', 'settings', [
       'settings',

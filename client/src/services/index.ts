@@ -17,6 +17,8 @@ export type {
 } from './backup.service'
 export type { RuntimeServerList, RuntimeServerRecord } from './server.service'
 export type {
+  DiscoveryScanComplete,
+  DiscoveryScanProgress,
   LocalServiceRecord,
   PortDiscovery,
   PortRecord,
