@@ -4,29 +4,29 @@ import type { DashboardData, HealthReport, Metric, Statistics, TrafficStatistics
 
 const ipc = new TauriIpcClient()
 
-/** Client-side statistics service contract. */
+/** 客户端统计服务契约。 */
 export interface StatisticsService {
   getStatistics(): Promise<Statistics>
   getTraffic(): Promise<TrafficStatistics>
 }
 
-/** Client-side metrics service contract. */
+/** 客户端指标服务契约。 */
 export interface MetricsService {
   collect(): Promise<Metric[]>
 }
 
-/** Client-side health service contract. */
+/** 客户端健康检查服务契约。 */
 export interface HealthService {
   getHealthReport(): Promise<HealthReport>
 }
 
-/** Client-side dashboard service contract. */
+/** 客户端首页监控服务契约。 */
 export interface DashboardService {
   getDashboard(): Promise<DashboardData>
-  subscribe(listener: (data: DashboardData) => void): () => void
+  subscribe(listener: (data: DashboardData) => void, onError?: (error: unknown) => void): () => void
 }
 
-/** Client-side export service contract. */
+/** 客户端导出服务契约。 */
 export interface ExportService {
   exportJson(): Promise<string>
   exportCsv(): Promise<string>
@@ -198,23 +198,34 @@ class RuntimeHealthService implements HealthService {
 
 class RuntimeDashboardService implements DashboardService {
   private readonly listeners = new Set<(data: DashboardData) => void>()
+  private readonly errorListeners = new Set<(error: unknown) => void>()
   private timer: number | undefined
+  private inFlight: Promise<DashboardData> | undefined
 
   async getDashboard() {
     if (!isTauri()) {
       throw runtimeUnavailableError('runtime_get_dashboard')
     }
 
-    return ipc.invoke<DashboardData>('runtime_get_dashboard')
+    // 监控刷新可能来自按钮、订阅和导出；复用同一个 IPC，避免慢请求乱序覆盖新数据。
+    this.inFlight ??= ipc.invoke<DashboardData>('runtime_get_dashboard').finally(() => {
+      this.inFlight = undefined
+    })
+    return this.inFlight
   }
 
-  subscribe(listener: (data: DashboardData) => void) {
+  subscribe(listener: (data: DashboardData) => void, onError?: (error: unknown) => void) {
     this.listeners.add(listener)
-    void this.publish()
+    if (onError) {
+      this.errorListeners.add(onError)
+    }
     this.start()
 
     return () => {
       this.listeners.delete(listener)
+      if (onError) {
+        this.errorListeners.delete(onError)
+      }
       if (this.listeners.size === 0) {
         this.stop()
       }
@@ -223,15 +234,22 @@ class RuntimeDashboardService implements DashboardService {
 
   private start() {
     if (this.timer !== undefined) return
-    this.timer = window.setInterval(() => {
-      void this.publish()
-    }, 1000)
+    this.scheduleNext()
   }
 
   private stop() {
     if (this.timer === undefined) return
-    window.clearInterval(this.timer)
+    window.clearTimeout(this.timer)
     this.timer = undefined
+  }
+
+  private scheduleNext() {
+    if (this.timer !== undefined || this.listeners.size === 0) return
+    this.timer = window.setTimeout(async () => {
+      this.timer = undefined
+      await this.publish()
+      this.scheduleNext()
+    }, 1000)
   }
 
   private async publish() {
@@ -241,6 +259,7 @@ class RuntimeDashboardService implements DashboardService {
     } catch (error) {
       // 后台订阅刷新失败不能静默吞掉，避免发布环境隐藏 Runtime 断连问题。
       console.warn('监控数据后台刷新失败', error)
+      this.errorListeners.forEach((listener) => listener(error))
     }
   }
 }

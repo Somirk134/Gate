@@ -293,6 +293,19 @@ export interface DashboardVisualSummary {
   errorTotal: number
 }
 
+/** Worker 生命周期数据，直接来自客户端运行时注册表。 */
+export interface WorkerRuntimeSummary {
+  healthyWorkers: number
+  recoveringWorkers: number
+  deadWorkers: number
+  currentPool: number
+  poolUsage: number
+  attachSuccessRate: number
+  averageAttachTimeMs: number
+  reconnectCount: number
+  currentQueue: number
+}
+
 /** Unified dashboard payload consumed by Vue components. */
 export interface DashboardData {
   overview: OverviewStatistics
@@ -305,6 +318,7 @@ export interface DashboardData {
   systemHealth: HealthReport
   tunnels: DashboardTunnel[]
   recentActivity: RecentActivity[]
+  workers?: WorkerRuntimeSummary
   visualSummary?: DashboardVisualSummary
   generatedAt: number
 }

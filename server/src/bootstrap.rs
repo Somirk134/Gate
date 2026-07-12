@@ -11,6 +11,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{error, info, warn};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ServerBootstrap {
@@ -148,6 +149,16 @@ async fn handle_connection(
                     .get("tunnelId")
                     .or_else(|| body.get("id"))
                     .and_then(Value::as_str);
+                let relay_worker_id = body
+                    .get("workerId")
+                    .or_else(|| body.get("worker_id"))
+                    .and_then(|value| match value {
+                        Value::String(id) if !id.trim().is_empty() => Some(id.clone()),
+                        Value::Number(id) => Some(id.to_string()),
+                        _ => None,
+                    })
+                    // 旧客户端没有 workerId；使用唯一值避免多个 legacy worker 在注册表中互相覆盖。
+                    .unwrap_or_else(|| format!("legacy-{}", Uuid::new_v4()));
 
                 let (Some(relay_session_id), Some(relay_tunnel_id)) =
                     (relay_session_id, relay_tunnel_id)
@@ -202,7 +213,12 @@ async fn handle_connection(
                 )
                 .await?;
                 gateway
-                    .attach_relay_worker(relay_tunnel_id, relay_session_id, stream)
+                    .attach_relay_worker_with_id(
+                        relay_tunnel_id,
+                        relay_session_id,
+                        relay_worker_id,
+                        stream,
+                    )
                     .await?;
                 return Ok(());
             }

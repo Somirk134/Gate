@@ -67,6 +67,7 @@ const DEFAULT_ACME_HTTP_PORT: u16 = 80;
 const DEFAULT_HTTP_PUBLIC_PORT: u16 = 8880;
 const DEFAULT_HTTPS_PUBLIC_PORT: u16 = 8443;
 const DEFAULT_RELAY_WORKER_WAIT_MS: u64 = 60_000;
+const WORKER_WATCHDOG_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone)]
 pub struct TunnelGateway {
@@ -164,8 +165,7 @@ struct TunnelSession {
     config: Mutex<TunnelConfig>,
     // Tunnel 生命周期独立于控制连接，便于断线恢复时保留运行态指标。
     lifecycle: Mutex<TunnelLifecycle>,
-    relay_workers: Mutex<VecDeque<TcpStream>>,
-    relay_worker_notify: tokio::sync::Notify,
+    worker_registry: ServerWorkerRegistry,
     active_connections: AtomicU64,
     total_connections: AtomicU64,
     failed_connections: AtomicU64,
@@ -177,6 +177,101 @@ struct TunnelSession {
     http_errors: AtomicU64,
     http_bytes: AtomicU64,
     http_latency_ms: AtomicU64,
+    waiting_for_worker: AtomicU64,
+}
+
+#[derive(Debug)]
+struct ServerWorker {
+    worker_id: String,
+    session_id: String,
+    state: &'static str,
+    attached_at: i64,
+    last_activity: i64,
+    stream: TcpStream,
+}
+
+#[derive(Debug, Default)]
+struct ServerWorkerRegistry {
+    workers: Mutex<HashMap<String, ServerWorker>>,
+    notify: tokio::sync::Notify,
+}
+
+struct WaitingWorkerGuard<'a> {
+    counter: &'a AtomicU64,
+}
+
+impl<'a> WaitingWorkerGuard<'a> {
+    fn new(counter: &'a AtomicU64) -> Self {
+        counter.fetch_add(1, Ordering::Relaxed);
+        Self { counter }
+    }
+}
+
+impl Drop for WaitingWorkerGuard<'_> {
+    fn drop(&mut self) {
+        self.counter.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+impl ServerWorkerRegistry {
+    async fn attach(&self, worker_id: String, session_id: String, stream: TcpStream) {
+        let now = Utc::now().timestamp_millis();
+        self.workers.lock().await.insert(worker_id.clone(), ServerWorker {
+            worker_id,
+            session_id,
+            state: "idle",
+            attached_at: now,
+            last_activity: now,
+            stream,
+        });
+        self.notify.notify_one();
+    }
+
+    async fn take_next(&self) -> Option<TcpStream> {
+        // 在同一把锁内完成挑选和移除，避免两个并发请求选中同一个 worker 后
+        // 其中一个请求错过通知并无谓等待。
+        let mut workers = self.workers.lock().await;
+        let worker_id = workers.values()
+            .filter(|worker| worker.state == "idle")
+            .min_by_key(|worker| worker.last_activity)
+            .map(|worker| worker.worker_id.clone())?;
+        workers.remove(&worker_id).map(|worker| worker.stream)
+    }
+
+    async fn available_count(&self) -> usize {
+        self.workers.lock().await.values().filter(|worker| worker.state == "idle").count()
+    }
+
+    async fn clear(&self) {
+        self.workers.lock().await.clear();
+        self.notify.notify_waiters();
+    }
+
+    async fn purge_unhealthy(&self) -> usize {
+        let mut workers = self.workers.lock().await;
+        let before = workers.len();
+        workers.retain(|_, worker| {
+            // 空闲 worker 在收到 TunnelRelayStart 前不应发送任何应用数据。
+            // 这里只剔除已经断开的连接，避免把健康热连接按业务 idle timeout 批量清理。
+            let mut probe = [0_u8; 1];
+            match worker.stream.try_read(&mut probe) {
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => true,
+                Err(_) | Ok(0) => false,
+                Ok(_) => false,
+            }
+        });
+        before.saturating_sub(workers.len())
+    }
+
+    async fn snapshots(&self) -> Vec<Value> {
+        self.workers.lock().await.values().map(|worker| json!({
+            "workerId": worker.worker_id,
+            "sessionId": worker.session_id,
+            "state": worker.state,
+            "lastActivity": worker.last_activity,
+            "lastAttach": worker.attached_at
+        })).collect()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -361,6 +456,7 @@ impl TunnelGateway {
             }),
         };
         gateway.start_heartbeat_watcher();
+        gateway.start_worker_watchdog();
         gateway.start_certificate_renew_watcher();
         gateway
     }
@@ -512,7 +608,7 @@ impl TunnelGateway {
                 continue;
             }
             if now.saturating_sub(lifecycle.last_heartbeat) > timeout_ms {
-                let has_workers = !tunnel.relay_workers.lock().await.is_empty();
+                let has_workers = tunnel.worker_registry.available_count().await > 0;
                 let active = tunnel.active_connections.load(Ordering::Relaxed);
                 if has_workers || active > 0 {
                     lifecycle.last_heartbeat = now;
@@ -548,7 +644,7 @@ impl TunnelGateway {
                         lifecycle.status = TunnelSessionStatus::Recovering;
                     }
                 }
-                tunnel.relay_workers.lock().await.clear();
+                tunnel.worker_registry.clear().await;
             }
         }
     }
@@ -568,9 +664,10 @@ impl TunnelGateway {
             let mut tunnels = self.inner.tunnels.lock().await;
             if let Some(existing) = tunnels.get(&tunnel_id) {
                 let mut existing_config = existing.config.lock().await;
-                if existing_config.remote_port != config.remote_port {
+                let session_changed = existing_config.session_id != config.session_id;
+                if existing_config.remote_port != config.remote_port || session_changed {
                     stale_remote_port = Some(existing_config.remote_port);
-                    existing.relay_workers.lock().await.clear();
+                    existing.worker_registry.clear().await;
                 }
                 *existing_config = config.clone();
 
@@ -590,8 +687,7 @@ impl TunnelGateway {
                         created_at: now,
                         last_heartbeat: now,
                     }),
-                    relay_workers: Mutex::new(VecDeque::new()),
-                    relay_worker_notify: tokio::sync::Notify::new(),
+                    worker_registry: ServerWorkerRegistry::default(),
                     active_connections: AtomicU64::new(0),
                     total_connections: AtomicU64::new(0),
                     failed_connections: AtomicU64::new(0),
@@ -603,6 +699,7 @@ impl TunnelGateway {
                     http_errors: AtomicU64::new(0),
                     http_bytes: AtomicU64::new(0),
                     http_latency_ms: AtomicU64::new(0),
+                    waiting_for_worker: AtomicU64::new(0),
                 });
                 tunnels.insert(tunnel_id.clone(), session);
                 self.inner
@@ -665,7 +762,7 @@ impl TunnelGateway {
         let mut removed_listener = false;
 
         if let Some(tunnel) = tunnel {
-            tunnel.relay_workers.lock().await.clear();
+            tunnel.worker_registry.clear().await;
             {
                 let mut lifecycle = tunnel.lifecycle.lock().await;
                 lifecycle.status = TunnelSessionStatus::Closed;
@@ -684,6 +781,17 @@ impl TunnelGateway {
         session_id: &str,
         stream: TcpStream,
     ) -> anyhow::Result<()> {
+        self.attach_relay_worker_with_id(tunnel_id, session_id, Uuid::new_v4().to_string(), stream)
+            .await
+    }
+
+    pub async fn attach_relay_worker_with_id(
+        &self,
+        tunnel_id: &str,
+        session_id: &str,
+        worker_id: String,
+        stream: TcpStream,
+    ) -> anyhow::Result<()> {
         self.validate_relay_worker(tunnel_id, session_id).await?;
         let tunnel = {
             let tunnels = self.inner.tunnels.lock().await;
@@ -693,8 +801,7 @@ impl TunnelGateway {
                 .ok_or_else(|| anyhow::anyhow!("tunnel not registered"))?
         };
 
-        tunnel.relay_workers.lock().await.push_back(stream);
-        tunnel.relay_worker_notify.notify_one();
+        tunnel.worker_registry.attach(worker_id, session_id.to_string(), stream).await;
         self.mark_tunnel_status(tunnel_id, TunnelSessionStatus::Online)
             .await;
         Ok(())
@@ -757,8 +864,10 @@ impl TunnelGateway {
         for tunnel in tunnels.values() {
             let config = tunnel.config.lock().await.clone();
             let lifecycle = tunnel.lifecycle.lock().await.clone();
-            let queued_workers = tunnel.relay_workers.lock().await.len();
+            let queued_workers = tunnel.worker_registry.available_count().await;
+            let worker_details = tunnel.worker_registry.snapshots().await;
             let active_connections = tunnel.active_connections.load(Ordering::Relaxed);
+            let current_queue = tunnel.waiting_for_worker.load(Ordering::Relaxed);
             let total_connections = tunnel.total_connections.load(Ordering::Relaxed);
             let bytes_in = tunnel.bytes_in.load(Ordering::Relaxed);
             let bytes_out = tunnel.bytes_out.load(Ordering::Relaxed);
@@ -782,6 +891,8 @@ impl TunnelGateway {
                 "path": config.path.clone(),
                 "enabled": config.enabled,
                 "relayWorkers": queued_workers,
+                "workers": worker_details,
+                "currentQueue": current_queue,
                 "activeConnections": active_connections,
                 "totalConnections": total_connections,
                 "connectionsTotal": total_connections,
@@ -1688,23 +1799,26 @@ impl TunnelGateway {
             Duration::from_millis(config.runtime.relay_worker_wait_ms.clamp(1_000, 300_000))
         };
         let deadline = Instant::now() + wait_timeout;
-        loop {
-            if let Some(stream) = tunnel.relay_workers.lock().await.pop_front() {
-                return Ok(stream);
+        // 该计数是公网连接实际等待可用 Worker 的数量；用 guard 防止取消路径泄漏计数。
+        let _waiting_guard = WaitingWorkerGuard::new(&tunnel.waiting_for_worker);
+        let result = loop {
+            if let Some(stream) = tunnel.worker_registry.take_next().await {
+                break Ok(stream);
             }
 
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
-                return Err(anyhow::anyhow!("no relay worker is available for tunnel"));
+                break Err(anyhow::anyhow!("no relay worker is available for tunnel"));
             }
 
             tokio::select! {
-                _ = tunnel.relay_worker_notify.notified() => {}
+                _ = tunnel.worker_registry.notify.notified() => {}
                 _ = sleep(remaining) => {
-                    return Err(anyhow::anyhow!("no relay worker is available for tunnel"));
+                    break Err(anyhow::anyhow!("no relay worker is available for tunnel"));
                 }
             }
-        }
+        };
+        result
     }
 
     async fn record_connection_error(&self, tunnel: &Arc<TunnelSession>) {
@@ -2137,7 +2251,7 @@ impl TunnelGateway {
                 .as_deref()
                 .map(|configured| http_host_matches(configured, &normalized_host))
                 .unwrap_or(false);
-            let has_workers = !tunnel.relay_workers.lock().await.is_empty();
+            let has_workers = tunnel.worker_registry.available_count().await > 0;
             if host_matches {
                 matched.push((tunnel_id.clone(), http_path_prefix_len(config.path.as_deref())));
                 continue;
@@ -2361,14 +2475,22 @@ impl TunnelGateway {
         };
 
         for tunnel in tunnels {
-            let config = tunnel.config.lock().await.clone();
-            if config.session_id != session_id {
+            let mut config = tunnel.config.lock().await;
+            let tunnel_id = config.tunnel_id.clone();
+            let should_refresh = if registered_tunnels.is_empty() {
+                config.session_id == session_id
+            } else {
+                registered_tunnels.iter().any(|registered| registered == &tunnel_id)
+            };
+            if !should_refresh {
                 continue;
             }
-            let heartbeat_matches = registered_tunnels.is_empty()
-                || registered_tunnels
-                    .iter()
-                    .any(|registered| registered == &config.tunnel_id);
+            if config.session_id != session_id {
+                config.session_id = session_id.to_string();
+            }
+            let enabled = config.enabled;
+            drop(config);
+
             let mut lifecycle = tunnel.lifecycle.lock().await;
             if lifecycle.status.is_terminal() {
                 continue;
@@ -2376,7 +2498,7 @@ impl TunnelGateway {
             lifecycle.client_id = client_id.to_string();
             lifecycle.session_id = session_id.to_string();
             lifecycle.last_heartbeat = now;
-            lifecycle.status = if heartbeat_matches && config.enabled {
+            lifecycle.status = if enabled {
                 TunnelSessionStatus::Online
             } else {
                 TunnelSessionStatus::Recovering
@@ -2398,6 +2520,33 @@ impl TunnelGateway {
                 TunnelGateway { inner }.expire_heartbeat_timeouts().await;
             }
         });
+    }
+
+    // Worker 连接空闲时只探测断开或异常状态，避免损坏连接滞留到下一次公网请求。
+    fn start_worker_watchdog(&self) {
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        let inner = Arc::downgrade(&self.inner);
+        handle.spawn(async move {
+            loop {
+                sleep(WORKER_WATCHDOG_INTERVAL).await;
+                let Some(inner) = inner.upgrade() else {
+                    break;
+                };
+                TunnelGateway { inner }.purge_stale_workers().await;
+            }
+        });
+    }
+
+    async fn purge_stale_workers(&self) {
+        let tunnels = self.inner.tunnels.lock().await.values().cloned().collect::<Vec<_>>();
+        for tunnel in tunnels {
+            let removed = tunnel.worker_registry.purge_unhealthy().await;
+            if removed > 0 {
+                warn!(target: "gate_data_plane", removed, "已清理空闲或失效的 relay worker");
+            }
+        }
     }
 
     fn start_certificate_renew_watcher(&self) {
@@ -3611,6 +3760,55 @@ mod tests {
         let text = std::str::from_utf8(&rewritten).expect("utf8");
         assert!(text.starts_with("GET / HTTP/1.1\r\n"));
         assert!(text.contains("Host: maven666.top"));
+    }
+
+    #[tokio::test]
+    async fn worker_registry_dispatches_idle_worker_once() -> anyhow::Result<()> {
+        let registry = ServerWorkerRegistry::default();
+        let (worker, _peer) = tcp_pair().await?;
+        registry
+            .attach("worker-1".to_string(), "session-1".to_string(), worker)
+            .await;
+
+        assert_eq!(registry.available_count().await, 1);
+        assert!(registry.take_next().await.is_some());
+        assert_eq!(registry.available_count().await, 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn session_reregistration_removes_workers_from_previous_session() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let tunnel_id = "session-worker-test";
+        let remote_port = unused_loopback_port().await?;
+        let first_session = gateway.create_session().await;
+        gateway
+            .register_tunnel(&first_session, &tunnel_body(tunnel_id, remote_port, 18080))
+            .await?;
+        let (worker, _peer) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker_with_id(
+                tunnel_id,
+                &first_session,
+                "worker-1".to_string(),
+                worker,
+            )
+            .await?;
+
+        let second_session = gateway.create_session().await;
+        gateway
+            .register_tunnel(&second_session, &tunnel_body(tunnel_id, remote_port, 18080))
+            .await?;
+        let tunnel = gateway
+            .inner
+            .tunnels
+            .lock()
+            .await
+            .get(tunnel_id)
+            .cloned()
+            .expect("registered tunnel");
+        assert_eq!(tunnel.worker_registry.available_count().await, 0);
+        Ok(())
     }
 
     #[tokio::test]

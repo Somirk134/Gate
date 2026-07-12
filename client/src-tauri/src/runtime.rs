@@ -34,7 +34,7 @@ use sysinfo::{Disks, System};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
-    sync::{watch, Mutex},
+    sync::{watch, Mutex, RwLock},
     task::JoinHandle,
     time::sleep,
 };
@@ -52,6 +52,11 @@ use crate::utils::app_data_dir;
 const STORE_VERSION: u32 = 1;
 const MAX_LOGS: usize = 500;
 const RECONNECT_DELAYS_SECS: [u64; 6] = [1, 2, 5, 10, 30, 60];
+const HEARTBEAT_RECONNECT_DELAYS_SECS: [u64; 4] = [0, 1, 2, 5];
+const WORKER_SUPERVISOR_INTERVAL: Duration = Duration::from_secs(5);
+const DEFAULT_MINIMUM_RELAY_WORKERS: usize = 8;
+const RELAY_ATTACH_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const RELAY_ATTACH_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RuntimeLog {
@@ -267,6 +272,7 @@ struct RelayTunnelRuntime {
     shutdown: watch::Sender<bool>,
     tasks: Vec<JoinHandle<()>>,
     stats: Arc<RelayTunnelStats>,
+    session: Arc<RwLock<RelaySessionContext>>,
 }
 
 #[derive(Clone)]
@@ -286,15 +292,188 @@ struct RelayTunnelStats {
 }
 
 #[derive(Debug, Clone)]
+struct RelaySessionContext {
+    session_id: String,
+}
+
+#[derive(Debug, Clone)]
 struct RelayWorkerConfig {
     worker_id: usize,
     server_host: String,
     server_port: u16,
     token: String,
-    session_id: String,
+    session: Arc<RwLock<RelaySessionContext>>,
     tunnel_id: String,
     protocol: String,
     target_addr: SocketAddr,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RelayWorkerPoolConfig {
+    minimum: usize,
+    maximum: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RelayWorkerSnapshot {
+    worker_id: String,
+    tunnel_id: String,
+    state: String,
+    alive: bool,
+    ready: bool,
+    healthy: bool,
+    session_id: String,
+    last_heartbeat: i64,
+    last_attach: Option<i64>,
+    last_serve: Option<i64>,
+    last_activity: i64,
+    bytes_in: u64,
+    bytes_out: u64,
+    failure_count: u64,
+    success_count: u64,
+    reconnect_count: u64,
+    latency_ms: Option<u64>,
+    attach_failures: u64,
+    attach_failure_count: u64,
+    last_attach_success: Option<i64>,
+    last_successful_attach: Option<i64>,
+    attach_latency_ms: Option<u64>,
+    last_attach_error: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct RelayWorkerRegistry {
+    workers: Mutex<BTreeMap<String, RelayWorkerSnapshot>>,
+}
+
+impl RelayWorkerRegistry {
+    async fn register(&self, worker_id: String, tunnel_id: String, session_id: String) {
+        let now = Utc::now().timestamp_millis();
+        self.workers.lock().await.insert(worker_id.clone(), RelayWorkerSnapshot {
+            worker_id,
+            tunnel_id,
+            state: "initializing".to_string(),
+            alive: true,
+            ready: false,
+            healthy: false,
+            session_id,
+            last_heartbeat: now,
+            last_attach: None,
+            last_serve: None,
+            last_activity: now,
+            bytes_in: 0,
+            bytes_out: 0,
+            failure_count: 0,
+            success_count: 0,
+            reconnect_count: 0,
+            latency_ms: None,
+            attach_failures: 0,
+            attach_failure_count: 0,
+            last_attach_success: None,
+            last_successful_attach: None,
+            attach_latency_ms: None,
+            last_attach_error: None,
+        });
+    }
+
+    async fn update(&self, worker_id: &str, update: impl FnOnce(&mut RelayWorkerSnapshot)) {
+        if let Some(worker) = self.workers.lock().await.get_mut(worker_id) {
+            update(worker);
+            worker.last_activity = Utc::now().timestamp_millis();
+        }
+    }
+
+    async fn update_tunnel_session(&self, tunnel_id: &str, session_id: &str) {
+        let now = Utc::now().timestamp_millis();
+        for worker in self.workers.lock().await.values_mut() {
+            if worker.tunnel_id == tunnel_id {
+                worker.session_id = session_id.to_string();
+                worker.state = "recovering".to_string();
+                worker.ready = false;
+                worker.healthy = false;
+                worker.last_heartbeat = now;
+                worker.last_activity = now;
+            }
+        }
+    }
+
+    async fn remove_tunnel(&self, tunnel_id: &str) {
+        self.workers
+            .lock()
+            .await
+            .retain(|_, worker| worker.tunnel_id != tunnel_id);
+    }
+
+    async fn remove(&self, worker_id: &str) {
+        self.workers.lock().await.remove(worker_id);
+    }
+
+    async fn capacity(&self, tunnel_id: &str) -> (usize, usize) {
+        let workers = self.workers.lock().await;
+        let total = workers
+            .values()
+            .filter(|worker| worker.tunnel_id == tunnel_id && worker.alive)
+            .count();
+        let serving = workers
+            .values()
+            .filter(|worker| worker.tunnel_id == tunnel_id && worker.state == "serving")
+            .count();
+        (total, serving)
+    }
+
+    async fn snapshot(&self) -> Value {
+        let workers = self.workers.lock().await.values().cloned().collect::<Vec<_>>();
+        let total = workers.len() as u64;
+        let healthy = workers.iter().filter(|worker| worker.healthy).count() as u64;
+        let serving = workers.iter().filter(|worker| worker.state == "serving").count() as u64;
+        let recovering = workers.iter().filter(|worker| worker.state == "recovering").count() as u64;
+        let dead = workers.iter().filter(|worker| worker.state == "dead").count() as u64;
+        let attach_attempts = workers.iter().map(|worker| worker.success_count + worker.attach_failure_count).sum::<u64>();
+        let attach_success = workers.iter().map(|worker| worker.success_count).sum::<u64>();
+        let average_attach_time_ms = {
+            let samples = workers.iter().filter_map(|worker| worker.latency_ms).collect::<Vec<_>>();
+            if samples.is_empty() { 0.0 } else { samples.iter().sum::<u64>() as f64 / samples.len() as f64 }
+        };
+        json!({
+            "items": workers,
+            "healthyWorkers": healthy,
+            "recoveringWorkers": recovering,
+            "deadWorkers": dead,
+            "currentPool": total,
+            "poolUsage": if total == 0 { 0.0 } else { (serving as f64 / total as f64) * 100.0 },
+            "attachSuccessRate": if attach_attempts == 0 { 0.0 } else { attach_success as f64 / attach_attempts as f64 },
+            "averageAttachTimeMs": average_attach_time_ms,
+            "reconnectCount": workers.iter().map(|worker| worker.reconnect_count).sum::<u64>(),
+            // 此处表示本地数据面正在等待 attach 完成的 Worker，不再使用硬编码值。
+            "currentQueue": workers.iter().filter(|worker| matches!(worker.state.as_str(), "initializing" | "connecting" | "recovering")).count()
+        })
+    }
+
+    async fn tunnel_statuses(&self) -> BTreeMap<String, &'static str> {
+        let workers = self.workers.lock().await;
+        let mut statuses = BTreeMap::new();
+        for worker in workers.values() {
+            let candidate = if worker.healthy {
+                "running"
+            } else if worker.alive && worker.state == "recovering" {
+                "recovering"
+            } else {
+                "warning"
+            };
+            statuses
+                .entry(worker.tunnel_id.clone())
+                .and_modify(|current| {
+                    if *current != "running" && candidate == "running" {
+                        *current = candidate;
+                    } else if *current == "warning" && candidate == "recovering" {
+                        *current = candidate;
+                    }
+                })
+                .or_insert(candidate);
+        }
+        statuses
+    }
 }
 
 enum LocalTunnelRuntime {
@@ -319,6 +498,10 @@ struct LocalTunnelRuntimeSnapshot {
 }
 
 impl RelayTunnelRuntime {
+    async fn update_session(&self, session_id: String) {
+        self.session.write().await.session_id = session_id;
+    }
+
     async fn shutdown(self) -> Result<(), String> {
         let _ = self.shutdown.send(true);
         for task in self.tasks {
@@ -605,6 +788,7 @@ pub struct ClientRuntimeState {
     domain_repository: Option<SqliteDomainRepository>,
     inner: Mutex<RuntimeInner>,
     local_tunnels: Mutex<BTreeMap<String, LocalTunnelRuntime>>,
+    worker_registry: Arc<RelayWorkerRegistry>,
     server_connections: Mutex<BTreeMap<String, ServerConnectionRuntime>>,
     control_io_lock: Mutex<()>,
 }
@@ -625,6 +809,7 @@ impl Default for ClientRuntimeState {
             domain_repository,
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
+            worker_registry: Arc::new(RelayWorkerRegistry::default()),
             server_connections: Mutex::new(BTreeMap::new()),
             control_io_lock: Mutex::new(()),
         }
@@ -752,8 +937,6 @@ impl ClientRuntimeState {
     }
 
     pub async fn list_servers(&self) -> Value {
-        self.verify_server_connections().await;
-
         let connected_ids: Vec<String> = self
             .server_connections
             .lock()
@@ -1205,8 +1388,11 @@ impl ClientRuntimeState {
                         &format!("heartbeat failed; starting control recovery: {error}"),
                     )
                     .await;
-                    self.restore_server_with_backoff(&server_id, &default_reconnect_delays())
-                        .await?;
+                    self.restore_server_with_backoff(
+                        &server_id,
+                        &heartbeat_reconnect_delays(),
+                    )
+                    .await?;
                     let response = self
                         .request_for(
                             &server_id,
@@ -1218,6 +1404,7 @@ impl ClientRuntimeState {
                     started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
                 }
             };
+
         }
 
         let mut inner = self.inner.lock().await;
@@ -1374,9 +1561,6 @@ impl ClientRuntimeState {
         };
 
         let recovery_started = Instant::now();
-        self.shutdown_local_tunnels_for_server(&server_id)
-            .await?;
-
         let mut last_error = None;
         for (attempt, delay) in delays.iter().enumerate() {
             if attempt > 0 {
@@ -1446,7 +1630,7 @@ impl ClientRuntimeState {
         &self,
         server_id: String,
         server_addr: String,
-        token: String,
+        _token: String,
         transport: Arc<TcpTransport>,
         session_id: String,
         discovery: Value,
@@ -1502,37 +1686,26 @@ impl ClientRuntimeState {
                 tunnel_control_payload(&tunnel, &global_config),
             )
             .await?;
-            match start_remote_tunnel_runtime(
-                &tunnel,
-                &global_config,
-                &server_addr,
-                &token,
-                &session_id,
-            )
-            .await {
-                Ok(runtime) => {
-                    self.local_tunnels
-                        .lock()
-                        .await
-                        .insert(tunnel.id.clone(), runtime);
-                    let mut inner = self.inner.lock().await;
-                    let now = Utc::now().timestamp_millis();
-                    if let Some(record) = inner.tunnels.get_mut(&tunnel.id) {
-                        record.status = "running".to_string();
-                        record.started_at = record.started_at.or(Some(now));
-                        record.updated_at = now;
-                    }
-                    inner.log_tunnel("info", &tunnel.id, "tunnel recovered after reconnect");
-                    persist_runtime(&self.storage_path, &inner)?;
-                }
-                Err(error) => {
-                    self.record_tunnel_start_failure(&tunnel.id, &error).await;
-                    return Err(error);
-                }
+            self.update_worker_session(&tunnel.id, &session_id).await;
+            let mut inner = self.inner.lock().await;
+            let now = Utc::now().timestamp_millis();
+            if let Some(record) = inner.tunnels.get_mut(&tunnel.id) {
+                record.status = "recovering".to_string();
+                record.started_at = record.started_at.or(Some(now));
+                record.updated_at = now;
             }
+            inner.log_tunnel("info", &tunnel.id, "worker session context updated after control recovery");
+            persist_runtime(&self.storage_path, &inner)?;
         }
 
         Ok(())
+    }
+
+    async fn update_worker_session(&self, tunnel_id: &str, session_id: &str) {
+        if let Some(LocalTunnelRuntime::Remote(runtime)) = self.local_tunnels.lock().await.get(tunnel_id) {
+            runtime.update_session(session_id.to_string()).await;
+        }
+        self.worker_registry.update_tunnel_session(tunnel_id, session_id).await;
     }
 
     pub async fn create_tunnel(
@@ -1692,6 +1865,7 @@ impl ClientRuntimeState {
                 &server_addr,
                 &token,
                 &session_id,
+                Arc::clone(&self.worker_registry),
             )
             .await {
                 Ok(runtime) => {
@@ -1986,7 +2160,12 @@ impl ClientRuntimeState {
         self.sync_local_tunnel_metrics().await;
         let mut inner = self.inner.lock().await;
         inner.sync_tunnel_state();
-        dashboard_json(&inner)
+        let mut dashboard = dashboard_json(&inner);
+        drop(inner);
+        let worker_statuses = self.worker_registry.tunnel_statuses().await;
+        apply_worker_health_to_dashboard(&mut dashboard, &worker_statuses);
+        dashboard["workers"] = self.worker_registry.snapshot().await;
+        dashboard
     }
 
     pub async fn health(&self) -> Value {
@@ -2227,6 +2406,7 @@ impl ClientRuntimeState {
         if let Some(runtime) = runtime {
             runtime.shutdown().await?;
         }
+        self.worker_registry.remove_tunnel(tunnel_id).await;
         Ok(())
     }
 
@@ -2236,8 +2416,9 @@ impl ClientRuntimeState {
             std::mem::take(&mut *local_tunnels)
         };
 
-        for runtime in runtimes.into_values() {
+        for (tunnel_id, runtime) in runtimes {
             runtime.shutdown().await?;
+            self.worker_registry.remove_tunnel(&tunnel_id).await;
         }
 
         Ok(())
@@ -2714,6 +2895,7 @@ async fn start_remote_tunnel_runtime(
     server_addr: &str,
     token: &str,
     session_id: &str,
+    worker_registry: Arc<RelayWorkerRegistry>,
 ) -> Result<LocalTunnelRuntime, String> {
     let (server_host, server_port) = parse_server_addr(server_addr)?;
     let target_addr = resolve_target_addr(&tunnel.local_host, tunnel.local_port).await?;
@@ -2721,50 +2903,141 @@ async fn start_remote_tunnel_runtime(
 
     let (shutdown, shutdown_rx) = watch::channel(false);
     let stats = Arc::new(RelayTunnelStats::default());
+    let session = Arc::new(RwLock::new(RelaySessionContext {
+        session_id: session_id.to_string(),
+    }));
     stats.started_at_millis.store(
         Utc::now().timestamp_millis().max(0) as u64,
         Ordering::Relaxed,
     );
 
-    let worker_count = resolve_tunnel_performance(
+    let maximum_workers = resolve_tunnel_performance(
         tunnel.performance_mode.as_deref(),
         tunnel.relay_workers,
         tunnel.max_connections,
         global_config,
     )
     .relay_workers;
-    let mut tasks = Vec::with_capacity(worker_count);
-    for worker_id in 0..worker_count {
-        let config = RelayWorkerConfig {
-            worker_id,
-            server_host: server_host.clone(),
-            server_port,
-            token: token.to_string(),
-            session_id: session_id.to_string(),
-            tunnel_id: tunnel.id.clone(),
-            protocol: tunnel.protocol.clone(),
-            target_addr,
-        };
-        let worker_stats = Arc::clone(&stats);
-        let worker_shutdown = shutdown_rx.clone();
-        tasks.push(tokio::spawn(async move {
-            relay_worker_loop(config, worker_stats, worker_shutdown).await;
-        }));
-    }
+    let pool = RelayWorkerPoolConfig {
+        maximum: maximum_workers.max(1),
+        minimum: DEFAULT_MINIMUM_RELAY_WORKERS.min(maximum_workers.max(1)),
+    };
+    let template = RelayWorkerConfig {
+        worker_id: 0,
+        server_host,
+        server_port,
+        token: token.to_string(),
+        session: Arc::clone(&session),
+        tunnel_id: tunnel.id.clone(),
+        protocol: tunnel.protocol.clone(),
+        target_addr,
+    };
+    let supervisor_stats = Arc::clone(&stats);
+    let supervisor_registry = Arc::clone(&worker_registry);
+    let tasks = vec![tokio::spawn(async move {
+        relay_worker_supervisor_loop(
+            template,
+            pool,
+            supervisor_stats,
+            supervisor_registry,
+            shutdown_rx,
+        )
+        .await;
+    })];
 
     Ok(LocalTunnelRuntime::Remote(RelayTunnelRuntime {
         shutdown,
         tasks,
         stats,
+        session,
     }))
+}
+
+async fn relay_worker_supervisor_loop(
+    template: RelayWorkerConfig,
+    pool: RelayWorkerPoolConfig,
+    stats: Arc<RelayTunnelStats>,
+    registry: Arc<RelayWorkerRegistry>,
+    mut shutdown: watch::Receiver<bool>,
+) {
+    let mut workers = BTreeMap::<usize, (watch::Sender<bool>, JoinHandle<()>)>::new();
+    let mut next_worker_id = 0_usize;
+
+    let spawn_worker = |worker_id: usize,
+                        workers: &mut BTreeMap<usize, (watch::Sender<bool>, JoinHandle<()>)>| {
+        let (worker_shutdown, worker_shutdown_rx) = watch::channel(false);
+        let mut config = template.clone();
+        config.worker_id = worker_id;
+        let worker_stats = Arc::clone(&stats);
+        let worker_registry = Arc::clone(&registry);
+        let task = tokio::spawn(async move {
+            relay_worker_loop(config, worker_stats, worker_registry, worker_shutdown_rx).await;
+        });
+        workers.insert(worker_id, (worker_shutdown, task));
+    };
+
+    while workers.len() < pool.minimum {
+        spawn_worker(next_worker_id, &mut workers);
+        next_worker_id = next_worker_id.saturating_add(1);
+    }
+
+    loop {
+        tokio::select! {
+            _ = shutdown.changed() => {
+                if *shutdown.borrow() {
+                    break;
+                }
+            }
+            _ = sleep(WORKER_SUPERVISOR_INTERVAL) => {}
+        }
+
+        for (worker_id, (_, task)) in &workers {
+            if task.is_finished() {
+                registry.remove(&format!("{}:{worker_id}", template.tunnel_id)).await;
+            }
+        }
+        workers.retain(|_, (_, task)| !task.is_finished());
+
+        let (_, serving) = registry.capacity(&template.tunnel_id).await;
+        // 每个正在转发的连接至少保留一个替补 Worker；低负载时维持最小热池。
+        let desired = relay_pool_target(pool, serving);
+
+        while workers.len() < desired {
+            spawn_worker(next_worker_id, &mut workers);
+            next_worker_id = next_worker_id.saturating_add(1);
+        }
+
+        // 不主动缩容已连接的 worker：服务端可能刚好把“空闲”连接分配给公网请求，
+        // 此处关闭会打断真实转发。池子由 maximum 限制，稳定性优先于短时资源回收。
+    }
+
+    for (_, (worker_shutdown, task)) in workers {
+        let _ = worker_shutdown.send(true);
+        let _ = task.await;
+    }
+}
+
+fn relay_pool_target(pool: RelayWorkerPoolConfig, serving: usize) -> usize {
+    pool.minimum
+        .max(serving.saturating_add(2))
+        .min(pool.maximum)
 }
 
 async fn relay_worker_loop(
     config: RelayWorkerConfig,
     stats: Arc<RelayTunnelStats>,
+    registry: Arc<RelayWorkerRegistry>,
     mut shutdown: watch::Receiver<bool>,
 ) {
     // relay worker 失败时按固定退避序列重连，成功转发后立即补回空闲 worker。
+    let worker_key = format!("{}:{}", config.tunnel_id, config.worker_id);
+    registry
+        .register(
+            worker_key.clone(),
+            config.tunnel_id.clone(),
+            config.session.read().await.session_id.clone(),
+        )
+        .await;
     let mut retry_attempt = 0_usize;
     loop {
         if *shutdown.borrow() {
@@ -2772,13 +3045,34 @@ async fn relay_worker_loop(
         }
 
         let delay =
-            match relay_worker_once(config.clone(), Arc::clone(&stats), shutdown.clone()).await {
+            match relay_worker_once(
+                config.clone(),
+                Arc::clone(&stats),
+                Arc::clone(&registry),
+                &worker_key,
+                shutdown.clone(),
+            )
+            .await
+            {
                 Ok(()) => {
                     retry_attempt = 0;
                     Duration::ZERO
                 }
-                Err(_) => {
+                Err(error) => {
                     stats.failed_connections.fetch_add(1, Ordering::Relaxed);
+                    let attach_failure = error.starts_with("attach:");
+                    registry.update(&worker_key, |worker| {
+                        worker.failure_count = worker.failure_count.saturating_add(1);
+                        if attach_failure {
+                            worker.attach_failures = worker.attach_failures.saturating_add(1);
+                            worker.attach_failure_count = worker.attach_failure_count.saturating_add(1);
+                        }
+                        worker.reconnect_count = worker.reconnect_count.saturating_add(1);
+                        worker.state = if attach_failure && worker.attach_failures >= 5 { "recovering" } else { "connecting" }.to_string();
+                        worker.ready = false;
+                        worker.healthy = false;
+                        worker.last_attach_error = Some(error);
+                    }).await;
                     let delay = reconnect_delay(retry_attempt);
                     retry_attempt = retry_attempt.saturating_add(1);
                     delay
@@ -2798,41 +3092,90 @@ async fn relay_worker_loop(
             }
         }
     }
+    registry.update(&worker_key, |worker| {
+        worker.state = "dead".to_string();
+        worker.alive = false;
+        worker.ready = false;
+        worker.healthy = false;
+    }).await;
 }
 
 async fn relay_worker_once(
     config: RelayWorkerConfig,
     stats: Arc<RelayTunnelStats>,
+    registry: Arc<RelayWorkerRegistry>,
+    worker_key: &str,
     mut shutdown: watch::Receiver<bool>,
 ) -> Result<(), String> {
-    let mut stream = TcpStream::connect((config.server_host.as_str(), config.server_port))
-        .await
-        .map_err(|error| format!("failed to connect server relay entry: {error}"))?;
+    registry.update(worker_key, |worker| {
+        worker.state = "connecting".to_string();
+        worker.alive = true;
+        worker.ready = false;
+        worker.healthy = false;
+    }).await;
+    let attach_started = Instant::now();
+    let mut stream = tokio::time::timeout(
+        RELAY_ATTACH_CONNECT_TIMEOUT,
+        TcpStream::connect((config.server_host.as_str(), config.server_port)),
+    )
+    .await
+    .map_err(|_| "attach: connecting server relay entry timed out".to_string())?
+    .map_err(|error| format!("attach: failed to connect server relay entry: {error}"))?;
     stream
         .set_nodelay(true)
-        .map_err(|error| format!("failed to set relay TCP_NODELAY: {error}"))?;
+        .map_err(|error| format!("attach: failed to set relay TCP_NODELAY: {error}"))?;
+    let keepalive = socket2::SockRef::from(&stream);
+    let _ = keepalive.set_keepalive(true);
 
     let protocol = ProtocolBuilder::new().build();
     let connect = Message::request(
         Command::TunnelRelayConnect,
         Body::Json(json!({
             "token": &config.token,
-            "sessionId": &config.session_id,
+            "sessionId": &config.session.read().await.session_id,
             "tunnelId": &config.tunnel_id,
             "protocol": &config.protocol,
-            "workerId": config.worker_id
+            // workerId 使用字符串，兼容服务端 HashMap 注册表并避免数字类型解析差异。
+            "workerId": config.worker_id.to_string()
         })),
         Metadata::default(),
     );
-    write_protocol_message(&mut stream, &protocol, &connect).await?;
+    tokio::time::timeout(
+        RELAY_ATTACH_HANDSHAKE_TIMEOUT,
+        write_protocol_message(&mut stream, &protocol, &connect),
+    )
+    .await
+    .map_err(|_| "attach: writing relay handshake timed out".to_string())?
+    .map_err(|error| format!("attach: {error}"))?;
 
-    let response = read_protocol_message(&mut stream, &protocol)
-        .await?
-        .ok_or_else(|| "server closed relay handshake connection".to_string())?;
+    let response = tokio::time::timeout(
+        RELAY_ATTACH_HANDSHAKE_TIMEOUT,
+        read_protocol_message(&mut stream, &protocol),
+    )
+    .await
+    .map_err(|_| "attach: reading relay handshake timed out".to_string())?
+    .map_err(|error| format!("attach: {error}"))?
+    .ok_or_else(|| "attach: server closed relay handshake connection".to_string())?;
     match response.body {
-        Body::Json(value) => ensure_ok(&value)?,
-        _ => return Err("server relay handshake response was not JSON".to_string()),
+        Body::Json(value) => ensure_ok(&value).map_err(|error| format!("attach: {error}"))?,
+        _ => return Err("attach: server relay handshake response was not JSON".to_string()),
     }
+    let attach_latency = attach_started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+    registry.update(worker_key, |worker| {
+        worker.state = "idle".to_string();
+        worker.success_count = worker.success_count.saturating_add(1);
+        // attach_failures 表示连续失败次数；成功后清零，但 failure_count 保留累计值。
+        worker.attach_failures = 0;
+        let now = Utc::now().timestamp_millis();
+        worker.last_attach = Some(now);
+        worker.last_attach_success = Some(now);
+        worker.last_successful_attach = Some(now);
+        worker.latency_ms = Some(attach_latency);
+        worker.attach_latency_ms = Some(attach_latency);
+        worker.ready = true;
+        worker.healthy = true;
+        worker.last_attach_error = None;
+    }).await;
 
     let start = tokio::select! {
         result = read_protocol_message(&mut stream, &protocol) => {
@@ -2848,6 +3191,11 @@ async fn relay_worker_once(
         ));
     }
 
+    registry.update(worker_key, |worker| {
+        worker.state = "serving".to_string();
+        worker.ready = false;
+        worker.last_serve = Some(Utc::now().timestamp_millis());
+    }).await;
     stats.total_connections.fetch_add(1, Ordering::Relaxed);
     let mut target = TcpStream::connect(config.target_addr)
         .await
@@ -2877,6 +3225,11 @@ async fn relay_worker_once(
     stats
         .download_bytes
         .fetch_add(download_bytes, Ordering::Relaxed);
+    registry.update(worker_key, |worker| {
+        worker.bytes_in = worker.bytes_in.saturating_add(upload_bytes);
+        worker.bytes_out = worker.bytes_out.saturating_add(download_bytes);
+        worker.last_heartbeat = Utc::now().timestamp_millis();
+    }).await;
 
     Ok(())
 }
@@ -3040,6 +3393,14 @@ fn default_config() -> BTreeMap<String, String> {
     config.insert("network.transport".to_string(), "tcp".to_string());
     config.insert(CONFIG_KEY_MODE.to_string(), "auto".to_string());
     config
+}
+
+fn heartbeat_reconnect_delays() -> Vec<Duration> {
+    HEARTBEAT_RECONNECT_DELAYS_SECS
+        .iter()
+        .copied()
+        .map(Duration::from_secs)
+        .collect()
 }
 
 fn default_reconnect_delays() -> Vec<Duration> {
@@ -4157,6 +4518,28 @@ fn dashboard_percent(value: u64, total: u64) -> f64 {
     }
 }
 
+fn apply_worker_health_to_dashboard(
+    dashboard: &mut Value,
+    worker_statuses: &BTreeMap<String, &'static str>,
+) {
+    let Some(tunnels) = dashboard.get_mut("tunnels").and_then(Value::as_array_mut) else {
+        return;
+    };
+
+    for tunnel in tunnels {
+        let Some(tunnel_id) = tunnel.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(status) = worker_statuses.get(tunnel_id) else {
+            continue;
+        };
+        // 仅覆盖本地标记为运行中的隧道，停止中的配置不应因旧 worker 快照被重新点亮。
+        if matches!(tunnel.get("status").and_then(Value::as_str), Some("running" | "recovering")) {
+            tunnel["status"] = Value::String((*status).to_string());
+        }
+    }
+}
+
 fn is_attention_tunnel_status(status: &str) -> bool {
     !is_running_tunnel_status(status) && !matches!(status, "stopped")
 }
@@ -4581,6 +4964,36 @@ mod tests {
     use tokio::net::{TcpListener, TcpStream};
 
     #[tokio::test]
+    async fn worker_registry_updates_session_without_restarting_worker() {
+        let registry = RelayWorkerRegistry::default();
+        registry
+            .register(
+                "tunnel-1:0".to_string(),
+                "tunnel-1".to_string(),
+                "session-old".to_string(),
+            )
+            .await;
+        registry
+            .update_tunnel_session("tunnel-1", "session-new")
+            .await;
+
+        let snapshot = registry.snapshot().await;
+        assert_eq!(snapshot["items"][0]["sessionId"], "session-new");
+        assert_eq!(snapshot["items"][0]["state"], "recovering");
+    }
+
+    #[test]
+    fn worker_supervisor_scales_with_serving_load_without_breaching_limits() {
+        let pool = RelayWorkerPoolConfig {
+            minimum: 8,
+            maximum: 32,
+        };
+        assert_eq!(relay_pool_target(pool, 0), 8);
+        assert_eq!(relay_pool_target(pool, 14), 16);
+        assert_eq!(relay_pool_target(pool, 100), 32);
+    }
+
+    #[tokio::test]
     async fn local_http_tunnel_runtime_forwards_requests() -> anyhow::Result<()> {
         let target_listener = TcpListener::bind("127.0.0.1:0").await?;
         let target_addr = target_listener.local_addr()?;
@@ -4723,6 +5136,7 @@ mod tests {
             server_connections: Mutex::new(BTreeMap::new()),
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
+            worker_registry: Arc::new(RelayWorkerRegistry::default()),
             control_io_lock: Mutex::new(()),
         };
 

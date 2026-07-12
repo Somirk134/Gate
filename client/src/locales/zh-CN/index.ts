@@ -612,6 +612,16 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       gate: 'Gate',
       uptime: '运行时间',
     },
+    workerRuntime: {
+      title: 'Worker 运行态',
+      poolSize: '{count} 个 Worker',
+      healthy: '健康',
+      recovering: '恢复中',
+      dead: '失效',
+      attachTime: '接入耗时',
+      reconnects: '重连次数',
+      poolUsage: '池使用率',
+    },
     runningServices: {
       title: '运行中的服务',
       subtitle: '来自真实 Runtime 的服务视图',

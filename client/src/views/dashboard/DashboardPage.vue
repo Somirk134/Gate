@@ -7,7 +7,7 @@
       </div>
 
       <div class="dashboard-header__meta">
-        <GButton variant="secondary" icon="refresh" :loading="loading" @click="refresh">
+        <GButton variant="secondary" icon="refresh" :loading="loading || refreshing" @click="refresh">
           {{ t('dashboard.refresh') }}
         </GButton>
         <div class="header-chip">
@@ -107,6 +107,24 @@
           <article><span>{{ t('dashboard.serverOverview.privateIp') }}</span><strong>{{ activeServerOverview.privateIp }}</strong></article>
           <article><span>{{ t('dashboard.serverOverview.gate') }}</span><strong>{{ activeServerOverview.version }}</strong></article>
           <article><span>{{ t('dashboard.serverOverview.uptime') }}</span><strong>{{ activeServerOverview.uptime }}</strong></article>
+        </div>
+      </section>
+
+      <section v-if="dashboard.workers" class="dashboard-panel worker-runtime-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>{{ t('dashboard.workerRuntime.title') }}</h2>
+            <p>{{ t('dashboard.workerRuntime.poolSize', { count: formatNumber(dashboard.workers.currentPool) }) }}</p>
+          </div>
+          <strong>{{ formatPercent(dashboard.workers.attachSuccessRate * 100) }}</strong>
+        </div>
+        <div class="worker-runtime-grid">
+          <article><span>{{ t('dashboard.workerRuntime.healthy') }}</span><strong>{{ formatNumber(dashboard.workers.healthyWorkers) }}</strong></article>
+          <article><span>{{ t('dashboard.workerRuntime.recovering') }}</span><strong>{{ formatNumber(dashboard.workers.recoveringWorkers) }}</strong></article>
+          <article><span>{{ t('dashboard.workerRuntime.dead') }}</span><strong>{{ formatNumber(dashboard.workers.deadWorkers) }}</strong></article>
+          <article><span>{{ t('dashboard.workerRuntime.attachTime') }}</span><strong>{{ formatLatency(dashboard.workers.averageAttachTimeMs) }}</strong></article>
+          <article><span>{{ t('dashboard.workerRuntime.reconnects') }}</span><strong>{{ formatNumber(dashboard.workers.reconnectCount) }}</strong></article>
+          <article><span>{{ t('dashboard.workerRuntime.poolUsage') }}</span><strong>{{ formatPercent(dashboard.workers.poolUsage) }}</strong></article>
         </div>
       </section>
 
@@ -419,6 +437,7 @@ const {
 const { projects, refresh: refreshProjects } = useProject()
 const serverStore = useServerStore()
 const trafficRange = ref<TrafficRange>('24h')
+const refreshing = ref(false)
 
 const TRAFFIC_HISTORY_STORAGE_KEY = 'gate.dashboard.projectTrafficHistory'
 const TRAFFIC_HISTORY_SAMPLE_MS = 5 * 60 * 1000
@@ -829,7 +848,13 @@ onMounted(() => {
 })
 
 async function refresh() {
-  await Promise.all([refreshDashboard(), refreshProjects()])
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    await Promise.all([refreshDashboard(), refreshProjects()])
+  } finally {
+    refreshing.value = false
+  }
 }
 
 async function copyServiceUrl(service: RunningServiceRow) {
@@ -1503,6 +1528,47 @@ function formatRelativeTime(timestamp: number): string {
   white-space: nowrap;
 }
 
+.worker-runtime-panel {
+  padding: 18px;
+}
+
+.worker-runtime-panel .panel-heading {
+  margin-bottom: 12px;
+}
+
+.worker-runtime-panel .panel-heading strong {
+  color: var(--color-success);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.worker-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.worker-runtime-grid article {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+
+.worker-runtime-grid span {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.worker-runtime-grid strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
 .service-table {
   display: grid;
   gap: 8px;
@@ -1949,6 +2015,10 @@ function formatRelativeTime(timestamp: number): string {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .worker-runtime-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 680px) {
@@ -1956,7 +2026,8 @@ function formatRelativeTime(timestamp: number): string {
   .metric-grid,
   .connection-stats,
   .service-table article,
-  .server-overview-grid {
+  .server-overview-grid,
+  .worker-runtime-grid {
     grid-template-columns: 1fr;
   }
 

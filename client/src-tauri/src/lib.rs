@@ -57,7 +57,7 @@ pub fn run() -> Result<()> {
             tauri::async_runtime::spawn(async move {
                 use std::time::Duration;
                 loop {
-                    tokio::time::sleep(Duration::from_secs(30)).await;
+                    tokio::time::sleep(Duration::from_secs(15)).await;
                     let state = heartbeat_handle.state::<runtime::ClientRuntimeState>();
                     if state.has_active_server_connections().await {
                         if let Err(error) = state.heartbeat().await {

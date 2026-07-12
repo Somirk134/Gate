@@ -620,6 +620,16 @@ const messages: LocaleMessages<Record<string, unknown>> = {
       gate: 'Gate',
       uptime: 'Uptime',
     },
+    workerRuntime: {
+      title: 'Worker Runtime',
+      poolSize: '{count} workers',
+      healthy: 'Healthy',
+      recovering: 'Recovering',
+      dead: 'Dead',
+      attachTime: 'Attach time',
+      reconnects: 'Reconnects',
+      poolUsage: 'Pool usage',
+    },
     runningServices: {
       title: 'Running Services',
       subtitle: 'Service view from the live Runtime',

@@ -22,31 +22,52 @@ export function useMonitoringDashboard() {
   let realtimeSpeedHistory: RealtimeSpeedPoint[] = []
   const metricHistory = ref<RuntimeMetricHistoryPoint[]>([])
   let unsubscribe: (() => void) | undefined
+  let active = false
+  let refreshGeneration = 0
 
   const dashboard = computed(() => data.value)
   const healthStatus = computed(() => data.value.systemHealth.overall)
   const lastUpdated = computed(() => new Date(data.value.generatedAt))
 
   async function refresh() {
+    const generation = ++refreshGeneration
     loading.value = true
     error.value = null
     try {
-      data.value = withRealtimeSpeedHistory(await dashboardService.getDashboard())
+      const next = await dashboardService.getDashboard()
+      if (active && generation === refreshGeneration) {
+        data.value = withRealtimeSpeedHistory(next)
+      }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'errors.runtimeUnavailable'
+      if (active && generation === refreshGeneration) {
+        error.value = err instanceof Error ? err.message : 'errors.runtimeUnavailable'
+      }
     } finally {
-      loading.value = false
+      if (active && generation === refreshGeneration) {
+        loading.value = false
+      }
     }
   }
 
-  onMounted(async () => {
-    await refresh()
-    unsubscribe = dashboardService.subscribe((next) => {
-      data.value = withRealtimeSpeedHistory(next)
-    })
+  onMounted(() => {
+    active = true
+    unsubscribe = dashboardService.subscribe(
+      (next) => {
+        if (!active) return
+        error.value = null
+        data.value = withRealtimeSpeedHistory(next)
+      },
+      (err) => {
+        if (!active) return
+        error.value = err instanceof Error ? err.message : 'errors.runtimeUnavailable'
+      },
+    )
+    void refresh()
   })
 
   onUnmounted(() => {
+    active = false
+    refreshGeneration += 1
     unsubscribe?.()
   })
 
