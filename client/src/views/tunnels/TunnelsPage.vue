@@ -178,18 +178,55 @@
                   <h2>{{ selectedTunnel.name }}</h2>
                 </div>
                 <p>{{ tunnelSubtitle(selectedTunnel) }}</p>
+                <p
+                  v-if="showConnectingHint"
+                  class="detail-connecting-hint">
+                  {{ t('tunnel.connectingTimeoutHint') }}
+                </p>
               </div>
               <div class="detail-actions">
                 <GButton
                   v-if="canStart(selectedTunnel.status)"
                   variant="primary"
                   icon="play"
+                  :loading="selectedTunnelActionPending"
+                  :disabled="selectedTunnelActionPending"
                   @click="startSelected">
                   {{ t('tunnel.start') }}
                 </GButton>
-                <GButton v-else variant="secondary" icon="pause" @click="stopSelected">
-                  {{ t('tunnel.stop') }}
+                <!-- 停止中使用独立只读按钮，后续分支只处理可执行的停止操作。 -->
+                <GButton
+                  v-else-if="selectedTunnel.status === 'stopping'"
+                  variant="secondary"
+                  :loading="true"
+                  disabled>
+                  {{ statusLabel(selectedTunnel.status) }}
                 </GButton>
+                <GButton
+                  v-else-if="canCancelTransition(selectedTunnel.status)"
+                  variant="secondary"
+                  icon="close"
+                  :loading="cancellingConnection"
+                  @click="cancelSelected">
+                  {{ t('tunnel.cancelConnection') }}
+                </GButton>
+                <template v-else>
+                  <GButton
+                    variant="secondary"
+                    icon="pause"
+                    :disabled="selectedTunnelActionPending"
+                    @click="stopSelected">
+                    {{ t('tunnel.stop') }}
+                  </GButton>
+                  <GButton
+                    v-if="isRunningStatus(selectedTunnel.status)"
+                    variant="secondary"
+                    icon="refresh"
+                    :disabled="selectedTunnelActionPending"
+                    @click="restartSelected">
+                    {{ t('tunnel.restart') }}
+                  </GButton>
+                </template>
                 <button type="button" class="icon-action" @click="openEdit(selectedTunnel)">
                   <GIcon name="edit" :size="16" />
                 </button>
@@ -467,7 +504,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'tunnels' })
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useFeedback } from '@composables/useFeedback'
@@ -490,7 +527,13 @@ import TunnelTag from './components/TunnelTag.vue'
 import { useTunnel } from './composables/useTunnel'
 import { useTunnelMonitor } from './composables/useTunnelMonitor'
 import { useTunnelGrouping } from './composables/useTunnelGrouping'
-import { buildTunnelPublicUrl, localTargetLabel, tagPresetColor } from './utils'
+import {
+  buildTunnelPublicUrl,
+  canCancelTransition,
+  isRunningStatus,
+  localTargetLabel,
+  tagPresetColor,
+} from './utils'
 import { useServerStore } from '@views/servers'
 import { useProjectStore } from '@views/projects/store/project'
 import type {
@@ -521,6 +564,9 @@ const {
   remove,
   start,
   stop,
+  cancel,
+  restart,
+  isActionPending,
   store,
 } = useTunnel()
 const serverStore = useServerStore()
@@ -543,6 +589,17 @@ const sortBy = ref<TunnelSortType>('name')
 const direction = ref<SortDirection>('desc')
 const groupMode = ref<TunnelGroupMode>(readGroupMode())
 const selectedId = ref<string | null>(null)
+const cancellingConnection = ref(false)
+const connectingSince = ref<Record<string, number>>({})
+const connectingHintTick = ref(Date.now())
+const CONNECTING_HINT_DELAY_MS = 15_000
+let connectingHintTimer: ReturnType<typeof setInterval> | null = null
+
+function clearConnectingHintTimer() {
+  if (!connectingHintTimer) return
+  clearInterval(connectingHintTimer)
+  connectingHintTimer = null
+}
 const wizardVisible = ref(false)
 const editVisible = ref(false)
 const editingTunnel = ref<Tunnel | null>(null)
@@ -622,6 +679,16 @@ const selectedTunnel = computed(() =>
       getById(selectedId.value))
     : undefined,
 )
+const selectedTunnelActionPending = computed(() =>
+  selectedTunnel.value ? isActionPending(selectedTunnel.value.id) : false,
+)
+const showConnectingHint = computed(() => {
+  const tunnel = selectedTunnel.value
+  if (!tunnel || !canCancelTransition(tunnel.status)) return false
+  const since = connectingSince.value[tunnel.id]
+  void connectingHintTick.value
+  return Boolean(since && connectingHintTick.value - since >= CONNECTING_HINT_DELAY_MS)
+})
 const runtimeTunnel = computed<DashboardTunnel | undefined>(() =>
   selectedTunnel.value
     ? dashboard.value.tunnels.find((tunnel) => tunnel.id === selectedTunnel.value?.id)
@@ -671,6 +738,44 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => selectedTunnel.value?.status,
+  (status) => {
+    const tunnel = selectedTunnel.value
+    if (!tunnel) return
+
+    if (canCancelTransition(status ?? tunnel.status)) {
+      if (!connectingSince.value[tunnel.id]) {
+        connectingSince.value = { ...connectingSince.value, [tunnel.id]: Date.now() }
+      }
+      return
+    }
+
+    if (tunnel.id in connectingSince.value) {
+      const next = { ...connectingSince.value }
+      delete next[tunnel.id]
+      connectingSince.value = next
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  () =>
+    selectedTunnel.value ? canCancelTransition(selectedTunnel.value.status) : false,
+  (active) => {
+    clearConnectingHintTimer()
+    if (!active) return
+    connectingHintTick.value = Date.now()
+    connectingHintTimer = setInterval(() => {
+      connectingHintTick.value = Date.now()
+    }, 1000)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(clearConnectingHintTimer)
 
 watch(
   () => serverStore.status,
@@ -782,19 +887,47 @@ function promptForProject() {
 }
 
 async function startSelected() {
-  if (!selectedTunnel.value) return
+  const tunnel = selectedTunnel.value
+  if (!tunnel || isActionPending(tunnel.id)) return
   try {
-    await start(selectedTunnel.value.id)
+    await start(tunnel.id)
     await projectStore.refresh()
-    toast.success(t('tunnel.notifications.started', { name: selectedTunnel.value.name }))
+    toast.success(t('tunnel.notifications.started', { name: tunnel.name }))
   } catch (err) {
     notify.error(t('tunnel.notifications.startFailed'), errorMessage(err), 12000)
   }
 }
 
+async function restartSelected() {
+  const tunnel = selectedTunnel.value
+  if (!tunnel || isActionPending(tunnel.id) || canCancelTransition(tunnel.status)) return
+  try {
+    await restart(tunnel.id)
+    await projectStore.refresh()
+    toast.success(t('tunnel.notifications.restarted', { name: tunnel.name }))
+  } catch (err) {
+    notify.error(t('tunnel.notifications.restartFailed'), errorMessage(err), 10000)
+  }
+}
+
+async function cancelSelected() {
+  const tunnel = selectedTunnel.value
+  if (!tunnel || cancellingConnection.value) return
+  cancellingConnection.value = true
+  try {
+    await cancel(tunnel.id)
+    await projectStore.refresh()
+    toast.warning(t('tunnel.notifications.connectionCancelled', { name: tunnel.name }))
+  } catch (err) {
+    notify.error(t('tunnel.notifications.stopFailed'), errorMessage(err), 10000)
+  } finally {
+    cancellingConnection.value = false
+  }
+}
+
 function stopSelected() {
   const tunnel = selectedTunnel.value
-  if (!tunnel) return
+  if (!tunnel || isActionPending(tunnel.id)) return
   confirm({
     title: t('tunnel.notifications.stopTitle'),
     content: t('tunnel.notifications.stopContent', { name: tunnel.name }),
@@ -1397,6 +1530,12 @@ function formatLogTime(timestamp: number): string {
 .detail-header p {
   margin-top: var(--space-1);
   color: var(--text-secondary);
+}
+
+.detail-connecting-hint {
+  margin-top: var(--space-2);
+  color: var(--status-warning);
+  font-size: var(--text-sm);
 }
 
 .detail-actions {

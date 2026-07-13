@@ -150,8 +150,14 @@ export function isRunningStatus(status: TunnelStatus): boolean {
 /* ── 状态是否处于过渡态（不可点击操作） ── */
 export function isTransitionStatus(status: TunnelStatus): boolean {
   return (
+    status === 'stopping'
+  )
+}
+
+/* ── 连接/启动过渡态：允许用户取消，避免长时间卡住 ── */
+export function canCancelTransition(status: TunnelStatus): boolean {
+  return (
     status === 'starting' ||
-    status === 'stopping' ||
     status === 'restarting' ||
     status === 'connecting'
   )

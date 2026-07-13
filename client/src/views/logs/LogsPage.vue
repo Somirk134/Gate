@@ -248,9 +248,9 @@ function deleteContextLog() {
 }
 
 function handleExport(format: LogExportFormat) {
-  exportLogs(format)
+  const result = exportLogs(format)
   exportDialogVisible.value = false
-  toast.success(t('logs.exported'))
+  toast.success(t('logs.exportedWithFile', { filename: result.filename }))
 }
 
 watch(

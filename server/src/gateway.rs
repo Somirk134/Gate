@@ -59,7 +59,8 @@ const HEARTBEAT_SWEEP_INTERVAL: Duration = Duration::from_secs(5);
 const DEFAULT_MAX_CONNECTIONS: u64 = 4096;
 const DEFAULT_IDLE_TIMEOUT_MS: u64 = 300_000;
 const DEFAULT_BANDWIDTH_LIMIT_BPS: u64 = 0;
-const RELAY_BUFFER_SIZE: usize = 16 * 1024;
+const RELAY_BUFFER_SIZE: usize = 64 * 1024;
+const RELAY_WRITE_STALL_TIMEOUT: Duration = Duration::from_secs(30);
 const HTTP_HEADER_LIMIT: usize = 64 * 1024;
 const HTTP_ACCESS_LOG_LIMIT: usize = 1024;
 const ACME_HTTP01_PREFIX: &str = "/.well-known/acme-challenge/";
@@ -216,14 +217,17 @@ impl Drop for WaitingWorkerGuard<'_> {
 impl ServerWorkerRegistry {
     async fn attach(&self, worker_id: String, session_id: String, stream: TcpStream) {
         let now = Utc::now().timestamp_millis();
-        self.workers.lock().await.insert(worker_id.clone(), ServerWorker {
-            worker_id,
-            session_id,
-            state: "idle",
-            attached_at: now,
-            last_activity: now,
-            stream,
-        });
+        self.workers.lock().await.insert(
+            worker_id.clone(),
+            ServerWorker {
+                worker_id,
+                session_id,
+                state: "idle",
+                attached_at: now,
+                last_activity: now,
+                stream,
+            },
+        );
         self.notify.notify_one();
     }
 
@@ -231,15 +235,22 @@ impl ServerWorkerRegistry {
         // 在同一把锁内完成挑选和移除，避免两个并发请求选中同一个 worker 后
         // 其中一个请求错过通知并无谓等待。
         let mut workers = self.workers.lock().await;
-        let worker_id = workers.values()
+        let worker_id = workers
+            .values()
             .filter(|worker| worker.state == "idle")
-            .min_by_key(|worker| worker.last_activity)
+            // 优先使用最近成功挂载的连接，降低代理或 NAT 下选中半断开旧连接的概率。
+            .max_by_key(|worker| worker.last_activity)
             .map(|worker| worker.worker_id.clone())?;
         workers.remove(&worker_id).map(|worker| worker.stream)
     }
 
     async fn available_count(&self) -> usize {
-        self.workers.lock().await.values().filter(|worker| worker.state == "idle").count()
+        self.workers
+            .lock()
+            .await
+            .values()
+            .filter(|worker| worker.state == "idle")
+            .count()
     }
 
     async fn clear(&self) {
@@ -264,13 +275,20 @@ impl ServerWorkerRegistry {
     }
 
     async fn snapshots(&self) -> Vec<Value> {
-        self.workers.lock().await.values().map(|worker| json!({
-            "workerId": worker.worker_id,
-            "sessionId": worker.session_id,
-            "state": worker.state,
-            "lastActivity": worker.last_activity,
-            "lastAttach": worker.attached_at
-        })).collect()
+        self.workers
+            .lock()
+            .await
+            .values()
+            .map(|worker| {
+                json!({
+                    "workerId": worker.worker_id,
+                    "sessionId": worker.session_id,
+                    "state": worker.state,
+                    "lastActivity": worker.last_activity,
+                    "lastAttach": worker.attached_at
+                })
+            })
+            .collect()
     }
 }
 
@@ -801,7 +819,10 @@ impl TunnelGateway {
                 .ok_or_else(|| anyhow::anyhow!("tunnel not registered"))?
         };
 
-        tunnel.worker_registry.attach(worker_id, session_id.to_string(), stream).await;
+        tunnel
+            .worker_registry
+            .attach(worker_id, session_id.to_string(), stream)
+            .await;
         self.mark_tunnel_status(tunnel_id, TunnelSessionStatus::Online)
             .await;
         Ok(())
@@ -1503,6 +1524,8 @@ impl TunnelGateway {
             .last_activity
             .store(now_millis_u64(), Ordering::Relaxed);
 
+        let response_only =
+            http_method_can_close_request_after_head(&request.method) && !request.has_body;
         let relay_head_bytes = rewrite_http_request_path(&head_bytes, config.path.as_deref())
             .unwrap_or_else(|_| head_bytes.clone());
 
@@ -1571,10 +1594,16 @@ impl TunnelGateway {
                 relay_head_bytes.len() as u64,
             );
 
-            let mut outcome = self
-                .relay_bidirectional(public_stream, relay_stream, &tunnel, config.runtime)
-                .await?;
-            outcome.bytes_in = outcome.bytes_in.saturating_add(relay_head_bytes.len() as u64);
+            let mut outcome = if response_only {
+                self.relay_response_to_public(public_stream, relay_stream, &tunnel, config.runtime)
+                    .await?
+            } else {
+                self.relay_bidirectional(public_stream, relay_stream, &tunnel, config.runtime)
+                    .await?
+            };
+            outcome.bytes_in = outcome
+                .bytes_in
+                .saturating_add(relay_head_bytes.len() as u64);
             Ok::<RelayCopyOutcome, anyhow::Error>(outcome)
         }
         .await;
@@ -1789,6 +1818,44 @@ impl TunnelGateway {
         Ok(RelayCopyOutcome {
             bytes_in: bytes_in.unwrap_or_default(),
             bytes_out: bytes_out.unwrap_or_default(),
+            duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
+        })
+    }
+
+    async fn relay_response_to_public<S>(
+        &self,
+        mut public_stream: S,
+        mut relay_stream: TcpStream,
+        tunnel: &Arc<TunnelSession>,
+        runtime: TunnelRuntimeConfig,
+    ) -> anyhow::Result<RelayCopyOutcome>
+    where
+        S: AsyncWrite + Unpin,
+    {
+        let _ = relay_stream.set_nodelay(true);
+        let started = Instant::now();
+        let idle_timeout = Duration::from_millis(runtime.idle_timeout_ms);
+
+        // GET/HEAD/OPTIONS 已经完整写入请求头；主动关闭上行写半边，让本地服务尽快结束请求读取。
+        relay_stream
+            .shutdown()
+            .await
+            .map_err(|source| anyhow::anyhow!(describe_io_error("upload-close", &source)))?;
+        let bytes_out = copy_direction(
+            &mut relay_stream,
+            &mut public_stream,
+            tunnel,
+            &self.inner.counters,
+            CopyDirection::BytesOut,
+            idle_timeout,
+            runtime.bandwidth_limit_bps,
+        )
+        .await
+        .map_err(|source| anyhow::anyhow!(describe_io_error("download", &source)))?;
+
+        Ok(RelayCopyOutcome {
+            bytes_in: 0,
+            bytes_out,
             duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
         })
     }
@@ -2143,8 +2210,8 @@ impl TunnelGateway {
         let Some(repository) = &self.inner.domain_repository else {
             return Ok(());
         };
-        let tunnel_id = ManagedTunnelId::new(tunnel_id)
-            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        let tunnel_id =
+            ManagedTunnelId::new(tunnel_id).map_err(|error| anyhow::anyhow!(error.to_string()))?;
         let bound = repository
             .find_by_tunnel(&tunnel_id)
             .map_err(|error| anyhow::anyhow!(error.to_string()))?;
@@ -2253,7 +2320,10 @@ impl TunnelGateway {
                 .unwrap_or(false);
             let has_workers = tunnel.worker_registry.available_count().await > 0;
             if host_matches {
-                matched.push((tunnel_id.clone(), http_path_prefix_len(config.path.as_deref())));
+                matched.push((
+                    tunnel_id.clone(),
+                    http_path_prefix_len(config.path.as_deref()),
+                ));
                 continue;
             }
 
@@ -2262,7 +2332,10 @@ impl TunnelGateway {
             }
 
             if http_tunnel_host_unrestricted(config.host.as_deref()) {
-                matched.push((tunnel_id.clone(), http_path_prefix_len(config.path.as_deref())));
+                matched.push((
+                    tunnel_id.clone(),
+                    http_path_prefix_len(config.path.as_deref()),
+                ));
             }
         }
 
@@ -2281,9 +2354,7 @@ impl TunnelGateway {
                     continue;
                 }
                 let config = tunnel.config.lock().await;
-                if config.remote_port != remote_port
-                    || !is_http_tunnel_protocol(&config.protocol)
-                {
+                if config.remote_port != remote_port || !is_http_tunnel_protocol(&config.protocol) {
                     continue;
                 }
                 let lifecycle = tunnel.lifecycle.lock().await;
@@ -2480,7 +2551,9 @@ impl TunnelGateway {
             let should_refresh = if registered_tunnels.is_empty() {
                 config.session_id == session_id
             } else {
-                registered_tunnels.iter().any(|registered| registered == &tunnel_id)
+                registered_tunnels
+                    .iter()
+                    .any(|registered| registered == &tunnel_id)
             };
             if !should_refresh {
                 continue;
@@ -2540,7 +2613,14 @@ impl TunnelGateway {
     }
 
     async fn purge_stale_workers(&self) {
-        let tunnels = self.inner.tunnels.lock().await.values().cloned().collect::<Vec<_>>();
+        let tunnels = self
+            .inner
+            .tunnels
+            .lock()
+            .await
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
         for tunnel in tunnels {
             let removed = tunnel.worker_registry.purge_unhealthy().await;
             if removed > 0 {
@@ -3174,7 +3254,10 @@ where
             return Ok(copied);
         }
 
-        writer.write_all(&buffer[..read]).await?;
+        // 写端失去接收者时操作系统可能长时间不返回错误，限制单块停滞时间以及时释放连接。
+        timeout(RELAY_WRITE_STALL_TIMEOUT, writer.write_all(&buffer[..read]))
+            .await
+            .map_err(|_| io::Error::new(ErrorKind::TimedOut, "relay write stalled"))??;
         copied = copied.saturating_add(read as u64);
         record_tunnel_bytes(tunnel, counters, direction, read as u64);
         throttle_bandwidth(copied, started, bandwidth_limit_bps).await;
@@ -3238,6 +3321,8 @@ struct HttpGatewayRequest {
     method: String,
     path: String,
     host: String,
+    // 仅无请求体的方法可在转发请求头后关闭上传半连接。
+    has_body: bool,
 }
 
 struct ActiveHttpGatewayRequest {
@@ -3323,6 +3408,7 @@ fn parse_http_gateway_request(bytes: &[u8]) -> Result<HttpGatewayRequest, String
     }
 
     let mut host = String::new();
+    let mut has_body = false;
     for line in lines {
         if line.is_empty() {
             break;
@@ -3332,7 +3418,10 @@ fn parse_http_gateway_request(bytes: &[u8]) -> Result<HttpGatewayRequest, String
         };
         if name.eq_ignore_ascii_case("Host") {
             host = normalize_http_host(value);
-            break;
+        } else if name.eq_ignore_ascii_case("Content-Length") {
+            has_body = value.trim().parse::<u64>().unwrap_or(0) > 0;
+        } else if name.eq_ignore_ascii_case("Transfer-Encoding") && !value.trim().is_empty() {
+            has_body = true;
         }
     }
 
@@ -3344,7 +3433,15 @@ fn parse_http_gateway_request(bytes: &[u8]) -> Result<HttpGatewayRequest, String
         method: parts[0].to_string(),
         path: target_to_http_path(parts[1]),
         host,
+        has_body,
     })
+}
+
+fn http_method_can_close_request_after_head(method: &str) -> bool {
+    matches!(
+        method.trim().to_ascii_uppercase().as_str(),
+        "GET" | "HEAD" | "OPTIONS"
+    )
 }
 
 fn host_from_absolute_uri(target: &str) -> Option<String> {
@@ -3405,12 +3502,10 @@ fn strip_http_path_prefix(configured_path: Option<&str>, request_path: &str) -> 
     request_path.to_string()
 }
 
-fn rewrite_http_request_path(head_bytes: &[u8], configured_path: Option<&str>) -> Result<Vec<u8>, String> {
-    let prefix = normalize_http_path_prefix(configured_path);
-    if prefix == "/" {
-        return Ok(head_bytes.to_vec());
-    }
-
+fn rewrite_http_request_path(
+    head_bytes: &[u8],
+    configured_path: Option<&str>,
+) -> Result<Vec<u8>, String> {
     let text = std::str::from_utf8(head_bytes).map_err(|error| error.to_string())?;
     let line_end = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let lines = text.split(line_end).collect::<Vec<_>>();
@@ -3424,16 +3519,35 @@ fn rewrite_http_request_path(head_bytes: &[u8], configured_path: Option<&str>) -
 
     let old_path = target_to_http_path(parts[1]);
     let new_path = strip_http_path_prefix(configured_path, &old_path);
-    if new_path == old_path {
-        return Ok(head_bytes.to_vec());
-    }
-
     let mut rebuilt = format!("{} {} {}", parts[0], new_path, parts[2]);
     for line in lines.iter().skip(1) {
+        if line.is_empty() {
+            break;
+        }
+        let Some((name, _)) = line.split_once(':') else {
+            rebuilt.push_str(line_end);
+            rebuilt.push_str(line);
+            continue;
+        };
+        if is_hop_by_hop_http_header(name) {
+            continue;
+        }
         rebuilt.push_str(line_end);
         rebuilt.push_str(line);
     }
+    // HTTP 隧道当前按单请求转发，强制关闭 keep-alive，避免 worker 被长连接占住不释放。
+    rebuilt.push_str(line_end);
+    rebuilt.push_str("Connection: close");
+    rebuilt.push_str(line_end);
+    rebuilt.push_str(line_end);
     Ok(rebuilt.into_bytes())
+}
+
+fn is_hop_by_hop_http_header(name: &str) -> bool {
+    matches!(
+        name.trim().to_ascii_lowercase().as_str(),
+        "connection" | "proxy-connection" | "keep-alive"
+    )
 }
 
 fn target_to_http_path(target: &str) -> String {
@@ -3509,7 +3623,9 @@ fn is_literal_http_host(host: &str) -> bool {
     if host.parse::<IpAddr>().is_ok() {
         return true;
     }
-    host.starts_with('[') && host.ends_with(']') && host[1..host.len() - 1].parse::<IpAddr>().is_ok()
+    host.starts_with('[')
+        && host.ends_with(']')
+        && host[1..host.len() - 1].parse::<IpAddr>().is_ok()
 }
 
 fn select_http_tunnel_candidate(
@@ -3746,10 +3862,7 @@ mod tests {
     #[test]
     fn strip_http_path_prefix_rewrites_to_backend_root() {
         assert_eq!(strip_http_path_prefix(Some("/hello"), "/hello"), "/");
-        assert_eq!(
-            strip_http_path_prefix(Some("/hello"), "/hello/api"),
-            "/api"
-        );
+        assert_eq!(strip_http_path_prefix(Some("/hello"), "/hello/api"), "/api");
         assert_eq!(strip_http_path_prefix(Some("/"), "/hello"), "/hello");
     }
 
@@ -3760,6 +3873,46 @@ mod tests {
         let text = std::str::from_utf8(&rewritten).expect("utf8");
         assert!(text.starts_with("GET / HTTP/1.1\r\n"));
         assert!(text.contains("Host: maven666.top"));
+        assert!(text.contains("Connection: close\r\n\r\n"));
+    }
+
+    #[test]
+    fn rewrite_http_request_path_closes_keep_alive_connections() {
+        let head = b"GET / HTTP/1.1\r\nHost: maven666.top\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\n";
+        let rewritten = rewrite_http_request_path(head, Some("/")).expect("rewrite");
+        let text = std::str::from_utf8(&rewritten).expect("utf8");
+        assert!(text.starts_with("GET / HTTP/1.1\r\n"));
+        assert!(text.contains("Host: maven666.top"));
+        assert!(!text.contains("Connection: keep-alive"));
+        assert!(!text.contains("Keep-Alive: timeout=5"));
+        assert!(text.ends_with("Connection: close\r\n\r\n"));
+    }
+
+    #[test]
+    fn http_method_response_only_is_limited_to_bodyless_methods() {
+        assert!(http_method_can_close_request_after_head("GET"));
+        assert!(http_method_can_close_request_after_head("head"));
+        assert!(http_method_can_close_request_after_head("OPTIONS"));
+        assert!(!http_method_can_close_request_after_head("POST"));
+        assert!(!http_method_can_close_request_after_head("PUT"));
+
+        let bodyless = parse_http_gateway_request(
+            b"GET / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 0\r\n\r\n",
+        )
+        .expect("parse bodyless request");
+        assert!(!bodyless.has_body);
+
+        let content_length = parse_http_gateway_request(
+            b"GET / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 4\r\n\r\n",
+        )
+        .expect("parse content-length request");
+        assert!(content_length.has_body);
+
+        let chunked = parse_http_gateway_request(
+            b"OPTIONS / HTTP/1.1\r\nHost: example.test\r\nTransfer-Encoding: chunked\r\n\r\n",
+        )
+        .expect("parse chunked request");
+        assert!(chunked.has_body);
     }
 
     #[tokio::test]
@@ -3777,6 +3930,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn worker_registry_prefers_most_recent_idle_connection() -> anyhow::Result<()> {
+        let registry = ServerWorkerRegistry::default();
+        let (old_worker, _old_peer) = tcp_pair().await?;
+        registry
+            .attach(
+                "worker-old".to_string(),
+                "session-1".to_string(),
+                old_worker,
+            )
+            .await;
+
+        sleep(Duration::from_millis(2)).await;
+        let (new_worker, _new_peer) = tcp_pair().await?;
+        let expected_local_addr = new_worker.local_addr()?;
+        registry
+            .attach(
+                "worker-new".to_string(),
+                "session-1".to_string(),
+                new_worker,
+            )
+            .await;
+
+        let selected = registry.take_next().await.expect("newest worker");
+        assert_eq!(selected.local_addr()?, expected_local_addr);
+        assert_eq!(registry.available_count().await, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn session_reregistration_removes_workers_from_previous_session() -> anyhow::Result<()> {
         let gateway = TunnelGateway::new();
         let tunnel_id = "session-worker-test";
@@ -3787,12 +3969,7 @@ mod tests {
             .await?;
         let (worker, _peer) = tcp_pair().await?;
         gateway
-            .attach_relay_worker_with_id(
-                tunnel_id,
-                &first_session,
-                "worker-1".to_string(),
-                worker,
-            )
+            .attach_relay_worker_with_id(tunnel_id, &first_session, "worker-1".to_string(), worker)
             .await?;
 
         let second_session = gateway.create_session().await;

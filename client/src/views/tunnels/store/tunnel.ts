@@ -42,11 +42,15 @@ export const defaultTunnelForm: TunnelFormData = {
   tags: [],
 }
 
+const RUNNING_GRACE_MS = 30_000
+
 export const useTunnelStore = defineStore('tunnel-module', () => {
   const tunnels = ref<Tunnel[]>([])
   const status = ref<TunnelLoadStatus>('idle')
   const error = ref<string>('')
   const lastUpdated = ref<number>(0)
+  const pendingActionIds = ref<Set<string>>(new Set())
+  const runningGraceUntil = ref<Record<string, number>>({})
 
   const isLoading = computed(() => status.value === 'loading')
   const isError = computed(() => status.value === 'error')
@@ -77,6 +81,62 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     return tunnels.value.find((t) => t.id === id)
   }
 
+  function isActionPending(id: string): boolean {
+    return pendingActionIds.value.has(id)
+  }
+
+  function setTunnelStatusLocal(id: string, nextStatus: TunnelStatus) {
+    const index = tunnels.value.findIndex((tunnel) => tunnel.id === id)
+    if (index === -1) return
+    const current = tunnels.value[index]
+    if (current.status === nextStatus) return
+    tunnels.value[index] = { ...current, status: nextStatus }
+  }
+
+  function markRunningGrace(id: string) {
+    runningGraceUntil.value = { ...runningGraceUntil.value, [id]: Date.now() + RUNNING_GRACE_MS }
+  }
+
+  function clearRunningGrace(id: string) {
+    if (!(id in runningGraceUntil.value)) return
+    const next = { ...runningGraceUntil.value }
+    delete next[id]
+    runningGraceUntil.value = next
+  }
+
+  function reconcileRunningGrace(id: string) {
+    const deadline = runningGraceUntil.value[id]
+    if (!deadline) return
+
+    const tunnel = getById(id)
+    if (!tunnel || Date.now() >= deadline) {
+      clearRunningGrace(id)
+      return
+    }
+
+    if (isRunningStatus(tunnel.status)) {
+      clearRunningGrace(id)
+      return
+    }
+
+    setTunnelStatusLocal(id, 'running')
+  }
+
+  function reconcileAllRunningGrace() {
+    for (const id of Object.keys(runningGraceUntil.value)) {
+      reconcileRunningGrace(id)
+    }
+  }
+
+  function withPendingAction<T>(id: string, action: () => Promise<T>): Promise<T> {
+    pendingActionIds.value = new Set([...pendingActionIds.value, id])
+    return action().finally(() => {
+      const next = new Set(pendingActionIds.value)
+      next.delete(id)
+      pendingActionIds.value = next
+    })
+  }
+
   async function load(options: { silent?: boolean } = {}): Promise<void> {
     const silent = options.silent === true && status.value === 'success'
     if (!silent) {
@@ -86,6 +146,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     try {
       const rows = await tunnelService.list()
       tunnels.value = rows.map(mapRuntimeTunnel)
+      reconcileAllRunningGrace()
       status.value = 'success'
       error.value = ''
       lastUpdated.value = Date.now()
@@ -207,27 +268,63 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
   }
 
   async function startTunnel(id: string): Promise<void> {
-    try {
-      await tunnelService.start(id)
-    } finally {
-      await refresh()
-    }
+    return withPendingAction(id, async () => {
+      setTunnelStatusLocal(id, 'starting')
+      try {
+        await tunnelService.start(id)
+        markRunningGrace(id)
+        setTunnelStatusLocal(id, 'running')
+        await refresh()
+      } catch (error) {
+        clearRunningGrace(id)
+        await refresh()
+        throw error
+      }
+    })
   }
 
   async function stopTunnel(id: string): Promise<void> {
+    return withPendingAction(id, async () => {
+      clearRunningGrace(id)
+      setTunnelStatusLocal(id, 'stopping')
+      try {
+        await tunnelService.stop(id)
+        setTunnelStatusLocal(id, 'stopped')
+        await refresh()
+      } catch (error) {
+        await refresh()
+        throw error
+      }
+    })
+  }
+
+  async function cancelTunnel(id: string): Promise<void> {
+    clearRunningGrace(id)
+    setTunnelStatusLocal(id, 'stopping')
     try {
       await tunnelService.stop(id)
-    } finally {
+      setTunnelStatusLocal(id, 'stopped')
       await refresh()
+    } catch (error) {
+      await refresh()
+      throw error
     }
   }
 
   async function restartTunnel(id: string): Promise<void> {
-    try {
-      await tunnelService.restart(id)
-    } finally {
-      await refresh()
-    }
+    return withPendingAction(id, async () => {
+      setTunnelStatusLocal(id, 'restarting')
+      try {
+        await tunnelService.restart(id)
+        markRunningGrace(id)
+        setTunnelStatusLocal(id, 'running')
+        await refresh()
+      } catch (error) {
+        clearRunningGrace(id)
+        await refresh()
+        throw error
+      }
+    })
   }
 
   return {
@@ -248,6 +345,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     totalUploadSpeed,
     totalDownloadSpeed,
     getById,
+    isActionPending,
     load,
     refresh,
     createTunnel,
@@ -255,6 +353,7 @@ export const useTunnelStore = defineStore('tunnel-module', () => {
     removeTunnel,
     startTunnel,
     stopTunnel,
+    cancelTunnel,
     restartTunnel,
   }
 })

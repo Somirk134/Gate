@@ -67,8 +67,16 @@ export function useTunnel() {
     return store.stopTunnel(id)
   }
 
+  function cancel(id: string) {
+    return store.cancelTunnel(id)
+  }
+
   function restart(id: string) {
     return store.restartTunnel(id)
+  }
+
+  function isActionPending(id: string) {
+    return store.isActionPending(id)
   }
 
   onMounted(() => {
@@ -106,7 +114,9 @@ export function useTunnel() {
     remove,
     start,
     stop,
+    cancel,
     restart,
+    isActionPending,
     // Store 由 Runtime 轮询组合式函数复用。
     store,
   }

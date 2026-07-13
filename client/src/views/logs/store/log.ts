@@ -9,10 +9,24 @@ import { getTimeRangeStart, normalizeText } from '../utils'
 interface RuntimeLogRecord {
   level: string
   source: string
+  module?: string
   message: string
   timestamp: number
   tunnelId?: string
   tunnel_id?: string
+  serverId?: string
+  host?: string
+  method?: string
+  path?: string
+  status?: number
+  statusCode?: number
+  latencyMs?: number
+  bytes?: number
+  bytesIn?: number
+  bytesOut?: number
+  scheme?: string
+  tlsVersion?: string | null
+  sni?: string | null
 }
 
 const ipc = new TauriIpcClient()
@@ -266,28 +280,47 @@ function mapRuntimeLog(log: RuntimeLogRecord): LogItem {
   const source = normalizeSource(log.source)
   const raw = JSON.stringify(log)
   const tunnelId = log.tunnelId ?? log.tunnel_id
+  const statusCode = normalizeOptionalNumber(log.statusCode ?? log.status)
+  const bytesOut = normalizeOptionalNumber(log.bytesOut ?? log.bytes)
 
   return {
     id: `${log.source}-${log.timestamp}-${log.message}`,
     timestamp: log.timestamp,
     level,
     source,
-    module: log.source || 'runtime',
+    module: log.module || log.source || 'runtime',
     message: log.message,
     tunnelId,
     tunnelName: tunnelId,
     context: {
-      environment: 'desktop',
-      host: 'local',
+      environment: source === 'SERVER' ? 'server' : 'desktop',
+      host: log.host || 'local',
       processId: 0,
-      thread: 'runtime',
-      sessionId: '',
+      thread: log.module || log.source || 'runtime',
+      sessionId: log.serverId || '',
     },
     metadata: {
-      tags: [log.source, tunnelId].filter(Boolean) as string[],
+      durationMs: normalizeOptionalNumber(log.latencyMs),
+      statusCode,
+      method: log.method,
+      path: log.path,
+      bytesIn: normalizeOptionalNumber(log.bytesIn),
+      bytesOut,
+      tags: [
+        log.source,
+        tunnelId,
+        log.serverId,
+        log.method,
+        statusCode ? `status:${statusCode}` : '',
+        log.scheme,
+      ].filter(Boolean) as string[],
     },
     raw,
   }
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 function normalizeLevel(level: string): LogLevel {
