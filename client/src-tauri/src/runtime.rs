@@ -55,7 +55,6 @@ const RECONNECT_DELAYS_SECS: [u64; 6] = [1, 2, 5, 10, 30, 60];
 const HEARTBEAT_RECONNECT_DELAYS_SECS: [u64; 4] = [0, 1, 2, 5];
 const WORKER_SUPERVISOR_INTERVAL: Duration = Duration::from_secs(1);
 const DEFAULT_MINIMUM_RELAY_WORKERS: usize = 32;
-const MIN_SPARE_RELAY_WORKERS: usize = 8;
 const RELAY_ATTACH_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const RELAY_ATTACH_HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 const RELAY_COPY_BUFFER_SIZE: usize = 64 * 1024;
@@ -419,19 +418,6 @@ impl RelayWorkerRegistry {
 
     async fn remove(&self, worker_id: &str) {
         self.workers.lock().await.remove(worker_id);
-    }
-
-    async fn capacity(&self, tunnel_id: &str) -> (usize, usize) {
-        let workers = self.workers.lock().await;
-        let total = workers
-            .values()
-            .filter(|worker| worker.tunnel_id == tunnel_id && worker.alive)
-            .count();
-        let serving = workers
-            .values()
-            .filter(|worker| worker.tunnel_id == tunnel_id && worker.state == "serving")
-            .count();
-        (total, serving)
     }
 
     async fn snapshot(&self) -> Value {
@@ -828,6 +814,7 @@ pub struct ClientRuntimeState {
     domain_repository: Option<SqliteDomainRepository>,
     inner: Mutex<RuntimeInner>,
     local_tunnels: Mutex<BTreeMap<String, LocalTunnelRuntime>>,
+    tunnel_start_lock: Mutex<()>,
     worker_registry: Arc<RelayWorkerRegistry>,
     server_connections: Mutex<BTreeMap<String, ServerConnectionRuntime>>,
     control_io_lock: Mutex<()>,
@@ -849,6 +836,7 @@ impl Default for ClientRuntimeState {
             domain_repository,
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
+            tunnel_start_lock: Mutex::new(()),
             worker_registry: Arc::new(RelayWorkerRegistry::default()),
             server_connections: Mutex::new(BTreeMap::new()),
             control_io_lock: Mutex::new(()),
@@ -1865,6 +1853,8 @@ impl ClientRuntimeState {
     }
 
     pub async fn start_tunnel(&self, tunnel_id: String) -> Result<(), String> {
+        // 串行化启动流程，避免快速重复操作创建多套失去管理的 Worker 池。
+        let _start_guard = self.tunnel_start_lock.lock().await;
         self.ensure_tunnel_exists(&tunnel_id).await?;
         let (tunnel, server_id, server_addr, token, session_id) =
             self.active_relay_context(&tunnel_id).await?;
@@ -3115,17 +3105,15 @@ async fn relay_worker_supervisor_loop(
         }
         workers.retain(|_, (_, task)| !task.is_finished());
 
-        let (_, serving) = registry.capacity(&template.tunnel_id).await;
-        // 每个正在转发的连接至少保留一个替补 Worker；低负载时维持最小热池。
-        let desired = relay_pool_target(pool, serving);
+        // 已有 Worker 完成转发后会自行重新挂载；保持固定热池可避免重复补位造成连接风暴。
+        let desired = relay_pool_target(pool);
 
         while workers.len() < desired {
             spawn_worker(next_worker_id, &mut workers);
             next_worker_id = next_worker_id.saturating_add(1);
         }
 
-        // 不主动缩容已连接的 worker：服务端可能刚好把“空闲”连接分配给公网请求，
-        // 此处关闭会打断真实转发。池子由 maximum 限制，稳定性优先于短时资源回收。
+        // 固定热池不会随瞬时并发永久扩张，因此无需关闭可能正在转发的连接。
     }
 
     for (_, (worker_shutdown, task)) in workers {
@@ -3134,12 +3122,9 @@ async fn relay_worker_supervisor_loop(
     }
 }
 
-fn relay_pool_target(pool: RelayWorkerPoolConfig, serving: usize) -> usize {
-    let spare_workers = pool.minimum.max(MIN_SPARE_RELAY_WORKERS);
-    // 保持一整组热备用 worker：成熟反向代理通常依赖预建立连接池承接短连接突发。
-    pool.minimum
-        .max(serving.saturating_add(spare_workers))
-        .min(pool.maximum)
+fn relay_pool_target(pool: RelayWorkerPoolConfig) -> usize {
+    // maximum 仅作为配置防线；运行时固定维持 minimum，避免一次性 Worker 被重复补位后永久膨胀。
+    pool.minimum.min(pool.maximum)
 }
 
 async fn relay_worker_loop(
@@ -5280,14 +5265,18 @@ mod tests {
     }
 
     #[test]
-    fn worker_supervisor_scales_with_serving_load_without_breaching_limits() {
+    fn worker_supervisor_keeps_a_bounded_warm_pool() {
         let pool = RelayWorkerPoolConfig {
             minimum: 8,
             maximum: 32,
         };
-        assert_eq!(relay_pool_target(pool, 0), 8);
-        assert_eq!(relay_pool_target(pool, 14), 22);
-        assert_eq!(relay_pool_target(pool, 100), 32);
+        assert_eq!(relay_pool_target(pool), 8);
+
+        let clamped = RelayWorkerPoolConfig {
+            minimum: 64,
+            maximum: 32,
+        };
+        assert_eq!(relay_pool_target(clamped), 32);
     }
 
     #[tokio::test]
@@ -5433,6 +5422,7 @@ mod tests {
             server_connections: Mutex::new(BTreeMap::new()),
             inner: Mutex::new(inner),
             local_tunnels: Mutex::new(BTreeMap::new()),
+            tunnel_start_lock: Mutex::new(()),
             worker_registry: Arc::new(RelayWorkerRegistry::default()),
             control_io_lock: Mutex::new(()),
         };

@@ -1595,8 +1595,14 @@ impl TunnelGateway {
             );
 
             let mut outcome = if response_only {
-                self.relay_response_to_public(public_stream, relay_stream, &tunnel, config.runtime)
-                    .await?
+                self.relay_response_to_public(
+                    public_stream,
+                    relay_stream,
+                    &tunnel,
+                    config.runtime,
+                    &request.method,
+                )
+                .await?
             } else {
                 self.relay_bidirectional(public_stream, relay_stream, &tunnel, config.runtime)
                     .await?
@@ -1828,6 +1834,7 @@ impl TunnelGateway {
         mut relay_stream: TcpStream,
         tunnel: &Arc<TunnelSession>,
         runtime: TunnelRuntimeConfig,
+        request_method: &str,
     ) -> anyhow::Result<RelayCopyOutcome>
     where
         S: AsyncWrite + Unpin,
@@ -1841,14 +1848,14 @@ impl TunnelGateway {
             .shutdown()
             .await
             .map_err(|source| anyhow::anyhow!(describe_io_error("upload-close", &source)))?;
-        let bytes_out = copy_direction(
+        let bytes_out = copy_http_response_direction(
             &mut relay_stream,
             &mut public_stream,
             tunnel,
             &self.inner.counters,
-            CopyDirection::BytesOut,
             idle_timeout,
             runtime.bandwidth_limit_bps,
+            request_method,
         )
         .await
         .map_err(|source| anyhow::anyhow!(describe_io_error("download", &source)))?;
@@ -3264,6 +3271,393 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HttpResponseBodyKind {
+    None,
+    ContentLength(u64),
+    Chunked,
+    UntilEof,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct HttpResponseFraming {
+    status: u16,
+    body: HttpResponseBodyKind,
+}
+
+async fn copy_http_response_direction<R, W>(
+    reader: &mut R,
+    writer: &mut W,
+    tunnel: &Arc<TunnelSession>,
+    counters: &GatewayCounters,
+    idle_timeout: Duration,
+    bandwidth_limit_bps: u64,
+    request_method: &str,
+) -> io::Result<u64>
+where
+    R: AsyncRead + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    let started = Instant::now();
+    let mut copied = 0_u64;
+
+    let body_kind = loop {
+        let head = if idle_timeout.is_zero() {
+            read_http_gateway_head(reader).await
+        } else {
+            timeout(idle_timeout, read_http_gateway_head(reader))
+                .await
+                .map_err(|_| io::Error::new(ErrorKind::TimedOut, "HTTP response header timeout"))?
+        }?
+        .ok_or_else(|| {
+            io::Error::new(
+                ErrorKind::UnexpectedEof,
+                "relay closed before HTTP response headers",
+            )
+        })?;
+        let framing = parse_http_response_framing(&head, request_method)?;
+        write_http_relay_bytes(
+            writer,
+            &head,
+            tunnel,
+            counters,
+            &mut copied,
+            started,
+            bandwidth_limit_bps,
+        )
+        .await?;
+
+        // 100/102/103 等临时响应之后仍有最终响应，不能提前释放 relay。
+        if (100..200).contains(&framing.status) && framing.status != 101 {
+            continue;
+        }
+        break framing.body;
+    };
+
+    match body_kind {
+        HttpResponseBodyKind::None => {}
+        HttpResponseBodyKind::ContentLength(length) => {
+            copy_http_exact_body(
+                reader,
+                writer,
+                length,
+                tunnel,
+                counters,
+                idle_timeout,
+                &mut copied,
+                started,
+                bandwidth_limit_bps,
+            )
+            .await?;
+        }
+        HttpResponseBodyKind::Chunked => {
+            copy_http_chunked_body(
+                reader,
+                writer,
+                tunnel,
+                counters,
+                idle_timeout,
+                &mut copied,
+                started,
+                bandwidth_limit_bps,
+            )
+            .await?;
+        }
+        HttpResponseBodyKind::UntilEof => {
+            copied = copied.saturating_add(
+                copy_direction(
+                    reader,
+                    writer,
+                    tunnel,
+                    counters,
+                    CopyDirection::BytesOut,
+                    idle_timeout,
+                    bandwidth_limit_bps,
+                )
+                .await?,
+            );
+            return Ok(copied);
+        }
+    }
+
+    writer.shutdown().await?;
+    Ok(copied)
+}
+
+fn parse_http_response_framing(
+    head: &[u8],
+    request_method: &str,
+) -> io::Result<HttpResponseFraming> {
+    let text = String::from_utf8_lossy(head);
+    let mut lines = text.split("\r\n");
+    let status = lines
+        .next()
+        .and_then(|line| line.split_whitespace().nth(1))
+        .and_then(|value| value.parse::<u16>().ok())
+        .ok_or_else(|| io::Error::new(ErrorKind::InvalidData, "invalid HTTP status line"))?;
+    let mut content_length = None;
+    let mut chunked = false;
+
+    for line in lines {
+        if line.is_empty() {
+            break;
+        }
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        if name.eq_ignore_ascii_case("Content-Length") {
+            content_length = Some(value.trim().parse::<u64>().map_err(|_| {
+                io::Error::new(ErrorKind::InvalidData, "invalid HTTP Content-Length")
+            })?);
+        } else if name.eq_ignore_ascii_case("Transfer-Encoding") {
+            chunked = value
+                .split(',')
+                .any(|encoding| encoding.trim().eq_ignore_ascii_case("chunked"));
+        }
+    }
+
+    let method = request_method.trim();
+    let body = if method.eq_ignore_ascii_case("HEAD")
+        || (100..200).contains(&status)
+        || matches!(status, 204 | 304)
+    {
+        HttpResponseBodyKind::None
+    } else if chunked {
+        HttpResponseBodyKind::Chunked
+    } else if let Some(length) = content_length {
+        HttpResponseBodyKind::ContentLength(length)
+    } else {
+        HttpResponseBodyKind::UntilEof
+    };
+
+    Ok(HttpResponseFraming { status, body })
+}
+
+async fn copy_http_chunked_body<R, W>(
+    reader: &mut R,
+    writer: &mut W,
+    tunnel: &Arc<TunnelSession>,
+    counters: &GatewayCounters,
+    idle_timeout: Duration,
+    copied: &mut u64,
+    started: Instant,
+    bandwidth_limit_bps: u64,
+) -> io::Result<()>
+where
+    R: AsyncRead + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    loop {
+        let size_line = read_http_relay_line(reader, idle_timeout).await?;
+        write_http_relay_bytes(
+            writer,
+            &size_line,
+            tunnel,
+            counters,
+            copied,
+            started,
+            bandwidth_limit_bps,
+        )
+        .await?;
+        let size = parse_http_chunk_size(&size_line)?;
+
+        if size == 0 {
+            loop {
+                let trailer = read_http_relay_line(reader, idle_timeout).await?;
+                let complete = trailer == b"\r\n";
+                write_http_relay_bytes(
+                    writer,
+                    &trailer,
+                    tunnel,
+                    counters,
+                    copied,
+                    started,
+                    bandwidth_limit_bps,
+                )
+                .await?;
+                if complete {
+                    return Ok(());
+                }
+            }
+        }
+
+        copy_http_exact_body(
+            reader,
+            writer,
+            size,
+            tunnel,
+            counters,
+            idle_timeout,
+            copied,
+            started,
+            bandwidth_limit_bps,
+        )
+        .await?;
+        let terminator = read_http_relay_exact(reader, 2, idle_timeout).await?;
+        if terminator != b"\r\n" {
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                "invalid HTTP chunk terminator",
+            ));
+        }
+        write_http_relay_bytes(
+            writer,
+            &terminator,
+            tunnel,
+            counters,
+            copied,
+            started,
+            bandwidth_limit_bps,
+        )
+        .await?;
+    }
+}
+
+async fn copy_http_exact_body<R, W>(
+    reader: &mut R,
+    writer: &mut W,
+    mut remaining: u64,
+    tunnel: &Arc<TunnelSession>,
+    counters: &GatewayCounters,
+    idle_timeout: Duration,
+    copied: &mut u64,
+    started: Instant,
+    bandwidth_limit_bps: u64,
+) -> io::Result<()>
+where
+    R: AsyncRead + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    let mut buffer = vec![0_u8; RELAY_BUFFER_SIZE];
+    while remaining > 0 {
+        let limit = remaining.min(buffer.len() as u64) as usize;
+        let read = read_http_relay(reader, &mut buffer[..limit], idle_timeout).await?;
+        if read == 0 {
+            return Err(io::Error::new(
+                ErrorKind::UnexpectedEof,
+                "relay closed before HTTP response body completed",
+            ));
+        }
+        write_http_relay_bytes(
+            writer,
+            &buffer[..read],
+            tunnel,
+            counters,
+            copied,
+            started,
+            bandwidth_limit_bps,
+        )
+        .await?;
+        remaining = remaining.saturating_sub(read as u64);
+    }
+    Ok(())
+}
+
+async fn read_http_relay_line<R>(reader: &mut R, idle_timeout: Duration) -> io::Result<Vec<u8>>
+where
+    R: AsyncRead + Unpin,
+{
+    let mut line = Vec::with_capacity(32);
+    let mut byte = [0_u8; 1];
+    loop {
+        let read = read_http_relay(reader, &mut byte, idle_timeout).await?;
+        if read == 0 {
+            return Err(io::Error::new(
+                ErrorKind::UnexpectedEof,
+                "relay closed while reading HTTP chunk framing",
+            ));
+        }
+        line.push(byte[0]);
+        if line.len() > HTTP_HEADER_LIMIT {
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                "HTTP chunk framing limit exceeded",
+            ));
+        }
+        if line.ends_with(b"\r\n") {
+            return Ok(line);
+        }
+    }
+}
+
+async fn read_http_relay_exact<R>(
+    reader: &mut R,
+    length: usize,
+    idle_timeout: Duration,
+) -> io::Result<Vec<u8>>
+where
+    R: AsyncRead + Unpin,
+{
+    let mut bytes = vec![0_u8; length];
+    let mut offset = 0;
+    while offset < length {
+        let read = read_http_relay(reader, &mut bytes[offset..], idle_timeout).await?;
+        if read == 0 {
+            return Err(io::Error::new(
+                ErrorKind::UnexpectedEof,
+                "relay closed while reading HTTP chunk terminator",
+            ));
+        }
+        offset += read;
+    }
+    Ok(bytes)
+}
+
+async fn read_http_relay<R>(
+    reader: &mut R,
+    buffer: &mut [u8],
+    idle_timeout: Duration,
+) -> io::Result<usize>
+where
+    R: AsyncRead + Unpin,
+{
+    if idle_timeout.is_zero() {
+        return reader.read(buffer).await;
+    }
+    timeout(idle_timeout, reader.read(buffer))
+        .await
+        .map_err(|_| io::Error::new(ErrorKind::TimedOut, "HTTP response idle timeout"))?
+}
+
+async fn write_http_relay_bytes<W>(
+    writer: &mut W,
+    bytes: &[u8],
+    tunnel: &Arc<TunnelSession>,
+    counters: &GatewayCounters,
+    copied: &mut u64,
+    started: Instant,
+    bandwidth_limit_bps: u64,
+) -> io::Result<()>
+where
+    W: AsyncWrite + Unpin,
+{
+    timeout(RELAY_WRITE_STALL_TIMEOUT, writer.write_all(bytes))
+        .await
+        .map_err(|_| io::Error::new(ErrorKind::TimedOut, "relay write stalled"))??;
+    *copied = copied.saturating_add(bytes.len() as u64);
+    record_tunnel_bytes(
+        tunnel,
+        counters,
+        CopyDirection::BytesOut,
+        bytes.len() as u64,
+    );
+    throttle_bandwidth(*copied, started, bandwidth_limit_bps).await;
+    Ok(())
+}
+
+fn parse_http_chunk_size(line: &[u8]) -> io::Result<u64> {
+    let line = std::str::from_utf8(line)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "invalid HTTP chunk size"))?;
+    let value = line
+        .trim_end_matches("\r\n")
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim();
+    u64::from_str_radix(value, 16)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "invalid HTTP chunk size"))
+}
+
 fn record_tunnel_bytes(
     tunnel: &Arc<TunnelSession>,
     counters: &GatewayCounters,
@@ -3913,6 +4307,132 @@ mod tests {
         )
         .expect("parse chunked request");
         assert!(chunked.has_body);
+    }
+
+    #[test]
+    fn http_response_framing_uses_message_boundaries_before_tcp_eof() {
+        let content_length =
+            parse_http_response_framing(b"HTTP/1.1 200 OK\r\nContent-Length: 7\r\n\r\n", "GET")
+                .expect("content length framing");
+        assert_eq!(content_length.body, HttpResponseBodyKind::ContentLength(7));
+
+        let chunked = parse_http_response_framing(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: gzip, chunked\r\n\r\n",
+            "GET",
+        )
+        .expect("chunked framing");
+        assert_eq!(chunked.body, HttpResponseBodyKind::Chunked);
+
+        let head = parse_http_response_framing(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n",
+            "HEAD",
+        )
+        .expect("head framing");
+        assert_eq!(head.body, HttpResponseBodyKind::None);
+    }
+
+    #[tokio::test]
+    async fn http_gateway_releases_head_response_without_backend_eof() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let session_id = gateway.create_session().await;
+        let remote_port = unused_loopback_port().await?;
+        let tunnel_id = "head-boundary";
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body_without_host(tunnel_id, remote_port, 18080),
+            )
+            .await?;
+
+        let (relay_server, mut relay_client) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker(tunnel_id, &session_id, relay_server)
+            .await?;
+        let worker = tokio::spawn(async move {
+            let protocol = ProtocolBuilder::new().build();
+            let _start = read_message(&mut relay_client, &protocol)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("missing relay start"))?;
+            let mut request = Vec::new();
+            relay_client.read_to_end(&mut request).await?;
+            relay_client
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n",
+                )
+                .await?;
+            sleep(Duration::from_secs(2)).await;
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let mut public = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        public
+            .write_all(b"HEAD / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = Vec::new();
+        timeout(
+            Duration::from_millis(500),
+            public.read_to_end(&mut response),
+        )
+        .await??;
+        assert!(String::from_utf8_lossy(&response).contains("200 OK"));
+        wait_for_active_connections(&gateway, 0).await?;
+
+        worker.abort();
+        gateway.stop_tunnel(tunnel_id).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn http_gateway_releases_chunked_response_without_backend_eof() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let session_id = gateway.create_session().await;
+        let remote_port = unused_loopback_port().await?;
+        let tunnel_id = "chunked-boundary";
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body_without_host(tunnel_id, remote_port, 18080),
+            )
+            .await?;
+
+        let (relay_server, mut relay_client) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker(tunnel_id, &session_id, relay_server)
+            .await?;
+        let worker = tokio::spawn(async move {
+            let protocol = ProtocolBuilder::new().build();
+            let _start = read_message(&mut relay_client, &protocol)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("missing relay start"))?;
+            let mut request = Vec::new();
+            relay_client.read_to_end(&mut request).await?;
+            relay_client
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n5\r\nhello\r\n6\r\n world\r\n0\r\nX-Gate: ok\r\n\r\n",
+                )
+                .await?;
+            sleep(Duration::from_secs(2)).await;
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let mut public = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        public
+            .write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = Vec::new();
+        timeout(
+            Duration::from_millis(500),
+            public.read_to_end(&mut response),
+        )
+        .await??;
+        let response = String::from_utf8_lossy(&response);
+        assert!(response.contains("5\r\nhello\r\n"));
+        assert!(response.ends_with("0\r\nX-Gate: ok\r\n\r\n"));
+        wait_for_active_connections(&gateway, 0).await?;
+
+        worker.abort();
+        gateway.stop_tunnel(tunnel_id).await?;
+        Ok(())
     }
 
     #[tokio::test]
