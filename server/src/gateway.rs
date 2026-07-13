@@ -1830,14 +1830,14 @@ impl TunnelGateway {
 
     async fn relay_response_to_public<S>(
         &self,
-        mut public_stream: S,
+        public_stream: S,
         mut relay_stream: TcpStream,
         tunnel: &Arc<TunnelSession>,
         runtime: TunnelRuntimeConfig,
         request_method: &str,
     ) -> anyhow::Result<RelayCopyOutcome>
     where
-        S: AsyncWrite + Unpin,
+        S: AsyncRead + AsyncWrite + Unpin,
     {
         let _ = relay_stream.set_nodelay(true);
         let started = Instant::now();
@@ -1848,23 +1848,49 @@ impl TunnelGateway {
             .shutdown()
             .await
             .map_err(|source| anyhow::anyhow!(describe_io_error("upload-close", &source)))?;
-        let bytes_out = copy_http_response_direction(
+        let (mut public_read, mut public_write) = tokio::io::split(public_stream);
+        let response_copy = copy_http_response_direction(
             &mut relay_stream,
-            &mut public_stream,
+            &mut public_write,
             tunnel,
             &self.inner.counters,
             idle_timeout,
             runtime.bandwidth_limit_bps,
             request_method,
-        )
-        .await
-        .map_err(|source| anyhow::anyhow!(describe_io_error("download", &source)))?;
+        );
+        tokio::pin!(response_copy);
+        let public_disconnect = Self::wait_for_public_disconnect(&mut public_read);
+        tokio::pin!(public_disconnect);
+
+        let bytes_out = tokio::select! {
+            result = &mut response_copy => {
+                result.map_err(|source| anyhow::anyhow!(describe_io_error("download", &source)))?
+            }
+            result = &mut public_disconnect => {
+                result.map_err(|source| anyhow::anyhow!(describe_io_error("public-read", &source)))?;
+                return Err(anyhow::anyhow!("public connection closed before HTTP response completed"));
+            }
+        };
 
         Ok(RelayCopyOutcome {
             bytes_in: 0,
             bytes_out,
             duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
         })
+    }
+
+    async fn wait_for_public_disconnect<R>(reader: &mut R) -> io::Result<()>
+    where
+        R: AsyncRead + Unpin,
+    {
+        let mut buffer = [0_u8; 1024];
+        loop {
+            match reader.read(&mut buffer).await? {
+                0 => return Ok(()),
+                // 当前 HTTP 转发一次只处理一个请求；忽略额外输入，仅用于尽快感知连接关闭。
+                _ => continue,
+            }
+        }
     }
 
     async fn next_relay_worker(&self, tunnel: &Arc<TunnelSession>) -> anyhow::Result<TcpStream> {
@@ -4430,6 +4456,52 @@ mod tests {
         assert!(response.ends_with("0\r\nX-Gate: ok\r\n\r\n"));
         wait_for_active_connections(&gateway, 0).await?;
 
+        worker.abort();
+        gateway.stop_tunnel(tunnel_id).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn http_gateway_cancels_partial_response_after_public_disconnect() -> anyhow::Result<()> {
+        let gateway = TunnelGateway::new();
+        let session_id = gateway.create_session().await;
+        let remote_port = unused_loopback_port().await?;
+        let tunnel_id = "public-disconnect";
+        gateway
+            .register_tunnel(
+                &session_id,
+                &http_tunnel_body_without_host(tunnel_id, remote_port, 18080),
+            )
+            .await?;
+
+        let (relay_server, mut relay_client) = tcp_pair().await?;
+        gateway
+            .attach_relay_worker(tunnel_id, &session_id, relay_server)
+            .await?;
+        let worker = tokio::spawn(async move {
+            let protocol = ProtocolBuilder::new().build();
+            let _start = read_message(&mut relay_client, &protocol)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("missing relay start"))?;
+            let mut request = Vec::new();
+            relay_client.read_to_end(&mut request).await?;
+            relay_client
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\npartial")
+                .await?;
+            sleep(Duration::from_secs(2)).await;
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let mut public = TcpStream::connect(("127.0.0.1", remote_port)).await?;
+        public
+            .write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = [0_u8; 256];
+        let read = timeout(Duration::from_millis(500), public.read(&mut response)).await??;
+        assert!(String::from_utf8_lossy(&response[..read]).contains("partial"));
+        drop(public);
+
+        wait_for_active_connections(&gateway, 0).await?;
         worker.abort();
         gateway.stop_tunnel(tunnel_id).await?;
         Ok(())
