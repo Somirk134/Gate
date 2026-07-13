@@ -3884,7 +3884,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
           'MIT licensed with a clear code structure for security audits, extensions, and deeper internal team customization.',
       },
     },
-    releaseKicker: 'v0.9.1',
+    releaseKicker: 'v0.9.2',
     releaseDate: 'July 2026',
     changelog: 'Changelog',
     releaseTitle: 'Release Candidate',

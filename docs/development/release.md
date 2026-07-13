@@ -4,7 +4,7 @@ This page describes the Gate v0.9 release process.
 
 ## Version policy
 
-Gate v0.9.1 uses `0.9.1` across:
+Gate v0.9.2 uses `0.9.2` across:
 
 - Rust workspace package version.
 - Root npm workspace package version.
@@ -26,11 +26,11 @@ Gate v0.9.1 uses `0.9.1` across:
 3. Create and push a tag:
 
    ```bash
-   git tag v0.9.1
-   git push origin v0.9.1
+   git tag v0.9.2
+   git push origin v0.9.2
    ```
 
-4. Let GitHub Actions build server binaries, desktop packages, and Docker image.
+4. Let GitHub Actions build server binaries and desktop packages, then publish the pinned Docker Hub image.
 5. Review generated artifacts and release notes.
 6. Publish the GitHub Release when artifacts are verified.
 
@@ -42,8 +42,8 @@ Gate v0.9.1 uses `0.9.1` across:
 | macOS Intel | Server archive and desktop `.dmg`. |
 | macOS Apple Silicon | Server archive and desktop `.dmg`. |
 | Linux | Server archive, `.AppImage`, and `.deb`. |
-| Docker | `ghcr.io/<owner>/gate-server:v0.9.1`. |
+| Docker | `qwe1235/gate-server:0.9.2`. |
 
 ## Updater policy
 
-Gate v0.9 does not configure a dedicated Tauri updater endpoint. Users install updates from GitHub Releases until a signed update server is available.
+Gate uses the signed `latest.json` and updater assets from the latest GitHub Release. Every platform entry must reference a distinct uploaded asset with a non-empty signature.

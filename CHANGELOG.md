@@ -2,6 +2,13 @@
 
 All notable changes to Gate are documented in this file.
 
+## 0.9.2 - 2026-07-13
+
+- Improve tunnel worker selection, relay buffering, stalled-write handling, and HTTP connection behavior.
+- Improve local and exported log retention so stability incidents remain diagnosable.
+- Make GitHub Release assets deterministic and validate all updater packages, signatures, and platform URLs before publishing.
+- Align Cargo, npm, Tauri, Docker, desktop UI, and release documentation on `0.9.2`.
+
 ## 0.9.1 - 2026-07-10
 
 ### Security

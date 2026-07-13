@@ -1,28 +1,34 @@
-// 不依赖 GitHub API，按固定资产清单将 GitHub Release 镜像到 Gitee。
+// 不依赖 GitHub API，按当前版本的完整资产清单将 GitHub Release 镜像到 Gitee。
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 
-const tag = process.argv[2] || 'v0.9.1'
+const tag = process.argv[2]
 const token = process.env.GITEE_TOKEN
+const version = tag?.replace(/^v/, '')
 const ghBase = `https://github.com/Somirk134/Gate/releases/download/${tag}`
 
 const ASSETS = [
-  'Gate_0.9.1_x64-setup.exe',
-  'Gate_0.9.1_x64.dmg',
-  'Gate_0.9.1_aarch64.dmg',
-  'Gate_0.9.1_amd64.AppImage',
-  'Gate_0.9.1_amd64.deb',
-  'Gate.app.tar.gz',
-  'gate-server-v0.9.1-linux-x64',
-  'gate-server-v0.9.1-macos-arm64',
-  'gate-server-v0.9.1-macos-x64',
-  'gate-server-v0.9.1-windows-x64.exe',
+  `Gate_${version}_x64-setup.exe`,
+  `Gate_${version}_x64-setup.exe.sig`,
+  `Gate_${version}_x64.dmg`,
+  `Gate_${version}_aarch64.dmg`,
+  `Gate_${version}_macos-x64.app.tar.gz`,
+  `Gate_${version}_macos-x64.app.tar.gz.sig`,
+  `Gate_${version}_macos-arm64.app.tar.gz`,
+  `Gate_${version}_macos-arm64.app.tar.gz.sig`,
+  `Gate_${version}_amd64.AppImage`,
+  `Gate_${version}_amd64.AppImage.sig`,
+  `Gate_${version}_amd64.deb`,
+  `gate-server-${tag}-linux-x64`,
+  `gate-server-${tag}-macos-arm64`,
+  `gate-server-${tag}-macos-x64`,
+  `gate-server-${tag}-windows-x64.exe`,
   'latest.json',
 ]
 
-if (!token) {
-  console.error('需要 GITEE_TOKEN')
+if (!tag || !/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag) || !token) {
+  console.error('用法: GITEE_TOKEN=... node scripts/sync-gitee-release-direct.mjs v0.9.2')
   process.exit(1)
 }
 
@@ -49,7 +55,10 @@ async function download(url, dest) {
 async function main() {
   let release = null
   try {
-    release = await gitee('GET', `/repos/lancemorii-git/gate/releases/tags/${encodeURIComponent(tag)}`)
+    release = await gitee(
+      'GET',
+      `/repos/lancemorii-git/gate/releases/tags/${encodeURIComponent(tag)}`,
+    )
   } catch {
     release = null
   }

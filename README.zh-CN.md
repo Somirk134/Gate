@@ -66,7 +66,7 @@ flowchart LR
 ### 1. 拉取镜像
 
 ```bash
-docker pull qwe1235/gate-server:0.9.1
+docker pull qwe1235/gate-server:0.9.2
 ```
 
 也可以使用 `latest` 标签：
@@ -96,7 +96,7 @@ openssl rand -hex 32
 ```yaml
 services:
   gate-server:
-    image: qwe1235/gate-server:0.9.1
+    image: qwe1235/gate-server:0.9.2
     network_mode: host
     restart: unless-stopped
     environment:
@@ -174,20 +174,20 @@ docker compose logs -f   # 查看实时日志
 
 ### 1. 服务端：下载并启动 `gate-server`
 
-到 [GitHub Releases v0.9.1](https://github.com/Somirk134/Gate/releases/tag/v0.9.1) 下载对应服务器系统的二进制：
+到 [GitHub Releases v0.9.2](https://github.com/Somirk134/Gate/releases/tag/v0.9.2) 下载对应服务器系统的二进制：
 
 | 服务器系统 | 下载文件 |
 |----------|----------|
-| Linux x64 | `gate-server-v0.9.1-linux-x64` |
-| macOS Apple Silicon | `gate-server-v0.9.1-macos-arm64` |
-| macOS Intel | `gate-server-v0.9.1-macos-x64` |
-| Windows x64 | `gate-server-v0.9.1-windows-x64.exe` |
+| Linux x64 | `gate-server-v0.9.2-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.2-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.2-macos-x64` |
+| Windows x64 | `gate-server-v0.9.2-windows-x64.exe` |
 
 以 **Linux 服务器** 为例：
 
 ```bash
 # 下载二进制
-curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.1/gate-server-v0.9.1-linux-x64
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.2/gate-server-v0.9.2-linux-x64
 chmod +x gate-server
 
 # 生成一个强随机 token 并保存
@@ -212,8 +212,8 @@ GATE_AUTH_TOKEN=$TOKEN \
 ========================================
 ```
 
-> **Windows 用户**：先设置 `GATE_AUTH_TOKEN`，再从终端运行 `gate-server-v0.9.1-windows-x64.exe`。
-> **macOS 用户**：`chmod +x gate-server-v0.9.1-macos-*`，设置 `GATE_AUTH_TOKEN` 后再运行二进制。
+> **Windows 用户**：先设置 `GATE_AUTH_TOKEN`，再从终端运行 `gate-server-v0.9.2-windows-x64.exe`。
+> **macOS 用户**：`chmod +x gate-server-v0.9.2-macos-*`，设置 `GATE_AUTH_TOKEN` 后再运行二进制。
 > `GATE_AUTH_TOKEN` 缺失、少于 16 个字符或使用已知弱默认值时，服务端会拒绝启动。
 
 **进阶：让服务端后台常驻（Linux）**
@@ -346,7 +346,7 @@ docker compose restart
 docker compose logs -f --tail=100
 
 # 更新到新版本镜像
-docker pull qwe1235/gate-server:0.9.1
+docker pull qwe1235/gate-server:0.9.2
 docker compose up -d
 ```
 
@@ -402,7 +402,7 @@ git clone https://github.com/Somirk134/Gate.git && cd Gate
 docker build -f docker/Dockerfile.server -t gate-server:local .
 ```
 
-然后在 Compose 文件中将 `image: qwe1235/gate-server:0.9.1` 替换为 `image: gate-server:local`。
+然后在 Compose 文件中将 `image: qwe1235/gate-server:0.9.2` 替换为 `image: gate-server:local`。
 
 完整文档见 [Docker 文档](docs/user/docker.md) 和 [部署指南](docs/user/deployment.md)。
 

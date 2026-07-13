@@ -1,7 +1,7 @@
 {
   "name": "gate-workspace",
   "private": true,
-  "version": "0.9.1",
+  "version": "0.9.2",
   "scripts": {
     "dev:server": "powershell -ExecutionPolicy Bypass -File scripts/dev/start-server.ps1",
     "dev:server:release": "powershell -ExecutionPolicy Bypass -File scripts/dev/start-server.ps1 -Release",
@@ -12,6 +12,7 @@
     "check:server": "cargo check -p gate-server",
     "typecheck": "npm --prefix client run typecheck",
     "build": "npm run guard:release-data && npm --prefix client run build",
-    "guard:release-data": "node scripts/release/check-no-local-data.mjs"
+    "guard:release-data": "node scripts/release/check-no-local-data.mjs",
+    "test:release-manifest": "node scripts/release/test-updater-manifests.mjs"
   }
 }

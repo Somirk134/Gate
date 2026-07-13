@@ -99,7 +99,10 @@ fn classify_tunnel_error(source: &str) -> AppError {
         return AppError::new("TUNNEL_NO_SERVER", "tunnel.errors.noServer");
     }
     if source == "SERVER_NOT_FOUND_FOR_TUNNEL" || source == "SERVER_REQUIRED_FOR_TUNNEL" {
-        return AppError::new("TUNNEL_CONFIG_INCOMPLETE", "tunnel.errors.configServerMissing");
+        return AppError::new(
+            "TUNNEL_CONFIG_INCOMPLETE",
+            "tunnel.errors.configServerMissing",
+        );
     }
     if source.starts_with("REMOTE_PORT_OCCUPIED:") {
         let port = source.rsplit(':').next().unwrap_or_default();
@@ -110,10 +113,16 @@ fn classify_tunnel_error(source: &str) -> AppError {
         );
     }
     if source.contains("REMOTE_PORT_REQUIRED") {
-        return AppError::new("TUNNEL_REMOTE_PORT_REQUIRED", "tunnel.errors.remotePortRequired");
+        return AppError::new(
+            "TUNNEL_REMOTE_PORT_REQUIRED",
+            "tunnel.errors.remotePortRequired",
+        );
     }
     if source.contains("LOCAL_PORT_REQUIRED") {
-        return AppError::new("TUNNEL_LOCAL_PORT_REQUIRED", "tunnel.errors.localPortRequired");
+        return AppError::new(
+            "TUNNEL_LOCAL_PORT_REQUIRED",
+            "tunnel.errors.localPortRequired",
+        );
     }
     if source.contains("SERVER_DISCONNECTED_TUNNEL_START_BLOCKED")
         || lower.contains("no active connection")
@@ -137,7 +146,8 @@ fn classify_tunnel_error(source: &str) -> AppError {
             json!({ "source": source }),
         );
     }
-    if lower.contains("failed to resolve local service address") || lower.contains("address is invalid")
+    if lower.contains("failed to resolve local service address")
+        || lower.contains("address is invalid")
     {
         return AppError::with_details(
             "TUNNEL_LOCAL_SERVICE_INVALID",
@@ -145,7 +155,9 @@ fn classify_tunnel_error(source: &str) -> AppError {
             json!({ "source": source }),
         );
     }
-    if lower.contains("already in use") || lower.contains("10048") || lower.contains("only one usage")
+    if lower.contains("already in use")
+        || lower.contains("10048")
+        || lower.contains("only one usage")
     {
         return AppError::with_details(
             "TUNNEL_LOCAL_PORT_OCCUPIED",

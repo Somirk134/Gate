@@ -66,7 +66,7 @@ This is the fastest way to get Gate running on a Linux server. No source code or
 ### 1. Pull the image
 
 ```bash
-docker pull qwe1235/gate-server:0.9.1
+docker pull qwe1235/gate-server:0.9.2
 ```
 
 Or use `latest` tag:
@@ -92,7 +92,7 @@ Create a `docker-compose.yml` file (or use [docker/docker-compose.release.yml](d
 ```yaml
 services:
   gate-server:
-    image: qwe1235/gate-server:0.9.1
+    image: qwe1235/gate-server:0.9.2
     network_mode: host
     restart: unless-stopped
     environment:
@@ -171,20 +171,20 @@ If you don't want to use Docker, or your server can't easily run containers, you
 
 ### 1. Server: download and start `gate-server`
 
-Grab the binary for your server's OS from the [GitHub Releases v0.9.1](https://github.com/Somirk134/Gate/releases/tag/v0.9.1):
+Grab the binary for your server's OS from the [GitHub Releases v0.9.2](https://github.com/Somirk134/Gate/releases/tag/v0.9.2):
 
 | Server OS | File |
 |-----------|------|
-| Linux x64 | `gate-server-v0.9.1-linux-x64` |
-| macOS Apple Silicon | `gate-server-v0.9.1-macos-arm64` |
-| macOS Intel | `gate-server-v0.9.1-macos-x64` |
-| Windows x64 | `gate-server-v0.9.1-windows-x64.exe` |
+| Linux x64 | `gate-server-v0.9.2-linux-x64` |
+| macOS Apple Silicon | `gate-server-v0.9.2-macos-arm64` |
+| macOS Intel | `gate-server-v0.9.2-macos-x64` |
+| Windows x64 | `gate-server-v0.9.2-windows-x64.exe` |
 
 On a **Linux server**:
 
 ```bash
 # Download the binary
-curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.1/gate-server-v0.9.1-linux-x64
+curl -L -o gate-server https://github.com/Somirk134/Gate/releases/download/v0.9.2/gate-server-v0.9.2-linux-x64
 chmod +x gate-server
 
 # Generate a strong random token and save it
@@ -209,8 +209,8 @@ On success the console prints the public connection information. The authenticat
 ========================================
 ```
 
-> **Windows**: set `GATE_AUTH_TOKEN`, then run `gate-server-v0.9.1-windows-x64.exe` from a terminal.
-> **macOS**: `chmod +x gate-server-v0.9.1-macos-*`, set `GATE_AUTH_TOKEN`, then run the binary.
+> **Windows**: set `GATE_AUTH_TOKEN`, then run `gate-server-v0.9.2-windows-x64.exe` from a terminal.
+> **macOS**: `chmod +x gate-server-v0.9.2-macos-*`, set `GATE_AUTH_TOKEN`, then run the binary.
 > The server refuses to start when `GATE_AUTH_TOKEN` is missing, shorter than 16 characters, or a known weak default.
 
 **Optional: keep the server running in the background (Linux)**
@@ -343,7 +343,7 @@ docker compose restart
 docker compose logs -f --tail=100
 
 # Update to a new image version
-docker pull qwe1235/gate-server:0.9.1
+docker pull qwe1235/gate-server:0.9.2
 docker compose up -d
 ```
 

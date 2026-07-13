@@ -731,7 +731,7 @@ const dockerDeployCommand = computed(
       `  -e GATE_AUTH_TOKEN="${answers.serverToken.trim()}" \\`,
       `  -e GATE_SERVER_ADDR="0.0.0.0:${answers.serverPort || 7000}" \\`,
       `  -p ${answers.serverPort || 7000}:${answers.serverPort || 7000} \\`,
-      '  ghcr.io/somirk134/gate-server:v0.9.1',
+      '  qwe1235/gate-server:0.9.2',
     ].join('\n'),
 )
 const activeDeployCommand = computed(() =>

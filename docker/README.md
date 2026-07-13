@@ -35,7 +35,7 @@ export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 docker compose -f docker/docker-compose.release.yml up -d
 ```
 
-The default image is `qwe1235/gate-server:0.9.1`. Override it with `GATE_SERVER_IMAGE` if needed.
+The default image is `qwe1235/gate-server:0.9.2`. Override it with `GATE_SERVER_IMAGE` if needed.
 
 ## Bridge fallback
 

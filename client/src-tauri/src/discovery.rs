@@ -70,10 +70,7 @@ fn run_common_dev_port_scan(app: &AppHandle, scan_id: String) {
                 .collect(),
         )
     };
-    let items: Vec<Value> = listeners
-        .iter()
-        .map(local_service_from_listener)
-        .collect();
+    let items: Vec<Value> = listeners.iter().map(local_service_from_listener).collect();
 
     let _ = app.emit(
         "discovery-scan:complete",
@@ -160,12 +157,18 @@ fn discover_common_dev_listeners() -> Vec<Value> {
 fn discover_listener_for_port(port: u16) -> Option<Value> {
     let ports = BTreeSet::from([port]);
     if cfg!(target_os = "windows") {
-        return discover_windows_listeners_for_ports(&ports).into_iter().next();
+        return discover_windows_listeners_for_ports(&ports)
+            .into_iter()
+            .next();
     }
     if cfg!(target_os = "macos") {
-        return discover_macos_listeners_for_ports(&ports).into_iter().next();
+        return discover_macos_listeners_for_ports(&ports)
+            .into_iter()
+            .next();
     }
-    discover_linux_listeners_for_ports(&ports).into_iter().next()
+    discover_linux_listeners_for_ports(&ports)
+        .into_iter()
+        .next()
 }
 
 pub fn port_discovery_json(occupied: &[Value], gate_reserved: &BTreeSet<u16>) -> Value {
@@ -485,15 +488,16 @@ fn decode_windows_console_bytes(bytes: &[u8]) -> Option<String> {
 }
 
 fn windows_netstat_output() -> String {
-    let powershell = read_command_stdout(
-        hidden_command("powershell").args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "[Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; netstat -ano -p tcp",
-        ]),
-    );
-    if powershell.as_ref().is_some_and(|text| !text.trim().is_empty()) {
+    let powershell = read_command_stdout(hidden_command("powershell").args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "[Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; netstat -ano -p tcp",
+    ]));
+    if powershell
+        .as_ref()
+        .is_some_and(|text| !text.trim().is_empty())
+    {
         return powershell.unwrap_or_default();
     }
 
@@ -502,10 +506,8 @@ fn windows_netstat_output() -> String {
         return direct;
     }
 
-    read_command_stdout(
-        hidden_command("cmd").args(["/C", "netstat", "-ano", "-p", "tcp"]),
-    )
-    .unwrap_or_default()
+    read_command_stdout(hidden_command("cmd").args(["/C", "netstat", "-ano", "-p", "tcp"]))
+        .unwrap_or_default()
 }
 
 fn line_is_tcp_listen(line: &str) -> bool {
@@ -736,7 +738,10 @@ fn windows_pid_names_for(pids: &BTreeSet<u32>) -> BTreeMap<u32, String> {
 }
 
 fn windows_pid_name(pid: u32) -> Option<String> {
-    let output = command_output("tasklist", &["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"]);
+    let output = command_output(
+        "tasklist",
+        &["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"],
+    );
     let line = output.lines().next()?;
     parse_csv_line(line).first().cloned()
 }
@@ -881,9 +886,9 @@ mod tests {
     #[test]
     fn discover_common_dev_listeners_only_returns_common_ports() {
         let listeners = dedupe_listen_ports(discover_common_dev_listeners());
-        assert!(listeners.iter().all(|row| {
-            port_of(row).is_some_and(is_common_dev_port)
-        }));
+        assert!(listeners
+            .iter()
+            .all(|row| { port_of(row).is_some_and(is_common_dev_port) }));
     }
 
     #[test]
@@ -900,8 +905,8 @@ mod tests {
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
-        assert!(items.iter().all(|row| {
-            port_of(row).is_some_and(is_common_dev_port)
-        }));
+        assert!(items
+            .iter()
+            .all(|row| { port_of(row).is_some_and(is_common_dev_port) }));
     }
 }

@@ -81,7 +81,9 @@ pub fn auto_performance_mode(cpu_cores: usize, memory_gb: f64) -> TunnelPerforma
     }
 }
 
-pub fn recommend_tunnel_performance(mode: TunnelPerformanceMode) -> TunnelPerformanceRecommendation {
+pub fn recommend_tunnel_performance(
+    mode: TunnelPerformanceMode,
+) -> TunnelPerformanceRecommendation {
     let (cpu_cores, memory_gb) = device_capacity_snapshot();
     let effective_mode = if mode == TunnelPerformanceMode::Auto {
         auto_performance_mode(cpu_cores, memory_gb)
@@ -89,34 +91,33 @@ pub fn recommend_tunnel_performance(mode: TunnelPerformanceMode) -> TunnelPerfor
         mode
     };
 
-    let (relay_workers, max_connections, relay_worker_wait_ms, reason) =
-        match effective_mode {
-            TunnelPerformanceMode::Conservative => (
-                clamp_usize(cpu_cores.saturating_mul(8), MIN_RELAY_WORKERS, 128),
-                clamp_u64(cpu_cores as u64 * 32, MIN_MAX_CONNECTIONS, 512),
-                15_000,
-                "conservative_device_or_low_memory",
-            ),
-            TunnelPerformanceMode::Balanced => (
-                clamp_usize(cpu_cores.saturating_mul(16), 64, 256),
-                clamp_u64(cpu_cores as u64 * 64, 512, 2_048),
-                30_000,
-                "balanced_for_typical_workloads",
-            ),
-            TunnelPerformanceMode::High => (
-                clamp_usize(cpu_cores.saturating_mul(32), 128, 512),
-                clamp_u64(cpu_cores as u64 * 128, 1_024, MAX_MAX_CONNECTIONS),
-                60_000,
-                "high_throughput_multi_user",
-            ),
-            TunnelPerformanceMode::Unlimited => (
-                MAX_RELAY_WORKERS,
-                MAX_MAX_CONNECTIONS,
-                120_000,
-                "unlimited_server_bandwidth",
-            ),
-            TunnelPerformanceMode::Auto => unreachable!("auto mode should be resolved"),
-        };
+    let (relay_workers, max_connections, relay_worker_wait_ms, reason) = match effective_mode {
+        TunnelPerformanceMode::Conservative => (
+            clamp_usize(cpu_cores.saturating_mul(8), MIN_RELAY_WORKERS, 128),
+            clamp_u64(cpu_cores as u64 * 32, MIN_MAX_CONNECTIONS, 512),
+            15_000,
+            "conservative_device_or_low_memory",
+        ),
+        TunnelPerformanceMode::Balanced => (
+            clamp_usize(cpu_cores.saturating_mul(16), 64, 256),
+            clamp_u64(cpu_cores as u64 * 64, 512, 2_048),
+            30_000,
+            "balanced_for_typical_workloads",
+        ),
+        TunnelPerformanceMode::High => (
+            clamp_usize(cpu_cores.saturating_mul(32), 128, 512),
+            clamp_u64(cpu_cores as u64 * 128, 1_024, MAX_MAX_CONNECTIONS),
+            60_000,
+            "high_throughput_multi_user",
+        ),
+        TunnelPerformanceMode::Unlimited => (
+            MAX_RELAY_WORKERS,
+            MAX_MAX_CONNECTIONS,
+            120_000,
+            "unlimited_server_bandwidth",
+        ),
+        TunnelPerformanceMode::Auto => unreachable!("auto mode should be resolved"),
+    };
 
     TunnelPerformanceRecommendation {
         mode: performance_mode_label(mode).to_string(),
@@ -195,12 +196,8 @@ mod tests {
 
     #[test]
     fn resolve_honors_manual_tunnel_overrides() {
-        let recommendation = resolve_tunnel_performance(
-            Some("balanced"),
-            Some(200),
-            Some(1500),
-            &BTreeMap::new(),
-        );
+        let recommendation =
+            resolve_tunnel_performance(Some("balanced"), Some(200), Some(1500), &BTreeMap::new());
         assert_eq!(recommendation.relay_workers, 200);
         assert_eq!(recommendation.max_connections, 1500);
     }

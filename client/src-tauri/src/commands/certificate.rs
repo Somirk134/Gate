@@ -657,11 +657,7 @@ fn save_acme_client_config(config: &AcmeClientConfig) -> Result<(), AppError> {
             )
         })?;
     }
-    fs::write(
-        &path,
-        serde_json::to_vec_pretty(config).unwrap_or_default(),
-    )
-    .map_err(|e| {
+    fs::write(&path, serde_json::to_vec_pretty(config).unwrap_or_default()).map_err(|e| {
         AppError::from_source(
             "ACME_CONFIG_SAVE_FAILED",
             "errors.certificate.acmeConfigSaveFailed",
@@ -1430,9 +1426,7 @@ async fn restore_acme_runtime_from_record(
             })?;
             (url, creds, session.txt_host, session.txt_value)
         } else {
-            return Err(
-                "该申请记录无法复用 DNS 验证（会话已过期），请重新申请证书".to_string(),
-            );
+            return Err("该申请记录无法复用 DNS 验证（会话已过期），请重新申请证书".to_string());
         };
 
     let credentials: AccountCredentials = serde_json::from_value(credentials_value)
@@ -1447,12 +1441,7 @@ async fn restore_acme_runtime_from_record(
     let mut order = account
         .order(order_url.clone())
         .await
-        .map_err(|e| {
-            format!(
-                "ACME 订单恢复失败: {}。订单可能已过期，请重新申请证书。",
-                e
-            )
-        })?;
+        .map_err(|e| format!("ACME 订单恢复失败: {}。订单可能已过期，请重新申请证书。", e))?;
 
     match order.state().status {
         OrderStatus::Valid => {

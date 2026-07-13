@@ -1,6 +1,6 @@
 // 将 GitHub Release 资产镜像到 Gitee Release（资产完全一致）。
 // 需要环境变量 GITEE_TOKEN（私人令牌，repo 权限）。
-// 用法: node scripts/sync-gitee-release.mjs v0.9.1
+// 用法: node scripts/sync-gitee-release.mjs v0.9.2
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -14,7 +14,7 @@ const tag = process.argv[2]
 const token = process.env.GITEE_TOKEN
 
 if (!tag || !token) {
-  console.error('用法: GITEE_TOKEN=... node scripts/sync-gitee-release.mjs v0.9.1')
+  console.error('用法: GITEE_TOKEN=... node scripts/sync-gitee-release.mjs v0.9.2')
   process.exit(1)
 }
 
@@ -103,7 +103,9 @@ async function main() {
   }
 
   if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
-  console.log(`Gitee Release 同步完成: https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/releases/tag/${tag}`)
+  console.log(
+    `Gitee Release 同步完成: https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/releases/tag/${tag}`,
+  )
 }
 
 main().catch((err) => {

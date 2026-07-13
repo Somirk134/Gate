@@ -3828,7 +3828,7 @@ const messages: LocaleMessages<Record<string, unknown>> = {
         description: '基于 MIT 许可开源。代码结构清晰，适合安全审计、二次开发和团队内部深度定制。',
       },
     },
-    releaseKicker: 'v0.9.1',
+    releaseKicker: 'v0.9.2',
     releaseDate: '2026 年 7 月',
     changelog: '更新日志',
     releaseTitle: 'Release Candidate',

@@ -1,7 +1,14 @@
 // 从 Tauri bundle 目录中的签名更新包生成单平台 latest.json 片段。
 // Tauri 只生成 .sig，不生成 latest.json；此脚本在 CI 各平台构建后调用。
 // 用法: node scripts/generate-platform-updater-manifest.mjs <bundle根目录...> --tag vX.Y.Z --platform windows-x64 --out updater/latest-windows-x64-0.json
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import {
+  copyFileSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
 
 const PLATFORM_KEYS = {
@@ -16,12 +23,14 @@ function parseArgs(argv) {
   let tag = ''
   let platform = ''
   let out = ''
+  let assetsOut = ''
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--tag') tag = argv[++i] ?? ''
     else if (arg === '--platform') platform = argv[++i] ?? ''
     else if (arg === '--out') out = argv[++i] ?? ''
+    else if (arg === '--assets-out') assetsOut = argv[++i] ?? ''
     else if (!arg.startsWith('--')) bundleRoots.push(arg)
   }
 
@@ -29,7 +38,7 @@ function parseArgs(argv) {
     root.replace(/\/bundle\/?$/, '/release').replace(/\\bundle\\?$/, '\\release'),
   )
 
-  return { bundleRoots, releaseRoots, tag, platform, out }
+  return { bundleRoots, releaseRoots, tag, platform, out, assetsOut }
 }
 
 function walkFiles(dir, files = []) {
@@ -85,7 +94,7 @@ function pickUpdaterArtifact(files, platform) {
     if (platform.startsWith('macos')) {
       const isMacUpdater =
         name.endsWith('.app.tar.gz') ||
-        name.endsWith('.tar.gz') && (rel.includes('/macos/') || rel.includes('/osx/'))
+        (name.endsWith('.tar.gz') && (rel.includes('/macos/') || rel.includes('/osx/')))
       if (!isMacUpdater) continue
     }
     if (platform.startsWith('linux')) {
@@ -121,12 +130,54 @@ function describeBundleFiles(files) {
   return interesting.map((f) => f.replace(/\\/g, '/')).sort()
 }
 
-const { bundleRoots, releaseRoots, tag, platform, out } = parseArgs(process.argv)
+function isDesktopPackage(file, platform) {
+  const normalized = file.replace(/\\/g, '/').toLowerCase()
+  if (!normalized.includes('/bundle/')) return false
+  const name = basename(file).toLowerCase()
+  if (platform.startsWith('windows')) return name.endsWith('.exe') || name.endsWith('.msi')
+  if (platform.startsWith('macos')) return name.endsWith('.dmg') || name.endsWith('.app.tar.gz')
+  if (platform.startsWith('linux')) return name.endsWith('.appimage') || name.endsWith('.deb')
+  return false
+}
+
+function updaterAssetName(file, platform, version) {
+  if (platform.startsWith('macos') && basename(file).toLowerCase().endsWith('.app.tar.gz')) {
+    return `Gate_${version}_${platform}.app.tar.gz`
+  }
+  return basename(file)
+}
+
+function collectReleaseAssets(files, picked, platform, version, assetsOut) {
+  mkdirSync(assetsOut, { recursive: true })
+  const updaterName = updaterAssetName(picked.artifact, platform, version)
+  const selected = [
+    ...files.filter((file) => isDesktopPackage(file, platform)),
+    picked.artifact,
+    picked.sig,
+  ]
+  const copiedNames = new Set()
+
+  for (const source of [...new Set(selected)]) {
+    const name =
+      source === picked.artifact
+        ? updaterName
+        : source === picked.sig
+          ? `${updaterName}.sig`
+          : basename(source)
+    if (copiedNames.has(name)) continue
+    copyFileSync(source, join(assetsOut, name))
+    copiedNames.add(name)
+  }
+
+  return { updaterName, copiedNames: [...copiedNames].sort() }
+}
+
+const { bundleRoots, releaseRoots, tag, platform, out, assetsOut } = parseArgs(process.argv)
 const platformKey = PLATFORM_KEYS[platform]
 
-if (!tag || !platform || !out || !platformKey || bundleRoots.length === 0) {
+if (!tag || !platform || !out || !assetsOut || !platformKey || bundleRoots.length === 0) {
   console.error(
-    '用法: node scripts/generate-platform-updater-manifest.mjs <bundle根目录...> --tag vX.Y.Z --platform <matrix.name> --out <输出路径>',
+    '用法: node scripts/generate-platform-updater-manifest.mjs <bundle根目录...> --tag vX.Y.Z --platform <matrix.name> --out <清单路径> --assets-out <资产目录>',
   )
   process.exit(1)
 }
@@ -147,7 +198,13 @@ if (!picked) {
 }
 
 const version = stripVersion(tag)
-const fileName = basename(picked.artifact)
+const { updaterName: fileName, copiedNames } = collectReleaseAssets(
+  allFiles,
+  picked,
+  platform,
+  version,
+  assetsOut,
+)
 const signature = readFileSync(picked.sig, 'utf8').trim()
 const downloadBase = `https://github.com/Somirk134/Gate/releases/download/${tag}`
 
@@ -165,4 +222,7 @@ const manifest = {
 
 mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, JSON.stringify(manifest, null, 2))
-console.log(`已生成 ${platform} updater 清单 -> ${out} (${relative(process.cwd(), picked.artifact)})`)
+console.log(
+  `已生成 ${platform} updater 清单 -> ${out} (${relative(process.cwd(), picked.artifact)})`,
+)
+console.log(`已收集 ${platform} 发布资产: ${copiedNames.join(', ')}`)
