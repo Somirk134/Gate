@@ -1,9 +1,10 @@
 // 将 GitHub Release 资产镜像到 Gitee Release（资产完全一致）。
 // 需要环境变量 GITEE_TOKEN（私人令牌，repo 权限）。
 // 用法: node scripts/sync-gitee-release.mjs v0.9.2
-import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { pipeline } from 'node:stream/promises'
+import { promisify } from 'node:util'
 
 const GITHUB_OWNER = 'Somirk134'
 const GITHUB_REPO = 'Gate'
@@ -12,6 +13,8 @@ const GITEE_REPO = 'gate'
 
 const tag = process.argv[2]
 const token = process.env.GITEE_TOKEN
+const githubToken = process.env.GITHUB_TOKEN
+const execFileAsync = promisify(execFile)
 
 if (!tag || !token) {
   console.error('用法: GITEE_TOKEN=... node scripts/sync-gitee-release.mjs v0.9.2')
@@ -19,8 +22,10 @@ if (!tag || !token) {
 }
 
 async function gh(path) {
+  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'gate-release-sync' }
+  if (githubToken) headers.Authorization = `Bearer ${githubToken}`
   const res = await fetch(`https://api.github.com${path}`, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'gate-release-sync' },
+    headers,
   })
   if (!res.ok) throw new Error(`GitHub ${path} -> ${res.status} ${await res.text()}`)
   return res.json()
@@ -48,10 +53,74 @@ async function gitee(method, path, { json, form } = {}) {
   return body
 }
 
-async function download(url, dest) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`下载失败 ${url} -> ${res.status}`)
-  await pipeline(res.body, createWriteStream(dest))
+async function download(asset, dest) {
+  if (existsSync(dest) && statSync(dest).size === asset.size) return
+
+  let url = asset.browser_download_url
+  const args = [
+    '--fail',
+    '--location',
+    '--retry',
+    '5',
+    '--retry-delay',
+    '2',
+    '--retry-all-errors',
+    '--continue-at',
+    '-',
+    '--connect-timeout',
+    '20',
+    '--max-time',
+    '600',
+    '--silent',
+    '--show-error',
+    '--header',
+    'User-Agent: gate-release-sync',
+  ]
+  if (githubToken) {
+    url = asset.url
+    args.push('--header', `Authorization: Bearer ${githubToken}`)
+    args.push('--header', 'Accept: application/octet-stream')
+  }
+  args.push('--output', dest, url)
+
+  const curl = process.platform === 'win32' ? 'curl.exe' : 'curl'
+  try {
+    await execFileAsync(curl, args, { maxBuffer: 4 * 1024 * 1024 })
+  } catch {
+    throw new Error(`GitHub 资产下载失败: ${asset.name}`)
+  }
+  const size = statSync(dest).size
+  if (size !== asset.size) {
+    throw new Error(`下载大小不一致 ${asset.name}: ${size} != ${asset.size}`)
+  }
+}
+
+async function uploadAsset(releaseId, localPath, name, attempts = 4) {
+  let lastError
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const form = new FormData()
+    form.append('file', new Blob([readFileSync(localPath)]), name)
+    try {
+      await gitee(
+        'POST',
+        `/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${releaseId}/attach_files`,
+        {
+          form,
+        },
+      )
+      return
+    } catch (error) {
+      lastError = error
+      // 响应中断时先确认服务端是否已收件，避免重试产生同名重复资产。
+      const current = await gitee(
+        'GET',
+        `/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${releaseId}`,
+      ).catch(() => null)
+      if ((current?.assets ?? []).some((asset) => asset.name === name)) return
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 3_000))
+  }
+  throw lastError
 }
 
 async function main() {
@@ -85,24 +154,24 @@ async function main() {
   const tmpDir = join(process.cwd(), '.gitee-release-sync')
   mkdirSync(tmpDir, { recursive: true })
 
-  for (const asset of assets) {
-    if (existingNames.has(asset.name)) {
-      console.log(`跳过已存在: ${asset.name}`)
-      continue
-    }
-    const localPath = join(tmpDir, asset.name)
-    console.log(`下载 ${asset.name} ...`)
-    await download(asset.browser_download_url, localPath)
+  try {
+    for (const asset of assets) {
+      if (existingNames.has(asset.name)) {
+        console.log(`跳过已存在: ${asset.name}`)
+        continue
+      }
+      const localPath = join(tmpDir, asset.name)
+      console.log(`下载 ${asset.name} ...`)
+      await download(asset, localPath)
 
-    const form = new FormData()
-    form.append('file', new Blob([readFileSync(localPath)]), asset.name)
-    await gitee('POST', `/repos/${GITEE_OWNER}/${GITEE_REPO}/releases/${release.id}/attach_files`, {
-      form,
-    })
-    console.log(`已上传: ${asset.name}`)
+      await uploadAsset(release.id, localPath, asset.name)
+      console.log(`已上传: ${asset.name}`)
+      rmSync(localPath, { force: true })
+    }
+  } finally {
+    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
   }
 
-  if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
   console.log(
     `Gitee Release 同步完成: https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/releases/tag/${tag}`,
   )
