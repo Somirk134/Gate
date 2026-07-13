@@ -51,7 +51,9 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          rustflags: ''
           cache: true
+          cache-key: release-validate-ubuntu-22.04-v2
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -136,7 +138,9 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.target }}
+          rustflags: ''
           cache: true
+          cache-key: release-${{ matrix.name }}-v2
 
       - name: Setup Node
         uses: actions/setup-node@v5

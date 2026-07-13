@@ -38,7 +38,9 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+          rustflags: ''
           cache: true
+          cache-key: ci-rust-ubuntu-22.04-v2
 
       - name: Rustfmt
         run: cargo fmt --all --check
@@ -108,7 +110,9 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          rustflags: ''
           cache: true
+          cache-key: ci-integration-ubuntu-22.04-v2
 
       - name: Run integration tests
         run: cargo test -p gate-integration

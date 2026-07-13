@@ -25,7 +25,6 @@ Required firewall/security-group ports:
 - `5800/tcp` for desktop client connections.
 - Any tunnel `remotePort` selected by users.
 
-
 ## Published image template
 
 After publishing the image to Docker Hub, users can run without source code:

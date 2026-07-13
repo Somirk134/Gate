@@ -132,6 +132,7 @@ GATE_AUTH_TOKEN=你的token docker compose up -d
 ```
 
 > **一行命令替代方案**：直接使用仓库的 release 模板：
+>
 > ```bash
 > GATE_AUTH_TOKEN=你的token \
 >   docker compose -f https://raw.githubusercontent.com/Somirk134/Gate/main/docker/docker-compose.release.yml up -d
@@ -201,7 +202,7 @@ GATE_AUTH_TOKEN=$TOKEN \
 
 启动成功后控制台只打印公开连接信息，认证 Token 不会写入标准输出或日志：
 
-```
+```text
 ========================================
   Gate Server started successfully
 ========================================
@@ -216,7 +217,7 @@ GATE_AUTH_TOKEN=$TOKEN \
 > **macOS 用户**：`chmod +x gate-server-v0.9.2-macos-*`，设置 `GATE_AUTH_TOKEN` 后再运行二进制。
 > `GATE_AUTH_TOKEN` 缺失、少于 16 个字符或使用已知弱默认值时，服务端会拒绝启动。
 
-**进阶：让服务端后台常驻（Linux）**
+#### 进阶：让服务端后台常驻（Linux）
 
 ```bash
 # 简单后台运行
@@ -270,11 +271,13 @@ ufw allow 5800/tcp comment "Gate 控制端口"
 前往 [Releases 页面](https://github.com/Somirk134/Gate/releases) → 下载你系统对应的安装包 → 安装即可。
 
 > 如果还没有发布 Release 包，可以本地构建：
+>
 > ```bash
 > git clone https://github.com/Somirk134/Gate.git && cd Gate
 > npm --prefix client ci
 > npm --prefix client run tauri build
 > ```
+>
 > 构建产物在 `client/src-tauri/target/release/bundle/` 目录下。
 
 ### 第二步：连接 Gate 服务端
@@ -292,6 +295,7 @@ Dashboard 上应该能看到绿色的「已连接」状态。
 假设你要把本机运行在 `127.0.0.1:3000` 的 Web 应用通过 Gate 服务端暴露到公网。
 
 **开始之前，确认以下条件已满足：**
+
 - ✅ 服务端正在运行（上面的第 3 步）
 - ✅ 桌面客户端已连接到服务端（第二步）
 - ✅ 本地要暴露的服务确实在监听（比如先跑起来 `python -m http.server 3000`）
@@ -312,6 +316,7 @@ Dashboard 上应该能看到绿色的「已连接」状态。
 4. 点击 **创建**。
 5. 打开隧道的开关 → **启动**。
 6. 在服务器防火墙上开放该远程端口：
+
    ```bash
    ufw allow 18080/tcp
    ```
@@ -357,6 +362,7 @@ docker compose up -d
 ### HTTP / HTTPS 隧道
 
 除了 TCP，Gate 还支持 HTTP 和 HTTPS 类型隧道。在**创建隧道**对话框中：
+
 - 选择类型 **HTTP** —— Gate 会根据 HTTP Host 头进行路由。
 - 选择类型 **HTTPS** —— 用于 TLS 终止场景，需通过证书管理面板配置证书。
 

@@ -22,7 +22,6 @@ This page covers production-style server deployment. Keep secrets out of source 
 | `GATE_ACME_EMAIL` | ACME account email when ACME is enabled | `ops@example.com` |
 | `GATE_ACME_AUTO` | Enable automatic ACME issuance where supported | `true` |
 
-
 ## Docker host-network deployment
 
 For Linux servers, Gate recommends Docker host networking because tunnel public listeners are created dynamically from each tunnel `remotePort`. With host networking, users only need to open the Gate control port and selected tunnel ports in the cloud security group or host firewall; they do not need to edit Compose whenever a new tunnel port is used.

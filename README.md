@@ -129,6 +129,7 @@ docker compose up -d
 ```
 
 > **One-line alternative** using the repo's release template directly:
+>
 > ```bash
 > export GATE_AUTH_TOKEN="$(openssl rand -hex 32)"
 >   docker compose -f https://raw.githubusercontent.com/Somirk134/Gate/main/docker/docker-compose.release.yml up -d
@@ -198,7 +199,7 @@ GATE_AUTH_TOKEN=$TOKEN \
 
 On success the console prints the public connection information. The authentication token is never written to stdout or logs:
 
-```
+```text
 ========================================
   Gate Server started successfully
 ========================================
@@ -213,7 +214,7 @@ On success the console prints the public connection information. The authenticat
 > **macOS**: `chmod +x gate-server-v0.9.2-macos-*`, set `GATE_AUTH_TOKEN`, then run the binary.
 > The server refuses to start when `GATE_AUTH_TOKEN` is missing, shorter than 16 characters, or a known weak default.
 
-**Optional: keep the server running in the background (Linux)**
+#### Optional: keep the server running in the background (Linux)
 
 ```bash
 # Simple background run
@@ -267,11 +268,13 @@ Download the latest installer from **GitHub Releases**:
 Go to the [Releases](https://github.com/Somirk134/Gate/releases) page → download the package for your OS → install it.
 
 > If no release is available yet, build locally:
+>
 > ```bash
 > git clone https://github.com/Somirk134/Gate.git && cd Gate
 > npm --prefix client ci
 > npm --prefix client run tauri build
 > ```
+>
 > Find installers in `client/src-tauri/target/release/bundle/`.
 
 ### Step B: Connect to Your Gate Server
@@ -289,6 +292,7 @@ You should see a green "connected" status on the dashboard.
 Let's expose a local web app running on `127.0.0.1:3000` to the public internet.
 
 **Before you begin**, make sure:
+
 - ✅ Gate server is running (Step 3 above)
 - ✅ Desktop client is connected (Step B)
 - ✅ Your local service is actually listening (e.g., `python -m http.server 3000`)
@@ -309,6 +313,7 @@ Let's expose a local web app running on `127.0.0.1:3000` to the public internet.
 4. Click **Create**.
 5. Toggle the tunnel switch to **Start**.
 6. Open the remote port on your server firewall if not already open:
+
    ```bash
    ufw allow 18080/tcp
    ```
@@ -354,6 +359,7 @@ Repeat **Step C** for each local service. Each tunnel gets its own `remotePort`.
 ### HTTP / HTTPS Tunnels
 
 Gate also supports HTTP and HTTPS tunnel types. In the **Create Tunnel** dialog:
+
 - Select type **HTTP** for web services — Gate routes HTTP Host headers.
 - Select type **HTTPS** for TLS-terminated services — configure certificates via the Certificate Management panel.
 

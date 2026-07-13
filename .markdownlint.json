@@ -5,7 +5,7 @@
     "siblings_only": true
   },
   "MD033": {
-    "allowed_elements": ["p", "a", "img", "h1", "br", "strong", "em"]
+    "allowed_elements": ["p", "a", "img", "h1", "br", "strong", "em", "table", "tr", "td"]
   },
   "MD041": false,
   "MD060": false
